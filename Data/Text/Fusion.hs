@@ -1,5 +1,4 @@
-{-# OPTIONS_GHC -fglasgow-exts #-}
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE ExistentialQuantification, BangPatterns, MagicHash #-}
 --TODO: eliminate the need to supress these warnings:
 {-# OPTIONS_GHC -fno-warn-incomplete-patterns -fno-warn-unused-matches #-}
 

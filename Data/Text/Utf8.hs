@@ -1,4 +1,4 @@
-{-# OPTIONS_GHC -fglasgow-exts #-}
+{-# LANGUAGE MagicHash #-}
 module Data.Text.Utf8 where
 
 import Data.Char(ord)

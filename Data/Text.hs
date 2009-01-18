@@ -1,4 +1,3 @@
-{-# OPTIONS_GHC -fglasgow-exts #-}
 {-# LANGUAGE BangPatterns #-}
 
 module Data.Text where
