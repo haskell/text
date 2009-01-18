@@ -1,7 +1,7 @@
 module Text.Utf32 where
 
 import Data.Bits
-import Char
+import Data.Char
 import Data.Word
 
 validate    :: Word32 -> Bool

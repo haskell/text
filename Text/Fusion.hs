@@ -5,7 +5,7 @@ module Text.Fusion where
 
 import Prelude hiding (map, tail, head, foldr, filter,concat)
 
-import Char
+import Data.Char
 import Control.Exception(assert)
 import Control.Monad(liftM2)
 import Control.Monad.ST(runST,ST(..))

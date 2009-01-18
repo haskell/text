@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -fglasgow-exts #-}
 module Text.Utf8 where
 
-import Char(ord)
+import Data.Char(ord)
 import Data.Bits
 import Data.Word
 

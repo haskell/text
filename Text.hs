@@ -10,7 +10,7 @@ import Prelude (Char,Bool,Int,Maybe,String,
                 (&&),(||),(+),(-),($),(<),(>),(<=),(>=),(.),(>>=),
                 return,otherwise,seq,fromIntegral)
 
-import Char (isSpace)
+import Data.Char (isSpace)
 import Control.Monad.ST(ST(..))
 import Data.Array.Base(unsafeNewArray_,unsafeWrite,unsafeAt)
 import Data.Array.ST(STUArray(..), runSTUArray)
