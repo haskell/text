@@ -1,5 +1,7 @@
 {-# OPTIONS_GHC -fglasgow-exts #-}
 {-# LANGUAGE BangPatterns #-}
+--TODO: eliminate the need to supress these warnings:
+{-# OPTIONS_GHC -fno-warn-incomplete-patterns -fno-warn-unused-matches #-}
 
 module Data.Text.Fusion where
 
@@ -8,14 +10,14 @@ import Prelude hiding (map, tail, head, foldr, filter,concat)
 import Data.Char
 import Control.Exception(assert)
 import Control.Monad(liftM2)
-import Control.Monad.ST(runST,ST(..))
+import Control.Monad.ST(runST,ST)
 import Data.Array.Base
 import Data.Bits
 import qualified Data.ByteString as B
 import Data.ByteString.Internal(ByteString(..),mallocByteString,memcpy)
 import qualified Data.List as L
-import Data.Word(Word8(..),Word16(..),Word32(..))
-import Foreign.ForeignPtr(withForeignPtr,ForeignPtr(..))
+import Data.Word(Word8, Word16, Word32)
+import Foreign.ForeignPtr(withForeignPtr,ForeignPtr)
 import Foreign.Storable(pokeByteOff)
 import GHC.Exts
 import System.IO.Unsafe(unsafePerformIO)

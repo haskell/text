@@ -5,21 +5,21 @@ module Data.Text where
 
 import Prelude (Char,Bool,Int,Maybe,String,
                 Eq,(==),
-                Show,showsPrec,show,not,
-                Read,readsPrec,read,
+                Show,showsPrec,
+                Read,readsPrec,
                 (&&),(||),(+),(-),($),(<),(>),(<=),(>=),(.),(>>=),
-                return,otherwise,seq,fromIntegral)
+                return,otherwise,seq,
+                IO, FilePath)
 
 import Data.Char (isSpace)
-import Control.Monad.ST(ST(..))
+import Control.Monad.ST(ST)
 import Data.Array.Base(unsafeNewArray_,unsafeWrite,unsafeAt)
-import Data.Array.ST(STUArray(..), runSTUArray)
+import Data.Array.ST(STUArray, runSTUArray)
 import qualified Data.ByteString as B
-import Data.ByteString(ByteString(..))
+import Data.ByteString(ByteString)
 import qualified Data.List as L
 import Data.Monoid(Monoid(..))
-import Data.Word(Word16(..))
-import System.IO hiding (readFile)
+import Data.Word(Word16)
 
 import qualified Data.Text.Fusion as S
 import Data.Text.Fusion (Stream(..),Step(..),Encoding(..),

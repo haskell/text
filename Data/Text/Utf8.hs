@@ -3,7 +3,6 @@ module Data.Text.Utf8 where
 
 import Data.Char(ord)
 import Data.Bits
-import Data.Word
 
 import GHC.Exts
 import GHC.Prim

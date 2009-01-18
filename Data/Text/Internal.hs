@@ -1,8 +1,8 @@
 module Data.Text.Internal where
 
 import Data.Array.ST(newArray_,runSTUArray)
-import Data.Array.Unboxed(UArray(..))
-import Data.Word(Word16(..))
+import Data.Array.Unboxed(UArray)
+import Data.Word(Word16)
 
 data Text = Text !(UArray Int Word16) {-# UNPACK #-}!Int {-# UNPACK #-}!Int
 
