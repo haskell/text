@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -fglasgow-exts #-}
 {-# LANGUAGE BangPatterns #-}
 
-module Text.Fusion where
+module Data.Text.Fusion where
 
 import Prelude hiding (map, tail, head, foldr, filter,concat)
 
@@ -20,11 +20,11 @@ import Foreign.Storable(pokeByteOff)
 import GHC.Exts
 import System.IO.Unsafe(unsafePerformIO)
 
-import Text.Internal(Text(..),empty)
-import Text.UnsafeChar(unsafeChr,unsafeChr8,unsafeChr32)
-import qualified Text.Utf8 as U8
-import qualified Text.Utf16 as U16
-import qualified Text.Utf32 as U32
+import Data.Text.Internal(Text(..),empty)
+import Data.Text.UnsafeChar(unsafeChr,unsafeChr8,unsafeChr32)
+import qualified Data.Text.Utf8 as U8
+import qualified Data.Text.Utf16 as U16
+import qualified Data.Text.Utf32 as U32
 
 default(Int)
 

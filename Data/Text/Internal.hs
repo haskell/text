@@ -1,4 +1,4 @@
-module Text.Internal where
+module Data.Text.Internal where
 
 import Data.Array.ST(newArray_,runSTUArray)
 import Data.Array.Unboxed(UArray(..))

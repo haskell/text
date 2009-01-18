@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -fglasgow-exts #-}
 
-module Text.UnsafeChar where
+module Data.Text.UnsafeChar where
 
 import GHC.Exts
 import GHC.Word

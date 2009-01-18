@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -fglasgow-exts #-}
 
-module Text.Utf16 where
+module Data.Text.Utf16 where
 
 import GHC.Exts
 import GHC.Word

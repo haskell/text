@@ -1,4 +1,4 @@
-module Text.Utf32 where
+module Data.Text.Utf32 where
 
 import Data.Bits
 import Data.Char

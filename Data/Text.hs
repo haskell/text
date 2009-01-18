@@ -1,7 +1,7 @@
 {-# OPTIONS_GHC -fglasgow-exts #-}
 {-# LANGUAGE BangPatterns #-}
 
-module Text where
+module Data.Text where
 
 import Prelude (Char,Bool,Int,Maybe,String,
                 Eq,(==),
@@ -21,14 +21,14 @@ import Data.Monoid(Monoid(..))
 import Data.Word(Word16(..))
 import System.IO hiding (readFile)
 
-import qualified Text.Fusion as S
-import Text.Fusion (Stream(..),Step(..),Encoding(..),
+import qualified Data.Text.Fusion as S
+import Data.Text.Fusion (Stream(..),Step(..),Encoding(..),
                     stream,unstream,stream_bs,unstream_bs,restream,
                     errorEmptyList)
-import Text.Internal(Text(..),empty)
+import Data.Text.Internal(Text(..),empty)
 import qualified Prelude as P
-import Text.UnsafeChar(unsafeChr)
-import qualified Text.Utf16 as U16
+import Data.Text.UnsafeChar(unsafeChr)
+import qualified Data.Text.Utf16 as U16
 
 instance Eq Text where
     t1 == t2 = (stream t1) `S.eq` (stream t2)
