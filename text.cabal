@@ -1,7 +1,7 @@
 name:           text
 version:        0.0
 synopsis:       A Unicode Text type
-description:    An effecient string type in the style of "Data.ByteString" but
+description:    An efficient string type in the style of "Data.ByteString" but
                 for Unicode.
 license:        BSD3
 license-file:   LICENSE
