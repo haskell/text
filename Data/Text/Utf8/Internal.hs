@@ -1,4 +1,4 @@
-module Text.Utf8.Internal where
+module Data.Text.Utf8.Internal where
     
 import Data.Array.Unboxed
 import Data.Word

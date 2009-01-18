@@ -1,4 +1,4 @@
-{-# OPTIONS_GHC -fglasgow-exts #-}
+{-# LANGUAGE ExistentialQuantification #-}
 
 import BenchUtils
 import qualified Data.Text.Utf8.Fusion as U8

@@ -1,11 +1,9 @@
-{-# OPTIONS_GHC -fglasgow-exts -fbang-patterns #-}
-
 --module Bench where
 
 import BenchUtils
 import System.Mem 
 import Control.Concurrent
-import Char 
+import Data.Char
 import Data.Array.IArray
 import System.CPUTime
 import System.IO
@@ -13,10 +11,10 @@ import System.IO.Unsafe
 import Text.Printf
 import Control.Exception
 
-import qualified Text as T
-import Text.Internal
-import qualified Text.Fusion as S
-import Text.Fusion (Encoding(..))
+import qualified Data.Text as T
+import Data.Text.Internal
+import qualified Data.Text.Fusion as S
+import Data.Text.Fusion (Encoding(..))
 
 import qualified Data.List as L
 import qualified Data.ByteString as B

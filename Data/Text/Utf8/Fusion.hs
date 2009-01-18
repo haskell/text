@@ -1,17 +1,17 @@
-{-# OPTIONS_GHC -fbang-patterns -fglasgow-exts #-}
+{-# LANGUAGE BangPatterns #-}
 
-module Text.Utf8.Fusion where
+module Data.Text.Utf8.Fusion where
 
 import Data.Array.Base
 import Data.Word
 import Control.Monad.ST
 import Data.Text.UnsafeChar
 import Control.Monad
-import Char
+import Data.Char
 
-import Text.Utf8
-import Text.Utf8.Internal
-import Text.Fusion hiding (stream,unstream)
+import Data.Text.Utf8
+import Data.Text.Utf8.Internal
+import Data.Text.Fusion hiding (stream,unstream)
 
 stream :: Text -> Stream Char
 stream (Text arr off len) = Stream next off len

@@ -1,6 +1,4 @@
-{-# OPTIONS_GHC -fglasgow-exts #-}
-
-module Text.Utf32.Internal where
+module Data.Text.Utf32.Internal where
 
 import Data.Array.Unboxed
 import Data.Word

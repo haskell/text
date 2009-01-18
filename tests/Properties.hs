@@ -1,13 +1,13 @@
-{-# OPTIONS_GHC -fno-rewrite-rules #-}
+{-# OPTIONS_GHC -fno-enable-rewrite-rules #-}
 
 import Test.QuickCheck
 import Text.Show.Functions
 
 import Prelude 
-import qualified Text as T
-import Text (pack,unpack)
-import qualified Text.Fusion as S
-import Text.Fusion (unstream,stream)
+import qualified Data.Text as T
+import Data.Text (pack,unpack)
+import qualified Data.Text.Fusion as S
+import Data.Text.Fusion (unstream,stream)
 import qualified Data.List as L
 
 

@@ -1,5 +1,4 @@
-{-# OPTIONS_GHC -fglasgow-exts -fbang-patterns #-}
-
+{-# LANGUAGE ExistentialQuantification #-}
 module BenchUtils where
 
 import qualified Data.List as L
@@ -7,7 +6,7 @@ import Data.ByteString (ByteString(..))
 import Data.Word
 import Text.Printf
 import System.IO
-import Text.Internal (Text(..))
+import Data.Text.Internal (Text(..))
 import System.Mem
 import System.CPUTime
 import Control.Exception

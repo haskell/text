@@ -1,12 +1,12 @@
 import Prelude hiding (zip,zip3,fst,snd)
 
 import BenchUtils
-import Char
+import Data.Char
 import qualified Data.List as L
 import qualified Data.ByteString as B
-import qualified Text as T
-import Text.Fusion (Encoding(..))
-import qualified Text.Fusion as S
+import qualified Data.Text as T
+import Data.Text.Fusion (Encoding(..))
+import qualified Data.Text.Fusion as S
 import Text.Printf
 import System.IO
 import System.Mem

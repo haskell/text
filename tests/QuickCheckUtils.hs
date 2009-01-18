@@ -3,10 +3,10 @@ module QuickCheckUtils where
 import Test.QuickCheck
 import Test.QuickCheck.Batch
 
-import Char
+import Data.Char
 
-import Text
-import Text.Internal
+import Data.Text
+import Data.Text.Internal
 
 instance Arbitrary Char where
     arbitrary    = oneof [choose ('\0','\55295'), choose ('\57334','\1114111')]

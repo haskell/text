@@ -1,10 +1,10 @@
-{-# OPTIONS_GHC -fbang-patterns #-}
+{-# LANGUAGE BangPatterns #-}
 
-module Text.Utf32.Fusion where
+module Data.Text.Utf32.Fusion where
     
-import Text.Fusion hiding (stream, unstream)
-import Text.Utf32.Internal
-import Text.UnsafeChar
+import Data.Text.Fusion hiding (stream, unstream)
+import Data.Text.Utf32.Internal
+import Data.Text.UnsafeChar
 import Data.Array.Base
 import Data.Word
 import Data.Array.ST
