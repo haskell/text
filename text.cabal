@@ -33,6 +33,11 @@ library
     build-depends:
       ghc-prim
 
+  extensions:
+    ExistentialQuantification
+    BangPatterns
+    MagicHash
+
   --TODO: upgrade to -Wall:
   ghc-options: -W -fwarn-orphans
   if impl(ghc >= 6.8)
