@@ -1,0 +1,39 @@
+name:           text
+version:        0.0
+synopsis:       A Unicode Text type
+description:    An effecient string type in the style of "Data.ByteString" but
+                for Unicode.
+license:        BSD3
+license-file:   LICENSE
+author:         Tom Harper <rtharper@aftereternity.co.uk>
+maintainer:     Tom Harper <rtharper@aftereternity.co.uk>
+                Bryan O'Sullivan <bos@serpentine.com>
+                Duncan Coutts <duncan@haskell.org>
+copyright:      2008-2009 Tom Harper
+category:       Data, Text
+build-type:     Simple
+cabal-version:  >= 1.2
+
+library
+  exposed-modules:
+    Data.Text
+  other-modules:
+    Data.Text.UnsafeChar
+    Data.Text.Internal
+    Data.Text.Fusion
+    Data.Text.Utf8
+    Data.Text.Utf32
+    Data.Text.Utf16
+
+  build-depends:
+    base       >= 3   && < 4,
+    array      >= 0.1 && < 0.3,
+    bytestring >= 0.9 && < 1.0
+  if impl(ghc >= 6.10)
+    build-depends:
+      ghc-prim
+
+  --TODO: upgrade to -Wall:
+  ghc-options: -W -fwarn-orphans
+  if impl(ghc >= 6.8)
+    ghc-options: -fwarn-tabs
