@@ -63,7 +63,7 @@ unstream :: Stream Char -> Text
 unstream (Stream next0 s0 len) = x `seq` Text (fst x) 0 (snd x)
     where
       x :: ((UArray Int Word16),Int)
-      x = runST ((unsafeNewArray_ (0,len+1) :: ST s (STUArray s Int Word16)) 
+      x = runST ((unsafeNewArray_ (0,len+1) :: ST s (STUArray s Int Word16))
                  >>= (\arr -> loop arr 0 (len+1) s0))
       loop arr !i !max !s
           | i + 1 > max = do arr' <- unsafeNewArray_ (0,max*2)
@@ -80,7 +80,7 @@ unstream (Stream next0 s0 len) = x `seq` Text (fst x) 0 (snd x)
                    | otherwise   -> do
                         unsafeWrite arr i       l
                         unsafeWrite arr (i + 1) r
-                        loop arr (i+2) max s' 
+                        loop arr (i+2) max s'
                    where
                      n :: Int
                      n = ord x
@@ -93,13 +93,13 @@ unstream (Stream next0 s0 len) = x `seq` Text (fst x) 0 (snd x)
 {-# INLINE [0] unstream #-}
 
 
-copy src dest = (do 
+copy src dest = (do
                    (_,max) <- getBounds src
                    copy_loop 0 max)
     where
-      copy_loop !i !max 
+      copy_loop !i !max
           | i > max    = return ()
-          | otherwise = do v <- unsafeRead src i 
+          | otherwise = do v <- unsafeRead src i
                            unsafeWrite dest i v
                            copy_loop (i+1) max
 
@@ -113,7 +113,7 @@ eq (Stream next1 s1 _) (Stream next2 s2 _) = compare (next1 s1) (next2 s2)
       compare (Skip s1')     (Skip s2')     = compare (next1 s1') (next2 s2')
       compare (Skip s1')     x2             = compare (next1 s1') x2
       compare x1             (Skip s2')     = compare x1          (next2 s2')
-      compare (Yield x1 s1') (Yield x2 s2') = x1 == x2 && 
+      compare (Yield x1 s1') (Yield x2 s2') = x1 == x2 &&
                                               compare (next1 s1') (next2 s2')
 {-# SPECIALISE eq :: Stream Char -> Stream Char -> Bool #-}
 
@@ -123,12 +123,12 @@ stream_bs :: Encoding -> ByteString -> Stream Char
 stream_bs ASCII bs = Stream next 0 (B.length bs)
     where
       {-# INLINE next #-}
-      next i 
+      next i
           | i >= l    = Done
           | otherwise = Yield (unsafeChr8 x1) (i+1)
           where
             l  = B.length bs
-            x1 = B.index bs i 
+            x1 = B.index bs i
 stream_bs Utf8 bs = Stream next 0 (B.length bs)
     where
       {-# INLINE next #-}
@@ -145,11 +145,11 @@ stream_bs Utf8 bs = Stream next 0 (B.length bs)
             x2 = index (i + 1)
             x3 = index (i + 2)
             x4 = index (i + 3)
-            index = B.index bs           
+            index = B.index bs
 stream_bs Utf16LE bs = Stream next 0 (B.length bs)
     where
       {-# INLINE next #-}
-      next i 
+      next i
           | i >= l                         = Done
           | i+1 < l && U16.validate1 x1    = Yield (unsafeChr x1) (i+2)
           | i+3 < l && U16.validate2 x1 x2 = Yield (U16.chr2 x1 x2) (i+4)
@@ -159,12 +159,12 @@ stream_bs Utf16LE bs = Stream next 0 (B.length bs)
             x1    = (shiftL (index (i + 1)) 8) + (index i)
             x2    :: Word16
             x2    = (shiftL (index (i + 3)) 8) + (index (i + 2))
-            l     = B.length bs   
+            l     = B.length bs
             index = fromIntegral . B.index bs :: Int -> Word16
 stream_bs Utf16BE bs = Stream next 0 (B.length bs)
     where
       {-# INLINE next #-}
-      next i 
+      next i
           | i >= l                         = Done
           | i+1 < l && U16.validate1 x1    = Yield (unsafeChr x1) (i+2)
           | i+3 < l && U16.validate2 x1 x2 = Yield (U16.chr2 x1 x2) (i+4)
@@ -179,7 +179,7 @@ stream_bs Utf16BE bs = Stream next 0 (B.length bs)
 stream_bs Utf32BE bs = Stream next 0 (B.length bs)
     where
       {-# INLINE next #-}
-      next i 
+      next i
           | i >= l                    = Done
           | i+3 < l && U32.validate x = Yield (unsafeChr32 x) (i+4)
           | otherwise                 = error "bsStream: bad UTF-32BE stream"
@@ -194,7 +194,7 @@ stream_bs Utf32BE bs = Stream next 0 (B.length bs)
 stream_bs Utf32LE bs = Stream next 0 (B.length bs)
     where
       {-# INLINE next #-}
-      next i 
+      next i
           | i >= l                    = Done
           | i+3 < l && U32.validate x = Yield (unsafeChr32 x) (i+4)
           | otherwise                 = error "bsStream: bad UTF-32LE stream"
@@ -217,14 +217,14 @@ restream ASCII (Stream next0 s0 len) =  Stream next s0 (len*2)
                   Skip s' -> Skip s'
                   Yield x xs -> Yield x' xs
                       where x' = fromIntegral (ord x) :: Word8
-restream Utf8 (Stream next0 s0 len) = 
+restream Utf8 (Stream next0 s0 len) =
     Stream next ((Just s0) :!: Nothing :!: Nothing :!: Nothing) (len*2)
     where
       {-# INLINE next #-}
-      next ((Just s) :!: Nothing :!: Nothing :!: Nothing) = case next0 s of 
+      next ((Just s) :!: Nothing :!: Nothing :!: Nothing) = case next0 s of
                   Done              -> Done
                   Skip s'           -> Skip ((Just s') :!: Nothing :!: Nothing :!: Nothing)
-                  Yield x xs 
+                  Yield x xs
                       | n <= 0x7F   -> Yield c         ((Just xs) :!: Nothing   :!: Nothing   :!: Nothing)
                       | n <= 0x07FF -> Yield (fst c2)  ((Just xs) :!: (Just $ snd c2)  :!: Nothing   :!: Nothing)
                       | n <= 0xFFFF -> Yield (fst3 c3) ((Just xs) :!: (Just $ snd3 c3) :!: (Just $ trd3 c3) :!: Nothing)
@@ -234,7 +234,7 @@ restream Utf8 (Stream next0 s0 len) =
                         c  = fromIntegral n
                         c2 = U8.ord2 x
                         c3 = U8.ord3 x
-                        c4 = U8.ord4 x          
+                        c4 = U8.ord4 x
       next ((Just s) :!: (Just x2) :!: Nothing :!: Nothing) = Yield x2 ((Just s) :!: Nothing :!: Nothing :!: Nothing)
       next ((Just s) :!: (Just x2) :!: x3 :!: Nothing)      = Yield x2 ((Just s) :!: x3 :!: Nothing :!: Nothing)
       next ((Just s) :!: (Just x2) :!: x3 :!: x4)           = Yield x2 ((Just s) :!: x3 :!: x4 :!: Nothing)
@@ -242,7 +242,7 @@ restream Utf16BE (Stream next0 s0 len) =
     Stream next (Just s0 :!: Nothing :!: Nothing :!: Nothing) (len*2)
     where
       {-# INLINE next #-}
-      next (Just s :!: Nothing :!: Nothing :!: Nothing) = case next0 s of 
+      next (Just s :!: Nothing :!: Nothing :!: Nothing) = case next0 s of
           Done -> Done
           Skip s' -> Skip (Just s' :!: Nothing :!: Nothing :!: Nothing)
           Yield x xs
@@ -250,12 +250,12 @@ restream Utf16BE (Stream next0 s0 len) =
               | otherwise   -> Yield c1                          (Just xs :!: Just c2 :!: Just c3 :!: Just c4)
               where
                 n  = ord x
-                n1 = n - 0x10000 
+                n1 = n - 0x10000
                 c1 = fromIntegral (shiftR n1 18 + 0xD8)
-                c2 = fromIntegral (shiftR n1 10)       
+                c2 = fromIntegral (shiftR n1 10)
                 n2 = n1 .&. 0x3FF
-                c3 = fromIntegral (shiftR n2 8 + 0xDC) 
-                c4 = fromIntegral n2     
+                c3 = fromIntegral (shiftR n2 8 + 0xDC)
+                c4 = fromIntegral n2
       next ((Just s) :!: (Just x2) :!: Nothing :!: Nothing) = Yield x2 ((Just s) :!: Nothing :!: Nothing :!: Nothing)
       next ((Just s) :!: (Just x2) :!: x3 :!: Nothing)      = Yield x2 ((Just s) :!: x3 :!: Nothing :!: Nothing)
       next ((Just s) :!: (Just x2) :!: x3 :!: x4)           = Yield x2 ((Just s) :!: x3 :!: x4 :!: Nothing)
@@ -263,7 +263,7 @@ restream Utf16LE (Stream next0 s0 len) =
     Stream next (Just s0 :!: Nothing :!: Nothing :!: Nothing) (len*2)
     where
       {-# INLINE next #-}
-      next (Just s :!: Nothing :!: Nothing :!: Nothing) = case next0 s of 
+      next (Just s :!: Nothing :!: Nothing :!: Nothing) = case next0 s of
           Done -> Done
           Skip s' -> Skip (Just s' :!: Nothing :!: Nothing :!: Nothing)
           Yield x xs
@@ -271,20 +271,20 @@ restream Utf16LE (Stream next0 s0 len) =
               | otherwise   -> Yield c1                          (Just xs :!: Just c2 :!: Just c3 :!: Just c4)
               where
                 n  = ord x
-                n1 = n - 0x10000 
+                n1 = n - 0x10000
                 c2 = fromIntegral (shiftR n1 18 + 0xD8)
-                c1 = fromIntegral (shiftR n1 10)       
+                c1 = fromIntegral (shiftR n1 10)
                 n2 = n1 .&. 0x3FF
-                c4 = fromIntegral (shiftR n2 8 + 0xDC) 
-                c3 = fromIntegral n2     
+                c4 = fromIntegral (shiftR n2 8 + 0xDC)
+                c3 = fromIntegral n2
       next ((Just s) :!: (Just x2) :!: Nothing :!: Nothing) = Yield x2 ((Just s) :!: Nothing :!: Nothing :!: Nothing)
       next ((Just s) :!: (Just x2) :!: x3 :!: Nothing)      = Yield x2 ((Just s) :!: x3 :!: Nothing :!: Nothing)
       next ((Just s) :!: (Just x2) :!: x3 :!: x4)           = Yield x2 ((Just s) :!: x3 :!: x4 :!: Nothing)
-restream Utf32BE (Stream next0 s0 len) = 
+restream Utf32BE (Stream next0 s0 len) =
     Stream next (Just s0 :!: Nothing :!: Nothing :!: Nothing) (len*2)
     where
     {-# INLINE next #-}
-    next (Just s :!: Nothing :!: Nothing :!: Nothing) = case next0 s of 
+    next (Just s :!: Nothing :!: Nothing :!: Nothing) = case next0 s of
         Done       -> Done
         Skip s'    -> Skip (Just s' :!: Nothing :!: Nothing :!: Nothing)
         Yield x xs -> Yield c1 (Just xs :!: Just c2 :!: Just c3 :!: Just c4)
@@ -297,11 +297,11 @@ restream Utf32BE (Stream next0 s0 len) =
     next ((Just s) :!: (Just x2) :!: Nothing :!: Nothing) = Yield x2 ((Just s) :!: Nothing :!: Nothing :!: Nothing)
     next ((Just s) :!: (Just x2) :!: x3 :!: Nothing)      = Yield x2 ((Just s) :!: x3 :!: Nothing :!: Nothing)
     next ((Just s) :!: (Just x2) :!: x3 :!: x4)           = Yield x2 ((Just s) :!: x3 :!: x4 :!: Nothing)
-restream Utf32LE (Stream next0 s0 len) = 
+restream Utf32LE (Stream next0 s0 len) =
     Stream next (Just s0 :!: Nothing :!: Nothing :!: Nothing) (len*2)
     where
     {-# INLINE next #-}
-    next (Just s :!: Nothing :!: Nothing :!: Nothing) = case next0 s of 
+    next (Just s :!: Nothing :!: Nothing :!: Nothing) = case next0 s of
         Done       -> Done
         Skip s'    -> Skip (Just s' :!: Nothing :!: Nothing :!: Nothing)
         Yield x xs -> Yield c1 (Just xs :!: Just c2 :!: Just c3 :!: Just c4)
@@ -315,15 +315,15 @@ restream Utf32LE (Stream next0 s0 len) =
     next ((Just s) :!: (Just x2) :!: x3 :!: Nothing)      = Yield x2 ((Just s) :!: x3 :!: Nothing :!: Nothing)
     next ((Just s) :!: (Just x2) :!: x3 :!: x4)           = Yield x2 ((Just s) :!: x3 :!: x4 :!: Nothing)
 {-# INLINE restream #-}
-      
+
 
 fst3 (x1,_,_)   = x1
 snd3 (_,x2,_)   = x2
 trd3 (_,_,x3)   = x3
-fst4 (x1,_,_,_) = x1   
+fst4 (x1,_,_,_) = x1
 snd4 (_,x2,_,_) = x2
 trd4 (_,_,x3,_) = x3
-fth4 (_,_,_,x4) = x4 
+fth4 (_,_,_,x4) = x4
 
 -- | /O(n)/ Convert a Stream Word8 to a ByteString
 unstream_bs :: Stream Word8 -> ByteString
@@ -359,13 +359,13 @@ unstream_bs (Stream next s0 len) = unsafePerformIO $ do
 -- ----------------------------------------------------------------------------
 -- * Basic stream functions
 
--- | /O(n)/ Adds a character to the front of a Stream Char. 
+-- | /O(n)/ Adds a character to the front of a Stream Char.
 cons :: Char -> Stream Char -> Stream Char
 cons w (Stream next0 s0 len) = Stream next (S2 :!: s0) (len+2)
     where
       {-# INLINE next #-}
       next (S2 :!: s) = Yield w (S1 :!: s)
-      next (S1 :!: s) = case next0 s of 
+      next (S1 :!: s) = case next0 s of
                           Done -> Done
                           Skip s' -> Skip (S1 :!: s')
                           Yield x s' -> Yield x (S1 :!: s')
@@ -385,11 +385,11 @@ snoc (Stream next0 xs0 len) w = Stream next (Just xs0) (len+2)
 
 -- | /O(n)/ Appends one Stream to the other.
 append :: Stream Char -> Stream Char -> Stream Char
-append (Stream next0 s01 len1) (Stream next1 s02 len2) = 
+append (Stream next0 s01 len1) (Stream next1 s02 len2) =
     Stream next (Left s01) (len1 + len2)
     where
       {-# INLINE next #-}
-      next (Left s1) = case next0 s1 of 
+      next (Left s1) = case next0 s1 of
                          Done        -> Skip    (Right s02)
                          Skip s1'    -> Skip    (Left s1')
                          Yield x s1' -> Yield x (Left s1')
@@ -403,8 +403,8 @@ append (Stream next0 s01 len1) (Stream next1 s02 len2) =
 -- Subject to array fusion.
 head :: Stream Char -> Char
 head (Stream next s0 len) = loop_head s0
-    where 
-      loop_head !s = case next s of 
+    where
+      loop_head !s = case next s of
                       Yield x _ -> x
                       Skip s' -> loop_head s'
                       Done -> error "head: Empty list"
@@ -433,7 +433,7 @@ tail (Stream next0 s0 len) = Stream next (False :!: s0) (len-1)
       next (False :!: s) = case next0 s of
                           Done -> error "tail"
                           Skip s' -> Skip (False :!: s')
-                          Yield _ s' -> Skip (True :!: s') 
+                          Yield _ s' -> Skip (True :!: s')
       next (True :!: s) = case next0 s of
                           Done -> Done
                           Skip s' -> Skip (True :!: s')
@@ -441,7 +441,7 @@ tail (Stream next0 s0 len) = Stream next (False :!: s0) (len-1)
 {-# INLINE [0] tail #-}
 
 
--- | /O(1)/ Returns all but the last character of a Stream Char, which 
+-- | /O(1)/ Returns all but the last character of a Stream Char, which
 -- must be non-empty.
 init :: Stream Char -> Stream Char
 init (Stream next0 s0 len) = Stream next (Nothing :!: s0) (len-1)
@@ -472,28 +472,28 @@ length :: Stream Char -> Int
 length (Stream next s0 len) = loop_length 0# s0
     where
 
-      loop_length z# !s  = case next s of 
+      loop_length z# !s  = case next s of
                             Done       -> (I# z#)
-                            Skip    s' -> loop_length z# s' 
-                            Yield _ s' -> loop_length (z# +# 1#) s' 
+                            Skip    s' -> loop_length z# s'
+                            Yield _ s' -> loop_length (z# +# 1#) s'
 {-# INLINE[0] length #-}
 
 -- ----------------------------------------------------------------------------
 -- * Stream transformations
 
--- | /O(n)/ 'map' @f @xs is the Stream Char obtained by applying @f@ to each element of 
--- @xs@. 
+-- | /O(n)/ 'map' @f @xs is the Stream Char obtained by applying @f@ to each element of
+-- @xs@.
 map :: (Char -> Char) -> Stream Char -> Stream Char
 map f (Stream next0 s0 len) = Stream next s0 len
     where
       {-# INLINE next #-}
-      next !s = case next0 s of 
+      next !s = case next0 s of
                   Done       -> Done
                   Skip s'    -> Skip s'
-                  Yield x s' -> Yield (f x) s'          
+                  Yield x s' -> Yield (f x) s'
 {-# INLINE [0] map #-}
 
-{-# 
+{-#
   RULES "STREAM map/map fusion" forall f g s.
      map f (map g s) = map (\x -> f (g x)) s
  #-}
@@ -517,7 +517,7 @@ intersperse c (Stream next0 s0 len) = Stream next (s0 :!: Nothing :!: S1) len
 -- ----------------------------------------------------------------------------
 -- * Reducing Streams (folds)
 
--- | foldl, applied to a binary operator, a starting value (typically the 
+-- | foldl, applied to a binary operator, a starting value (typically the
 -- left-identity of the operator), and a Stream, reduces the Stream using the
 -- binary operator, from left to right.
 foldl :: (b -> Char -> b) -> b -> Stream Char -> b
@@ -539,7 +539,7 @@ foldl' f z0 (Stream next s0 len) = loop_foldl' z0 s0
                             Yield x s' -> loop_foldl' (f z x) s'
 {-# INLINE [0] foldl' #-}
 
--- | foldl1 is a variant of foldl that has no starting value argument, 
+-- | foldl1 is a variant of foldl that has no starting value argument,
 -- and thus must be applied to non-empty Streams.
 foldl1 :: (Char -> Char -> Char) -> Stream Char -> Char
 foldl1 f (Stream next s0 len) = loop0_foldl1 s0
@@ -568,7 +568,7 @@ foldl1' f (Stream next s0 len) = loop0_foldl1' s0
                              Yield x s' -> loop_foldl1' (f z x) s'
 {-# INLINE [0] foldl1' #-}
 
--- | 'foldr', applied to a binary operator, a starting value (typically the 
+-- | 'foldr', applied to a binary operator, a starting value (typically the
 -- right-identity of the operator), and a stream, reduces the stream using the
 -- binary operator, from right to left.
 foldr :: (Char -> b -> b) -> b -> Stream Char -> b
@@ -580,7 +580,7 @@ foldr f z (Stream next s0 len) = loop_foldr s0
                         Yield x s' -> f x (loop_foldr s')
 {-# INLINE [0] foldr #-}
 
--- | foldr1 is a variant of 'foldr' that has no starting value argument, 
+-- | foldr1 is a variant of 'foldr' that has no starting value argument,
 -- and thust must be applied to non-empty streams.
 -- Subject to array fusion.
 foldr1 :: (Char -> Char -> Char) -> Stream Char -> Char
@@ -596,7 +596,7 @@ foldr1 f (Stream next s0 len) = loop0_foldr1 s0
       Skip     s' -> loop_foldr1 x s'
       Yield x' s' -> f x (loop_foldr1 x' s')
 {-# INLINE [0] foldr1 #-}
-    
+
 -- ----------------------------------------------------------------------------
 -- ** Special folds
 
@@ -606,7 +606,7 @@ concat = L.foldr append (Stream next Done 0)
     where
       next Done = Done
 
--- | Map a function over a stream that results in a steram and concatenate the 
+-- | Map a function over a stream that results in a steram and concatenate the
 -- results.
 concatMap :: (Char -> Stream Char) -> Stream Char -> Stream Char
 concatMap f = foldr (append . f) (stream empty)
@@ -627,14 +627,14 @@ any p (Stream next0 s0 len) = loop_any s0
 all :: (Char -> Bool) -> Stream Char -> Bool
 all p (Stream next0 s0 len) = loop_all s0
     where
-      loop_all !s = case next0 s of 
+      loop_all !s = case next0 s of
                       Done                   -> True
                       Skip s'                -> seq s' $ loop_all s'
                       Yield x s' | p x       -> seq s' $ loop_all s'
                                  | otherwise -> False
 
--- | /O(n)/ maximum returns the maximum value from a stream, which must be 
--- non-empty. 
+-- | /O(n)/ maximum returns the maximum value from a stream, which must be
+-- non-empty.
 maximum :: Stream Char -> Char
 maximum (Stream next0 s0 len) = loop0_maximum s0
     where
@@ -648,8 +648,8 @@ maximum (Stream next0 s0 len) = loop0_maximum s0
                              Yield x s'
                                  | x > z     -> seq s' $ loop_maximum x s'
                                  | otherwise -> seq s' $ loop_maximum z s'
-                             
--- | /O(n)/ minimum returns the minimum value from a 'Text', which must be 
+
+-- | /O(n)/ minimum returns the minimum value from a 'Text', which must be
 -- non-empty.
 minimum :: Stream Char -> Char
 minimum (Stream next0 s0 len) = loop0_minimum s0
@@ -666,8 +666,8 @@ minimum (Stream next0 s0 len) = loop0_minimum s0
                                  | otherwise -> seq s' $ loop_minimum z s'
 
 
-                      
-                  
+
+
 -- -----------------------------------------------------------------------------
 -- * Building streams
 
@@ -694,8 +694,8 @@ unfoldr f s0 = Stream next s0 1
 -- first argument to unfoldrN. This function is more efficient than
 -- unfoldr when the maximum length of the result and correct,
 -- otherwise its complexity performance is similar to 'unfoldr'
-unfoldrN :: Int -> (a -> Maybe (Char,a)) -> a -> Stream Char 
-unfoldrN n f s0 = Stream next (0 :!: s0) (n*2) 
+unfoldrN :: Int -> (a -> Maybe (Char,a)) -> a -> Stream Char
+unfoldrN n f s0 = Stream next (0 :!: s0) (n*2)
     where
       {-# INLINE next #-}
       next (z :!: s) = case f s of
@@ -718,7 +718,7 @@ take n0 (Stream next0 s0 len) = Stream next (n0 :!: s0) len
                                      Skip s' -> Skip (n :!: s')
                                      Yield x s' -> Yield x ((n-1) :!: s')
 {-# INLINE [0] take #-}
- 
+
 -- | /O(n)/ drop n, applied to a stream, returns the suffix of the
 -- stream of length @n@, or the empty stream if @n@ is greater than the
 -- length of the stream.
@@ -768,7 +768,7 @@ dropWhile p (Stream next0 s0 len) = Stream next (S1 :!: s0) len
 {-# INLINE [0] dropWhile #-}
 
 -- ----------------------------------------------------------------------------
--- * Searching 
+-- * Searching
 
 -------------------------------------------------------------------------------
 -- ** Searching by equality
@@ -794,7 +794,7 @@ elem w (Stream next s0 len) = loop_elem s0
 find :: (Char -> Bool) -> Stream Char -> Maybe Char
 find p (Stream next s0 len) = loop_find s0
     where
-      loop_find !s = case next s of 
+      loop_find !s = case next s of
                        Done -> Nothing
                        Skip s' -> loop_find s'
                        Yield x s' | p x -> Just x
@@ -851,7 +851,7 @@ findIndex p (Stream next s0 len) = loop_findIndex 0 s0
 
 -- | /O(n)/ The 'elemIndex' function returns the index of the first
 -- element in the given stream which is equal to the query
--- element, or 'Nothing' if there is no such element. 
+-- element, or 'Nothing' if there is no such element.
 elemIndex :: Char -> Stream Char -> Maybe Int
 elemIndex a (Stream next s0 len) = loop_elemIndex 0 s0
   where
@@ -875,7 +875,7 @@ zipWith f (Stream next0 sa0 len1) (Stream next1 sb0 len2) = Stream next (sa0 :!:
                                        Done -> Done
                                        Skip sa' -> Skip (sa' :!: sb :!: Nothing)
                                        Yield a sa' -> Skip (sa' :!: sb :!: Just a)
-      
+
       next (sa' :!: sb :!: Just a) = case next1 sb of
                                        Done -> Done
                                        Skip sb' -> Skip (sa' :!: sb' :!: Just a)

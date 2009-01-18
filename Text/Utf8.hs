@@ -9,7 +9,7 @@ import GHC.Exts
 import GHC.Prim
 import GHC.Word
 
-between       :: Word8 -> Word8 -> Word8 -> Bool 
+between       :: Word8 -> Word8 -> Word8 -> Bool
 between x y z = x >= y && x <= z
 {-# INLINE between #-}
 
@@ -31,7 +31,7 @@ ord3 c = (x1,x2,x3)
 ord4   :: Char -> (Word8,Word8,Word8,Word8)
 ord4 c = (x1,x2,x3,x4)
     where
-      n  = ord c 
+      n  = ord c
       x1 = fromIntegral $ (shiftR n 18) + (0xF0::Int) :: Word8
       x2 = fromIntegral $ ((shiftR n 12) .&. (0x3F::Int)) + (0x80::Int) :: Word8
       x3 = fromIntegral $ ((shiftR n 6) .&. (0x3F::Int)) + (0x80::Int) :: Word8
@@ -47,7 +47,7 @@ chr2 (W8# x1#) (W8# x2#) = C# (chr# (z1# +# z2#))
 {-# INLINE chr2 #-}
 
 chr3          :: Word8 -> Word8 -> Word8 -> Char
-chr3 (W8# x1#) (W8# x2#) (W8# x3#) = C# (chr# (z1# +# z2# +# z3#)) 
+chr3 (W8# x1#) (W8# x2#) (W8# x3#) = C# (chr# (z1# +# z2# +# z3#))
     where
       y1# = word2Int# x1#
       y2# = word2Int# x2#
@@ -58,7 +58,7 @@ chr3 (W8# x1#) (W8# x2#) (W8# x3#) = C# (chr# (z1# +# z2# +# z3#))
 {-# INLINE chr3 #-}
 
 chr4             :: Word8 -> Word8 -> Word8 -> Word8 -> Char
-chr4 (W8# x1#) (W8# x2#) (W8# x3#) (W8# x4#) = 
+chr4 (W8# x1#) (W8# x2#) (W8# x3#) (W8# x4#) =
     C# (chr# (z1# +# z2# +# z3# +# z4#))
     where
       y1# = word2Int# x1#
@@ -94,15 +94,15 @@ validate4 x1 x2 x3 x4 = validate4_1 x1 x2 x3 x4 ||
 
 
 
-validate3_1 x1 x2 x3 = (x1 == 0xE0) && 
-                       between x2 0xA0 0xBF && 
+validate3_1 x1 x2 x3 = (x1 == 0xE0) &&
+                       between x2 0xA0 0xBF &&
                        between x3 0x80 0xBF
 {-# INLINE validate3_1 #-}
 
 validate3_2 x1 x2 x3 = between x1 0xE1 0xEC &&
                        between x2 0x80 0xBF &&
                        between x3 0x80 0xBF
-{-# INLINE validate3_2 #-} 
+{-# INLINE validate3_2 #-}
 
 validate3_3 x1 x2 x3 = x1 == 0xED &&
                        between x2 0x80 0x9F &&
@@ -118,17 +118,17 @@ validate3_4 x1 x2 x3 = between x1 0xEE 0xEF &&
 validate4_1 x1 x2 x3 x4 = x1 == 0xF0 &&
                           between x2 0x90 0xBF &&
                           between x3 0x80 0xBF &&
-                          between x4 0x80 0xBF 
+                          between x4 0x80 0xBF
 {-# INLINE validate4_1 #-}
 
 validate4_2 x1 x2 x3 x4 = between x1 0xF1 0xF3 &&
                           between x2 0x80 0xBF &&
                           between x3 0x80 0xBF &&
-                          between x4 0x80 0xBF 
+                          between x4 0x80 0xBF
 {-# INLINE validate4_2 #-}
 
 validate4_3 x1 x2 x3 x4 = x1 == 0xF4 &&
                           between x2 0x80 0x8F &&
                           between x3 0x80 0xBF &&
-                          between x4 0x80 0xBF 
-{-# INLINE validate4_3 #-}     
+                          between x4 0x80 0xBF
+{-# INLINE validate4_3 #-}

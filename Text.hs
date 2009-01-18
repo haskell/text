@@ -43,16 +43,16 @@ instance Monoid Text where
     mempty  = empty
     mappend = append
     mconcat = concat
-                  
 
-  
+
+
 -- -----------------------------------------------------------------------------
 -- * Conversion to/from 'Text'
 
 -- | /O(n)/ Convert a String into a Text.
 --
--- This function is subject to array fusion, so calling other fusible 
--- function(s) on a packed string will only cause one 'Text' to be written 
+-- This function is subject to array fusion, so calling other fusible
+-- function(s) on a packed string will only cause one 'Text' to be written
 -- out at the end of the pipeline, instead of one before and one after.
 pack :: String -> Text
 pack str = (unstream (stream_list str))
@@ -62,7 +62,7 @@ pack str = (unstream (stream_list str))
             next []     = S.Done
             next (x:xs) = S.Yield x xs
 {-# INLINE [1] pack #-}
--- TODO: Has to do validation! -- No, it doesn't, the 
+-- TODO: Has to do validation! -- No, it doesn't, the
 
 -- | /O(n)/ Convert a Text into a String.
 -- Subject to array fusion.
@@ -92,32 +92,32 @@ decode enc bs = unstream (stream_bs enc bs)
 {-# INLINE decode #-}
 
 encode         :: Encoding -> Text -> ByteString
-encode enc txt = unstream_bs (restream enc (stream txt)) 
+encode enc txt = unstream_bs (restream enc (stream txt))
 {-# INLINE encode #-}
 
 -- -----------------------------------------------------------------------------
 -- * Basic functions
 
--- | /O(n)/ Adds a character to the front of a 'Text'.  This function is more 
+-- | /O(n)/ Adds a character to the front of a 'Text'.  This function is more
 -- costly than its 'List' counterpart because it requires copying a new array.
 -- Subject to array fusion.
 cons :: Char -> Text -> Text
 cons c t = unstream (S.cons c (stream t))
 {-# INLINE cons #-}
 
--- | /O(n)/ Adds a character to the end of a 'Text'.  This copies the entire 
+-- | /O(n)/ Adds a character to the end of a 'Text'.  This copies the entire
 -- array in the process.
 -- Subject to array fusion.
 snoc :: Text -> Char -> Text
 snoc t c = unstream (S.snoc (stream t) c)
 {-# INLINE snoc #-}
 
--- | /O(n)/ Appends one Text to the other by copying both of them into a new 
--- Text.  
+-- | /O(n)/ Appends one Text to the other by copying both of them into a new
+-- Text.
 -- Subject to array fusion
 append :: Text -> Text -> Text
 append (Text arr1 off1 len1) (Text arr2 off2 len2) = Text (runSTUArray x) 0 len
-    where 
+    where
       len = len1+len2
       x = do
         arr <- unsafeNewArray_ (0,len-1) :: ST s (STUArray s Int Word16)
@@ -126,13 +126,13 @@ append (Text arr1 off1 len1) (Text arr2 off2 len2) = Text (runSTUArray x) 0 len
         return arr
             where
               copy arr i max arr' j
-                  | i >= max  = return () 
-                  | otherwise = do unsafeWrite arr' j (arr `unsafeAt` i)  
+                  | i >= max  = return ()
+                  | otherwise = do unsafeWrite arr' j (arr `unsafeAt` i)
                                    copy arr (i+1) max arr' (j+1)
 {-# INLINE append #-}
 
 {-# RULES
-"TEXT append -> fused" [~1] forall t1 t2. 
+"TEXT append -> fused" [~1] forall t1 t2.
     append t1 t2 = unstream (S.append (stream t1) (stream t2))
 "TEXT append -> unfused" [1] forall t1 t2.
     unstream (S.append (stream t1) (stream t2)) = append t1 t2
@@ -147,7 +147,7 @@ head t = S.head (stream t)
 -- | /O(n)/ Returns the last character of a Text, which must be non-empty.
 -- Subject to array fusion.
 last :: Text -> Char
-last (Text arr off len) 
+last (Text arr off len)
     | len <= 0                   = errorEmptyList "last"
     | n < 0xDC00 || n > 0xDFFF = unsafeChr n
     | otherwise                  = U16.chr2 n0 n
@@ -156,7 +156,7 @@ last (Text arr off len)
       n0 = unsafeAt arr (off+len-2)
 {-# INLINE [1] last #-}
 
-{-# RULES 
+{-# RULES
 "TEXT last -> fused" [~1] forall t.
     last t = S.last (stream t)
 "TEXT last -> unfused" [1] forall t.
@@ -166,7 +166,7 @@ last (Text arr off len)
 
 -- | /O(1)/ Returns all characters after the head of a Text, which must
 -- be non-empty.
--- Subject to array fusion. 
+-- Subject to array fusion.
 tail :: Text -> Text
 tail (Text arr off len)
     | len <= 0                   = errorEmptyList "tail"
@@ -178,10 +178,10 @@ tail (Text arr off len)
 
 
 
--- | /O(1)/ Returns all but the last character of a Text, which 
+-- | /O(1)/ Returns all but the last character of a Text, which
 -- must be non-empty.
 -- Subject to array fusion.
-init :: Text -> Text 
+init :: Text -> Text
 init (Text arr off len) | len <= 0                   = errorEmptyList "init"
                         | n >= 0xDC00 && n <= 0xDFFF = Text arr off (len-2)
                         | otherwise                  = Text arr off (len-1)
@@ -211,21 +211,21 @@ length t = S.length (stream t)
 -- -----------------------------------------------------------------------------
 -- * Transformations
 -- | /O(n)/ 'map' @f @xs is the Text obtained by applying @f@ to each
--- element of @xs@.  
+-- element of @xs@.
 -- Subject to array fusion.
 map :: (Char -> Char) -> Text -> Text
 map f t = unstream (S.map f (stream t))
 {-# INLINE [1] map #-}
 
--- | /O(n)/ The 'intersperse' function takes a character and places it between 
+-- | /O(n)/ The 'intersperse' function takes a character and places it between
 -- the characters of a Text.
 -- Subject to array fusion.
 intersperse     :: Char -> Text -> Text
 intersperse c t = unstream (S.intersperse c (stream t))
 {-# INLINE intersperse #-}
 
--- | /O(n)/ The 'transpose' function transposes the rows and columns of its 
--- Text argument.  Note that this function uses pack, unpack, and the 'List' 
+-- | /O(n)/ The 'transpose' function transposes the rows and columns of its
+-- Text argument.  Note that this function uses pack, unpack, and the 'List'
 -- version of transpose and is thus not very efficient.
 transpose :: [Text] -> [Text]
 transpose ts = P.map pack (L.transpose (P.map unpack ts))
@@ -233,7 +233,7 @@ transpose ts = P.map pack (L.transpose (P.map unpack ts))
 -- -----------------------------------------------------------------------------
 -- * Reducing 'Text's (folds)
 
--- | 'foldl', applied to a binary operator, a starting value (typically the 
+-- | 'foldl', applied to a binary operator, a starting value (typically the
 -- left-identity of the operator), and a Text, reduces the Text using the
 -- binary operator, from left to right.
 -- Subject to array fusion.
@@ -247,7 +247,7 @@ foldl' :: (b -> Char -> b) -> b -> Text -> b
 foldl' f z t = S.foldl' f z (stream t)
 {-# INLINE foldl' #-}
 
--- | 'foldl1' is a variant of 'foldl' that has no starting value argument, 
+-- | 'foldl1' is a variant of 'foldl' that has no starting value argument,
 -- and thus must be applied to non-empty 'Text's.
 -- Subject to array fusion.
 foldl1 :: (Char -> Char -> Char) -> Text -> Char
@@ -260,7 +260,7 @@ foldl1' :: (Char -> Char -> Char) -> Text -> Char
 foldl1' f t = S.foldl1' f (stream t)
 {-# INLINE foldl1' #-}
 
--- | 'foldr', applied to a binary operator, a starting value (typically the 
+-- | 'foldr', applied to a binary operator, a starting value (typically the
 -- right-identity of the operator), and a Text, reduces the Text using the
 -- binary operator, from right to left.
 -- Subject to array fusion.
@@ -268,7 +268,7 @@ foldr :: (Char -> b -> b) -> b -> Text -> b
 foldr f z t = S.foldr f z (stream t)
 {-# INLINE foldr #-}
 
--- | 'foldr1' is a variant of 'foldr' that has no starting value argument, 
+-- | 'foldr1' is a variant of 'foldr' that has no starting value argument,
 -- and thust must be applied to non-empty 'Text's.
 -- Subject to array fusion.
 foldr1 :: (Char -> Char -> Char) -> Text -> Char
@@ -283,10 +283,10 @@ concat :: [Text] -> Text
 concat ts = unstream (S.concat (L.map stream ts))
 {-# INLINE concat #-}
 
--- | Map a function over a Text that results in a Text and concatenate the 
--- results.  This function is subject to array fusion, and note that if in 
--- 'concatMap' @f @xs, @f@ is defined in terms of fusible functions it will 
--- also be fusible. 
+-- | Map a function over a Text that results in a Text and concatenate the
+-- results.  This function is subject to array fusion, and note that if in
+-- 'concatMap' @f @xs, @f@ is defined in terms of fusible functions it will
+-- also be fusible.
 concatMap :: (Char -> Text) -> Text -> Text
 concatMap f t = unstream (S.concatMap (stream . f) (stream t))
 {-# INLINE concatMap #-}
@@ -303,13 +303,13 @@ all :: (Char -> Bool) -> Text -> Bool
 all p t = S.all p (stream t)
 {-# INLINE all #-}
 
--- | /O(n)/ 'maximum' returns the maximum value from a 'Text', which must be 
+-- | /O(n)/ 'maximum' returns the maximum value from a 'Text', which must be
 -- non-empty. Subject to array fusion.
 maximum :: Text -> Char
 maximum t = S.maximum (stream t)
 {-# INLINE maximum #-}
 
--- | /O(n)/ 'minimum' returns the minimum value from a 'Text', which must be 
+-- | /O(n)/ 'minimum' returns the minimum value from a 'Text', which must be
 -- non-empty. Subject to array fusion.
 minimum :: Text -> Char
 minimum t = S.minimum (stream t)
@@ -350,15 +350,15 @@ take :: Int -> Text -> Text
 take n (Text arr off len) = Text arr off (loop off 0)
     where
       end = off+len
-      loop !i !count 
+      loop !i !count
            | i >= end || count >= n   = i - off
-           | c < 0xD800 || c > 0xDBFF = loop (i+1) (count+1) 
+           | c < 0xD800 || c > 0xDBFF = loop (i+1) (count+1)
            | otherwise                = loop (i+2) (count+1)
            where
              c = arr `unsafeAt` i
 {-# INLINE [1] take #-}
 
-{-# RULES 
+{-# RULES
 "TEXT take -> fused" [~1] forall n t.
     take n t = unstream (S.take n (stream t))
 "TEXT take -> unfused" [1] forall n t.
@@ -381,7 +381,7 @@ drop n (Text arr off len) = (Text arr newOff newLen)
             c = arr `unsafeAt` i
 {-# INLINE [1] drop #-}
 
-{-# RULES 
+{-# RULES
 "TEXT drop -> fused" [~1] forall n t.
     drop n t = unstream (S.drop n (stream t))
 "TEXT drop -> unfused" [1] forall n t.
@@ -398,7 +398,7 @@ dropWhile :: (Char -> Bool) -> Text -> Text
 dropWhile p t = unstream (S.dropWhile p (stream t))
 
 -- ----------------------------------------------------------------------------
--- * Searching 
+-- * Searching
 
 -------------------------------------------------------------------------------
 -- ** Searching by equality
@@ -455,22 +455,22 @@ elemIndex c t = S.elemIndex c (stream t)
 zipWith :: (Char -> Char -> Char) -> Text -> Text -> Text
 zipWith f t1 t2 = unstream (S.zipWith f (stream t1) (stream t2))
 
--- File I/O 
+-- File I/O
 
 readFile :: Encoding -> FilePath -> IO Text
-readFile enc f = B.readFile f >>= return . unstream . stream_bs enc 
+readFile enc f = B.readFile f >>= return . unstream . stream_bs enc
 {-# INLINE [1] readFile #-}
 
 words :: Text -> [Text]
 words (Text arr off len) = loop0 off off
     where
-      loop0 start n 
+      loop0 start n
             | isSpace (unsafeChr c) = if start == n
-                                      then loop0 (start+1) (start+1) 
+                                      then loop0 (start+1) (start+1)
                                       else (Text arr start (n-start)):loop0 (n+1) (n+1)
             | n < (off+len) = loop0 start (n+1)
             | otherwise = if start == n
-                          then [] 
+                          then []
                           else [(Text arr start (n-start))]
             where
               c = arr `unsafeAt` n
