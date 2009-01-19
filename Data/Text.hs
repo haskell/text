@@ -117,7 +117,7 @@ pack str = (unstream (stream_list str))
 unpack :: Text -> String
 unpack txt = (unstream_list (stream txt))
     where
-      unstream_list (S.Stream next s0 len) = unfold s0
+      unstream_list (S.Stream next s0 _len) = unfold s0
           where
             unfold !s = case next s of
                           S.Done       -> []
