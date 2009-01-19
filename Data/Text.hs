@@ -133,7 +133,7 @@ singleton :: Char -> Text
 singleton c = unstream (Stream next (c:[]) 1)
     where
       {-# INLINE next #-}
-      next (c:cs) = Yield c cs
+      next (k:ks) = Yield k ks
       next []     = Done
 {-# INLINE [1] singleton #-}
 

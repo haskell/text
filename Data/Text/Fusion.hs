@@ -110,27 +110,27 @@ stream (Text arr off len) = Stream next off len
 
 -- | /O(n)/ Convert a Stream Char into a Text.
 unstream :: Stream Char -> Text
-unstream (Stream next0 s0 len) = x `seq` Text (fst x) 0 (snd x)
+unstream (Stream next0 s0 len) = Text (fst a) 0 (snd a)
     where
-      x :: ((UArray Int Word16),Int)
-      x = runST ((unsafeNewArray_ (0,len+1) :: ST s (STUArray s Int Word16))
+      a :: ((UArray Int Word16),Int)
+      a = runST ((unsafeNewArray_ (0,len+1) :: ST s (STUArray s Int Word16))
                  >>= (\arr -> loop arr 0 (len+1) s0))
-      loop arr !i !max !s
-          | i + 1 > max = do arr' <- unsafeNewArray_ (0,max*2)
+      loop arr !i !top !s
+          | i + 1 > top = do arr' <- unsafeNewArray_ (0,top*2)
                              case next0 s of
                                Done -> liftM2 (,) (unsafeFreezeSTUArray arr) (return i)
-                               _    -> copy arr arr' >> loop arr' i (max*2) s
+                               _    -> copy arr arr' >> loop arr' i (top*2) s
           | otherwise = case next0 s of
                Done       -> liftM2 (,) (unsafeFreezeSTUArray arr) (return i)
-               Skip s'    -> loop arr i max s'
+               Skip s'    -> loop arr i top s'
                Yield x s'
                    | n < 0x10000 -> do
                         unsafeWrite arr i (fromIntegral n :: Word16)
-                        loop arr (i+1) max s'
+                        loop arr (i+1) top s'
                    | otherwise   -> do
                         unsafeWrite arr i       l
                         unsafeWrite arr (i + 1) r
-                        loop arr (i+2) max s'
+                        loop arr (i+2) top s'
                    where
                      n :: Int
                      n = ord x
@@ -143,28 +143,29 @@ unstream (Stream next0 s0 len) = x `seq` Text (fst x) 0 (snd x)
 {-# INLINE [0] unstream #-}
 
 
+copy :: STUArray s Int Word16 -> STUArray s Int Word16 -> ST s ()
 copy src dest = (do
-                   (_,max) <- getBounds src
-                   copy_loop 0 max)
+                   (_,top) <- getBounds src
+                   copy_loop 0 top)
     where
-      copy_loop i max
-          | i > max    = return ()
+      copy_loop i top
+          | i > top    = return ()
           | otherwise = do v <- unsafeRead src i
                            unsafeWrite dest i v
-                           copy_loop (i+1) max
+                           copy_loop (i+1) top
 
 -- | /O(n)/ Determines if two streams are equal.
 eq :: Ord a => Stream a -> Stream a -> Bool
-eq (Stream next1 s1 _) (Stream next2 s2 _) = compare (next1 s1) (next2 s2)
+eq (Stream next1 s1 _) (Stream next2 s2 _) = cmp (next1 s1) (next2 s2)
     where
-      compare Done Done = True
-      compare Done _    = False
-      compare _    Done = False
-      compare (Skip s1')     (Skip s2')     = compare (next1 s1') (next2 s2')
-      compare (Skip s1')     x2             = compare (next1 s1') x2
-      compare x1             (Skip s2')     = compare x1          (next2 s2')
-      compare (Yield x1 s1') (Yield x2 s2') = x1 == x2 &&
-                                              compare (next1 s1') (next2 s2')
+      cmp Done Done = True
+      cmp Done _    = False
+      cmp _    Done = False
+      cmp (Skip s1')     (Skip s2')     = cmp (next1 s1') (next2 s2')
+      cmp (Skip s1')     x2             = cmp (next1 s1') x2
+      cmp x1             (Skip s2')     = cmp x1          (next2 s2')
+      cmp (Yield x1 s1') (Yield x2 s2') = x1 == x2 &&
+                                          cmp (next1 s1') (next2 s2')
 {-# SPECIALISE eq :: Stream Char -> Stream Char -> Bool #-}
 
 
@@ -191,11 +192,11 @@ stream_bs Utf8 bs = Stream next 0 l
           | i+3 < l && U8.validate4 x1 x2 x3 x4 = Yield (U8.chr4 x1 x2 x3 x4) (i+4)
           | otherwise = error "bsStream: bad UTF-8 stream"
           where
-            x1 = index i
-            x2 = index (i + 1)
-            x3 = index (i + 2)
-            x4 = index (i + 3)
-            index = B.unsafeIndex bs
+            x1 = idx i
+            x2 = idx (i + 1)
+            x3 = idx (i + 2)
+            x4 = idx (i + 3)
+            idx = B.unsafeIndex bs
 stream_bs Utf16LE bs = Stream next 0 l
     where
       l = B.length bs
@@ -206,9 +207,9 @@ stream_bs Utf16LE bs = Stream next 0 l
           | i+3 < l && U16.validate2 x1 x2 = Yield (U16.chr2 x1 x2) (i+4)
           | otherwise = error $ "bsStream: bad UTF-16LE stream"
           where
-            x1    = (shiftL (index (i + 1)) 8) + (index i)
-            x2    = (shiftL (index (i + 3)) 8) + (index (i + 2))
-            index = fromIntegral . B.unsafeIndex bs :: Int -> Word16
+            x1    = (shiftL (idx (i + 1)) 8) + (idx i)
+            x2    = (shiftL (idx (i + 3)) 8) + (idx (i + 2))
+            idx = fromIntegral . B.unsafeIndex bs :: Int -> Word16
 stream_bs Utf16BE bs = Stream next 0 l
     where
       l = B.length bs
@@ -219,9 +220,9 @@ stream_bs Utf16BE bs = Stream next 0 l
           | i+3 < l && U16.validate2 x1 x2 = Yield (U16.chr2 x1 x2) (i+4)
           | otherwise = error $ "bsStream: bad UTF16-BE stream "
           where
-            x1    = (shiftL (index i) 8) + (index (i + 1))
-            x2    = (shiftL (index (i + 2)) 8) + (index (i + 3))
-            index = fromIntegral . B.unsafeIndex bs :: Int -> Word16
+            x1    = (shiftL (idx i) 8) + (idx (i + 1))
+            x2    = (shiftL (idx (i + 2)) 8) + (idx (i + 3))
+            idx = fromIntegral . B.unsafeIndex bs :: Int -> Word16
 stream_bs Utf32BE bs = Stream next 0 l
     where
       l = B.length bs
@@ -232,11 +233,11 @@ stream_bs Utf32BE bs = Stream next 0 l
           | otherwise                 = error "bsStream: bad UTF-32BE stream"
           where
             x     = shiftL x1 24 + shiftL x2 16 + shiftL x3 8 + x4
-            x1    = index i
-            x2    = index (i+1)
-            x3    = index (i+2)
-            x4    = index (i+3)
-            index = fromIntegral . B.unsafeIndex bs :: Int -> Word32
+            x1    = idx i
+            x2    = idx (i+1)
+            x3    = idx (i+2)
+            x4    = idx (i+3)
+            idx = fromIntegral . B.unsafeIndex bs :: Int -> Word32
 stream_bs Utf32LE bs = Stream next 0 l
     where
       l = B.length bs
@@ -247,11 +248,11 @@ stream_bs Utf32LE bs = Stream next 0 l
           | otherwise                 = error "bsStream: bad UTF-32LE stream"
           where
             x     = shiftL x4 24 + shiftL x3 16 + shiftL x2 8 + x1
-            x1    = index i
-            x2    = index $ i+1
-            x3    = index $ i+2
-            x4    = index $ i+3
-            index = fromIntegral . B.unsafeIndex bs :: Int -> Word32
+            x1    = idx i
+            x2    = idx $ i+1
+            x3    = idx $ i+2
+            x4    = idx $ i+3
+            idx = fromIntegral . B.unsafeIndex bs :: Int -> Word32
 {-# INLINE [0] stream_bs #-}
 
 internalError :: String -> a
@@ -284,6 +285,13 @@ restream Utf8 (Stream next0 s0 len) =
                         c2 = U8.ord2 x
                         c3 = U8.ord3 x
                         c4 = U8.ord4 x
+                        fst3 (x1,_,_)   = x1
+                        snd3 (_,x2,_)   = x2
+                        trd3 (_,_,x3)   = x3
+                        fst4 (x1,_,_,_) = x1
+                        snd4 (_,x2,_,_) = x2
+                        trd4 (_,_,x3,_) = x3
+                        fth4 (_,_,_,x4) = x4
       next (T4 (Just s) (Just x2) Nothing Nothing) = Yield x2 (T4 (Just s) Nothing Nothing Nothing)
       next (T4 (Just s) (Just x2) x3 Nothing)      = Yield x2 (T4 (Just s) x3 Nothing Nothing)
       next (T4 (Just s) (Just x2) x3 x4)           = Yield x2 (T4 (Just s) x3 x4 Nothing)
@@ -370,14 +378,6 @@ restream Utf32LE (Stream next0 s0 len) =
     next _ = internalError "restream Utf32LE"
 {-# INLINE restream #-}
 
-
-fst3 (x1,_,_)   = x1
-snd3 (_,x2,_)   = x2
-trd3 (_,_,x3)   = x3
-fst4 (x1,_,_,_) = x1
-snd4 (_,x2,_,_) = x2
-trd4 (_,_,x3,_) = x3
-fth4 (_,_,_,x4) = x4
 
 -- | /O(n)/ Convert a Stream Word8 to a ByteString
 unstream_bs :: Stream Word8 -> ByteString

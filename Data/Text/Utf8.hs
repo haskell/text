@@ -90,39 +90,39 @@ validate2 x1 x2 = between x1 0xC2 0xDF && between x2 0x80 0xBF
 
 validate3          :: Word8 -> Word8 -> Word8 -> Bool
 {-# INLINE validate3 #-}
-validate3 x1 x2 x3 = validate3_1 x1 x2 x3 ||
-                     validate3_2 x1 x2 x3 ||
-                     validate3_3 x1 x2 x3 ||
-                     validate3_4 x1 x2 x3
+validate3 x1 x2 x3 = validate3_1 ||
+                     validate3_2 ||
+                     validate3_3 ||
+                     validate3_4
   where
-    validate3_1 x1 x2 x3 = (x1 == 0xE0) &&
-                           between x2 0xA0 0xBF &&
-                           between x3 0x80 0xBF
-    validate3_2 x1 x2 x3 = between x1 0xE1 0xEC &&
-                           between x2 0x80 0xBF &&
-                           between x3 0x80 0xBF
-    validate3_3 x1 x2 x3 = x1 == 0xED &&
-                           between x2 0x80 0x9F &&
-                           between x3 0x80 0xBF
-    validate3_4 x1 x2 x3 = between x1 0xEE 0xEF &&
-                           between x2 0x80 0xBF &&
-                           between x3 0x80 0xBF
+    validate3_1 = (x1 == 0xE0) &&
+                  between x2 0xA0 0xBF &&
+                  between x3 0x80 0xBF
+    validate3_2 = between x1 0xE1 0xEC &&
+                  between x2 0x80 0xBF &&
+                  between x3 0x80 0xBF
+    validate3_3 = x1 == 0xED &&
+                  between x2 0x80 0x9F &&
+                  between x3 0x80 0xBF
+    validate3_4 = between x1 0xEE 0xEF &&
+                  between x2 0x80 0xBF &&
+                  between x3 0x80 0xBF
 
 validate4             :: Word8 -> Word8 -> Word8 -> Word8 -> Bool
 {-# INLINE validate4 #-}
-validate4 x1 x2 x3 x4 = validate4_1 x1 x2 x3 x4 ||
-                        validate4_2 x1 x2 x3 x4 ||
-                        validate4_3 x1 x2 x3 x4
+validate4 x1 x2 x3 x4 = validate4_1 ||
+                        validate4_2 ||
+                        validate4_3
   where 
-    validate4_1 x1 x2 x3 x4 = x1 == 0xF0 &&
-                              between x2 0x90 0xBF &&
-                              between x3 0x80 0xBF &&
-                              between x4 0x80 0xBF
-    validate4_2 x1 x2 x3 x4 = between x1 0xF1 0xF3 &&
-                              between x2 0x80 0xBF &&
-                              between x3 0x80 0xBF &&
-                              between x4 0x80 0xBF
-    validate4_3 x1 x2 x3 x4 = x1 == 0xF4 &&
-                              between x2 0x80 0x8F &&
-                              between x3 0x80 0xBF &&
-                              between x4 0x80 0xBF
+    validate4_1 = x1 == 0xF0 &&
+                  between x2 0x90 0xBF &&
+                  between x3 0x80 0xBF &&
+                  between x4 0x80 0xBF
+    validate4_2 = between x1 0xF1 0xF3 &&
+                  between x2 0x80 0xBF &&
+                  between x3 0x80 0xBF &&
+                  between x4 0x80 0xBF
+    validate4_3 = x1 == 0xF4 &&
+                  between x2 0x80 0x8F &&
+                  between x3 0x80 0xBF &&
+                  between x4 0x80 0xBF
