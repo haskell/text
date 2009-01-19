@@ -44,6 +44,7 @@ data Step s a = Done
               | Yield !a !s
 
 data Encoding = ASCII | Utf8 | Utf16BE | Utf16LE | Utf32BE | Utf32LE
+              deriving (Read, Show, Eq)
 
 -- | /O(n)/ Convert a Text into a Stream Char.
 stream :: Text -> Stream Char
