@@ -469,12 +469,12 @@ last (Stream next s0 _len) = loop0_last s0
     where
       loop0_last !s = case next s of
                         Done       -> error "last: Empty list"
-                        Skip s'    -> seq s' $ loop0_last  s'
-                        Yield x s' -> seq s' $ loop_last x s'
+                        Skip s'    -> loop0_last  s'
+                        Yield x s' -> loop_last x s'
       loop_last !x !s = case next s of
                          Done        -> x
-                         Skip s'     -> seq s' $ loop_last x  s'
-                         Yield x' s' -> seq s' $ loop_last x' s'
+                         Skip s'     -> loop_last x  s'
+                         Yield x' s' -> loop_last x' s'
 {-# INLINE[0] last #-}
 
 -- | /O(1)/ Returns all characters after the head of a Stream Char, which must
@@ -502,12 +502,12 @@ init (Stream next0 s0 len) = Stream next (Nothing :!: s0) (len-1)
       {-# INLINE next #-}
       next (Nothing :!: s) = case next0 s of
                                Done       -> errorEmptyList "init"
-                               Skip s'    -> seq s' $ Skip (Nothing :!: s')
-                               Yield x s' -> seq s' $ Skip (Just x  :!: s')
+                               Skip s'    -> Skip (Nothing :!: s')
+                               Yield x s' -> Skip (Just x  :!: s')
       next (Just x :!: s)  = case next0 s of
                                Done        -> Done
-                               Skip s'     -> seq s' $ Skip    (Just x  :!: s')
-                               Yield x' s' -> seq s' $ Yield x (Just x' :!: s')
+                               Skip s'     -> Skip    (Just x  :!: s')
+                               Yield x' s' -> Yield x (Just x' :!: s')
 {-# INLINE [0] init #-}
 
 -- | /O(1)/ Tests whether a Stream Char is empty or not.
@@ -673,9 +673,9 @@ any p (Stream next0 s0 _len) = loop_any s0
     where
       loop_any !s = case next0 s of
                       Done                   -> False
-                      Skip s'                -> seq s' $ loop_any s'
+                      Skip s'                -> loop_any s'
                       Yield x s' | p x       -> True
-                                 | otherwise -> seq s' $ loop_any s'
+                                 | otherwise -> loop_any s'
 
 -- | /O(n)/ all @p @xs determines if all characters in the 'Text'
 -- @xs@ satisify the predicate @p@.
@@ -684,8 +684,8 @@ all p (Stream next0 s0 _len) = loop_all s0
     where
       loop_all !s = case next0 s of
                       Done                   -> True
-                      Skip s'                -> seq s' $ loop_all s'
-                      Yield x s' | p x       -> seq s' $ loop_all s'
+                      Skip s'                -> loop_all s'
+                      Yield x s' | p x       -> loop_all s'
                                  | otherwise -> False
 
 -- | /O(n)/ maximum returns the maximum value from a stream, which must be
@@ -695,14 +695,14 @@ maximum (Stream next0 s0 _len) = loop0_maximum s0
     where
       loop0_maximum !s   = case next0 s of
                              Done       -> errorEmptyList "maximum"
-                             Skip s'    -> seq s' $ loop0_maximum s'
-                             Yield x s' -> seq s' $ loop_maximum x s'
+                             Skip s'    -> loop0_maximum s'
+                             Yield x s' -> loop_maximum x s'
       loop_maximum !z !s = case next0 s of
                              Done            -> z
-                             Skip s'         -> seq s' $ loop_maximum z s'
+                             Skip s'         -> loop_maximum z s'
                              Yield x s'
-                                 | x > z     -> seq s' $ loop_maximum x s'
-                                 | otherwise -> seq s' $ loop_maximum z s'
+                                 | x > z     -> loop_maximum x s'
+                                 | otherwise -> loop_maximum z s'
 
 -- | /O(n)/ minimum returns the minimum value from a 'Text', which must be
 -- non-empty.
@@ -711,14 +711,14 @@ minimum (Stream next0 s0 _len) = loop0_minimum s0
     where
       loop0_minimum !s   = case next0 s of
                              Done       -> errorEmptyList "minimum"
-                             Skip s'    -> seq s' $ loop0_minimum s'
-                             Yield x s' -> seq s' $ loop_minimum x s'
+                             Skip s'    -> loop0_minimum s'
+                             Yield x s' -> loop_minimum x s'
       loop_minimum !z !s = case next0 s of
                              Done            -> z
-                             Skip s'         -> seq s' $ loop_minimum z s'
+                             Skip s'         -> loop_minimum z s'
                              Yield x s'
-                                 | x < z     -> seq s' $ loop_minimum x s'
-                                 | otherwise -> seq s' $ loop_minimum z s'
+                                 | x < z     -> loop_minimum x s'
+                                 | otherwise -> loop_minimum z s'
 
 
 

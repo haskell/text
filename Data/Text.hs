@@ -55,8 +55,8 @@ import Prelude (Char,Bool,Int,Maybe,String,
                 Eq,(==),(++),error,
                 Show,showsPrec,
                 Read,readsPrec,
-                (&&),(||),(+),(-),($),(<),(>),(<=),(>=),(.),(>>=),
-                return,otherwise,seq,
+                (&&),(||),(+),(-),(<),(>),(<=),(>=),(.),(>>=),
+                return,otherwise,
                 IO, FilePath)
 
 import Data.Char (isSpace)
@@ -122,8 +122,8 @@ unpack txt = (unstream_list (stream txt))
           where
             unfold !s = case next s of
                           S.Done       -> []
-                          S.Skip s'    -> seq s' $ unfold s'
-                          S.Yield x s' -> seq s' $ x : unfold s'
+                          S.Skip s'    -> unfold s'
+                          S.Yield x s' -> x : unfold s'
 {-# INLINE [1] unpack #-}
 
 -- | Convert a character into a Text.
