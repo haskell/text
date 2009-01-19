@@ -1,9 +1,59 @@
 {-# LANGUAGE ExistentialQuantification, BangPatterns, MagicHash #-}
 
-module Data.Text.Fusion where
+module Data.Text.Fusion
+    (
+      Stream(..)
+    , Step(..)
+    , Encoding(..)
+    , stream
+    , unstream
+    , stream_bs
+    , unstream_bs
+    , restream
+    , errorEmptyList
+    , eq
+    , cons
+    , snoc
+    , append
+    , head
+    , tail
+    , last
+    , init
+    , null
+    , length
+    , map
+    , foldl
+    , foldl'
+    , foldl1
+    , foldl1'
+    , foldr
+    , foldr1
+    , concat
+    , concatMap
+    , any
+    , all
+    , maximum
+    , minimum
+    , unfoldr
+    , unfoldrN
+    , take
+    , drop
+    , takeWhile
+    , dropWhile
+    , elem
+    , find
+    , filter
+    , intersperse
+    , index
+    , findIndex
+    , elemIndex
+    , zipWith
+    ) where
 
-import Prelude hiding (map, tail, head, foldr, filter,concat)
-
+import Prelude hiding
+    (map, tail, head, foldr, filter, concat, last, init, null, length, foldl,
+     foldl1, foldr1, concatMap, any, all, maximum, minimum, take, drop,
+     takeWhile, dropWhile, elem, zipWith)
 import Data.Char (ord)
 import Control.Exception(assert)
 import Control.Monad(liftM2)
@@ -19,7 +69,6 @@ import Foreign.ForeignPtr(withForeignPtr,ForeignPtr)
 import Foreign.Storable(pokeByteOff)
 import GHC.Exts (Int(..), (+#))
 import System.IO.Unsafe(unsafePerformIO)
-
 import Data.Text.Internal(Text(..),empty)
 import Data.Text.UnsafeChar(unsafeChr,unsafeChr8,unsafeChr32)
 import qualified Data.Text.Utf8 as U8
@@ -34,8 +83,6 @@ data PairS a b = !a :!: !b
 data T4 a b c d = T4 !a !b !c !d
 
 data Switch = S1 | S2
-
-data EitherS a b = LeftS !a | RightS !b
 
 data Stream a = forall s. Stream (s -> Step s a) !s {-# UNPACK #-}!Int
 
