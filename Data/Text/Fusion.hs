@@ -6,7 +6,7 @@ module Data.Text.Fusion where
 
 import Prelude hiding (map, tail, head, foldr, filter,concat)
 
-import Data.Char
+import Data.Char (ord)
 import Control.Exception(assert)
 import Control.Monad(liftM2)
 import Control.Monad.ST(runST,ST)
@@ -19,7 +19,7 @@ import qualified Data.List as L
 import Data.Word(Word8, Word16, Word32)
 import Foreign.ForeignPtr(withForeignPtr,ForeignPtr)
 import Foreign.Storable(pokeByteOff)
-import GHC.Exts
+import GHC.Exts (Int(..), (+#))
 import System.IO.Unsafe(unsafePerformIO)
 
 import Data.Text.Internal(Text(..),empty)
