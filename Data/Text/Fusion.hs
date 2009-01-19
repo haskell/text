@@ -123,17 +123,18 @@ eq (Stream next1 s1 _) (Stream next2 s2 _) = compare (next1 s1) (next2 s2)
 
 -- | /O(n) Convert a ByteString into a Stream Char, using the specified encoding standard.
 stream_bs :: Encoding -> ByteString -> Stream Char
-stream_bs ASCII bs = Stream next 0 (B.length bs)
+stream_bs ASCII bs = Stream next 0 l
     where
+      l = B.length bs
       {-# INLINE next #-}
       next i
           | i >= l    = Done
           | otherwise = Yield (unsafeChr8 x1) (i+1)
           where
-            l  = B.length bs
             x1 = B.unsafeIndex bs i
-stream_bs Utf8 bs = Stream next 0 (B.length bs)
+stream_bs Utf8 bs = Stream next 0 l
     where
+      l = B.length bs
       {-# INLINE next #-}
       next i
           | i >= l = Done
@@ -143,14 +144,14 @@ stream_bs Utf8 bs = Stream next 0 (B.length bs)
           | i+3 < l && U8.validate4 x1 x2 x3 x4 = Yield (U8.chr4 x1 x2 x3 x4) (i+4)
           | otherwise = error "bsStream: bad UTF-8 stream"
           where
-            l  = B.length bs
             x1 = index i
             x2 = index (i + 1)
             x3 = index (i + 2)
             x4 = index (i + 3)
             index = B.unsafeIndex bs
-stream_bs Utf16LE bs = Stream next 0 (B.length bs)
+stream_bs Utf16LE bs = Stream next 0 l
     where
+      l = B.length bs
       {-# INLINE next #-}
       next i
           | i >= l                         = Done
@@ -162,10 +163,10 @@ stream_bs Utf16LE bs = Stream next 0 (B.length bs)
             x1    = (shiftL (index (i + 1)) 8) + (index i)
             x2    :: Word16
             x2    = (shiftL (index (i + 3)) 8) + (index (i + 2))
-            l     = B.length bs
             index = fromIntegral . B.unsafeIndex bs :: Int -> Word16
-stream_bs Utf16BE bs = Stream next 0 (B.length bs)
+stream_bs Utf16BE bs = Stream next 0 l
     where
+      l = B.length bs
       {-# INLINE next #-}
       next i
           | i >= l                         = Done
@@ -177,32 +178,31 @@ stream_bs Utf16BE bs = Stream next 0 (B.length bs)
             x1    = (shiftL (index i) 8) + (index (i + 1))
             x2    :: Word16
             x2    = (shiftL (index (i + 2)) 8) + (index (i + 3))
-            l     = B.length bs
             index = fromIntegral . B.unsafeIndex bs
-stream_bs Utf32BE bs = Stream next 0 (B.length bs)
+stream_bs Utf32BE bs = Stream next 0 l
     where
+      l = B.length bs
       {-# INLINE next #-}
       next i
           | i >= l                    = Done
           | i+3 < l && U32.validate x = Yield (unsafeChr32 x) (i+4)
           | otherwise                 = error "bsStream: bad UTF-32BE stream"
           where
-            l     = B.length bs
             x     = shiftL x1 24 + shiftL x2 16 + shiftL x3 8 + x4
             x1    = index i
             x2    = index (i+1)
             x3    = index (i+2)
             x4    = index (i+3)
             index = fromIntegral . B.unsafeIndex bs :: Int -> Word32
-stream_bs Utf32LE bs = Stream next 0 (B.length bs)
+stream_bs Utf32LE bs = Stream next 0 l
     where
+      l = B.length bs
       {-# INLINE next #-}
       next i
           | i >= l                    = Done
           | i+3 < l && U32.validate x = Yield (unsafeChr32 x) (i+4)
           | otherwise                 = error "bsStream: bad UTF-32LE stream"
           where
-            l     = B.length bs
             x     = shiftL x4 24 + shiftL x3 16 + shiftL x2 8 + x1
             x1    = index i
             x2    = index $ i+1
