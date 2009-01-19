@@ -1,7 +1,55 @@
 {-# LANGUAGE BangPatterns #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
-module Data.Text where
+module Data.Text
+    (
+      Text
+    , Encoding(..)
+    , pack
+    , unpack
+    , singleton
+    , encode
+    , decode
+    , cons
+    , snoc
+    , append
+    , head
+    , last
+    , tail
+    , init
+    , null
+    , length
+    , map
+    , intersperse
+    , transpose
+    , foldl
+    , foldl'
+    , foldl1
+    , foldl1'
+    , foldr
+    , foldr1
+    , concat
+    , concatMap
+    , any
+    , all
+    , maximum
+    , minimum
+    , unfoldr
+    , unfoldrN
+    , take
+    , drop
+    , takeWhile
+    , dropWhile
+    , elem
+    , find
+    , filter
+    , index
+    , findIndex
+    , elemIndex
+    , zipWith
+    , words
+    , readFile
+    ) where
 
 import Prelude (Char,Bool,Int,Maybe,String,
                 Eq,(==),
