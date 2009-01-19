@@ -68,6 +68,7 @@ import Data.ByteString(ByteString)
 import qualified Data.List as L
 import Data.Monoid(Monoid(..))
 import Data.Word(Word16)
+import Data.String (IsString(..))
 
 import qualified Data.Text.Fusion as S
 import Data.Text.Fusion (Stream(..),Step(..),Encoding(..),
@@ -92,7 +93,8 @@ instance Monoid Text where
     mappend = append
     mconcat = concat
 
-
+instance IsString Text where
+    fromString = pack
 
 -- -----------------------------------------------------------------------------
 -- * Conversion to/from 'Text'
