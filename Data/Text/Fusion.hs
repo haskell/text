@@ -1,6 +1,4 @@
 {-# LANGUAGE ExistentialQuantification, BangPatterns, MagicHash #-}
---TODO: eliminate the need to supress these warnings:
-{-# OPTIONS_GHC -fno-warn-incomplete-patterns -fno-warn-unused-matches #-}
 
 module Data.Text.Fusion where
 
@@ -209,6 +207,9 @@ stream_bs Utf32LE bs = Stream next 0 l
             index = fromIntegral . B.unsafeIndex bs :: Int -> Word32
 {-# INLINE [0] stream_bs #-}
 
+internalError :: String -> a
+internalError func = error $ "Data.Text.Fusion." ++ func ++ ": internal error"
+
 -- | /O(n)/ Convert a Stream Char into a Stream Word8 using the specified encoding standard.
 restream :: Encoding -> Stream Char -> Stream Word8
 restream ASCII (Stream next0 s0 len) =  Stream next s0 (len*2)
@@ -239,6 +240,7 @@ restream Utf8 (Stream next0 s0 len) =
       next (T4 (Just s) (Just x2) Nothing Nothing) = Yield x2 (T4 (Just s) Nothing Nothing Nothing)
       next (T4 (Just s) (Just x2) x3 Nothing)      = Yield x2 (T4 (Just s) x3 Nothing Nothing)
       next (T4 (Just s) (Just x2) x3 x4)           = Yield x2 (T4 (Just s) x3 x4 Nothing)
+      next _ = internalError "restream Utf8"
 restream Utf16BE (Stream next0 s0 len) =
     Stream next (T4 (Just s0) Nothing Nothing Nothing) (len*2)
     where
@@ -260,6 +262,7 @@ restream Utf16BE (Stream next0 s0 len) =
       next (T4 (Just s) (Just x2) Nothing Nothing) = Yield x2 (T4 (Just s) Nothing Nothing Nothing)
       next (T4 (Just s) (Just x2) x3 Nothing)      = Yield x2 (T4 (Just s) x3 Nothing Nothing)
       next (T4 (Just s) (Just x2) x3 x4)           = Yield x2 (T4 (Just s) x3 x4 Nothing)
+      next _ = internalError "restream Utf16BE"
 restream Utf16LE (Stream next0 s0 len) =
     Stream next (T4 (Just s0) Nothing Nothing Nothing) (len*2)
     where
@@ -281,6 +284,7 @@ restream Utf16LE (Stream next0 s0 len) =
       next (T4 (Just s) (Just x2) Nothing Nothing) = Yield x2 (T4 (Just s) Nothing Nothing Nothing)
       next (T4 (Just s) (Just x2) x3 Nothing)      = Yield x2 (T4 (Just s) x3 Nothing Nothing)
       next (T4 (Just s) (Just x2) x3 x4)           = Yield x2 (T4 (Just s) x3 x4 Nothing)
+      next _ = internalError "restream Utf16LE"
 restream Utf32BE (Stream next0 s0 len) =
     Stream next (T4 (Just s0) Nothing Nothing Nothing) (len*2)
     where
@@ -298,6 +302,7 @@ restream Utf32BE (Stream next0 s0 len) =
     next (T4 (Just s) (Just x2) Nothing Nothing) = Yield x2 (T4 (Just s) Nothing Nothing Nothing)
     next (T4 (Just s) (Just x2) x3 Nothing)      = Yield x2 (T4 (Just s) x3 Nothing Nothing)
     next (T4 (Just s) (Just x2) x3 x4)           = Yield x2 (T4 (Just s) x3 x4 Nothing)
+    next _ = internalError "restream Utf32BE"
 restream Utf32LE (Stream next0 s0 len) =
     Stream next (T4 (Just s0) Nothing Nothing Nothing) (len*2)
     where
@@ -315,6 +320,7 @@ restream Utf32LE (Stream next0 s0 len) =
     next (T4 (Just s) (Just x2) Nothing Nothing) = Yield x2 (T4 (Just s) Nothing Nothing Nothing)
     next (T4 (Just s) (Just x2) x3 Nothing)      = Yield x2 (T4 (Just s) x3 Nothing Nothing)
     next (T4 (Just s) (Just x2) x3 x4)           = Yield x2 (T4 (Just s) x3 x4 Nothing)
+    next _ = internalError "restream Utf32LE"
 {-# INLINE restream #-}
 
 
@@ -403,7 +409,7 @@ append (Stream next0 s01 len1) (Stream next1 s02 len2) =
 -- | /O(1)/ Returns the first character of a Text, which must be non-empty.
 -- Subject to array fusion.
 head :: Stream Char -> Char
-head (Stream next s0 len) = loop_head s0
+head (Stream next s0 _len) = loop_head s0
     where
       loop_head !s = case next s of
                       Yield x _ -> x
@@ -413,7 +419,7 @@ head (Stream next s0 len) = loop_head s0
 
 -- | /O(n)/ Returns the last character of a Stream Char, which must be non-empty.
 last :: Stream Char -> Char
-last (Stream next s0 len) = loop0_last s0
+last (Stream next s0 _len) = loop0_last s0
     where
       loop0_last !s = case next s of
                         Done       -> error "last: Empty list"
@@ -460,7 +466,7 @@ init (Stream next0 s0 len) = Stream next (Nothing :!: s0) (len-1)
 
 -- | /O(1)/ Tests whether a Stream Char is empty or not.
 null :: Stream Char -> Bool
-null (Stream next s0 len) = loop_null s0
+null (Stream next s0 _len) = loop_null s0
     where
       loop_null !s = case next s of
                        Done      -> True
@@ -470,7 +476,7 @@ null (Stream next s0 len) = loop_null s0
 
 -- | /O(n)/ Returns the number of characters in a text.
 length :: Stream Char -> Int
-length (Stream next s0 len) = loop_length 0# s0
+length (Stream next s0 _len) = loop_length 0# s0
     where
 
       loop_length z# s  = case next s of
@@ -514,6 +520,7 @@ intersperse c (Stream next0 s0 len) = Stream next (s0 :!: Nothing :!: S1) len
         Done       -> Done
         Skip s'    -> Skip    (s' :!: Nothing :!: S2)
         Yield x s' -> Yield c (s' :!: Just x :!: S1)
+      next _ = internalError "intersperse"
 
 -- ----------------------------------------------------------------------------
 -- * Reducing Streams (folds)
@@ -522,7 +529,7 @@ intersperse c (Stream next0 s0 len) = Stream next (s0 :!: Nothing :!: S1) len
 -- left-identity of the operator), and a Stream, reduces the Stream using the
 -- binary operator, from left to right.
 foldl :: (b -> Char -> b) -> b -> Stream Char -> b
-foldl f z0 (Stream next s0 len) = loop_foldl z0 s0
+foldl f z0 (Stream next s0 _len) = loop_foldl z0 s0
     where
       loop_foldl z !s = case next s of
                           Done -> z
@@ -532,7 +539,7 @@ foldl f z0 (Stream next s0 len) = loop_foldl z0 s0
 
 -- | A strict version of foldl.
 foldl' :: (b -> Char -> b) -> b -> Stream Char -> b
-foldl' f z0 (Stream next s0 len) = loop_foldl' z0 s0
+foldl' f z0 (Stream next s0 _len) = loop_foldl' z0 s0
     where
       loop_foldl' !z !s = case next s of
                             Done -> z
@@ -543,7 +550,7 @@ foldl' f z0 (Stream next s0 len) = loop_foldl' z0 s0
 -- | foldl1 is a variant of foldl that has no starting value argument,
 -- and thus must be applied to non-empty Streams.
 foldl1 :: (Char -> Char -> Char) -> Stream Char -> Char
-foldl1 f (Stream next s0 len) = loop0_foldl1 s0
+foldl1 f (Stream next s0 _len) = loop0_foldl1 s0
     where
       loop0_foldl1 !s = case next s of
                           Skip s' -> loop0_foldl1 s'
@@ -557,7 +564,7 @@ foldl1 f (Stream next s0 len) = loop0_foldl1 s0
 
 -- | A strict version of foldl1.
 foldl1' :: (Char -> Char -> Char) -> Stream Char -> Char
-foldl1' f (Stream next s0 len) = loop0_foldl1' s0
+foldl1' f (Stream next s0 _len) = loop0_foldl1' s0
     where
       loop0_foldl1' !s = case next s of
                            Skip s' -> loop0_foldl1' s'
@@ -573,7 +580,7 @@ foldl1' f (Stream next s0 len) = loop0_foldl1' s0
 -- right-identity of the operator), and a stream, reduces the stream using the
 -- binary operator, from right to left.
 foldr :: (Char -> b -> b) -> b -> Stream Char -> b
-foldr f z (Stream next s0 len) = loop_foldr s0
+foldr f z (Stream next s0 _len) = loop_foldr s0
     where
       loop_foldr !s = case next s of
                         Done -> z
@@ -585,7 +592,7 @@ foldr f z (Stream next s0 len) = loop_foldr s0
 -- and thust must be applied to non-empty streams.
 -- Subject to array fusion.
 foldr1 :: (Char -> Char -> Char) -> Stream Char -> Char
-foldr1 f (Stream next s0 len) = loop0_foldr1 s0
+foldr1 f (Stream next s0 _len) = loop0_foldr1 s0
   where
     loop0_foldr1 !s = case next s of
       Done       -> error "foldr1"
@@ -606,6 +613,7 @@ concat :: [Stream Char] -> Stream Char
 concat = L.foldr append (Stream next Done 0)
     where
       next Done = Done
+      next _    = internalError "concat"
 
 -- | Map a function over a stream that results in a steram and concatenate the
 -- results.
@@ -615,7 +623,7 @@ concatMap f = foldr (append . f) (stream empty)
 -- | /O(n)/ any @p @xs determines if any character in the stream
 -- @xs@ satisifes the predicate @p@.
 any :: (Char -> Bool) -> Stream Char -> Bool
-any p (Stream next0 s0 len) = loop_any s0
+any p (Stream next0 s0 _len) = loop_any s0
     where
       loop_any !s = case next0 s of
                       Done                   -> False
@@ -626,7 +634,7 @@ any p (Stream next0 s0 len) = loop_any s0
 -- | /O(n)/ all @p @xs determines if all characters in the 'Text'
 -- @xs@ satisify the predicate @p@.
 all :: (Char -> Bool) -> Stream Char -> Bool
-all p (Stream next0 s0 len) = loop_all s0
+all p (Stream next0 s0 _len) = loop_all s0
     where
       loop_all !s = case next0 s of
                       Done                   -> True
@@ -637,7 +645,7 @@ all p (Stream next0 s0 len) = loop_all s0
 -- | /O(n)/ maximum returns the maximum value from a stream, which must be
 -- non-empty.
 maximum :: Stream Char -> Char
-maximum (Stream next0 s0 len) = loop0_maximum s0
+maximum (Stream next0 s0 _len) = loop0_maximum s0
     where
       loop0_maximum !s   = case next0 s of
                              Done       -> errorEmptyList "maximum"
@@ -653,7 +661,7 @@ maximum (Stream next0 s0 len) = loop0_maximum s0
 -- | /O(n)/ minimum returns the minimum value from a 'Text', which must be
 -- non-empty.
 minimum :: Stream Char -> Char
-minimum (Stream next0 s0 len) = loop0_minimum s0
+minimum (Stream next0 s0 _len) = loop0_minimum s0
     where
       loop0_minimum !s   = case next0 s of
                              Done       -> errorEmptyList "minimum"
@@ -776,7 +784,7 @@ dropWhile p (Stream next0 s0 len) = Stream next (S1 :!: s0) len
 
 -- | /O(n)/ elem is the stream membership predicate.
 elem :: Char -> Stream Char -> Bool
-elem w (Stream next s0 len) = loop_elem s0
+elem w (Stream next s0 _len) = loop_elem s0
     where
       loop_elem !s = case next s of
                        Done -> False
@@ -793,7 +801,7 @@ elem w (Stream next s0 len) = loop_elem s0
 -- if there is no such element.
 
 find :: (Char -> Bool) -> Stream Char -> Maybe Char
-find p (Stream next s0 len) = loop_find s0
+find p (Stream next s0 _len) = loop_find s0
     where
       loop_find !s = case next s of
                        Done -> Nothing
@@ -826,7 +834,7 @@ filter p (Stream next0 s0 len) = Stream next s0 len
 
 -- | /O(1)/ stream index (subscript) operator, starting from 0.
 index :: Stream Char -> Int -> Char
-index (Stream next s0 len) n0
+index (Stream next s0 _len) n0
   | n0 < 0    = error "Stream.(!!): negative index"
   | otherwise = loop_index n0 s0
   where
@@ -841,7 +849,7 @@ index (Stream next s0 len) n0
 -- returns the index of the first element in the stream
 -- satisfying the predicate.
 findIndex :: (Char -> Bool) -> Stream Char -> Maybe Int
-findIndex p (Stream next s0 len) = loop_findIndex 0 s0
+findIndex p (Stream next s0 _len) = loop_findIndex 0 s0
   where
     loop_findIndex !i !s = case next s of
       Done                   -> Nothing
@@ -854,7 +862,7 @@ findIndex p (Stream next s0 len) = loop_findIndex 0 s0
 -- element in the given stream which is equal to the query
 -- element, or 'Nothing' if there is no such element.
 elemIndex :: Char -> Stream Char -> Maybe Int
-elemIndex a (Stream next s0 len) = loop_elemIndex 0 s0
+elemIndex a (Stream next s0 _len) = loop_elemIndex 0 s0
   where
     loop_elemIndex !i !s = case next s of
       Done                   -> Nothing
