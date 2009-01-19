@@ -1,6 +1,11 @@
 {-# LANGUAGE MagicHash #-}
 
-module Data.Text.UnsafeChar where
+module Data.Text.UnsafeChar
+    (
+      unsafeChr
+    , unsafeChr8
+    , unsafeChr32
+    ) where
 
 import GHC.Exts
 import GHC.Word
