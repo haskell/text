@@ -13,6 +13,7 @@ import Control.Monad.ST(runST,ST)
 import Data.Array.Base
 import Data.Bits
 import qualified Data.ByteString as B
+import qualified Data.ByteString.Unsafe as B
 import Data.ByteString.Internal(ByteString(..),mallocByteString,memcpy)
 import qualified Data.List as L
 import Data.Word(Word8, Word16, Word32)
@@ -129,7 +130,7 @@ stream_bs ASCII bs = Stream next 0 (B.length bs)
           | otherwise = Yield (unsafeChr8 x1) (i+1)
           where
             l  = B.length bs
-            x1 = B.index bs i
+            x1 = B.unsafeIndex bs i
 stream_bs Utf8 bs = Stream next 0 (B.length bs)
     where
       {-# INLINE next #-}
@@ -146,7 +147,7 @@ stream_bs Utf8 bs = Stream next 0 (B.length bs)
             x2 = index (i + 1)
             x3 = index (i + 2)
             x4 = index (i + 3)
-            index = B.index bs
+            index = B.unsafeIndex bs
 stream_bs Utf16LE bs = Stream next 0 (B.length bs)
     where
       {-# INLINE next #-}
@@ -161,7 +162,7 @@ stream_bs Utf16LE bs = Stream next 0 (B.length bs)
             x2    :: Word16
             x2    = (shiftL (index (i + 3)) 8) + (index (i + 2))
             l     = B.length bs
-            index = fromIntegral . B.index bs :: Int -> Word16
+            index = fromIntegral . B.unsafeIndex bs :: Int -> Word16
 stream_bs Utf16BE bs = Stream next 0 (B.length bs)
     where
       {-# INLINE next #-}
@@ -176,7 +177,7 @@ stream_bs Utf16BE bs = Stream next 0 (B.length bs)
             x2    :: Word16
             x2    = (shiftL (index (i + 2)) 8) + (index (i + 3))
             l     = B.length bs
-            index = fromIntegral . B.index bs
+            index = fromIntegral . B.unsafeIndex bs
 stream_bs Utf32BE bs = Stream next 0 (B.length bs)
     where
       {-# INLINE next #-}
@@ -191,7 +192,7 @@ stream_bs Utf32BE bs = Stream next 0 (B.length bs)
             x2    = index (i+1)
             x3    = index (i+2)
             x4    = index (i+3)
-            index = fromIntegral . B.index bs :: Int -> Word32
+            index = fromIntegral . B.unsafeIndex bs :: Int -> Word32
 stream_bs Utf32LE bs = Stream next 0 (B.length bs)
     where
       {-# INLINE next #-}
@@ -206,7 +207,7 @@ stream_bs Utf32LE bs = Stream next 0 (B.length bs)
             x2    = index $ i+1
             x3    = index $ i+2
             x4    = index $ i+3
-            index = fromIntegral . B.index bs :: Int -> Word32
+            index = fromIntegral . B.unsafeIndex bs :: Int -> Word32
 {-# INLINE [0] stream_bs #-}
 
 -- | /O(n)/ Convert a Stream Char into a Stream Word8 using the specified encoding standard.
