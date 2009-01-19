@@ -661,7 +661,7 @@ concat = L.foldr append (Stream next Done 0)
       next Done = Done
       next _    = internalError "concat"
 
--- | Map a function over a stream that results in a steram and concatenate the
+-- | Map a function over a stream that results in a stream and concatenate the
 -- results.
 concatMap :: (Char -> Stream Char) -> Stream Char -> Stream Char
 concatMap f = foldr (append . f) (stream empty)
