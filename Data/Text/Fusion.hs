@@ -159,9 +159,7 @@ stream_bs Utf16LE bs = Stream next 0 l
           | i+3 < l && U16.validate2 x1 x2 = Yield (U16.chr2 x1 x2) (i+4)
           | otherwise = error $ "bsStream: bad UTF-16LE stream"
           where
-            x1    :: Word16
             x1    = (shiftL (index (i + 1)) 8) + (index i)
-            x2    :: Word16
             x2    = (shiftL (index (i + 3)) 8) + (index (i + 2))
             index = fromIntegral . B.unsafeIndex bs :: Int -> Word16
 stream_bs Utf16BE bs = Stream next 0 l
@@ -174,11 +172,9 @@ stream_bs Utf16BE bs = Stream next 0 l
           | i+3 < l && U16.validate2 x1 x2 = Yield (U16.chr2 x1 x2) (i+4)
           | otherwise = error $ "bsStream: bad UTF16-BE stream "
           where
-            x1    :: Word16
             x1    = (shiftL (index i) 8) + (index (i + 1))
-            x2    :: Word16
             x2    = (shiftL (index (i + 2)) 8) + (index (i + 3))
-            index = fromIntegral . B.unsafeIndex bs
+            index = fromIntegral . B.unsafeIndex bs :: Int -> Word16
 stream_bs Utf32BE bs = Stream next 0 l
     where
       l = B.length bs
