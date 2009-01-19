@@ -33,6 +33,8 @@ default(Int)
 infixl 2 :!:
 data PairS a b = !a :!: !b
 
+data T4 a b c d = T4 !a !b !c !d
+
 data Switch = S1 | S2
 
 data EitherS a b = LeftS !a | RightS !b
@@ -217,36 +219,36 @@ restream ASCII (Stream next0 s0 len) =  Stream next s0 (len*2)
                   Yield x xs -> Yield x' xs
                       where x' = fromIntegral (ord x) :: Word8
 restream Utf8 (Stream next0 s0 len) =
-    Stream next ((Just s0) :!: Nothing :!: Nothing :!: Nothing) (len*2)
+    Stream next (T4 (Just s0) Nothing Nothing Nothing) (len*2)
     where
       {-# INLINE next #-}
-      next ((Just s) :!: Nothing :!: Nothing :!: Nothing) = case next0 s of
+      next (T4 (Just s) Nothing Nothing Nothing) = case next0 s of
                   Done              -> Done
-                  Skip s'           -> Skip ((Just s') :!: Nothing :!: Nothing :!: Nothing)
+                  Skip s'           -> Skip (T4 (Just s') Nothing Nothing Nothing)
                   Yield x xs
-                      | n <= 0x7F   -> Yield c         ((Just xs) :!: Nothing   :!: Nothing   :!: Nothing)
-                      | n <= 0x07FF -> Yield (fst c2)  ((Just xs) :!: (Just $ snd c2)  :!: Nothing   :!: Nothing)
-                      | n <= 0xFFFF -> Yield (fst3 c3) ((Just xs) :!: (Just $ snd3 c3) :!: (Just $ trd3 c3) :!: Nothing)
-                      | otherwise   -> Yield (fst4 c4) ((Just xs) :!: (Just $ snd4 c4) :!: (Just $ trd4 c4) :!: (Just $ fth4 c4))
+                      | n <= 0x7F   -> Yield c         (T4 (Just xs) Nothing Nothing Nothing)
+                      | n <= 0x07FF -> Yield (fst c2)  (T4 (Just xs) (Just $ snd c2) Nothing Nothing)
+                      | n <= 0xFFFF -> Yield (fst3 c3) (T4 (Just xs) (Just $ snd3 c3) (Just $ trd3 c3) Nothing)
+                      | otherwise   -> Yield (fst4 c4) (T4 (Just xs) (Just $ snd4 c4) (Just $ trd4 c4) (Just $ fth4 c4))
                       where
                         n  = ord x
                         c  = fromIntegral n
                         c2 = U8.ord2 x
                         c3 = U8.ord3 x
                         c4 = U8.ord4 x
-      next ((Just s) :!: (Just x2) :!: Nothing :!: Nothing) = Yield x2 ((Just s) :!: Nothing :!: Nothing :!: Nothing)
-      next ((Just s) :!: (Just x2) :!: x3 :!: Nothing)      = Yield x2 ((Just s) :!: x3 :!: Nothing :!: Nothing)
-      next ((Just s) :!: (Just x2) :!: x3 :!: x4)           = Yield x2 ((Just s) :!: x3 :!: x4 :!: Nothing)
+      next (T4 (Just s) (Just x2) Nothing Nothing) = Yield x2 (T4 (Just s) Nothing Nothing Nothing)
+      next (T4 (Just s) (Just x2) x3 Nothing)      = Yield x2 (T4 (Just s) x3 Nothing Nothing)
+      next (T4 (Just s) (Just x2) x3 x4)           = Yield x2 (T4 (Just s) x3 x4 Nothing)
 restream Utf16BE (Stream next0 s0 len) =
-    Stream next (Just s0 :!: Nothing :!: Nothing :!: Nothing) (len*2)
+    Stream next (T4 (Just s0) Nothing Nothing Nothing) (len*2)
     where
       {-# INLINE next #-}
-      next (Just s :!: Nothing :!: Nothing :!: Nothing) = case next0 s of
+      next (T4 (Just s) Nothing Nothing Nothing) = case next0 s of
           Done -> Done
-          Skip s' -> Skip (Just s' :!: Nothing :!: Nothing :!: Nothing)
+          Skip s' -> Skip (T4 (Just s') Nothing Nothing Nothing)
           Yield x xs
-              | n < 0x10000 -> Yield (fromIntegral $ shiftR n 8) (Just xs :!: Just (fromIntegral n) :!: Nothing :!: Nothing)
-              | otherwise   -> Yield c1                          (Just xs :!: Just c2 :!: Just c3 :!: Just c4)
+              | n < 0x10000 -> Yield (fromIntegral $ shiftR n 8) (T4 (Just xs) (Just (fromIntegral n)) Nothing Nothing)
+              | otherwise   -> Yield c1                          (T4 (Just xs) (Just c2) (Just c3) (Just c4))
               where
                 n  = ord x
                 n1 = n - 0x10000
@@ -255,19 +257,19 @@ restream Utf16BE (Stream next0 s0 len) =
                 n2 = n1 .&. 0x3FF
                 c3 = fromIntegral (shiftR n2 8 + 0xDC)
                 c4 = fromIntegral n2
-      next ((Just s) :!: (Just x2) :!: Nothing :!: Nothing) = Yield x2 ((Just s) :!: Nothing :!: Nothing :!: Nothing)
-      next ((Just s) :!: (Just x2) :!: x3 :!: Nothing)      = Yield x2 ((Just s) :!: x3 :!: Nothing :!: Nothing)
-      next ((Just s) :!: (Just x2) :!: x3 :!: x4)           = Yield x2 ((Just s) :!: x3 :!: x4 :!: Nothing)
+      next (T4 (Just s) (Just x2) Nothing Nothing) = Yield x2 (T4 (Just s) Nothing Nothing Nothing)
+      next (T4 (Just s) (Just x2) x3 Nothing)      = Yield x2 (T4 (Just s) x3 Nothing Nothing)
+      next (T4 (Just s) (Just x2) x3 x4)           = Yield x2 (T4 (Just s) x3 x4 Nothing)
 restream Utf16LE (Stream next0 s0 len) =
-    Stream next (Just s0 :!: Nothing :!: Nothing :!: Nothing) (len*2)
+    Stream next (T4 (Just s0) Nothing Nothing Nothing) (len*2)
     where
       {-# INLINE next #-}
-      next (Just s :!: Nothing :!: Nothing :!: Nothing) = case next0 s of
+      next (T4 (Just s) Nothing Nothing Nothing) = case next0 s of
           Done -> Done
-          Skip s' -> Skip (Just s' :!: Nothing :!: Nothing :!: Nothing)
+          Skip s' -> Skip (T4 (Just s') Nothing Nothing Nothing)
           Yield x xs
-              | n < 0x10000 -> Yield (fromIntegral n) (Just xs :!: Just (fromIntegral $ shiftR n 8) :!: Nothing :!: Nothing)
-              | otherwise   -> Yield c1                          (Just xs :!: Just c2 :!: Just c3 :!: Just c4)
+              | n < 0x10000 -> Yield (fromIntegral n) (T4 (Just xs) (Just (fromIntegral $ shiftR n 8)) Nothing Nothing)
+              | otherwise   -> Yield c1                          (T4 (Just xs) (Just c2) (Just c3) (Just c4))
               where
                 n  = ord x
                 n1 = n - 0x10000
@@ -276,43 +278,43 @@ restream Utf16LE (Stream next0 s0 len) =
                 n2 = n1 .&. 0x3FF
                 c4 = fromIntegral (shiftR n2 8 + 0xDC)
                 c3 = fromIntegral n2
-      next ((Just s) :!: (Just x2) :!: Nothing :!: Nothing) = Yield x2 ((Just s) :!: Nothing :!: Nothing :!: Nothing)
-      next ((Just s) :!: (Just x2) :!: x3 :!: Nothing)      = Yield x2 ((Just s) :!: x3 :!: Nothing :!: Nothing)
-      next ((Just s) :!: (Just x2) :!: x3 :!: x4)           = Yield x2 ((Just s) :!: x3 :!: x4 :!: Nothing)
+      next (T4 (Just s) (Just x2) Nothing Nothing) = Yield x2 (T4 (Just s) Nothing Nothing Nothing)
+      next (T4 (Just s) (Just x2) x3 Nothing)      = Yield x2 (T4 (Just s) x3 Nothing Nothing)
+      next (T4 (Just s) (Just x2) x3 x4)           = Yield x2 (T4 (Just s) x3 x4 Nothing)
 restream Utf32BE (Stream next0 s0 len) =
-    Stream next (Just s0 :!: Nothing :!: Nothing :!: Nothing) (len*2)
+    Stream next (T4 (Just s0) Nothing Nothing Nothing) (len*2)
     where
     {-# INLINE next #-}
-    next (Just s :!: Nothing :!: Nothing :!: Nothing) = case next0 s of
+    next (T4 (Just s) Nothing Nothing Nothing) = case next0 s of
         Done       -> Done
-        Skip s'    -> Skip (Just s' :!: Nothing :!: Nothing :!: Nothing)
-        Yield x xs -> Yield c1 (Just xs :!: Just c2 :!: Just c3 :!: Just c4)
+        Skip s'    -> Skip (T4 (Just s') Nothing Nothing Nothing)
+        Yield x xs -> Yield c1 (T4 (Just xs) (Just c2) (Just c3) (Just c4))
           where
             n  = ord x
             c1 = fromIntegral $ shiftR n 24
             c2 = fromIntegral $ shiftR n 16
             c3 = fromIntegral $ shiftR n 8
             c4 = fromIntegral n
-    next ((Just s) :!: (Just x2) :!: Nothing :!: Nothing) = Yield x2 ((Just s) :!: Nothing :!: Nothing :!: Nothing)
-    next ((Just s) :!: (Just x2) :!: x3 :!: Nothing)      = Yield x2 ((Just s) :!: x3 :!: Nothing :!: Nothing)
-    next ((Just s) :!: (Just x2) :!: x3 :!: x4)           = Yield x2 ((Just s) :!: x3 :!: x4 :!: Nothing)
+    next (T4 (Just s) (Just x2) Nothing Nothing) = Yield x2 (T4 (Just s) Nothing Nothing Nothing)
+    next (T4 (Just s) (Just x2) x3 Nothing)      = Yield x2 (T4 (Just s) x3 Nothing Nothing)
+    next (T4 (Just s) (Just x2) x3 x4)           = Yield x2 (T4 (Just s) x3 x4 Nothing)
 restream Utf32LE (Stream next0 s0 len) =
-    Stream next (Just s0 :!: Nothing :!: Nothing :!: Nothing) (len*2)
+    Stream next (T4 (Just s0) Nothing Nothing Nothing) (len*2)
     where
     {-# INLINE next #-}
-    next (Just s :!: Nothing :!: Nothing :!: Nothing) = case next0 s of
+    next (T4 (Just s) Nothing Nothing Nothing) = case next0 s of
         Done       -> Done
-        Skip s'    -> Skip (Just s' :!: Nothing :!: Nothing :!: Nothing)
-        Yield x xs -> Yield c1 (Just xs :!: Just c2 :!: Just c3 :!: Just c4)
+        Skip s'    -> Skip (T4 (Just s') Nothing Nothing Nothing)
+        Yield x xs -> Yield c1 (T4 (Just xs) (Just c2) (Just c3) (Just c4))
           where
             n  = ord x
             c4 = fromIntegral $ shiftR n 24
             c3 = fromIntegral $ shiftR n 16
             c2 = fromIntegral $ shiftR n 8
             c1 = fromIntegral n
-    next ((Just s) :!: (Just x2) :!: Nothing :!: Nothing) = Yield x2 ((Just s) :!: Nothing :!: Nothing :!: Nothing)
-    next ((Just s) :!: (Just x2) :!: x3 :!: Nothing)      = Yield x2 ((Just s) :!: x3 :!: Nothing :!: Nothing)
-    next ((Just s) :!: (Just x2) :!: x3 :!: x4)           = Yield x2 ((Just s) :!: x3 :!: x4 :!: Nothing)
+    next (T4 (Just s) (Just x2) Nothing Nothing) = Yield x2 (T4 (Just s) Nothing Nothing Nothing)
+    next (T4 (Just s) (Just x2) x3 Nothing)      = Yield x2 (T4 (Just s) x3 Nothing Nothing)
+    next (T4 (Just s) (Just x2) x3 x4)           = Yield x2 (T4 (Just s) x3 x4 Nothing)
 {-# INLINE restream #-}
 
 
