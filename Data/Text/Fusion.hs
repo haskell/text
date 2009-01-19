@@ -9,7 +9,7 @@ import Control.Exception(assert)
 import Control.Monad(liftM2)
 import Control.Monad.ST(runST,ST)
 import Data.Array.Base
-import Data.Bits
+import Data.Bits (shiftL, shiftR, (.&.))
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Unsafe as B
 import Data.ByteString.Internal(ByteString(..),mallocByteString,memcpy)
