@@ -10,7 +10,6 @@ module Data.Text.Fusion
     , stream_bs
     , unstream_bs
     , restream
-    , errorEmptyList
     , eq
     , cons
     , snoc
@@ -939,5 +938,4 @@ zipWith f (Stream next0 sa0 len1) (Stream next1 sb0 len2) = Stream next (sa0 :!:
 {-# INLINE [0] zipWith #-}
 
 errorEmptyList :: String -> a
-errorEmptyList fun =
-  error ("Prelude." ++ fun ++ ": empty list")
+errorEmptyList fun = error ("Data.Text.Fusion." ++ fun ++ ": empty list")

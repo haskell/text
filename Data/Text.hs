@@ -52,7 +52,7 @@ module Data.Text
     ) where
 
 import Prelude (Char,Bool,Int,Maybe,String,
-                Eq,(==),
+                Eq,(==),(++),error,
                 Show,showsPrec,
                 Read,readsPrec,
                 (&&),(||),(+),(-),($),(<),(>),(<=),(>=),(.),(>>=),
@@ -72,8 +72,7 @@ import Data.String (IsString(..))
 
 import qualified Data.Text.Fusion as S
 import Data.Text.Fusion (Stream(..),Step(..),Encoding(..),
-                    stream,unstream,stream_bs,unstream_bs,restream,
-                    errorEmptyList)
+                    stream,unstream,stream_bs,unstream_bs,restream)
 import Data.Text.Internal(Text(..),empty)
 import qualified Prelude as P
 import Data.Text.UnsafeChar(unsafeChr)
@@ -525,3 +524,6 @@ words (Text arr off len) = loop0 off off
             where
               c = arr `unsafeAt` n
 {-# INLINE words #-}
+
+errorEmptyList :: String -> a
+errorEmptyList fun = error ("Data.Text." ++ fun ++ ": empty list")
