@@ -17,7 +17,6 @@ cabal-version:  >= 1.2
 library
   exposed-modules:
     Data.Text
-  other-modules:
     Data.Text.UnsafeChar
     Data.Text.Internal
     Data.Text.Fusion
