@@ -100,7 +100,7 @@ copy src dest = (do
                    (_,max) <- getBounds src
                    copy_loop 0 max)
     where
-      copy_loop !i !max
+      copy_loop i max
           | i > max    = return ()
           | otherwise = do v <- unsafeRead src i
                            unsafeWrite dest i v
@@ -475,7 +475,7 @@ length :: Stream Char -> Int
 length (Stream next s0 len) = loop_length 0# s0
     where
 
-      loop_length z# !s  = case next s of
+      loop_length z# s  = case next s of
                             Done       -> (I# z#)
                             Skip    s' -> loop_length z# s'
                             Yield _ s' -> loop_length (z# +# 1#) s'
