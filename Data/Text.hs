@@ -1,15 +1,45 @@
 {-# LANGUAGE BangPatterns #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
+-- |
+-- Module      : Data.Text
+-- Copyright   : (c) Tom Harper 2008-2009,
+--               (c) Bryan O'Sullivan 2009,
+--               (c) Duncan Coutts 2009
+--
+-- License     : BSD-style
+-- Maintainer  : rtharper@aftereternity.co.uk, bos@serpentine.com,
+--               duncan@haskell.org
+-- Stability   : experimental
+-- Portability : GHC
+--
+-- A time and space-efficient implementation of Unicode text using
+-- packed Word16 arrays.  Suitable for performance critical use, both
+-- in terms of large data quantities and high speed.
+--
+-- This module is intended to be imported @qualified@, to avoid name
+-- clashes with "Prelude" functions, e.g.
+--
+-- > import qualified Data.Text as T
+
 module Data.Text
     (
+    -- * Fusion
+    -- $fusion
+
+    -- * Types
       Text
     , Encoding(..)
+
+    -- * Creation and elimination
     , pack
     , unpack
     , singleton
+    , empty
     , encode
     , decode
+
+    -- * Basic interface
     , cons
     , snoc
     , append
@@ -19,35 +49,57 @@ module Data.Text
     , init
     , null
     , length
+
+    -- * Transformations
     , map
     , intersperse
     , transpose
+
+    -- * Folds
     , foldl
     , foldl'
     , foldl1
     , foldl1'
     , foldr
     , foldr1
+
+    -- ** Special folds
     , concat
     , concatMap
     , any
     , all
     , maximum
     , minimum
+
+    -- * Construction
     , unfoldr
     , unfoldrN
+
+    -- * Substrings
+
+    -- ** Breaking strings
     , take
     , drop
     , takeWhile
     , dropWhile
+
+    -- ** Breaking into lines and words
+    , words
+
+    -- * Searching
     , elem
-    , find
     , filter
+
+    -- * Indexing
+    , find
     , index
     , findIndex
     , elemIndex
+
+    -- * Zipping and unzipping
     , zipWith
-    , words
+
+    -- * I/O
     , readFile
     ) where
 
@@ -58,7 +110,6 @@ import Prelude (Char,Bool,Int,Maybe,String,
                 (&&),(||),(+),(-),(<),(>),(<=),(>=),(.),(>>=),
                 return,otherwise,
                 IO, FilePath)
-
 import Data.Char (isSpace)
 import Control.Monad.ST(ST)
 import Data.Array.Base(unsafeNewArray_,unsafeWrite,unsafeAt)
@@ -77,6 +128,12 @@ import Data.Text.Internal(Text(..),empty)
 import qualified Prelude as P
 import Data.Text.UnsafeChar(unsafeChr)
 import qualified Data.Text.Utf16 as U16
+
+-- $fusion
+--
+-- Most of the functions in this module are subject to /array fusion/,
+-- meaning that a pipeline of functions will usually allocate at most
+-- one 'Text' value.
 
 instance Eq Text where
     t1 == t2 = (stream t1) `S.eq` (stream t2)
@@ -98,11 +155,9 @@ instance IsString Text where
 -- -----------------------------------------------------------------------------
 -- * Conversion to/from 'Text'
 
--- | /O(n)/ Convert a String into a Text.
+-- | /O(n)/ Convert a 'String' into a 'Text'.
 --
--- This function is subject to array fusion, so calling other fusible
--- function(s) on a packed string will only cause one 'Text' to be written
--- out at the end of the pipeline, instead of one before and one after.
+-- This function is subject to array fusion.
 pack :: String -> Text
 pack str = (unstream (stream_list str))
     where
@@ -126,7 +181,7 @@ unpack txt = (unstream_list (stream txt))
                           S.Yield x s' -> x : unfold s'
 {-# INLINE [1] unpack #-}
 
--- | Convert a character into a Text.
+-- | /O(1)/ Convert a character into a Text.
 -- Subject to array fusion.
 singleton :: Char -> Text
 singleton c = unstream (Stream next (c:[]) 1)
@@ -147,23 +202,21 @@ encode enc txt = unstream_bs (restream enc (stream txt))
 -- -----------------------------------------------------------------------------
 -- * Basic functions
 
--- | /O(n)/ Adds a character to the front of a 'Text'.  This function is more
--- costly than its 'List' counterpart because it requires copying a new array.
--- Subject to array fusion.
+-- | /O(n)/ Adds a character to the front of a 'Text'.  This function
+-- is more costly than its 'List' counterpart because it requires
+-- copying a new array.  Subject to array fusion.
 cons :: Char -> Text -> Text
 cons c t = unstream (S.cons c (stream t))
 {-# INLINE cons #-}
 
--- | /O(n)/ Adds a character to the end of a 'Text'.  This copies the entire
--- array in the process.
--- Subject to array fusion.
+-- | /O(n)/ Adds a character to the end of a 'Text'.  This copies the
+-- entire array in the process.  Subject to array fusion.
 snoc :: Text -> Char -> Text
 snoc t c = unstream (S.snoc (stream t) c)
 {-# INLINE snoc #-}
 
--- | /O(n)/ Appends one Text to the other by copying both of them into a new
--- Text.
--- Subject to array fusion
+-- | /O(n)/ Appends one 'Text' to the other by copying both of them
+-- into a new 'Text'.  Subject to array fusion.
 append :: Text -> Text -> Text
 append (Text arr1 off1 len1) (Text arr2 off2 len2) = Text (runSTUArray x) 0 len
     where
@@ -187,14 +240,14 @@ append (Text arr1 off1 len1) (Text arr2 off2 len2) = Text (runSTUArray x) 0 len
     unstream (S.append (stream t1) (stream t2)) = append t1 t2
  #-}
 
--- | /O(1)/ Returns the first character of a Text, which must be non-empty.
--- Subject to array fusion.
+-- | /O(1)/ Returns the first character of a 'Text', which must be
+-- non-empty.  Subject to array fusion.
 head :: Text -> Char
 head t = S.head (stream t)
 {-# INLINE head #-}
 
--- | /O(n)/ Returns the last character of a Text, which must be non-empty.
--- Subject to array fusion.
+-- | /O(n)/ Returns the last character of a 'Text', which must be
+-- non-empty.  Subject to array fusion.
 last :: Text -> Char
 last (Text arr off len)
     | len <= 0                   = errorEmptyList "last"
@@ -213,9 +266,8 @@ last (Text arr off len)
   #-}
 
 
--- | /O(1)/ Returns all characters after the head of a Text, which must
--- be non-empty.
--- Subject to array fusion.
+-- | /O(1)/ Returns all characters after the head of a 'Text', which
+-- must be non-empty.  Subject to array fusion.
 tail :: Text -> Text
 tail (Text arr off len)
     | len <= 0                   = errorEmptyList "tail"
@@ -227,9 +279,8 @@ tail (Text arr off len)
 
 
 
--- | /O(1)/ Returns all but the last character of a Text, which
--- must be non-empty.
--- Subject to array fusion.
+-- | /O(1)/ Returns all but the last character of a 'Text', which must
+-- be non-empty.  Subject to array fusion.
 init :: Text -> Text
 init (Text arr off len) | len <= 0                   = errorEmptyList "init"
                         | n >= 0xDC00 && n <= 0xDFFF = Text arr off (len-2)
@@ -245,13 +296,13 @@ init (Text arr off len) | len <= 0                   = errorEmptyList "init"
     unstream (S.init (stream t)) = init t
  #-}
 
--- | /O(1)/ Tests whether a Text is empty or not.
--- Subject to array fusion.
+-- | /O(1)/ Tests whether a 'Text' is empty or not.  Subject to array
+-- fusion.
 null :: Text -> Bool
 null t = S.null (stream t)
 {-# INLINE null #-}
 
--- | /O(n)/ Returns the number of characters in a text.
+-- | /O(n)/ Returns the number of characters in a 'Text'.
 -- Subject to array fusion.
 length :: Text -> Int
 length (Text _arr _off len) = len
@@ -266,32 +317,31 @@ length (Text _arr _off len) = len
 
 -- -----------------------------------------------------------------------------
 -- * Transformations
--- | /O(n)/ 'map' @f @xs is the Text obtained by applying @f@ to each
--- element of @xs@.
--- Subject to array fusion.
+-- | /O(n)/ 'map' @f @xs is the 'Text' obtained by applying @f@ to
+-- each element of @xs@.  Subject to array fusion.
 map :: (Char -> Char) -> Text -> Text
 map f t = unstream (S.map f (stream t))
 {-# INLINE [1] map #-}
 
--- | /O(n)/ The 'intersperse' function takes a character and places it between
--- the characters of a Text.
--- Subject to array fusion.
+-- | /O(n)/ The 'intersperse' function takes a character and places it
+-- between the characters of a 'Text'.  Subject to array fusion.
 intersperse     :: Char -> Text -> Text
 intersperse c t = unstream (S.intersperse c (stream t))
 {-# INLINE intersperse #-}
 
--- | /O(n)/ The 'transpose' function transposes the rows and columns of its
--- Text argument.  Note that this function uses pack, unpack, and the 'List'
--- version of transpose and is thus not very efficient.
+-- | /O(n)/ The 'transpose' function transposes the rows and columns
+-- of its 'Text' argument.  Note that this function uses 'pack',
+-- 'unpack', and the 'List' version of transpose and is thus not very
+-- efficient.
 transpose :: [Text] -> [Text]
 transpose ts = P.map pack (L.transpose (P.map unpack ts))
 
 -- -----------------------------------------------------------------------------
 -- * Reducing 'Text's (folds)
 
--- | 'foldl', applied to a binary operator, a starting value (typically the
--- left-identity of the operator), and a Text, reduces the Text using the
--- binary operator, from left to right.
+-- | 'foldl', applied to a binary operator, a starting value
+-- (typically the left-identity of the operator), and a 'Text',
+-- reduces the 'Text' using the binary operator, from left to right.
 -- Subject to array fusion.
 foldl :: (b -> Char -> b) -> b -> Text -> b
 foldl f z t = S.foldl f z (stream t)
@@ -303,9 +353,9 @@ foldl' :: (b -> Char -> b) -> b -> Text -> b
 foldl' f z t = S.foldl' f z (stream t)
 {-# INLINE foldl' #-}
 
--- | 'foldl1' is a variant of 'foldl' that has no starting value argument,
--- and thus must be applied to non-empty 'Text's.
--- Subject to array fusion.
+-- | A variant of 'foldl' that has no starting value argument, and
+-- thus must be applied to a non-empty 'Text'.  Subject to array
+-- fusion.
 foldl1 :: (Char -> Char -> Char) -> Text -> Char
 foldl1 f t = S.foldl1 f (stream t)
 {-# INLINE foldl1 #-}
@@ -316,17 +366,17 @@ foldl1' :: (Char -> Char -> Char) -> Text -> Char
 foldl1' f t = S.foldl1' f (stream t)
 {-# INLINE foldl1' #-}
 
--- | 'foldr', applied to a binary operator, a starting value (typically the
--- right-identity of the operator), and a Text, reduces the Text using the
--- binary operator, from right to left.
+-- | 'foldr', applied to a binary operator, a starting value
+-- (typically the right-identity of the operator), and a 'Text',
+-- reduces the 'Text' using the binary operator, from right to left.
 -- Subject to array fusion.
 foldr :: (Char -> b -> b) -> b -> Text -> b
 foldr f z t = S.foldr f z (stream t)
 {-# INLINE foldr #-}
 
--- | 'foldr1' is a variant of 'foldr' that has no starting value argument,
--- and thust must be applied to non-empty 'Text's.
--- Subject to array fusion.
+-- | A variant of 'foldr' that has no starting value argument, and
+-- thust must be applied to a non-empty 'Text'.  Subject to array
+-- fusion.
 foldr1 :: (Char -> Char -> Char) -> Text -> Char
 foldr1 f t = S.foldr1 f (stream t)
 {-# INLINE foldr1 #-}
@@ -339,34 +389,35 @@ concat :: [Text] -> Text
 concat ts = unstream (S.concat (L.map stream ts))
 {-# INLINE concat #-}
 
--- | Map a function over a Text that results in a Text and concatenate the
--- results.  This function is subject to array fusion, and note that if in
--- 'concatMap' @f @xs, @f@ is defined in terms of fusible functions it will
--- also be fusible.
+-- | Map a function over a 'Text' that results in a 'Text', and concatenate the
+-- results.  This function is subject to array fusion.
+--
+-- Note: if in 'concatMap' @f @xs, @f@ is defined in terms of fusible
+-- functions, it will also be fusible.
 concatMap :: (Char -> Text) -> Text -> Text
 concatMap f t = unstream (S.concatMap (stream . f) (stream t))
 {-# INLINE concatMap #-}
 
--- | 'any' @p @xs determines if any character in the 'Text' @xs@ satisifes the
--- predicate @p@. Subject to array fusion.
+-- | 'any' @p @xs determines whether any character in the 'Text' @xs@
+-- satisifes the predicate @p@. Subject to array fusion.
 any :: (Char -> Bool) -> Text -> Bool
 any p t = S.any p (stream t)
 {-# INLINE any #-}
 
--- | 'all' @p @xs determines if all characters in the 'Text' @xs@ satisify the
--- predicate @p@. Subject to array fusion.
+-- | 'all' @p @xs determines whether all characters in the 'Text' @xs@
+-- satisify the predicate @p@. Subject to array fusion.
 all :: (Char -> Bool) -> Text -> Bool
 all p t = S.all p (stream t)
 {-# INLINE all #-}
 
--- | /O(n)/ 'maximum' returns the maximum value from a 'Text', which must be
--- non-empty. Subject to array fusion.
+-- | /O(n)/ 'maximum' returns the maximum value from a 'Text', which
+-- must be non-empty. Subject to array fusion.
 maximum :: Text -> Char
 maximum t = S.maximum (stream t)
 {-# INLINE maximum #-}
 
--- | /O(n)/ 'minimum' returns the minimum value from a 'Text', which must be
--- non-empty. Subject to array fusion.
+-- | /O(n)/ 'minimum' returns the minimum value from a 'Text', which
+-- must be non-empty. Subject to array fusion.
 minimum :: Text -> Char
 minimum t = S.minimum (stream t)
 {-# INLINE minimum #-}
@@ -377,21 +428,21 @@ minimum t = S.minimum (stream t)
 -- -----------------------------------------------------------------------------
 -- ** Generating and unfolding 'Text's
 
--- /O(n)/, where @n@ is the length of the result. The unfoldr function
--- is analogous to the List 'unfoldr'. unfoldr builds a Text
--- from a seed value. The function takes the element and returns
--- Nothing if it is done producing the Text or returns Just
--- (a,b), in which case, a is the next Char in the string, and b is
--- the seed value for further production.
+-- | /O(n)/, where @n@ is the length of the result. The 'unfoldr'
+-- function is analogous to the List 'L.unfoldr'. 'unfoldr' builds a
+-- 'Text' from a seed value. The function takes the element and
+-- returns 'Nothing' if it is done producing the 'Text', otherwise
+-- 'Just' @(a,b)@.  In this case, @a@ is the next 'Char' in the
+-- string, and @b@ is the seed value for further production.
 unfoldr     :: (a -> Maybe (Char,a)) -> a -> Text
 unfoldr f s = unstream (S.unfoldr f s)
 {-# INLINE unfoldr #-}
 
--- O(n) Like unfoldr, unfoldrN builds a Text from a seed
+-- | /O(n)/ Like 'unfoldr', 'unfoldrN' builds a 'Text' from a seed
 -- value. However, the length of the result should be limited by the
--- first argument to unfoldrN. This function is more efficient than
--- unfoldr when the maximum length of the result and correct,
--- otherwise its complexity performance is similar to 'unfoldr'
+-- first argument to 'unfoldrN'. This function is more efficient than
+-- 'unfoldr' when the maximum length of the result is known and
+-- correct, otherwise its performance is similar to 'unfoldr'.
 unfoldrN     :: Int -> (a -> Maybe (Char,a)) -> a -> Text
 unfoldrN n f s = unstream (S.unfoldrN n f s)
 {-# INLINE unfoldrN #-}
@@ -399,12 +450,15 @@ unfoldrN n f s = unstream (S.unfoldrN n f s)
 -- -----------------------------------------------------------------------------
 -- * Substrings
 
--- O(n) 'take' @n, applied to a Text, returns the prefix of the
--- Text of length n, or the Text itself if n is greater than the
--- length of the Text.
+-- /O(n) 'take' @n@, applied to a 'Text', returns the prefix of the
+-- 'Text' of length @n@, or the 'Text' itself if @n@ is greater than
+-- the length of the Text.
 take :: Int -> Text -> Text
-take n (Text arr off len) = Text arr off (loop off 0)
-    where
+take n t@(Text arr off len)
+    | n <= 0    = empty
+    | n >= len  = t
+    | otherwise = Text arr off (loop off 0)
+  where
       end = off+len
       loop !i !count
            | i >= end || count >= n   = i - off
@@ -421,12 +475,15 @@ take n (Text arr off len) = Text arr off (loop off 0)
     unstream (S.take n (stream t)) = take n t
   #-}
 
--- /O(n)/ 'drop' @n, applied to a Text, returns the suffix of the
--- Text of length @n, or the empty Text if @n is greater than the
--- length of the Text.
+-- | /O(n)/ 'drop' @n@, applied to a 'Text', returns the suffix of the
+-- 'Text' of length @n@, or the empty 'Text' if @n@ is greater than the
+-- length of the 'Text'.
 drop :: Int -> Text -> Text
-drop n (Text arr off len) = (Text arr newOff newLen)
-    where
+drop n t@(Text arr off len)
+    | n <= 0    = t
+    | n >= len  = empty
+    | otherwise = Text arr newOff newLen
+  where
       (newOff, newLen) = loop off 0 len
       end = off + len
       loop !i !count !l
@@ -444,12 +501,13 @@ drop n (Text arr off len) = (Text arr newOff newLen)
     unstream (S.drop n (stream t)) = drop n t
   #-}
 
--- | 'takeWhile', applied to a predicate @p@ and a stream, returns the
--- longest prefix (possibly empty) of elements that satisfy p.
+-- | 'takeWhile', applied to a predicate @p@ and a 'Text', returns the
+-- longest prefix (possibly empty) of elements that satisfy @p@.
 takeWhile :: (Char -> Bool) -> Text -> Text
 takeWhile p t = unstream (S.takeWhile p (stream t))
 
--- | 'dropWhile' @p @xs returns the suffix remaining after 'takeWhile' @p @xs.
+-- | 'dropWhile' @p@ @xs@ returns the suffix remaining after
+-- 'takeWhile' @p@ @xs@.
 dropWhile :: (Char -> Bool) -> Text -> Text
 dropWhile p t = unstream (S.dropWhile p (stream t))
 
