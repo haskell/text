@@ -167,7 +167,6 @@ eq (Stream next1 s1 _) (Stream next2 s2 _) = cmp (next1 s1) (next2 s2)
                                           cmp (next1 s1') (next2 s2')
 {-# SPECIALISE eq :: Stream Char -> Stream Char -> Bool #-}
 
-
 -- | /O(n) Convert a ByteString into a Stream Char, using the specified encoding standard.
 stream_bs :: Encoding -> ByteString -> Stream Char
 stream_bs ASCII bs = Stream next 0 l
