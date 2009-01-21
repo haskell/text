@@ -305,15 +305,8 @@ null t = S.null (stream t)
 -- | /O(n)/ Returns the number of characters in a 'Text'.
 -- Subject to array fusion.
 length :: Text -> Int
-length (Text _arr _off len) = len
-{-# INLINE [1] length #-}
-
-{-# RULES
-"TEXT length -> fused" [~1] forall t.
-    length t = S.length (stream t)
-"TEXT length -> unfused" [1] forall t.
-    S.length (stream t) = length t
- #-}
+length length t = S.length (stream t)
+{-# INLINE length #-}
 
 -- -----------------------------------------------------------------------------
 -- * Transformations
