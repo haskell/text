@@ -17,6 +17,7 @@ cabal-version:  >= 1.2
 library
   exposed-modules:
     Data.Text
+    Data.Text.Array
     Data.Text.UnsafeChar
     Data.Text.Internal
     Data.Text.Fusion
@@ -25,12 +26,11 @@ library
     Data.Text.Utf16
 
   build-depends:
-    base       >= 3   && < 4,
-    array      >= 0.1 && < 0.3,
+    base       < 5,
     bytestring >= 0.9 && < 1.0
   if impl(ghc >= 6.10)
     build-depends:
-      ghc-prim
+      ghc-prim, base >= 4
 
   -- gather extensive profiling data for now
   ghc-prof-options: -auto-all

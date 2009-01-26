@@ -23,18 +23,17 @@ module Data.Text.Internal
     , empty
     ) where
 
-import Data.Array.ST (newArray_,runSTUArray)
-import Data.Array.Unboxed (UArray)
+import qualified Data.Text.Array as A
 import Data.Typeable (Typeable)
 import Data.Word (Word16)
 
 -- | A space efficient, packed, unboxed Unicode text type.
-data Text = Text {-# UNPACK #-} !(UArray Int Word16) -- payload
-                 {-# UNPACK #-} !Int                 -- offset
-                 {-# UNPACK #-} !Int                 -- length
+data Text = Text {-# UNPACK #-} !(A.Array Word16) -- payload
+                 {-# UNPACK #-} !Int              -- offset
+                 {-# UNPACK #-} !Int              -- length
             deriving (Typeable)
 
 -- | /O(1)/ The empty 'Text'.
 empty :: Text
-empty = Text (runSTUArray (newArray_ (0,0))) 0 0
+empty = Text A.empty 0 0
 {-# INLINE [1] empty #-}

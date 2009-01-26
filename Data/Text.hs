@@ -112,8 +112,7 @@ import Prelude (Char,Bool,Int,Maybe,String,
                 IO, FilePath)
 import Data.Char (isSpace)
 import Control.Monad.ST(ST)
-import Data.Array.Base(unsafeNewArray_,unsafeWrite,unsafeAt)
-import Data.Array.ST(STUArray, runSTUArray)
+import qualified Data.Text.Array as A
 import qualified Data.ByteString as B
 import Data.ByteString(ByteString)
 import qualified Data.List as L
@@ -218,18 +217,18 @@ snoc t c = unstream (S.snoc (stream t) c)
 -- | /O(n)/ Appends one 'Text' to the other by copying both of them
 -- into a new 'Text'.  Subject to array fusion.
 append :: Text -> Text -> Text
-append (Text arr1 off1 len1) (Text arr2 off2 len2) = Text (runSTUArray x) 0 len
+append (Text arr1 off1 len1) (Text arr2 off2 len2) = Text (A.run x) 0 len
     where
       len = len1+len2
       x = do
-        arr <- unsafeNewArray_ (0,len-1) :: ST s (STUArray s Int Word16)
+        arr <- A.unsafeNew len :: ST s (A.MArray s Word16)
         copy arr1 off1 (len1+off1) arr 0
         copy arr2 off2 (len2+off2) arr len1
         return arr
             where
               copy arr i max arr' j
                   | i >= max  = return ()
-                  | otherwise = do unsafeWrite arr' j (arr `unsafeAt` i)
+                  | otherwise = do A.unsafeWrite arr' j (arr `A.unsafeIndex` i)
                                    copy arr (i+1) max arr' (j+1)
 {-# INLINE append #-}
 
@@ -254,8 +253,8 @@ last (Text arr off len)
     | n < 0xDC00 || n > 0xDFFF = unsafeChr n
     | otherwise                  = U16.chr2 n0 n
     where
-      n  = unsafeAt arr (off+len-1)
-      n0 = unsafeAt arr (off+len-2)
+      n  = A.unsafeIndex arr (off+len-1)
+      n0 = A.unsafeIndex arr (off+len-2)
 {-# INLINE [1] last #-}
 
 {-# RULES
@@ -274,7 +273,7 @@ tail (Text arr off len)
     | n >= 0xD800 && n <= 0xDBFF = Text arr (off+2) (len-2)
     | otherwise                  = Text arr (off+1) (len-1)
     where
-      n = unsafeAt arr off
+      n = A.unsafeIndex arr off
 {-# INLINE [1] tail #-}
 
 
@@ -286,7 +285,7 @@ init (Text arr off len) | len <= 0                   = errorEmptyList "init"
                         | n >= 0xDC00 && n <= 0xDFFF = Text arr off (len-2)
                         | otherwise                  = Text arr off (len-1)
     where
-      n = unsafeAt arr (off+len-1)
+      n = A.unsafeIndex arr (off+len-1)
 {-# INLINE [1] init #-}
 
 {-# RULES
@@ -305,7 +304,7 @@ null t = S.null (stream t)
 -- | /O(n)/ Returns the number of characters in a 'Text'.
 -- Subject to array fusion.
 length :: Text -> Int
-length length t = S.length (stream t)
+length t = S.length (stream t)
 {-# INLINE length #-}
 
 -- -----------------------------------------------------------------------------
@@ -458,7 +457,7 @@ take n t@(Text arr off len)
            | c < 0xD800 || c > 0xDBFF = loop (i+1) (count+1)
            | otherwise                = loop (i+2) (count+1)
            where
-             c = arr `unsafeAt` i
+             c = arr `A.unsafeIndex` i
 {-# INLINE [1] take #-}
 
 {-# RULES
@@ -484,7 +483,7 @@ drop n t@(Text arr off len)
           | c < 0xD800 || c > 0xDBFF = loop (i+1) (count+1) (l-1)
           | otherwise                = loop (i+2) (count+1) (l-2)
           where
-            c = arr `unsafeAt` i
+            c = arr `A.unsafeIndex` i
 {-# INLINE [1] drop #-}
 
 {-# RULES
@@ -580,7 +579,7 @@ words (Text arr off len) = loop0 off off
                           then []
                           else [(Text arr start (n-start))]
             where
-              c = arr `unsafeAt` n
+              c = arr `A.unsafeIndex` n
 {-# INLINE words #-}
 
 errorEmptyList :: String -> a

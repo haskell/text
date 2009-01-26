@@ -1,4 +1,4 @@
-import Prelude hiding (zip,zip3,fst,snd)
+import Prelude hiding (zip,zip3)
 
 import BenchUtils
 import Data.Char
@@ -18,6 +18,8 @@ main = do ascii_str <- readFile "ascii.txt"
           force (ascii_txt,ascii_str,ascii_bs)
           printf " # Text\t\tString\tByteString\n"
           run 1 (ascii_txt,ascii_str,ascii_bs) ascii_tests
+
+trd (a,b,c) = c
 
 ascii_tests =  [
  ("map/map",

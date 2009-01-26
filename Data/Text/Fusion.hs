@@ -57,7 +57,6 @@ import Data.Char (ord)
 import Control.Exception(assert)
 import Control.Monad(liftM2)
 import Control.Monad.ST(runST,ST)
-import Data.Array.Base
 import Data.Bits (shiftL, shiftR, (.&.))
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Unsafe as B
@@ -70,6 +69,7 @@ import GHC.Exts (Int(..), (+#))
 import System.IO.Unsafe(unsafePerformIO)
 import Data.Text.Internal(Text(..),empty)
 import Data.Text.UnsafeChar(unsafeChr,unsafeChr8,unsafeChr32)
+import qualified Data.Text.Array as A
 import qualified Data.Text.Utf8 as U8
 import qualified Data.Text.Utf16 as U16
 import qualified Data.Text.Utf32 as U32
@@ -103,32 +103,32 @@ stream (Text arr off len) = Stream next off len
           | n >= 0xD800 && n <= 0xDBFF = Yield (U16.chr2 n n2) (i + 2)
           | otherwise = Yield (unsafeChr n) (i + 1)
           where
-            n  = unsafeAt arr i
-            n2 = unsafeAt arr (i + 1)
+            n  = A.unsafeIndex arr i
+            n2 = A.unsafeIndex arr (i + 1)
 {-# INLINE [0] stream #-}
 
 -- | /O(n)/ Convert a Stream Char into a Text.
 unstream :: Stream Char -> Text
 unstream (Stream next0 s0 len) = Text (fst a) 0 (snd a)
     where
-      a :: ((UArray Int Word16),Int)
-      a = runST ((unsafeNewArray_ (0,len+1) :: ST s (STUArray s Int Word16))
-                 >>= (\arr -> loop arr 0 (len+1) s0))
+      a :: ((A.Array Word16),Int)
+      a = runST ((A.unsafeNew len :: ST s (A.MArray s Word16))
+                 >>= (\arr -> loop arr 0 len s0))
       loop arr !i !top !s
-          | i + 1 > top = do arr' <- unsafeNewArray_ (0,top*2)
+          | i + 1 > top = do arr' <- A.unsafeNew (top*2)
                              case next0 s of
-                               Done -> liftM2 (,) (unsafeFreezeSTUArray arr) (return i)
+                               Done -> liftM2 (,) (A.unsafeFreeze arr) (return i)
                                _    -> copy arr arr' >> loop arr' i (top*2) s
           | otherwise = case next0 s of
-               Done       -> liftM2 (,) (unsafeFreezeSTUArray arr) (return i)
+               Done       -> liftM2 (,) (A.unsafeFreeze arr) (return i)
                Skip s'    -> loop arr i top s'
                Yield x s'
                    | n < 0x10000 -> do
-                        unsafeWrite arr i (fromIntegral n :: Word16)
+                        A.unsafeWrite arr i (fromIntegral n :: Word16)
                         loop arr (i+1) top s'
                    | otherwise   -> do
-                        unsafeWrite arr i       l
-                        unsafeWrite arr (i + 1) r
+                        A.unsafeWrite arr i       l
+                        A.unsafeWrite arr (i + 1) r
                         loop arr (i+2) top s'
                    where
                      n :: Int
@@ -142,16 +142,14 @@ unstream (Stream next0 s0 len) = Text (fst a) 0 (snd a)
 {-# INLINE [0] unstream #-}
 
 
-copy :: STUArray s Int Word16 -> STUArray s Int Word16 -> ST s ()
-copy src dest = (do
-                   (_,top) <- getBounds src
-                   copy_loop 0 top)
+copy :: A.MArray s Word16 -> A.MArray s Word16 -> ST s ()
+copy src dest = copy_loop 0
     where
-      copy_loop i top
-          | i > top    = return ()
-          | otherwise = do v <- unsafeRead src i
-                           unsafeWrite dest i v
-                           copy_loop (i+1) top
+      len = A.length src
+      copy_loop i
+          | i > len   = return ()
+          | otherwise = do A.unsafeRead src i >>= A.unsafeWrite dest i
+                           copy_loop (i+1)
 
 -- | /O(n)/ Determines if two streams are equal.
 eq :: Ord a => Stream a -> Stream a -> Bool
