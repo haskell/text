@@ -103,29 +103,29 @@ module Data.Text
     , readFile
     ) where
 
-import Prelude (Char,Bool,Int,Maybe,String,
-                Eq,(==),(++),error,
-                Show,showsPrec,
-                Read,readsPrec,
-                (&&),(||),(+),(-),(<),(>),(<=),(>=),(.),(>>=),
-                return,otherwise,
+import Prelude (Char, Bool, Int, Maybe, String,
+                Eq, (==), (++), error,
+                Show, showsPrec,
+                Read, readsPrec,
+                (&&), (||), (+), (-), (<), (>), (<=), (>=), (.), (>>=),
+                return, otherwise,
                 IO, FilePath)
 import Data.Char (isSpace)
-import Control.Monad.ST(ST)
+import Control.Monad.ST (ST)
 import qualified Data.Text.Array as A
 import qualified Data.ByteString as B
-import Data.ByteString(ByteString)
+import Data.ByteString (ByteString)
 import qualified Data.List as L
-import Data.Monoid(Monoid(..))
-import Data.Word(Word16)
+import Data.Monoid (Monoid(..))
+import Data.Word (Word16)
 import Data.String (IsString(..))
 
 import qualified Data.Text.Fusion as S
-import Data.Text.Fusion (Stream(..),Step(..),Encoding(..),
-                    stream,unstream,stream_bs,unstream_bs,restream)
-import Data.Text.Internal(Text(..),empty)
+import Data.Text.Fusion (Stream(..), Step(..), Encoding(..),
+                         stream, unstream, stream_bs, unstream_bs, restream)
+import Data.Text.Internal (Text(..), empty)
 import qualified Prelude as P
-import Data.Text.UnsafeChar(unsafeChr)
+import Data.Text.UnsafeChar (unsafeChr)
 import qualified Data.Text.Utf16 as U16
 
 -- $fusion

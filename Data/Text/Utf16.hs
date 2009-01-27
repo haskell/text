@@ -1,8 +1,21 @@
 {-# LANGUAGE MagicHash #-}
 
+-- |
+-- Module      : Data.Text.Utf16
+-- Copyright   : (c) Tom Harper 2008-2009,
+--               (c) Bryan O'Sullivan 2009,
+--               (c) Duncan Coutts 2009
+--
+-- License     : BSD-style
+-- Maintainer  : rtharper@aftereternity.co.uk, bos@serpentine.com,
+--               duncan@haskell.org
+-- Stability   : experimental
+-- Portability : GHC
+--
+-- Basic UTF-16 validation and character manipulation.
 module Data.Text.Utf16
     (
-     chr2
+      chr2
     , validate1
     , validate2
     ) where

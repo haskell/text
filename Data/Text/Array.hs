@@ -60,7 +60,7 @@ import Hugs.ST (ST(..), runST)
 # error not implemented for this compiler
 #endif
 
-import Data.Typeable
+import Data.Typeable (Typeable1(..), Typeable2(..), TyCon, mkTyCon, mkTyConApp)
 import Data.Word (Word16)
 import Prelude hiding (length, read)
 

@@ -1,12 +1,29 @@
 {-# LANGUAGE MagicHash #-}
+
+-- |
+-- Module      : Data.Text.Utf16
+-- Copyright   : (c) Tom Harper 2008-2009,
+--               (c) Bryan O'Sullivan 2009,
+--               (c) Duncan Coutts 2009
+--
+-- License     : BSD-style
+-- Maintainer  : rtharper@aftereternity.co.uk, bos@serpentine.com,
+--               duncan@haskell.org
+-- Stability   : experimental
+-- Portability : GHC
+--
+-- Basic UTF-8 validation and character manipulation.
 module Data.Text.Utf8
     (
+    -- Decomposition
       ord2
     , ord3
     , ord4
+    -- Construction
     , chr2
     , chr3
     , chr4
+    -- * Validation
     , validate1
     , validate2
     , validate3
@@ -18,7 +35,10 @@ import Data.Bits (shiftR, (.&.))
 import GHC.Exts
 import GHC.Word (Word8(..))
 
-between :: Word8 -> Word8 -> Word8 -> Bool
+between :: Word8                -- ^ byte to check
+        -> Word8                -- ^ lower bound
+        -> Word8                -- ^ upper bound
+        -> Bool
 between x y z = x >= y && x <= z
 {-# INLINE between #-}
 

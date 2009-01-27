@@ -1,16 +1,34 @@
 {-# LANGUAGE ExistentialQuantification, BangPatterns, MagicHash #-}
 
+-- |
+-- Module      : Data.Text.Fusion
+-- Copyright   : (c) Tom Harper 2008-2009,
+--               (c) Bryan O'Sullivan 2009,
+--               (c) Duncan Coutts 2009
+--
+-- License     : BSD-style
+-- Maintainer  : rtharper@aftereternity.co.uk, bos@serpentine.com,
+--               duncan@haskell.org
+-- Stability   : experimental
+-- Portability : GHC
+--
+-- Text manipulation functions represented as fusible operations over
+-- streams.
 module Data.Text.Fusion
     (
+    -- * Types
       Stream(..)
     , Step(..)
     , Encoding(..)
+
+    -- * Creation and elimination
     , stream
     , unstream
     , stream_bs
     , unstream_bs
     , restream
-    , eq
+
+    -- * Basic interface
     , cons
     , snoc
     , append
@@ -20,32 +38,50 @@ module Data.Text.Fusion
     , init
     , null
     , length
+    , eq
+
+    -- * Transformations
     , map
+    , intersperse
+
+    -- * Folds
     , foldl
     , foldl'
     , foldl1
     , foldl1'
     , foldr
     , foldr1
+
+    -- ** Special folds
     , concat
     , concatMap
     , any
     , all
     , maximum
     , minimum
+
+    -- * Construction
     , unfoldr
     , unfoldrN
+
+    -- * Substrings
+    -- ** Breaking strings
     , take
     , drop
     , takeWhile
     , dropWhile
+
+    -- * Searching
     , elem
-    , find
     , filter
-    , intersperse
+
+    -- * Indexing
+    , find
     , index
     , findIndex
     , elemIndex
+
+    -- * Zipping and unzipping
     , zipWith
     ) where
 
@@ -54,21 +90,21 @@ import Prelude hiding
      foldl1, foldr1, concatMap, any, all, maximum, minimum, take, drop,
      takeWhile, dropWhile, elem, zipWith)
 import Data.Char (ord)
-import Control.Exception(assert)
-import Control.Monad(liftM2)
-import Control.Monad.ST(runST,ST)
+import Control.Exception (assert)
+import Control.Monad (liftM2)
+import Control.Monad.ST (runST, ST)
 import Data.Bits (shiftL, shiftR, (.&.))
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Unsafe as B
-import Data.ByteString.Internal(ByteString(..),mallocByteString,memcpy)
+import Data.ByteString.Internal (ByteString(..), mallocByteString, memcpy)
 import qualified Data.List as L
-import Data.Word(Word8, Word16, Word32)
-import Foreign.ForeignPtr(withForeignPtr,ForeignPtr)
-import Foreign.Storable(pokeByteOff)
+import Data.Word (Word8, Word16, Word32)
+import Foreign.ForeignPtr (withForeignPtr, ForeignPtr)
+import Foreign.Storable (pokeByteOff)
 import GHC.Exts (Int(..), (+#))
-import System.IO.Unsafe(unsafePerformIO)
-import Data.Text.Internal(Text(..),empty)
-import Data.Text.UnsafeChar(unsafeChr,unsafeChr8,unsafeChr32)
+import System.IO.Unsafe (unsafePerformIO)
+import Data.Text.Internal (Text(..), empty)
+import Data.Text.UnsafeChar (unsafeChr, unsafeChr8, unsafeChr32)
 import qualified Data.Text.Array as A
 import qualified Data.Text.Utf8 as U8
 import qualified Data.Text.Utf16 as U16
