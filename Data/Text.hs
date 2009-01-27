@@ -29,15 +29,12 @@ module Data.Text
 
     -- * Types
       Text
-    , Encoding(..)
 
     -- * Creation and elimination
     , pack
     , unpack
     , singleton
     , empty
-    , encode
-    , decode
 
     -- * Basic interface
     , cons
@@ -98,31 +95,24 @@ module Data.Text
 
     -- * Zipping and unzipping
     , zipWith
-
-    -- * I/O
-    , readFile
     ) where
 
 import Prelude (Char, Bool, Int, Maybe, String,
                 Eq, (==), (++), error,
                 Show, showsPrec,
                 Read, readsPrec,
-                (&&), (||), (+), (-), (<), (>), (<=), (>=), (.), (>>=),
-                return, otherwise,
-                IO, FilePath)
+                (&&), (||), (+), (-), (<), (>), (<=), (>=), (.),
+                return, otherwise)
 import Data.Char (isSpace)
 import Control.Monad.ST (ST)
 import qualified Data.Text.Array as A
-import qualified Data.ByteString as B
-import Data.ByteString (ByteString)
 import qualified Data.List as L
 import Data.Monoid (Monoid(..))
 import Data.Word (Word16)
 import Data.String (IsString(..))
 
 import qualified Data.Text.Fusion as S
-import Data.Text.Fusion (Stream(..), Step(..), Encoding(..),
-                         stream, unstream, stream_bs, unstream_bs, restream)
+import Data.Text.Fusion (Stream(..), Step(..), stream, unstream)
 import Data.Text.Internal (Text(..), empty)
 import qualified Prelude as P
 import Data.Text.UnsafeChar (unsafeChr)
@@ -189,14 +179,6 @@ singleton c = unstream (Stream next (c:[]) 1)
       next (k:ks) = Yield k ks
       next []     = Done
 {-# INLINE [1] singleton #-}
-
-decode        :: Encoding -> ByteString -> Text
-decode enc bs = unstream (stream_bs enc bs)
-{-# INLINE decode #-}
-
-encode         :: Encoding -> Text -> ByteString
-encode enc txt = unstream_bs (restream enc (stream txt))
-{-# INLINE encode #-}
 
 -- -----------------------------------------------------------------------------
 -- * Basic functions
@@ -560,12 +542,6 @@ elemIndex c t = S.elemIndex c (stream t)
 -- given as the first argument, instead of a tupling function.
 zipWith :: (Char -> Char -> Char) -> Text -> Text -> Text
 zipWith f t1 t2 = unstream (S.zipWith f (stream t1) (stream t2))
-
--- File I/O
-
-readFile :: Encoding -> FilePath -> IO Text
-readFile enc f = B.readFile f >>= return . unstream . stream_bs enc
-{-# INLINE [1] readFile #-}
 
 words :: Text -> [Text]
 words (Text arr off len) = loop0 off off

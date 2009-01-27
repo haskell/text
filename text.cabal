@@ -18,6 +18,8 @@ library
   exposed-modules:
     Data.Text
     Data.Text.Array
+    Data.Text.Encoding
+    Data.Text.Encoding.Fusion
     Data.Text.UnsafeChar
     Data.Text.Internal
     Data.Text.Fusion

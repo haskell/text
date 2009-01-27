@@ -12,9 +12,9 @@ import Text.Printf
 import Control.Exception
 
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as E
 import Data.Text.Internal
 import qualified Data.Text.Fusion as S
-import Data.Text.Fusion (Encoding(..))
 
 import qualified Data.List as L
 import qualified Data.ByteString.Char8 as B
@@ -24,7 +24,7 @@ import Data.Word
 import qualified System.IO.UTF8 as UTF8
 
 main = do ascii_bs <- B.readFile "text/test/ascii.txt"
-          let ascii_txt = T.decode ASCII ascii_bs 
+          let ascii_txt = E.decodeASCII ascii_bs 
           let ascii_str = T.unpack ascii_txt
           force (ascii_txt,ascii_str,ascii_bs)
           printf " # Text\t\tString\tByteString\n"

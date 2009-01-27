@@ -19,14 +19,10 @@ module Data.Text.Fusion
     -- * Types
       Stream(..)
     , Step(..)
-    , Encoding(..)
 
     -- * Creation and elimination
     , stream
     , unstream
-    , stream_bs
-    , unstream_bs
-    , restream
 
     -- * Basic interface
     , cons
@@ -90,32 +86,21 @@ import Prelude hiding
      foldl1, foldr1, concatMap, any, all, maximum, minimum, take, drop,
      takeWhile, dropWhile, elem, zipWith)
 import Data.Char (ord)
-import Control.Exception (assert)
 import Control.Monad (liftM2)
 import Control.Monad.ST (runST, ST)
-import Data.Bits (shiftL, shiftR, (.&.))
-import qualified Data.ByteString as B
-import qualified Data.ByteString.Unsafe as B
-import Data.ByteString.Internal (ByteString(..), mallocByteString, memcpy)
+import Data.Bits (shiftR, (.&.))
 import qualified Data.List as L
-import Data.Word (Word8, Word16, Word32)
-import Foreign.ForeignPtr (withForeignPtr, ForeignPtr)
-import Foreign.Storable (pokeByteOff)
+import Data.Word (Word16)
 import GHC.Exts (Int(..), (+#))
-import System.IO.Unsafe (unsafePerformIO)
 import Data.Text.Internal (Text(..), empty)
-import Data.Text.UnsafeChar (unsafeChr, unsafeChr8, unsafeChr32)
+import Data.Text.UnsafeChar (unsafeChr)
 import qualified Data.Text.Array as A
-import qualified Data.Text.Utf8 as U8
 import qualified Data.Text.Utf16 as U16
-import qualified Data.Text.Utf32 as U32
 
 default(Int)
 
 infixl 2 :!:
 data PairS a b = !a :!: !b
-
-data T4 a b c d = T4 !a !b !c !d
 
 data Switch = S1 | S2
 
@@ -124,9 +109,6 @@ data Stream a = forall s. Stream (s -> Step s a) !s {-# UNPACK #-}!Int
 data Step s a = Done
               | Skip !s
               | Yield !a !s
-
-data Encoding = ASCII | Utf8 | Utf16BE | Utf16LE | Utf32BE | Utf32LE
-              deriving (Read, Show, Eq)
 
 -- | /O(n)/ Convert a Text into a Stream Char.
 stream :: Text -> Stream Char
@@ -176,6 +158,7 @@ unstream (Stream next0 s0 len) = Text (fst a) 0 (snd a)
                      r :: Word16
                      r = fromIntegral $ (m .&. (0x3FF :: Int)) + (0xDC00 :: Int)
 {-# INLINE [0] unstream #-}
+{-# RULES "STREAM stream/unstream fusion" forall s. stream (unstream s) = s #-}
 
 
 copy :: A.MArray s Word16 -> A.MArray s Word16 -> ST s ()
@@ -201,246 +184,8 @@ eq (Stream next1 s1 _) (Stream next2 s2 _) = cmp (next1 s1) (next2 s2)
                                           cmp (next1 s1') (next2 s2')
 {-# SPECIALISE eq :: Stream Char -> Stream Char -> Bool #-}
 
--- | /O(n) Convert a ByteString into a Stream Char, using the specified encoding standard.
-stream_bs :: Encoding -> ByteString -> Stream Char
-stream_bs ASCII bs = Stream next 0 l
-    where
-      l = B.length bs
-      {-# INLINE next #-}
-      next i
-          | i >= l    = Done
-          | otherwise = Yield (unsafeChr8 x1) (i+1)
-          where
-            x1 = B.unsafeIndex bs i
-stream_bs Utf8 bs = Stream next 0 l
-    where
-      l = B.length bs
-      {-# INLINE next #-}
-      next i
-          | i >= l = Done
-          | U8.validate1 x1 = Yield (unsafeChr8 x1) (i+1)
-          | i+1 < l && U8.validate2 x1 x2 = Yield (U8.chr2 x1 x2) (i+2)
-          | i+2 < l && U8.validate3 x1 x2 x3 = Yield (U8.chr3 x1 x2 x3) (i+3)
-          | i+3 < l && U8.validate4 x1 x2 x3 x4 = Yield (U8.chr4 x1 x2 x3 x4) (i+4)
-          | otherwise = error "bsStream: bad UTF-8 stream"
-          where
-            x1 = idx i
-            x2 = idx (i + 1)
-            x3 = idx (i + 2)
-            x4 = idx (i + 3)
-            idx = B.unsafeIndex bs
-stream_bs Utf16LE bs = Stream next 0 l
-    where
-      l = B.length bs
-      {-# INLINE next #-}
-      next i
-          | i >= l                         = Done
-          | i+1 < l && U16.validate1 x1    = Yield (unsafeChr x1) (i+2)
-          | i+3 < l && U16.validate2 x1 x2 = Yield (U16.chr2 x1 x2) (i+4)
-          | otherwise = error $ "bsStream: bad UTF-16LE stream"
-          where
-            x1    = (shiftL (idx (i + 1)) 8) + (idx i)
-            x2    = (shiftL (idx (i + 3)) 8) + (idx (i + 2))
-            idx = fromIntegral . B.unsafeIndex bs :: Int -> Word16
-stream_bs Utf16BE bs = Stream next 0 l
-    where
-      l = B.length bs
-      {-# INLINE next #-}
-      next i
-          | i >= l                         = Done
-          | i+1 < l && U16.validate1 x1    = Yield (unsafeChr x1) (i+2)
-          | i+3 < l && U16.validate2 x1 x2 = Yield (U16.chr2 x1 x2) (i+4)
-          | otherwise = error $ "bsStream: bad UTF16-BE stream "
-          where
-            x1    = (shiftL (idx i) 8) + (idx (i + 1))
-            x2    = (shiftL (idx (i + 2)) 8) + (idx (i + 3))
-            idx = fromIntegral . B.unsafeIndex bs :: Int -> Word16
-stream_bs Utf32BE bs = Stream next 0 l
-    where
-      l = B.length bs
-      {-# INLINE next #-}
-      next i
-          | i >= l                    = Done
-          | i+3 < l && U32.validate x = Yield (unsafeChr32 x) (i+4)
-          | otherwise                 = error "bsStream: bad UTF-32BE stream"
-          where
-            x     = shiftL x1 24 + shiftL x2 16 + shiftL x3 8 + x4
-            x1    = idx i
-            x2    = idx (i+1)
-            x3    = idx (i+2)
-            x4    = idx (i+3)
-            idx = fromIntegral . B.unsafeIndex bs :: Int -> Word32
-stream_bs Utf32LE bs = Stream next 0 l
-    where
-      l = B.length bs
-      {-# INLINE next #-}
-      next i
-          | i >= l                    = Done
-          | i+3 < l && U32.validate x = Yield (unsafeChr32 x) (i+4)
-          | otherwise                 = error "bsStream: bad UTF-32LE stream"
-          where
-            x     = shiftL x4 24 + shiftL x3 16 + shiftL x2 8 + x1
-            x1    = idx i
-            x2    = idx $ i+1
-            x3    = idx $ i+2
-            x4    = idx $ i+3
-            idx = fromIntegral . B.unsafeIndex bs :: Int -> Word32
-{-# INLINE [0] stream_bs #-}
-
 internalError :: String -> a
 internalError func = error $ "Data.Text.Fusion." ++ func ++ ": internal error"
-
--- | /O(n)/ Convert a Stream Char into a Stream Word8 using the specified encoding standard.
-restream :: Encoding -> Stream Char -> Stream Word8
-restream ASCII (Stream next0 s0 len) =  Stream next s0 (len*2)
-    where
-      next !s = case next0 s of
-                  Done -> Done
-                  Skip s' -> Skip s'
-                  Yield x xs -> Yield x' xs
-                      where x' = fromIntegral (ord x) :: Word8
-restream Utf8 (Stream next0 s0 len) =
-    Stream next (T4 (Just s0) Nothing Nothing Nothing) (len*2)
-    where
-      {-# INLINE next #-}
-      next (T4 (Just s) Nothing Nothing Nothing) = case next0 s of
-                  Done              -> Done
-                  Skip s'           -> Skip (T4 (Just s') Nothing Nothing Nothing)
-                  Yield x xs
-                      | n <= 0x7F   -> Yield c         (T4 (Just xs) Nothing Nothing Nothing)
-                      | n <= 0x07FF -> Yield (fst c2)  (T4 (Just xs) (Just $ snd c2) Nothing Nothing)
-                      | n <= 0xFFFF -> Yield (fst3 c3) (T4 (Just xs) (Just $ snd3 c3) (Just $ trd3 c3) Nothing)
-                      | otherwise   -> Yield (fst4 c4) (T4 (Just xs) (Just $ snd4 c4) (Just $ trd4 c4) (Just $ fth4 c4))
-                      where
-                        n  = ord x
-                        c  = fromIntegral n
-                        c2 = U8.ord2 x
-                        c3 = U8.ord3 x
-                        c4 = U8.ord4 x
-                        fst3 (x1,_,_)   = x1
-                        snd3 (_,x2,_)   = x2
-                        trd3 (_,_,x3)   = x3
-                        fst4 (x1,_,_,_) = x1
-                        snd4 (_,x2,_,_) = x2
-                        trd4 (_,_,x3,_) = x3
-                        fth4 (_,_,_,x4) = x4
-      next (T4 (Just s) (Just x2) Nothing Nothing) = Yield x2 (T4 (Just s) Nothing Nothing Nothing)
-      next (T4 (Just s) (Just x2) x3 Nothing)      = Yield x2 (T4 (Just s) x3 Nothing Nothing)
-      next (T4 (Just s) (Just x2) x3 x4)           = Yield x2 (T4 (Just s) x3 x4 Nothing)
-      next _ = internalError "restream Utf8"
-restream Utf16BE (Stream next0 s0 len) =
-    Stream next (T4 (Just s0) Nothing Nothing Nothing) (len*2)
-    where
-      {-# INLINE next #-}
-      next (T4 (Just s) Nothing Nothing Nothing) = case next0 s of
-          Done -> Done
-          Skip s' -> Skip (T4 (Just s') Nothing Nothing Nothing)
-          Yield x xs
-              | n < 0x10000 -> Yield (fromIntegral $ shiftR n 8) (T4 (Just xs) (Just (fromIntegral n)) Nothing Nothing)
-              | otherwise   -> Yield c1                          (T4 (Just xs) (Just c2) (Just c3) (Just c4))
-              where
-                n  = ord x
-                n1 = n - 0x10000
-                c1 = fromIntegral (shiftR n1 18 + 0xD8)
-                c2 = fromIntegral (shiftR n1 10)
-                n2 = n1 .&. 0x3FF
-                c3 = fromIntegral (shiftR n2 8 + 0xDC)
-                c4 = fromIntegral n2
-      next (T4 (Just s) (Just x2) Nothing Nothing) = Yield x2 (T4 (Just s) Nothing Nothing Nothing)
-      next (T4 (Just s) (Just x2) x3 Nothing)      = Yield x2 (T4 (Just s) x3 Nothing Nothing)
-      next (T4 (Just s) (Just x2) x3 x4)           = Yield x2 (T4 (Just s) x3 x4 Nothing)
-      next _ = internalError "restream Utf16BE"
-restream Utf16LE (Stream next0 s0 len) =
-    Stream next (T4 (Just s0) Nothing Nothing Nothing) (len*2)
-    where
-      {-# INLINE next #-}
-      next (T4 (Just s) Nothing Nothing Nothing) = case next0 s of
-          Done -> Done
-          Skip s' -> Skip (T4 (Just s') Nothing Nothing Nothing)
-          Yield x xs
-              | n < 0x10000 -> Yield (fromIntegral n) (T4 (Just xs) (Just (fromIntegral $ shiftR n 8)) Nothing Nothing)
-              | otherwise   -> Yield c1                          (T4 (Just xs) (Just c2) (Just c3) (Just c4))
-              where
-                n  = ord x
-                n1 = n - 0x10000
-                c2 = fromIntegral (shiftR n1 18 + 0xD8)
-                c1 = fromIntegral (shiftR n1 10)
-                n2 = n1 .&. 0x3FF
-                c4 = fromIntegral (shiftR n2 8 + 0xDC)
-                c3 = fromIntegral n2
-      next (T4 (Just s) (Just x2) Nothing Nothing) = Yield x2 (T4 (Just s) Nothing Nothing Nothing)
-      next (T4 (Just s) (Just x2) x3 Nothing)      = Yield x2 (T4 (Just s) x3 Nothing Nothing)
-      next (T4 (Just s) (Just x2) x3 x4)           = Yield x2 (T4 (Just s) x3 x4 Nothing)
-      next _ = internalError "restream Utf16LE"
-restream Utf32BE (Stream next0 s0 len) =
-    Stream next (T4 (Just s0) Nothing Nothing Nothing) (len*2)
-    where
-    {-# INLINE next #-}
-    next (T4 (Just s) Nothing Nothing Nothing) = case next0 s of
-        Done       -> Done
-        Skip s'    -> Skip (T4 (Just s') Nothing Nothing Nothing)
-        Yield x xs -> Yield c1 (T4 (Just xs) (Just c2) (Just c3) (Just c4))
-          where
-            n  = ord x
-            c1 = fromIntegral $ shiftR n 24
-            c2 = fromIntegral $ shiftR n 16
-            c3 = fromIntegral $ shiftR n 8
-            c4 = fromIntegral n
-    next (T4 (Just s) (Just x2) Nothing Nothing) = Yield x2 (T4 (Just s) Nothing Nothing Nothing)
-    next (T4 (Just s) (Just x2) x3 Nothing)      = Yield x2 (T4 (Just s) x3 Nothing Nothing)
-    next (T4 (Just s) (Just x2) x3 x4)           = Yield x2 (T4 (Just s) x3 x4 Nothing)
-    next _ = internalError "restream Utf32BE"
-restream Utf32LE (Stream next0 s0 len) =
-    Stream next (T4 (Just s0) Nothing Nothing Nothing) (len*2)
-    where
-    {-# INLINE next #-}
-    next (T4 (Just s) Nothing Nothing Nothing) = case next0 s of
-        Done       -> Done
-        Skip s'    -> Skip (T4 (Just s') Nothing Nothing Nothing)
-        Yield x xs -> Yield c1 (T4 (Just xs) (Just c2) (Just c3) (Just c4))
-          where
-            n  = ord x
-            c4 = fromIntegral $ shiftR n 24
-            c3 = fromIntegral $ shiftR n 16
-            c2 = fromIntegral $ shiftR n 8
-            c1 = fromIntegral n
-    next (T4 (Just s) (Just x2) Nothing Nothing) = Yield x2 (T4 (Just s) Nothing Nothing Nothing)
-    next (T4 (Just s) (Just x2) x3 Nothing)      = Yield x2 (T4 (Just s) x3 Nothing Nothing)
-    next (T4 (Just s) (Just x2) x3 x4)           = Yield x2 (T4 (Just s) x3 x4 Nothing)
-    next _ = internalError "restream Utf32LE"
-{-# INLINE restream #-}
-
-
--- | /O(n)/ Convert a Stream Word8 to a ByteString
-unstream_bs :: Stream Word8 -> ByteString
-unstream_bs (Stream next s0 len) = unsafePerformIO $ do
-    fp0 <- mallocByteString len
-    loop fp0 len 0 s0
-    where
-      loop !fp !n !off !s = case next s of
-          Done -> trimUp fp n off
-          Skip s' -> loop fp n off s'
-          Yield x s'
-              | n == off -> realloc fp n off s' x
-              | otherwise -> do
-            withForeignPtr fp $ \p -> pokeByteOff p off x
-            loop fp n (off+1) s'
-      {-# NOINLINE realloc #-}
-      realloc fp n off s x = do
-        let n' = n+n
-        fp' <- copy0 fp n n'
-        withForeignPtr fp' $ \p -> pokeByteOff p off x
-        loop fp' n' (off+1) s
-      {-# NOINLINE trimUp #-}
-      trimUp fp _ off = return $! PS fp 0 off
-      copy0 :: ForeignPtr Word8 -> Int -> Int -> IO (ForeignPtr Word8)
-      copy0 !src !srcLen !destLen = assert (srcLen <= destLen) $ do
-          dest <- mallocByteString destLen
-          withForeignPtr src  $ \src'  ->
-              withForeignPtr dest $ \dest' ->
-                  memcpy dest' src' (fromIntegral destLen)
-          return dest
-{-# RULES "STREAM stream/unstream fusion" forall s. stream (unstream s) = s #-}
 
 -- ----------------------------------------------------------------------------
 -- * Basic stream functions
