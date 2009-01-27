@@ -50,6 +50,7 @@ module Data.Text
 
     -- * Transformations
     , map
+    , intercalate
     , intersperse
     , transpose
 
@@ -305,6 +306,13 @@ length t = S.length (stream t)
 map :: (Char -> Char) -> Text -> Text
 map f t = unstream (S.map f (stream t))
 {-# INLINE [1] map #-}
+
+-- | /O(n)/ The 'intercalate' function takes a 'Text' and a list of
+-- 'Text's and concatenates the list after interspersing the first
+-- argument between each element of the list.
+intercalate :: Text -> [Text] -> Text
+intercalate t ts = unstream (S.intercalate (stream t) (L.map stream ts))
+{-# INLINE intercalate #-}
 
 -- | /O(n)/ The 'intersperse' function takes a character and places it
 -- between the characters of a 'Text'.  Subject to array fusion.

@@ -39,6 +39,7 @@ module Data.Text.Fusion
 
     -- * Transformations
     , map
+    , intercalate
     , intersperse
 
     -- * Folds
@@ -441,6 +442,10 @@ foldr1 f (Stream next s0 _len) = loop0_foldr1 s0
       Skip     s' -> loop_foldr1 x s'
       Yield x' s' -> f x (loop_foldr1 x' s')
 {-# INLINE [0] foldr1 #-}
+
+intercalate :: Stream Char -> [Stream Char] -> Stream Char
+intercalate s = concat . (L.intersperse s)
+{-# INLINE [0] intercalate #-}
 
 -- ----------------------------------------------------------------------------
 -- ** Special folds
