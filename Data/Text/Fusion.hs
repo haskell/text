@@ -41,6 +41,7 @@ module Data.Text.Fusion
     , map
     , intercalate
     , intersperse
+    , reverse
 
     -- * Folds
     , foldl
@@ -86,7 +87,7 @@ module Data.Text.Fusion
 import Prelude hiding
     (map, tail, head, foldr, filter, concat, last, init, null, length, foldl,
      foldl1, foldr1, concatMap, any, all, maximum, minimum, take, drop,
-     takeWhile, dropWhile, elem, zipWith)
+     takeWhile, dropWhile, elem, zipWith, reverse)
 import Data.Char (ord)
 import Control.Monad (liftM2)
 import Control.Monad.ST (runST, ST)
@@ -343,8 +344,8 @@ map f (Stream next0 s0 len) = Stream next s0 len
      map f (map g s) = map (\x -> f (g x)) s
  #-}
 
--- | /O(n)/ The 'intersperse' function takes a character and places it between each of
--- the characters of a Stream.
+-- | /O(n)/ Take a character and place it between each of the
+-- characters of a 'Stream Char'.
 intersperse :: Char -> Stream Char -> Stream Char
 intersperse c (Stream next0 s0 len) = Stream next (s0 :!: Nothing :!: S1) len
     where
@@ -359,6 +360,23 @@ intersperse c (Stream next0 s0 len) = Stream next (s0 :!: Nothing :!: S1) len
         Skip s'    -> Skip    (s' :!: Nothing :!: S2)
         Yield x s' -> Yield c (s' :!: Just x :!: S1)
       next _ = internalError "intersperse"
+{-# INLINE [0] intersperse #-}
+
+-- | /O(n)/ Reverse the characters of a string.
+reverse :: Stream Char -> Text
+reverse (Stream next s len) = Text (A.run (A.unsafeNew len >>= fill)) 0 len
+  where
+    fill marr = loop s len
+      where
+        loop !s0 !i = case next s0 of
+                        Done       -> return marr
+                        Skip s1    -> loop s1 i
+                        Yield x s1 -> do
+                          let i' = i - 1
+                              x' = fromIntegral (ord x) :: Word16
+                          A.unsafeWrite marr i' x'
+                          loop s1 i'
+{-# INLINE [0] reverse #-}
 
 -- ----------------------------------------------------------------------------
 -- * Reducing Streams (folds)

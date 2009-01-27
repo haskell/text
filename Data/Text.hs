@@ -53,6 +53,7 @@ module Data.Text
     , intercalate
     , intersperse
     , transpose
+    , reverse
 
     -- * Folds
     , foldl
@@ -319,6 +320,11 @@ intercalate t ts = unstream (S.intercalate (stream t) (L.map stream ts))
 intersperse     :: Char -> Text -> Text
 intersperse c t = unstream (S.intersperse c (stream t))
 {-# INLINE intersperse #-}
+
+-- | /O(n)/ Reverse the characters of a string. Subject to array fusion.
+reverse :: Text -> Text
+reverse t = S.reverse (stream t)
+{-# INLINE reverse #-}
 
 -- | /O(n)/ The 'transpose' function transposes the rows and columns
 -- of its 'Text' argument.  Note that this function uses 'pack',
