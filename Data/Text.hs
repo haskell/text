@@ -72,6 +72,11 @@ module Data.Text
     , minimum
 
     -- * Construction
+
+    -- ** Scans
+    , scanl
+
+    -- ** Generation and unfolding
     , replicate
     , unfoldr
     , unfoldrN
@@ -422,6 +427,10 @@ minimum t = S.minimum (stream t)
 
 -- -----------------------------------------------------------------------------
 -- * Building 'Text's
+
+scanl :: (Char -> Char -> Char) -> Char -> Text -> Text
+scanl f z t = unstream (S.scanl f z (stream t))
+{-# INLINE scanl #-}
 
 -- -----------------------------------------------------------------------------
 -- ** Generating and unfolding 'Text's

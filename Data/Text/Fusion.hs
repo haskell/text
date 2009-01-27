@@ -60,6 +60,10 @@ module Data.Text.Fusion
     , minimum
 
     -- * Construction
+    -- ** Scans
+    , scanl
+
+    -- ** Generation and unfolding
     , replicate
     , unfoldr
     , unfoldrN
@@ -539,6 +543,18 @@ minimum (Stream next0 s0 _len) = loop0_minimum s0
 
 -- -----------------------------------------------------------------------------
 -- * Building streams
+
+scanl :: (Char -> Char -> Char) -> Char -> Stream Char -> Stream Char
+scanl f z0 (Stream next0 s0 len) = Stream next (S1 :!: z0 :!: s0) (len+1)
+  where
+    {-# INLINE next #-}
+    next (S1 :!: z :!: s) = Yield z (S2 :!: z :!: s)
+    next (S2 :!: z :!: s) = case next0 s of
+                              Yield x s' -> let !x' = f z x
+                                            in Yield x' (S2 :!: x' :!: s')
+                              Skip s'    -> Skip (S2 :!: z :!: s')
+                              Done       -> Done
+{-# INLINE [0] scanl #-}
 
 -- -----------------------------------------------------------------------------
 -- ** Generating and unfolding streams
