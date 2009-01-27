@@ -40,6 +40,7 @@ module Data.Text
     , cons
     , snoc
     , append
+    , uncons
     , head
     , last
     , tail
@@ -97,7 +98,7 @@ module Data.Text
     , zipWith
     ) where
 
-import Prelude (Char, Bool, Int, Maybe, String,
+import Prelude (Char, Bool, Int, Maybe(..), String,
                 Eq, (==), (++), error,
                 Show, showsPrec,
                 Read, readsPrec,
@@ -226,6 +227,14 @@ append (Text arr1 off1 len1) (Text arr2 off2 len2) = Text (A.run x) 0 len
 head :: Text -> Char
 head t = S.head (stream t)
 {-# INLINE head #-}
+
+-- | /O(1)/ Returns the first character and rest of a 'Text', or
+-- 'Nothing' if empty. Subject to array fusion.
+uncons :: Text -> Maybe (Char, Text)
+uncons t = case S.uncons (stream t) of
+             Just (c, s) -> Just (c, unstream s)
+             Nothing     -> Nothing
+{-# INLINE uncons #-}
 
 -- | /O(n)/ Returns the last character of a 'Text', which must be
 -- non-empty.  Subject to array fusion.

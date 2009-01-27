@@ -28,6 +28,7 @@ module Data.Text.Fusion
     , cons
     , snoc
     , append
+    , uncons
     , head
     , tail
     , last
@@ -241,7 +242,19 @@ head (Stream next s0 _len) = loop_head s0
                       Done -> error "head: Empty list"
 {-# INLINE [0] head #-}
 
--- | /O(n)/ Returns the last character of a Stream Char, which must be non-empty.
+-- | /O(1)/ Returns the first character and remainder of a 'Stream
+-- Char', or 'Nothing' if empty.  Subject to array fusion.
+uncons :: Stream Char -> Maybe (Char, Stream Char)
+uncons (Stream next s0 len) = loop_uncons s0
+    where
+      loop_uncons !s = case next s of
+                         Yield x s1 -> Just (x, Stream next s1 (len-1))
+                         Skip s'    -> loop_uncons s'
+                         Done       -> Nothing
+{-# INLINE [0] uncons #-}
+
+-- | /O(n)/ Returns the last character of a 'Stream Char', which must
+-- be non-empty.
 last :: Stream Char -> Char
 last (Stream next s0 _len) = loop0_last s0
     where
