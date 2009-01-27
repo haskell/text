@@ -72,6 +72,7 @@ module Data.Text
     , minimum
 
     -- * Construction
+    , replicate
     , unfoldr
     , unfoldrN
 
@@ -424,6 +425,10 @@ minimum t = S.minimum (stream t)
 
 -- -----------------------------------------------------------------------------
 -- ** Generating and unfolding 'Text's
+
+replicate :: Int -> Char -> Text
+replicate n c = unstream (S.replicate n c)
+{-# INLINE replicate #-}
 
 -- | /O(n)/, where @n@ is the length of the result. The 'unfoldr'
 -- function is analogous to the List 'L.unfoldr'. 'unfoldr' builds a

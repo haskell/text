@@ -60,6 +60,7 @@ module Data.Text.Fusion
     , minimum
 
     -- * Construction
+    , replicate
     , unfoldr
     , unfoldrN
 
@@ -84,10 +85,9 @@ module Data.Text.Fusion
     , zipWith
     ) where
 
-import Prelude hiding
-    (map, tail, head, foldr, filter, concat, last, init, null, length, foldl,
-     foldl1, foldr1, concatMap, any, all, maximum, minimum, take, drop,
-     takeWhile, dropWhile, elem, zipWith, reverse)
+import Prelude (Bool(..), Char, Either(..), Eq(..), Maybe(..), Monad(..),
+                Num(..), Ord(..), String, ($), (++), (.), (&&), error,
+                fromIntegral, fst, otherwise, snd)
 import Data.Char (ord)
 import Control.Monad (liftM2)
 import Control.Monad.ST (runST, ST)
@@ -542,6 +542,14 @@ minimum (Stream next0 s0 _len) = loop0_minimum s0
 
 -- -----------------------------------------------------------------------------
 -- ** Generating and unfolding streams
+
+replicate :: Int -> Char -> Stream Char
+replicate n c = Stream next 0 n
+  where
+    {-# INLINE next #-}
+    next i | i >= n    = Done
+           | otherwise = Yield c (i + 1)
+{-# INLINE [0] replicate #-}
 
 -- | /O(n)/, where @n@ is the length of the result. The unfoldr function
 -- is analogous to the List 'unfoldr'. unfoldr builds a stream
