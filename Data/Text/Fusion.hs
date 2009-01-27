@@ -136,34 +136,29 @@ stream (Text arr off len) = Stream next off len
 unstream :: Stream Char -> Text
 unstream (Stream next0 s0 len) = Text (fst a) 0 (snd a)
     where
-      a :: ((A.Array Word16),Int)
-      a = runST ((A.unsafeNew len :: ST s (A.MArray s Word16))
-                 >>= (\arr -> loop arr 0 len s0))
+      a = runST (A.unsafeNew len >>= (\arr -> loop arr 0 len s0))
       loop arr !i !top !s
-          | i + 1 > top = do arr' <- A.unsafeNew (top*2)
-                             case next0 s of
-                               Done -> liftM2 (,) (A.unsafeFreeze arr) (return i)
-                               _    -> copy arr arr' >> loop arr' i (top*2) s
+          | i + 1 > top = case next0 s of
+                            Done -> liftM2 (,) (A.unsafeFreeze arr) (return i)
+                            _    -> do
+                              arr' <- A.unsafeNew (top*2)
+                              copy arr arr' >> loop arr' i (top*2) s
           | otherwise = case next0 s of
                Done       -> liftM2 (,) (A.unsafeFreeze arr) (return i)
                Skip s'    -> loop arr i top s'
                Yield x s'
                    | n < 0x10000 -> do
-                        A.unsafeWrite arr i (fromIntegral n :: Word16)
+                        A.unsafeWrite arr i (fromIntegral n)
                         loop arr (i+1) top s'
                    | otherwise   -> do
                         A.unsafeWrite arr i       l
                         A.unsafeWrite arr (i + 1) r
                         loop arr (i+2) top s'
                    where
-                     n :: Int
                      n = ord x
-                     m :: Int
                      m = n - 0x10000
-                     l :: Word16
-                     l = fromIntegral $ (shiftR m 10) + (0xD800 :: Int)
-                     r :: Word16
-                     r = fromIntegral $ (m .&. (0x3FF :: Int)) + (0xDC00 :: Int)
+                     l = fromIntegral $ (m `shiftR` 10) + 0xD800
+                     r = fromIntegral $ (m .&. 0x3FF) + 0xDC00
 {-# INLINE [0] unstream #-}
 {-# RULES "STREAM stream/unstream fusion" forall s. stream (unstream s) = s #-}
 
