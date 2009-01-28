@@ -40,12 +40,11 @@ module Data.Text.Array
 #if defined(__GLASGOW_HASKELL__)
 #include "MachDeps.h"
 
-import GHC.Base (ByteArray#, MutableByteArray#, indexWord16Array#,
+import GHC.Base (ByteArray#, MutableByteArray#, Int(..), indexWord16Array#,
                  newByteArray#, readWord16Array#, unsafeCoerce#,
                  writeWord16Array#, (+#), (*#))
 import GHC.Prim (Int#)
 import GHC.ST (ST(..), runST)
-import GHC.Types (Int(..))
 import GHC.Word (Word16(..))
 
 #elif defined(__HUGS__)
