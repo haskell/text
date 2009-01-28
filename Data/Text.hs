@@ -288,7 +288,17 @@ uncons (Text arr off len)
           n             = A.unsafeIndex arr (off+1)
 {-# INLINE uncons #-}
 
--- | /O(n)/ Returns the last character of a 'Text', which must be
+second :: (b -> c) -> (a,b) -> (a,c)
+second f (a, b) = (a, f b)
+
+{-# RULES
+"TEXT uncons -> fused" [~1] forall t.
+    uncons t = fmap (second unstream) (S.uncons (stream t))
+"TEXT uncons -> unfused" [1] forall t.
+    fmap (second unstream) (S.uncons (stream t)) = uncons t
+  #-}
+
+-- | /O(1)/ Returns the last character of a 'Text', which must be
 -- non-empty.  Subject to array fusion.
 last :: Text -> Char
 last (Text arr off len)
