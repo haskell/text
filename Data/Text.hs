@@ -302,9 +302,9 @@ second f (a, b) = (a, f b)
 -- non-empty.  Subject to array fusion.
 last :: Text -> Char
 last (Text arr off len)
-    | len <= 0                   = errorEmptyList "last"
+    | len <= 0                 = errorEmptyList "last"
     | n < 0xDC00 || n > 0xDFFF = unsafeChr n
-    | otherwise                  = U16.chr2 n0 n
+    | otherwise                = U16.chr2 n0 n
     where
       n  = A.unsafeIndex arr (off+len-1)
       n0 = A.unsafeIndex arr (off+len-2)
@@ -566,15 +566,17 @@ drop n t@(Text arr off len)
     unstream (S.drop n (stream t)) = drop n t
   #-}
 
--- | 'takeWhile', applied to a predicate @p@ and a 'Text', returns the
+-- | /O(n)/ 'takeWhile', applied to a predicate @p@ and a 'Text', returns the
 -- longest prefix (possibly empty) of elements that satisfy @p@.
 takeWhile :: (Char -> Bool) -> Text -> Text
 takeWhile p t = unstream (S.takeWhile p (stream t))
+{-# INLINE takeWhile #-}
 
--- | 'dropWhile' @p@ @xs@ returns the suffix remaining after
+-- | /O(n)/ 'dropWhile' @p@ @xs@ returns the suffix remaining after
 -- 'takeWhile' @p@ @xs@.
 dropWhile :: (Char -> Bool) -> Text -> Text
 dropWhile p t = unstream (S.dropWhile p (stream t))
+{-# INLINE dropWhile #-}
 
 -- | /O(n)/ Return all initial segments of the given 'Text', shortest
 -- first.
@@ -584,8 +586,8 @@ inits (Text arr off len) = [Text arr off l | l <- [0..len]]
 -- | /O(n)/ Return all final segments of the given 'Text', longest
 -- first.
 tails :: Text -> [Text]
-tails p | null p    = [empty]
-        | otherwise = p : tails (tail p)
+tails t | null t    = [empty]
+        | otherwise = t : tails (tail t)
 
 -- ----------------------------------------------------------------------------
 -- * Searching
