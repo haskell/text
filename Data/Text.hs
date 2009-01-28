@@ -100,8 +100,8 @@ module Data.Text
     -- , break
     -- , group
     -- , groupBy
-    -- , inits
-    -- , tails
+    , inits
+    , tails
 
     -- ** Breaking into many substrings
     -- , split
@@ -556,6 +556,17 @@ takeWhile p t = unstream (S.takeWhile p (stream t))
 -- 'takeWhile' @p@ @xs@.
 dropWhile :: (Char -> Bool) -> Text -> Text
 dropWhile p t = unstream (S.dropWhile p (stream t))
+
+-- | /O(n)/ Return all initial segments of the given 'Text', shortest
+-- first.
+inits :: Text -> [Text]
+inits (Text arr off len) = [Text arr off l | l <- [0..len]]
+
+-- | /O(n)/ Return all final segments of the given 'Text', longest
+-- first.
+tails :: Text -> [Text]
+tails p | null p    = [empty]
+        | otherwise = p : tails (tail p)
 
 -- ----------------------------------------------------------------------------
 -- * Searching
