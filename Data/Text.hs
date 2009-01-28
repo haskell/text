@@ -581,7 +581,12 @@ dropWhile p t = unstream (S.dropWhile p (stream t))
 -- | /O(n)/ Return all initial segments of the given 'Text', shortest
 -- first.
 inits :: Text -> [Text]
-inits (Text arr off len) = [Text arr off l | l <- [0..len]]
+inits t@(Text arr off len) = loop off
+    where loop i | i >= len = [t]
+                 | otherwise = Text arr off i : loop j
+              where j | n < 0xDC00 || n > 0xDFFF = i + 1
+                      | otherwise                = i + 2
+                    n = A.unsafeIndex arr i
 
 -- | /O(n)/ Return all final segments of the given 'Text', longest
 -- first.
