@@ -143,7 +143,7 @@ module Data.Text
     , -- sort
     ) where
 
-import Prelude (Char, Bool, Int, Maybe(..), String,
+import Prelude (Char, Bool, Functor(..), Int, Maybe(..), String,
                 Eq, (==), (++), error,
                 Show, showsPrec,
                 Read, readsPrec,
@@ -276,9 +276,16 @@ head t = S.head (stream t)
 -- | /O(1)/ Returns the first character and rest of a 'Text', or
 -- 'Nothing' if empty. Subject to array fusion.
 uncons :: Text -> Maybe (Char, Text)
-uncons t = case S.uncons (stream t) of
-             Just (c, s) -> Just (c, unstream s)
-             Nothing     -> Nothing
+uncons (Text arr off len)
+    | len <= 0  = Nothing
+    | otherwise = Just (c, Text arr (off+k) (len-k))
+    where c | single    = unsafeChr m
+            | otherwise = U16.chr2 m n
+          k | single    = 1
+            | otherwise = 2
+          single        = m < 0xD800 || m > 0xDBFF
+          m             = A.unsafeIndex arr off
+          n             = A.unsafeIndex arr (off+1)
 {-# INLINE uncons #-}
 
 -- | /O(n)/ Returns the last character of a 'Text', which must be
