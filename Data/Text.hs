@@ -109,8 +109,10 @@ module Data.Text
     -- , breakSubstring
 
     -- ** Breaking into lines and words
-    , words
     , lines
+    , words
+    , unlines
+    , unwords
 
     -- * Predicates
     -- , isPrefixOf
@@ -654,6 +656,17 @@ lines ps
              Just n  -> take n ps : lines (drop (n+1) ps)
     where search = elemIndex '\n'
 {-# INLINE lines #-}
+
+-- | /O(n)/ Joins lines, after appending a terminating newline to
+-- each.
+unlines :: [Text] -> Text
+unlines = concat . L.map (`snoc` '\n')
+{-# INLINE unlines #-}
+
+-- | /O(n)/ Joins words using single space characters.
+unwords :: [Text] -> Text
+unwords = intercalate (singleton ' ')
+{-# INLINE unwords #-}
 
 errorEmptyList :: String -> a
 errorEmptyList fun = error ("Data.Text." ++ fun ++ ": empty list")
