@@ -110,7 +110,7 @@ module Data.Text
 
     -- ** Breaking into lines and words
     , words
-    -- , lines
+    , lines
 
     -- * Predicates
     -- , isPrefixOf
@@ -626,6 +626,8 @@ elemIndex c t = S.elemIndex c (stream t)
 zipWith :: (Char -> Char -> Char) -> Text -> Text -> Text
 zipWith f t1 t2 = unstream (S.zipWith f (stream t1) (stream t2))
 
+-- | /O(n)/ Breaks a 'Text' up into a list of words, delimited by 'Char's
+-- representing white space.
 words :: Text -> [Text]
 words (Text arr off len) = loop0 off off
     where
@@ -640,6 +642,18 @@ words (Text arr off len) = loop0 off off
             where
               c = arr `A.unsafeIndex` n
 {-# INLINE words #-}
+
+-- | /O(n)/ Breaks a 'Text' up into a list of 'Text's at
+-- newline 'Char's. The resulting strings do not contain newlines.
+--
+lines :: Text -> [Text]
+lines ps
+    | null ps = []
+    | otherwise = case search ps of
+             Nothing -> [ps]
+             Just n  -> take n ps : lines (drop (n+1) ps)
+    where search = elemIndex '\n'
+{-# INLINE lines #-}
 
 errorEmptyList :: String -> a
 errorEmptyList fun = error ("Data.Text." ++ fun ++ ": empty list")
