@@ -75,6 +75,13 @@ module Data.Text
 
     -- ** Scans
     , scanl
+    -- , scanl1
+    -- , scanr
+    -- , scanr1
+
+    -- ** Accumulating maps
+    -- , mapAccumL
+    -- , mapAccumR
 
     -- ** Generation and unfolding
     , replicate
@@ -88,22 +95,50 @@ module Data.Text
     , drop
     , takeWhile
     , dropWhile
+    -- , splitAt
+    -- , span
+    -- , break
+    -- , group
+    -- , groupBy
+    -- , inits
+    -- , tails
+
+    -- ** Breaking into many substrings
+    -- , split
+    -- , splitWith
+    -- , breakSubstring
 
     -- ** Breaking into lines and words
     , words
+    -- , lines
+
+    -- * Predicates
+    -- , isPrefixOf
+    -- , isSuffixOf
+    -- , isInfixOf
 
     -- * Searching
     , elem
     , filter
-
-    -- * Indexing
     , find
+    -- , partition
+
+    -- , findSubstring
+    -- , findSubstrings
+    
+    -- * Indexing
     , index
     , findIndex
+    -- , findIndices
     , elemIndex
+    -- , elemIndices
+    -- , count
 
     -- * Zipping and unzipping
     , zipWith
+
+    -- * Ordered ByteStrings
+    , -- sort
     ) where
 
 import Prelude (Char, Bool, Int, Maybe(..), String,
