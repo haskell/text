@@ -138,7 +138,7 @@ unstream (Stream next0 s0 len) = Text (fst a) 0 (snd a)
     where
       a = runST (A.unsafeNew len >>= (\arr -> loop arr 0 len s0))
       loop arr !i !top !s
-          | i + 1 > top = case next0 s of
+          | i + 1 >= top = case next0 s of
                             Done -> liftM2 (,) (A.unsafeFreeze arr) (return i)
                             _    -> do
                               arr' <- A.unsafeNew (top*2)
