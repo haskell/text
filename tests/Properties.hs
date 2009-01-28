@@ -4,6 +4,10 @@ import Test.QuickCheck
 import Text.Show.Functions
 
 import Prelude 
+import Text.Printf
+import System.Environment
+import Control.Applicative
+import Control.Monad
 import qualified Data.Text as T
 import Data.Text (pack,unpack)
 import qualified Data.Text.Fusion as S
@@ -60,3 +64,19 @@ prop_findIndex p s   = L.findIndex p s == T.findIndex p (pack s)
 prop_elemIndex c s   = L.elemIndex c s == T.elemIndex c (pack s)
 prop_zipWith c s1 s2 = L.zipWith c s1 s2 == unpack (T.zipWith c (pack s1) (pack s2))
 prop_words s         = L.words s == L.map unpack (T.words (pack s))
+
+main = run tests =<< getArgs
+
+run :: [(String, Int -> IO (Bool,Int))] -> [String] -> IO ()
+run tests args = do
+  let n = case args of
+            [s] -> read s
+            []  -> 100
+            _   -> error "too many arguments"
+  (results,passed) <- unzip <$> mapM (\(s,a) -> printf "%-40s: " s >> a n) tests
+  printf "Passed %d tests!\n" (sum passed)
+  when (not . and $ results) $
+      fail "Not all tests passed!"
+
+tests :: [(String, Int -> IO (Bool, Int))]
+tests = [("prop_pack_unpack", mytest prop_pack_unpack)]

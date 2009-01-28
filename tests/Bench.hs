@@ -1,10 +1,7 @@
---module Bench where
-
 import BenchUtils
 import System.Mem 
 import Control.Concurrent
 import Data.Char
-import Data.Array.IArray
 import System.CPUTime
 import System.IO
 import System.IO.Unsafe
