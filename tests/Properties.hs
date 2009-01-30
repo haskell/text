@@ -39,10 +39,12 @@ prop_intersperse c s = (L.intersperse c s) == (unpack . T.intersperse c . pack) 
 prop_transpose ss    = (L.transpose ss) == (map unpack . T.transpose . map pack) ss
 
 prop_foldl f z s     = L.foldl f z s == T.foldl f z (pack s)
+    where types = f :: Char -> Char -> Char
 prop_foldl' f z s    = L.foldl' f z s == T.foldl' f z (pack s)
 prop_foldl1 f s      = not (null s) ==> L.foldl1 f s == T.foldl1 f (pack s)
 prop_foldl1' f s     = not (null s) ==> L.foldl1' f s == T.foldl1' f (pack s)
 prop_foldr f z s     = L.foldr f z s == T.foldr f z (pack s)
+    where types = f :: Char -> Char -> Char
 prop_foldr1 f s      = not (null s) ==> L.foldr1 f s == T.foldr1 f (pack s)
 
 prop_concat ss       = (L.concat ss) == (unpack . T.concat . map pack) ss    
@@ -79,4 +81,52 @@ run tests args = do
       fail "Not all tests passed!"
 
 tests :: [(String, Int -> IO (Bool, Int))]
-tests = [("prop_pack_unpack", mytest prop_pack_unpack)]
+tests = [
+  ("prop_pack_unpack", mytest prop_pack_unpack),
+  ("prop_stream_unstream", mytest prop_stream_unstream),
+  ("prop_singleton", mytest prop_singleton),
+
+  ("prop_cons", mytest prop_cons),
+  ("prop_snoc", mytest prop_snoc),
+  ("prop_append", mytest prop_append),
+--("prop_appendS", mytest prop_appendS),
+  ("prop_head", mytest prop_head),
+  ("prop_last", mytest prop_last),
+  ("prop_lastS", mytest prop_lastS),
+  ("prop_tail", mytest prop_tail),
+--("prop_tailS", mytest prop_tailS),
+  ("prop_init", mytest prop_init),
+--("prop_initS", mytest prop_initS),
+  ("prop_null", mytest prop_null),
+  ("prop_length", mytest prop_length),
+  ("prop_map", mytest prop_map),
+  ("prop_intersperse", mytest prop_intersperse),
+  ("prop_transpose", mytest prop_transpose),
+
+  ("prop_foldl", mytest prop_foldl),
+  ("prop_foldl", mytest prop_foldl),
+  ("prop_foldl1", mytest prop_foldl1),
+  ("prop_foldl1", mytest prop_foldl1),
+  ("prop_foldr", mytest prop_foldr),
+  ("prop_foldr1", mytest prop_foldr1),
+
+--("prop_concat", mytest prop_concat),
+--("prop_concatMap", mytest prop_concatMap),
+  ("prop_any", mytest prop_any),
+  ("prop_all", mytest prop_all),
+  ("prop_minimum", mytest prop_minimum),
+  ("prop_maximum", mytest prop_maximum),
+
+  ("prop_take", mytest prop_take),
+  ("prop_drop", mytest prop_drop),
+  ("prop_takeWhile", mytest prop_takeWhile),
+  ("prop_dropWhile", mytest prop_dropWhile),
+  ("prop_elem", mytest prop_elem),
+  ("prop_find", mytest prop_find),
+  ("prop_filter", mytest prop_filter),
+  ("prop_index", mytest prop_index),
+  ("prop_findIndex", mytest prop_findIndex),
+  ("prop_elemIndex", mytest prop_elemIndex),
+--("prop_zipWith", mytest prop_zipWith),
+  ("prop_words", mytest prop_words)
+  ]
