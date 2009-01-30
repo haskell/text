@@ -168,7 +168,7 @@ copy src dest = copy_loop 0
     where
       len = A.length src
       copy_loop i
-          | i > len   = return ()
+          | i >= len   = return ()
           | otherwise = do A.unsafeRead src i >>= A.unsafeWrite dest i
                            copy_loop (i+1)
 
