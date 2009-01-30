@@ -37,6 +37,16 @@ module Data.Text.Array
     , run
     ) where
 
+#if 0
+#define BOUNDS_CHECKING
+-- This fugly hack is brought by GHC's apparent reluctance to deal
+-- with MagicHash and UnboxedTuples when inferring types. Eek!
+#define CHECK_BOUNDS(_func_,_len_,_k_) \
+if (_k_) < 0 || (_k_) >= (_len_) then error ("Data.Text.Array." ++ (_func_) ++ ": bounds error, offset " ++ show (_k_) ++ ", length " ++ show (_len_)) else
+#else
+#define CHECK_BOUNDS(_func_,_len_,_k_)
+#endif
+
 #if defined(__GLASGOW_HASKELL__)
 #include "MachDeps.h"
 
@@ -49,6 +59,7 @@ import GHC.Word (Word16(..))
 
 #elif defined(__HUGS__)
 
+import Control.Exception (assert)
 import Hugs.ByteArray (ByteArray, MutableByteArray, readByteArray,
                        newMutableByteArray, readMutableByteArray,
                        unsafeFreezeMutableByteArray, writeMutableByteArray)
@@ -152,8 +163,12 @@ wORD16_SCALE n# = scale# *# n# where I# scale# = SIZEOF_WORD16
 unsafeNew :: forall s e. Elt e => Int -> ST s (MArray s e)
 unsafeNew n = ST $ \s1# ->
    case bytesInArray n (undefined :: e) of
-     (I# len#) -> case newByteArray# len# s1# of
-                    (# s2#, marr# #) -> (# s2#, MArray n marr# #)
+     len@(I# len#) ->
+#if defined(BOUNDS_CHECKING)
+         if len < 0 then error (show ("unsafeNew",len)) else
+#endif
+         case newByteArray# len# s1# of
+           (# s2#, marr# #) -> (# s2#, MArray n marr# #)
 {-# INLINE unsafeNew #-}
 
 unsafeFreeze (MArray len mba#) = ST $ \s# ->
@@ -167,13 +182,16 @@ new :: forall s e. Elt e => Int -> e -> ST s (MArray s e)
 #elif defined(__HUGS__)
 
 unsafeIndexArray :: Storable e => Array e -> Int -> e
-unsafeIndexArray (Array off _len arr) i = readByteArray arr (off + i)
+unsafeIndexArray (Array off len arr) i =
+    assert (i >= 0 && i < len) $ readByteArray arr (off + i)
 
 unsafeReadMArray :: Storable e => MArray s e -> Int -> ST s e
-unsafeReadMArray (MArray _len marr) = readMutableByteArray marr
+unsafeReadMArray (MArray _len marr) i =
+    assert (i >= 0 && i < len) $ readMutableByteArray marr
 
 unsafeWriteMArray :: Storable e => MArray s e -> Int -> e -> ST s ()
-unsafeWriteMArray (MArray _len marr) = writeMutableByteArray marr
+unsafeWriteMArray (MArray len marr) i =
+    assert (i >= 0 && i < len) $ writeMutableByteArray marr
 
 -- | Create an uninitialized mutable array.
 unsafeNew :: (Storable e) => Int -> ST s (MArray s e)
@@ -203,16 +221,19 @@ instance Elt Word16 where
     bytesInArray (I# i#) _ = I# (wORD16_SCALE i#)
     {-# INLINE bytesInArray #-}
 
-    unsafeIndex (Array _len ba#) (I# i#) =
+    unsafeIndex (Array len ba#) i@(I# i#) =
+      CHECK_BOUNDS("unsafeIndex",len,i)
         case indexWord16Array# ba# i# of r# -> (W16# r#)
     {-# INLINE unsafeIndex #-}
 
-    unsafeRead (MArray _len mba#) (I# i#) = ST $ \s# ->
+    unsafeRead (MArray len mba#) i@(I# i#) = ST $ \s# ->
+      CHECK_BOUNDS("unsafeRead",len,i)
       case readWord16Array# mba# i# s# of
         (# s2#, r# #) -> (# s2#, W16# r# #)
     {-# INLINE unsafeRead #-}
 
-    unsafeWrite (MArray _len marr#) (I# i#) (W16# e#) = ST $ \s1# ->
+    unsafeWrite (MArray len marr#) i@(I# i#) (W16# e#) = ST $ \s1# ->
+      CHECK_BOUNDS("unsafeWrite",len,i)
       case writeWord16Array# marr# i# e# s1# of
         s2# -> (# s2#, () #)
     {-# INLINE unsafeWrite #-}
