@@ -134,6 +134,7 @@ stream (Text arr off len) = Stream next off len
 
 -- | /O(n)/ Convert a Stream Char into a Text.
 unstream :: Stream Char -> Text
+unstream (Stream _next0 _s0 0) = empty
 unstream (Stream next0 s0 len) = Text (fst a) 0 (snd a)
     where
       a = runST (A.unsafeNew len >>= (\arr -> loop arr 0 len s0))
