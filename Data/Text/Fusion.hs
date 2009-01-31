@@ -124,9 +124,9 @@ stream (Text arr off len) = Stream next off len
       end = off+len
       {-# INLINE next #-}
       next !i
-          | i >= end = Done
+          | i >= end                   = Done
           | n >= 0xD800 && n <= 0xDBFF = Yield (U16.chr2 n n2) (i + 2)
-          | otherwise = Yield (unsafeChr n) (i + 1)
+          | otherwise                  = Yield (unsafeChr n) (i + 1)
           where
             n  = A.unsafeIndex arr i
             n2 = A.unsafeIndex arr (i + 1)
