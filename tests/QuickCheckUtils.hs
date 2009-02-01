@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleInstances #-}
+
 module QuickCheckUtils where
 
 import Data.List
@@ -13,6 +15,20 @@ instance Arbitrary Char where
 instance Arbitrary T.Text where
     arbitrary     = T.pack `fmap` arbitrary
     coarbitrary s = coarbitrary (T.unpack s)
+
+newtype NotEmpty a = NotEmpty { notEmpty :: a }
+    deriving (Eq, Ord, Show)
+
+instance Functor NotEmpty where
+    fmap f (NotEmpty a) = NotEmpty (f a)
+
+instance Arbitrary a => Arbitrary (NotEmpty [a]) where
+    arbitrary   = sized (\n -> NotEmpty `fmap` (choose (1,n+1) >>= vector))
+    coarbitrary = coarbitrary . notEmpty
+
+instance Arbitrary (NotEmpty T.Text) where
+    arbitrary   = (fmap T.pack) `fmap` arbitrary
+    coarbitrary = coarbitrary . notEmpty
 
 debug = False
 

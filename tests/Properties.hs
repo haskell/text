@@ -22,51 +22,66 @@ prop_pack_unpack s   = (unpack . pack) s == s
 prop_stream_unstream t = (unstream . stream) t == t
 prop_singleton c     = [c] == (unpack . T.singleton) c
 
-prop_cons x xs       = (x:xs) == (unpack . T.cons x . pack) xs
-prop_snoc x xs       = (xs ++ [x]) == (unpack . (flip T.snoc) x . pack) xs
-prop_append s1 s2    = (s1 ++ s2) == (unpack $ T.append (pack s1) (pack s2))
-prop_appendS s1 s2   = (s1 ++ s2) == ((unpack . unstream) $ S.append ((stream . pack) s1) ((stream . pack) s2))
-prop_head s          = not (null s) ==> head s == (T.head . pack) s
-prop_last s          = not (null s) ==> last s == (T.last . pack) s
-prop_lastS s         = not (null s) ==> last s == (S.last . stream . pack) s
-prop_tail s          = not (null s) ==> tail s == (unpack . T.tail . pack) s
-prop_tailS s         = not (null s) ==> tail s == (unpack . unstream . S.tail . stream . pack) s
-prop_init s          = not (null s) ==> init s == (unpack . T.init . pack) s
-prop_initS s         = not (null s) ==> init s == (unpack . unstream . S.init . stream . pack) s
-prop_null s          = null s == (T.null . pack) s
-prop_length s        = length s == (T.length . pack) s
-prop_map f s         = (map f s) == (unpack . T.map f . pack) s
-prop_intersperse c s = (L.intersperse c s) == (unpack . T.intersperse c . pack) s
-prop_transpose ss    = (L.transpose ss) == (map unpack . T.transpose . map pack) ss
+-- Do two functions give the same answer?
+eq a b s  = a s == b s
+-- What about with the RHS packed?
+eqP a b s  = a s == b (pack s)
+-- Or with the string non-empty, and the RHS packed?
+eqEP a b s = let e = notEmpty s
+             in a e == b (pack e)
 
-prop_foldl f z s     = L.foldl f z s == T.foldl f z (pack s)
-    where types = f :: Char -> Char -> Char
-prop_foldl' f z s    = L.foldl' f z s == T.foldl' f z (pack s)
-prop_foldl1 f s      = not (null s) ==> L.foldl1 f s == T.foldl1 f (pack s)
-prop_foldl1' f s     = not (null s) ==> L.foldl1' f s == T.foldl1' f (pack s)
-prop_foldr f z s     = L.foldr f z s == T.foldr f z (pack s)
-    where types = f :: Char -> Char -> Char
-prop_foldr1 f s      = not (null s) ==> L.foldr1 f s == T.foldr1 f (pack s)
+prop_cons x          = (x:)     `eqP` (unpack . T.cons x)
+prop_snoc x          = (++ [x]) `eqP` (unpack . (flip T.snoc) x)
+prop_append s        = (s++)    `eqP` (unpack . T.append (pack s))
+prop_appendS s       = (s++)    `eqP` (unpack . unstream . S.append (stream (pack s)) . stream)
+prop_uncons s        = case T.uncons (pack s) of
+                         Nothing     -> null s
+                         Just (x,xs) -> x == head s && unpack xs == tail s
+prop_head            = head   `eqEP` T.head
+prop_last            = last   `eqEP` T.last
+prop_lastS           = last   `eqEP` (S.last . stream)
+prop_tail            = tail   `eqEP` (unpack . T.tail)
+prop_tailS           = tail   `eqEP` (unpack . unstream . S.tail . stream)
+prop_init            = init   `eqEP` (unpack . T.init)
+prop_initS           = init   `eqEP` (unpack . unstream . S.init . stream)
+prop_null            = null   `eqP`  T.null
+prop_length          = length `eqP`  T.length
+prop_map f           = map f  `eqP`  (unpack . T.map f)
+prop_intercalate c   = L.intercalate c `eq` (unpack . T.intercalate (pack c) . map pack)
+prop_intersperse c   = L.intersperse c `eqP` (unpack . T.intersperse c)
+prop_transpose       = L.transpose `eq` (map unpack . T.transpose . map pack)
+prop_reverse         = L.reverse `eqP` (unpack . T.reverse)
 
-prop_concat ss       = (L.concat ss) == (unpack . T.concat . map pack) ss    
-prop_concatMap f s   = (L.concatMap f s) == (unpack (T.concatMap (pack . f) (pack s)))
-prop_any p s         = L.any p s == T.any p (pack s)
-prop_all p s         = L.all p s == T.all p (pack s)
-prop_minimum s       = not (null s) ==> L.minimum s == T.minimum (pack s)
-prop_maximum s       = not (null s) ==> L.maximum s == T.maximum (pack s)
+prop_foldl f z       = L.foldl f z  `eqP`  (T.foldl f z)
+    where types      = f :: Char -> Char -> Char
+prop_foldl' f z      = L.foldl' f z `eqP`  T.foldl' f z
+    where types      = f :: Char -> Char -> Char
+prop_foldl1 f        = L.foldl1 f   `eqEP` T.foldl1 f
+prop_foldl1' f       = L.foldl1' f  `eqEP` T.foldl1' f
+prop_foldr f z       = L.foldr f z  `eqP`  T.foldr f z
+    where types      = f :: Char -> Char -> Char
+prop_foldr1 f        = L.foldr1 f   `eqEP` T.foldr1 f
 
-prop_take n s        = L.take n s == (unpack . T.take n . pack) s
-prop_drop n s        = L.drop n s == (unpack . T.drop n . pack) s
-prop_takeWhile p s   = L.takeWhile p s == (unpack . T.takeWhile p . pack) s
-prop_dropWhile p s   = L.dropWhile p s == (unpack . T.dropWhile p . pack) s
-prop_elem c s        = L.elem c s == (T.elem c . pack) s
-prop_find p s        = L.find p s == (T.find p . pack) s
-prop_filter p s      = L.filter p s == (unpack . T.filter p . pack) s
-prop_index x s       = x < L.length s && x >= 0 ==> (L.!!) s x == T.index (pack s) x
-prop_findIndex p s   = L.findIndex p s == T.findIndex p (pack s)
-prop_elemIndex c s   = L.elemIndex c s == T.elemIndex c (pack s)
-prop_zipWith c s1 s2 = L.zipWith c s1 s2 == unpack (T.zipWith c (pack s1) (pack s2))
-prop_words s         = L.words s == L.map unpack (T.words (pack s))
+prop_concat          = L.concat      `eq`   (unpack . T.concat . map pack)
+prop_concatMap f     = L.concatMap f `eqP`  (unpack . T.concatMap (pack . f))
+prop_any p           = L.any p       `eqP`  T.any p
+prop_all p           = L.all p       `eqP`  T.all p
+prop_minimum         = L.minimum     `eqEP` T.minimum
+prop_maximum         = L.maximum     `eqEP` T.maximum
+
+prop_take n          = L.take n      `eqP` (unpack . T.take n)
+prop_drop n          = L.drop n      `eqP` (unpack . T.drop n)
+prop_takeWhile p     = L.takeWhile p `eqP` (unpack . T.takeWhile p)
+prop_dropWhile p     = L.dropWhile p `eqP` (unpack . T.dropWhile p)
+prop_elem c          = L.elem c      `eqP` T.elem c
+prop_find p          = L.find p      `eqP` T.find p
+prop_filter p        = L.filter p    `eqP` (unpack . T.filter p)
+prop_index x s       = x < L.length s && x >= 0 ==>
+                       (L.!!) s x == T.index (pack s) x
+prop_findIndex p     = L.findIndex p `eqP` T.findIndex p
+prop_elemIndex c     = L.elemIndex c `eqP` T.elemIndex c
+prop_zipWith c s     = L.zipWith c s `eqP` (unpack . T.zipWith c (pack s))
+prop_words           = L.words       `eqP` (L.map unpack . T.words)
 
 main = run tests =<< getArgs
 
@@ -91,6 +106,7 @@ tests = [
   ("prop_snoc", mytest prop_snoc),
   ("prop_append", mytest prop_append),
   ("prop_appendS", mytest prop_appendS),
+  ("prop_uncons", mytest prop_uncons),
   ("prop_head", mytest prop_head),
   ("prop_last", mytest prop_last),
   ("prop_lastS", mytest prop_lastS),
@@ -100,14 +116,17 @@ tests = [
   ("prop_initS", mytest prop_initS),
   ("prop_null", mytest prop_null),
   ("prop_length", mytest prop_length),
+
   ("prop_map", mytest prop_map),
+  ("prop_intercalate", mytest prop_intercalate),
   ("prop_intersperse", mytest prop_intersperse),
   ("prop_transpose", mytest prop_transpose),
+--("prop_reverse", mytest prop_reverse),
 
   ("prop_foldl", mytest prop_foldl),
-  ("prop_foldl", mytest prop_foldl),
+  ("prop_foldl'", mytest prop_foldl'),
   ("prop_foldl1", mytest prop_foldl1),
-  ("prop_foldl1", mytest prop_foldl1),
+  ("prop_foldl1'", mytest prop_foldl1'),
   ("prop_foldr", mytest prop_foldr),
   ("prop_foldr1", mytest prop_foldr1),
 
