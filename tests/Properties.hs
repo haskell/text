@@ -68,8 +68,10 @@ prop_concat          = L.concat      `eq`   (unpack . T.concat . map pack)
 prop_concatMap f     = L.concatMap f `eqP`  (unpack . T.concatMap (pack . f))
 prop_any p           = L.any p       `eqP`  T.any p
 prop_all p           = L.all p       `eqP`  T.all p
-prop_minimum         = L.minimum     `eqEP` T.minimum
 prop_maximum         = L.maximum     `eqEP` T.maximum
+prop_minimum         = L.minimum     `eqEP` T.minimum
+
+prop_scanl f z       = L.scanl f z   `eqP`  (unpack . T.scanl f z)
 
 prop_take n          = L.take n      `eqP` (unpack . T.take n)
 prop_drop n          = L.drop n      `eqP` (unpack . T.drop n)
@@ -136,8 +138,10 @@ tests = [
   ("prop_concatMap", mytest prop_concatMap),
   ("prop_any", mytest prop_any),
   ("prop_all", mytest prop_all),
-  ("prop_minimum", mytest prop_minimum),
   ("prop_maximum", mytest prop_maximum),
+  ("prop_minimum", mytest prop_minimum),
+
+  ("prop_scanl", mytest prop_scanl),
 
   ("prop_take", mytest prop_take),
   ("prop_drop", mytest prop_drop),
