@@ -8,6 +8,7 @@ import Debug.Trace
 import Text.Printf
 import System.Environment
 import Control.Applicative
+import Control.Arrow
 import Control.Monad
 import qualified Data.Text as T
 import Data.Text (pack,unpack)
@@ -34,9 +35,10 @@ prop_cons x          = (x:)     `eqP` (unpack . T.cons x)
 prop_snoc x          = (++ [x]) `eqP` (unpack . (flip T.snoc) x)
 prop_append s        = (s++)    `eqP` (unpack . T.append (pack s))
 prop_appendS s       = (s++)    `eqP` (unpack . unstream . S.append (stream (pack s)) . stream)
-prop_uncons s        = case T.uncons (pack s) of
-                         Nothing     -> null s
-                         Just (x,xs) -> x == head s && unpack xs == tail s
+prop_uncons s        = uncons   `eqP` (fmap (second unpack) . T.uncons)
+    where uncons (x:xs) = Just (x,xs)
+          uncons _      = Nothing
+          types         = s :: String
 prop_head            = head   `eqEP` T.head
 prop_last            = last   `eqEP` T.last
 prop_lastS           = last   `eqEP` (S.last . stream)
