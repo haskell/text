@@ -74,10 +74,13 @@ prop_minimum         = L.minimum     `eqEP` T.minimum
 prop_scanl f z       = L.scanl f z   `eqP`  (unpack . T.scanl f z)
 
 prop_replicate n     = L.replicate n `eq`   (unpack . T.replicate n)
-prop_unfoldr f       = L.unfoldr f   `eq`   (unpack . T.unfoldr f)
-    where types = f :: Int -> Maybe (Char,Int)
-prop_unfoldrN n f    = (L.take n . L.unfoldr f) `eq` (unpack . T.unfoldrN n f)
-    where types = f :: Int -> Maybe (Char,Int)
+prop_unfoldr n       = L.unfoldr f   `eq`   (unpack . T.unfoldr f)
+    where f c | fromEnum c * 100 > n = Nothing
+              | otherwise            = Just (c, succ c)
+
+prop_unfoldrN n m    = (L.take n . L.unfoldr f) `eq` (unpack . T.unfoldrN n f)
+    where f c | fromEnum c * 100 > m = Nothing
+              | otherwise            = Just (c, succ c)
 
 prop_take n          = L.take n      `eqP` (unpack . T.take n)
 prop_drop n          = L.drop n      `eqP` (unpack . T.drop n)
@@ -158,8 +161,8 @@ tests = [
   ("prop_scanl", mytest prop_scanl),
 
   ("prop_replicate", mytest prop_replicate),
---("prop_unfoldr", mytest prop_unfoldr),
---("prop_unfoldrN", mytest prop_unfoldrN),
+  ("prop_unfoldr", mytest prop_unfoldr),
+  ("prop_unfoldrN", mytest prop_unfoldrN),
 
   ("prop_take", mytest prop_take),
   ("prop_drop", mytest prop_drop),

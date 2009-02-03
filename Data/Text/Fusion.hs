@@ -592,7 +592,8 @@ unfoldr f s0 = Stream next s0 1
 -- first argument to 'unfoldrN'. This function is more efficient than
 -- 'unfoldr' when the length of the result is known.
 unfoldrN :: Int -> (a -> Maybe (Char,a)) -> a -> Stream Char
-unfoldrN n f s0 = Stream next (0 :!: s0) (n*2)
+unfoldrN n f s0 | n <  0    = empty
+                | otherwise = Stream next (0 :!: s0) (n*2)
     where
       {-# INLINE next #-}
       next (z :!: s) = case f s of
