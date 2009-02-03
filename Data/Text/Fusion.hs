@@ -167,7 +167,7 @@ unstream (Stream next0 s0 len) = Text (fst a) 0 (snd a)
 
 -- | The empty stream.
 empty :: Stream Char
-empty = Stream next 0 0
+empty = Stream next () 0
     where next _ = Done
 {-# INLINE [0] empty #-}
 
