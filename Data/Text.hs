@@ -482,6 +482,15 @@ minimum t = S.minimum (stream t)
 -- -----------------------------------------------------------------------------
 -- * Building 'Text's
 
+-- | /O(n)/ 'scanl' is similar to 'foldl', but returns a list of
+-- successive reduced values from the left. This function is subject
+-- to array fusion.
+--
+-- > scanl f z [x1, x2, ...] == [z, z `f` x1, (z `f` x1) `f` x2, ...]
+--
+-- Note that
+--
+-- > last (scanl f z xs) == foldl f z xs.
 scanl :: (Char -> Char -> Char) -> Char -> Text -> Text
 scanl f z t = unstream (S.scanl f z (stream t))
 {-# INLINE scanl #-}
