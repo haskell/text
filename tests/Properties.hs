@@ -72,6 +72,7 @@ prop_maximum         = L.maximum     `eqEP` T.maximum
 prop_minimum         = L.minimum     `eqEP` T.minimum
 
 prop_scanl f z       = L.scanl f z   `eqP`  (unpack . T.scanl f z)
+prop_scanl1 f        = L.scanl1 f    `eqP`  (unpack . T.scanl1 f)
 
 prop_replicate n     = L.replicate n `eq`   (unpack . T.replicate n)
 prop_unfoldr n       = L.unfoldr f   `eq`   (unpack . T.unfoldr f)
@@ -159,6 +160,7 @@ tests = [
   ("prop_minimum", mytest prop_minimum),
 
   ("prop_scanl", mytest prop_scanl),
+  ("prop_scanl1", mytest prop_scanl1),
 
   ("prop_replicate", mytest prop_replicate),
   ("prop_unfoldr", mytest prop_unfoldr),

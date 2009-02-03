@@ -75,7 +75,7 @@ module Data.Text
 
     -- ** Scans
     , scanl
-    -- , scanl1
+    , scanl1
     -- , scanr
     -- , scanr1
 
@@ -494,6 +494,15 @@ minimum t = S.minimum (stream t)
 scanl :: (Char -> Char -> Char) -> Char -> Text -> Text
 scanl f z t = unstream (S.scanl f z (stream t))
 {-# INLINE scanl #-}
+
+-- | /O(n)/ 'scanl1' is a variant of 'scanl' that has no starting
+-- value argument.  This function is subject to array fusion.
+--
+-- > scanl1 f [x1, x2, ...] == [x1, x1 `f` x2, ...]
+scanl1 :: (Char -> Char -> Char) -> Text -> Text
+scanl1 f t | null t    = empty
+           | otherwise = scanl f (head t) (tail t)
+{-# INLINE scanl1 #-}
 
 -- -----------------------------------------------------------------------------
 -- ** Generating and unfolding 'Text's
