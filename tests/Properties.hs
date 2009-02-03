@@ -73,19 +73,33 @@ prop_minimum         = L.minimum     `eqEP` T.minimum
 
 prop_scanl f z       = L.scanl f z   `eqP`  (unpack . T.scanl f z)
 
+prop_replicate n     = L.replicate n `eq`   (unpack . T.replicate n)
+prop_unfoldr f       = L.unfoldr f   `eq`   (unpack . T.unfoldr f)
+    where types = f :: Int -> Maybe (Char,Int)
+prop_unfoldrN n f    = (L.take n . L.unfoldr f) `eq` (unpack . T.unfoldrN n f)
+    where types = f :: Int -> Maybe (Char,Int)
+
 prop_take n          = L.take n      `eqP` (unpack . T.take n)
 prop_drop n          = L.drop n      `eqP` (unpack . T.drop n)
 prop_takeWhile p     = L.takeWhile p `eqP` (unpack . T.takeWhile p)
 prop_dropWhile p     = L.dropWhile p `eqP` (unpack . T.dropWhile p)
+prop_inits           = L.inits       `eqP` (map unpack . T.inits)
+prop_tails           = L.tails       `eqP` (map unpack . T.tails)
+
+prop_lines           = L.lines       `eqP` (map unpack . T.lines)
+prop_words           = L.words       `eqP` (map unpack . T.words)
+prop_unlines         = L.unlines     `eq`  (unpack . T.unlines . map pack)
+prop_unwords         = L.unwords     `eq`  (unpack . T.unwords . map pack)
+
 prop_elem c          = L.elem c      `eqP` T.elem c
-prop_find p          = L.find p      `eqP` T.find p
 prop_filter p        = L.filter p    `eqP` (unpack . T.filter p)
+prop_find p          = L.find p      `eqP` T.find p
+
 prop_index x s       = x < L.length s && x >= 0 ==>
                        (L.!!) s x == T.index (pack s) x
 prop_findIndex p     = L.findIndex p `eqP` T.findIndex p
 prop_elemIndex c     = L.elemIndex c `eqP` T.elemIndex c
 prop_zipWith c s     = L.zipWith c s `eqP` (unpack . T.zipWith c (pack s))
-prop_words           = L.words       `eqP` (L.map unpack . T.words)
 
 main = run tests =<< getArgs
 
@@ -143,16 +157,28 @@ tests = [
 
   ("prop_scanl", mytest prop_scanl),
 
+  ("prop_replicate", mytest prop_replicate),
+--("prop_unfoldr", mytest prop_unfoldr),
+--("prop_unfoldrN", mytest prop_unfoldrN),
+
   ("prop_take", mytest prop_take),
   ("prop_drop", mytest prop_drop),
   ("prop_takeWhile", mytest prop_takeWhile),
   ("prop_dropWhile", mytest prop_dropWhile),
+  ("prop_inits", mytest prop_inits),
+  ("prop_tails", mytest prop_tails),
+
+  ("prop_lines", mytest prop_lines),
+  ("prop_words", mytest prop_words),
+  ("prop_unlines", mytest prop_unlines),
+  ("prop_unwords", mytest prop_unwords),
+
   ("prop_elem", mytest prop_elem),
-  ("prop_find", mytest prop_find),
   ("prop_filter", mytest prop_filter),
+  ("prop_find", mytest prop_find),
+
   ("prop_index", mytest prop_index),
   ("prop_findIndex", mytest prop_findIndex),
   ("prop_elemIndex", mytest prop_elemIndex),
-  ("prop_zipWith", mytest prop_zipWith),
-  ("prop_words", mytest prop_words)
+  ("prop_zipWith", mytest prop_zipWith)
   ]
