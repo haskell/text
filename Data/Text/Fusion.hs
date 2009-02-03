@@ -23,6 +23,7 @@ module Data.Text.Fusion
     -- * Creation and elimination
     , stream
     , unstream
+    , empty
 
     -- * Basic interface
     , cons
@@ -99,9 +100,10 @@ import Data.Bits (shiftR, (.&.))
 import qualified Data.List as L
 import Data.Word (Word16)
 import GHC.Exts (Int(..), (+#))
-import Data.Text.Internal (Text(..), empty)
+import Data.Text.Internal (Text(..))
 import Data.Text.UnsafeChar (unsafeChr)
 import qualified Data.Text.Array as A
+import qualified Data.Text.Internal as I
 import qualified Data.Text.Utf16 as U16
 
 default(Int)
@@ -134,7 +136,7 @@ stream (Text arr off len) = Stream next off len
 
 -- | /O(n)/ Convert a Stream Char into a Text.
 unstream :: Stream Char -> Text
-unstream (Stream _next0 _s0 0) = empty
+unstream (Stream _next0 _s0 0) = I.empty
 unstream (Stream next0 s0 len) = Text (fst a) 0 (snd a)
     where
       a = runST (A.unsafeNew len >>= (\arr -> loop arr 0 len s0))
@@ -163,6 +165,11 @@ unstream (Stream next0 s0 len) = Text (fst a) 0 (snd a)
 {-# INLINE [0] unstream #-}
 {-# RULES "STREAM stream/unstream fusion" forall s. stream (unstream s) = s #-}
 
+-- | The empty stream.
+empty :: Stream Char
+empty = Stream next 0 0
+    where next _ = Done
+{-# INLINE [0] empty #-}
 
 copy :: A.MArray s Word16 -> A.MArray s Word16 -> ST s ()
 copy src dest = copy_loop 0
@@ -445,7 +452,7 @@ foldr f z (Stream next s0 _len) = loop_foldr s0
 {-# INLINE [0] foldr #-}
 
 -- | foldr1 is a variant of 'foldr' that has no starting value argument,
--- and thust must be applied to non-empty streams.
+-- and thus must be applied to non-empty streams.
 -- Subject to array fusion.
 foldr1 :: (Char -> Char -> Char) -> Stream Char -> Char
 foldr1 f (Stream next s0 _len) = loop0_foldr1 s0
@@ -478,7 +485,7 @@ concat = L.foldr append (Stream next Done 0)
 -- | Map a function over a stream that results in a stream and concatenate the
 -- results.
 concatMap :: (Char -> Stream Char) -> Stream Char -> Stream Char
-concatMap f = foldr (append . f) (stream empty)
+concatMap f = foldr (append . f) empty
 
 -- | /O(n)/ any @p @xs determines if any character in the stream
 -- @xs@ satisifes the predicate @p@.
@@ -556,7 +563,9 @@ scanl f z0 (Stream next0 s0 len) = Stream next (S1 :!: z0 :!: s0) (len+1)
 -- ** Generating and unfolding streams
 
 replicate :: Int -> Char -> Stream Char
-replicate n c = Stream next 0 n
+replicate n c
+    | n < 0     = empty
+    | otherwise = Stream next 0 n
   where
     {-# INLINE next #-}
     next i | i >= n    = Done
