@@ -587,11 +587,10 @@ unfoldr f s0 = Stream next s0 1
                  Just (w, s') -> Yield w s'
 {-# INLINE [0] unfoldr #-}
 
--- | O(n) Like unfoldr, unfoldrN builds a stream from a seed
--- value. However, the length of the result should be limited by the
--- first argument to unfoldrN. This function is more efficient than
--- unfoldr when the maximum length of the result and correct,
--- otherwise its complexity performance is similar to 'unfoldr'
+-- | /O(n)/ Like 'unfoldr', 'unfoldrN' builds a stream from a seed
+-- value. However, the length of the result is limited by the
+-- first argument to 'unfoldrN'. This function is more efficient than
+-- 'unfoldr' when the length of the result is known.
 unfoldrN :: Int -> (a -> Maybe (Char,a)) -> a -> Stream Char
 unfoldrN n f s0 = Stream next (0 :!: s0) (n*2)
     where
