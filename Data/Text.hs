@@ -658,15 +658,17 @@ words :: Text -> [Text]
 words (Text arr off len) = loop0 off off
     where
       loop0 start n
-            | isSpace (unsafeChr c) = if start == n
-                                      then loop0 (start+1) (start+1)
-                                      else (Text arr start (n-start)):loop0 (n+1) (n+1)
-            | n < (off+len) = loop0 start (n+1)
-            | otherwise = if start == n
-                          then []
-                          else [(Text arr start (n-start))]
-            where
-              c = arr `A.unsafeIndex` n
+          | n >= len = if start == n
+                       then []
+                       else [Text arr (start+off) (n-start)]
+          | isSpace (unsafeChr c) =
+              if start == n
+              then loop0 (start+1) (start+1)
+              else Text arr (start+off) (n-start) : loop0 (n+1) (n+1)
+          | otherwise = if c < 0xD800 || c > 0xDBFF
+                        then loop0 start (n+1)
+                        else loop0 start (n+2)
+          where c = arr `A.unsafeIndex` n
 {-# INLINE words #-}
 
 -- | /O(n)/ Breaks a 'Text' up into a list of 'Text's at
