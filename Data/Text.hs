@@ -584,7 +584,7 @@ inits :: Text -> [Text]
 inits t@(Text arr off len) = loop off
     where loop i | i >= len = [t]
                  | otherwise = Text arr off i : loop j
-              where j | n < 0xDC00 || n > 0xDFFF = i + 1
+              where j | n < 0xD800 || n > 0xDBFF = i + 1
                       | otherwise                = i + 2
                     n = A.unsafeIndex arr i
 
