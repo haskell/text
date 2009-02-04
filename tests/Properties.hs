@@ -74,6 +74,9 @@ prop_minimum         = L.minimum     `eqEP` T.minimum
 prop_scanl f z       = L.scanl f z   `eqP`  (unpack . T.scanl f z)
 prop_scanl1 f        = L.scanl1 f    `eqP`  (unpack . T.scanl1 f)
 
+prop_mapAccumL f z   = (snd . L.mapAccumL f z)`eqP` (unpack . T.mapAccumL f z)
+    where types = f :: Int -> Char -> (Int,Char)
+
 prop_replicate n     = L.replicate n `eq`   (unpack . T.replicate n)
 prop_unfoldr n       = L.unfoldr f   `eq`   (unpack . T.unfoldr f)
     where f c | fromEnum c * 100 > n = Nothing
@@ -161,6 +164,8 @@ tests = [
 
   ("prop_scanl", mytest prop_scanl),
   ("prop_scanl1", mytest prop_scanl1),
+
+  ("prop_mapAccumL", mytest prop_mapAccumL),
 
   ("prop_replicate", mytest prop_replicate),
   ("prop_unfoldr", mytest prop_unfoldr),

@@ -64,6 +64,9 @@ module Data.Text.Fusion
     -- ** Scans
     , scanl
 
+    -- ** Accumulating maps
+    , mapAccumL
+    
     -- ** Generation and unfolding
     , replicate
     , unfoldr
@@ -558,6 +561,20 @@ scanl f z0 (Stream next0 s0 len) = Stream next (S1 :!: z0 :!: s0) (len+1)
                               Skip s'    -> Skip (S2 :!: z :!: s')
                               Done       -> Done
 {-# INLINE [0] scanl #-}
+
+-- -----------------------------------------------------------------------------
+-- ** Accumulating maps
+
+mapAccumL :: (a -> Char -> (a,Char)) -> a -> Stream Char -> Stream Char
+mapAccumL f z0 (Stream next0 s0 len) = Stream next (s0 :!: z0) len
+  where
+    {-# INLINE next #-}
+    next (s :!: z) = case next0 s of
+                       Yield x s' -> let (z',y) = f z x
+                                     in Yield y (s' :!: z')
+                       Skip s'    -> Skip (s' :!: z)
+                       Done       -> Done
+{-# INLINE [0] mapAccumL #-}
 
 -- -----------------------------------------------------------------------------
 -- ** Generating and unfolding streams

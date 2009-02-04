@@ -80,7 +80,7 @@ module Data.Text
     -- , scanr1
 
     -- ** Accumulating maps
-    -- , mapAccumL
+    , mapAccumL
     -- , mapAccumR
 
     -- ** Generation and unfolding
@@ -503,6 +503,16 @@ scanl1 :: (Char -> Char -> Char) -> Text -> Text
 scanl1 f t | null t    = empty
            | otherwise = scanl f (head t) (tail t)
 {-# INLINE scanl1 #-}
+
+-- | /O(n)/ Like a combination of 'map' and 'foldl'. Applies a
+-- function to each element of a 'Text', passing an accumulating
+-- parameter from left to right, and returns a final 'Text'.
+--
+-- /Note/: Unlike the version over lists, this function does not return a
+-- final value for the accumulator.
+mapAccumL :: (a -> Char -> (a,Char)) -> a -> Text -> Text
+mapAccumL f z t = unstream (S.mapAccumL f z (stream t))
+{-# INLINE mapAccumL #-}
 
 -- -----------------------------------------------------------------------------
 -- ** Generating and unfolding 'Text's
