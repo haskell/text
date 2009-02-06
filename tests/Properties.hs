@@ -89,6 +89,7 @@ prop_unfoldrN n m    = (L.take n . L.unfoldr f) `eq` (unpack . T.unfoldrN n f)
 prop_take n          = L.take n      `eqP` (unpack . T.take n)
 prop_drop n          = L.drop n      `eqP` (unpack . T.drop n)
 prop_takeWhile p     = L.takeWhile p `eqP` (unpack . T.takeWhile p)
+prop_takeWhileS p    = L.takeWhile p `eqP` (unpack . unstream . S.takeWhile p . stream)
 prop_dropWhile p     = L.dropWhile p `eqP` (unpack . T.dropWhile p)
 prop_inits           = L.inits       `eqP` (map unpack . T.inits)
 prop_tails           = L.tails       `eqP` (map unpack . T.tails)
@@ -174,6 +175,7 @@ tests = [
   ("prop_take", mytest prop_take),
   ("prop_drop", mytest prop_drop),
   ("prop_takeWhile", mytest prop_takeWhile),
+  ("prop_takeWhileS", mytest prop_takeWhileS),
   ("prop_dropWhile", mytest prop_dropWhile),
   ("prop_inits", mytest prop_inits),
   ("prop_tails", mytest prop_tails),

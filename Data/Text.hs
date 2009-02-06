@@ -598,11 +598,23 @@ drop n t@(Text arr off len)
     unstream (S.drop n (stream t)) = drop n t
   #-}
 
--- | /O(n)/ 'takeWhile', applied to a predicate @p@ and a 'Text', returns the
--- longest prefix (possibly empty) of elements that satisfy @p@.
+-- | /O(n)/ 'takeWhile', applied to a predicate @p@ and a 'Text', returns
+-- the longest prefix (possibly empty) of elements that satisfy @p@.
+-- This function is subject to array fusion.
 takeWhile :: (Char -> Bool) -> Text -> Text
-takeWhile p t = unstream (S.takeWhile p (stream t))
-{-# INLINE takeWhile #-}
+takeWhile p t@(Text arr off len) = loop off 0
+  where loop !i !l | l >= len    = t
+                   | p c         = loop (i+d) (l+d)
+                   | otherwise   = Text arr off l
+            where (c,d)          = iter arr i
+{-# INLINE [1] takeWhile #-}
+
+{-# RULES
+"TEXT takeWhile -> fused" [~1] forall p t.
+    takeWhile p t = unstream (S.takeWhile p (stream t))
+"TEXT takeWhile -> unfused" [1] forall p t.
+    unstream (S.takeWhile p (stream t)) = takeWhile p t
+  #-}
 
 -- | /O(n)/ 'dropWhile' @p@ @xs@ returns the suffix remaining after
 -- 'takeWhile' @p@ @xs@.
