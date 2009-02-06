@@ -96,8 +96,8 @@ module Data.Text
     , takeWhile
     , dropWhile
     , splitAt
-    -- , span
-    -- , break
+    , span
+    , break
     -- , group
     -- , groupBy
     , inits
@@ -148,7 +148,7 @@ import Prelude (Char, Bool, Functor(..), Int, Maybe(..), String,
                 Show, showsPrec,
                 Read, readsPrec,
                 (&&), (||), (+), (-), (<), (>), (<=), (>=), (.),
-                return, otherwise)
+                not, return, otherwise)
 import Data.Char (isSpace)
 import Control.Monad.ST (ST)
 import qualified Data.Text.Array as A
@@ -634,7 +634,7 @@ dropWhile p (Text arr off len) = loop off 0
   #-}
 
 -- | /O(n)/ 'splitAt' @n t@ returns a pair whose first element is a
--- prefix of @t@ of length @n@ and second element is the remainder of
+-- prefix of @t@ of length @n@, and whose second is the remainder of
 -- the string. It is equivalent to @('take' n t, 'drop' n t)@.
 splitAt :: Int -> Text -> (Text, Text)
 splitAt n t@(Text arr off len)
@@ -644,10 +644,31 @@ splitAt n t@(Text arr off len)
   where k = loop off 0
         end = off + len
         loop !i !count
-            | i >= end || count >= n   = i - off
-            | otherwise                = loop (i+d) (count+1)
-            where d = iter_ arr i
+            | i >= end || count >= n = i - off
+            | otherwise              = loop (i+d) (count+1)
+            where d                  = iter_ arr i
 {-# INLINE splitAt #-}
+
+-- | /O(n)/ 'span', applied to a predicate @p@ and text @t@, returns a
+-- pair whose first element is the longest prefix (possibly empty) of
+-- @t@ of elements that satisfy @p@, and whose second is the remainder
+-- of the list.
+span :: (Char -> Bool) -> Text -> (Text, Text)
+span p t@(Text arr off len)
+    | k == 0    = (empty, t)
+    | k == len  = (t, empty)
+    | otherwise = (Text arr off k, Text arr (off+k) (len-k))
+  where k = loop off 0
+        loop !i !l | l >= len || not (p c) = l
+                   | otherwise             = loop (i+d) (l+d)
+            where (c,d)                    = iter arr i
+{-# INLINE span #-}
+
+-- | /O(n)/ 'break' is like 'span', but the prefix returned is over
+-- elements that fail the predicate @p@.
+break :: (Char -> Bool) -> Text -> (Text, Text)
+break p = span (not . p)
+{-# INLINE break #-}
 
 -- | /O(n)/ Return all initial segments of the given 'Text', shortest
 -- first.
