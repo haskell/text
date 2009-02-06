@@ -297,14 +297,8 @@ iter_ arr i | m < 0xD800 || m > 0xDBFF = 1
 uncons :: Text -> Maybe (Char, Text)
 uncons (Text arr off len)
     | len <= 0  = Nothing
-    | otherwise = Just (c, Text arr (off+k) (len-k))
-    where c | single    = unsafeChr m
-            | otherwise = U16.chr2 m n
-          k | single    = 1
-            | otherwise = 2
-          single        = m < 0xD800 || m > 0xDBFF
-          m             = A.unsafeIndex arr off
-          n             = A.unsafeIndex arr (off+1)
+    | otherwise = Just (c, Text arr (off+d) (len-d))
+    where (c,d) = iter arr off
 {-# INLINE uncons #-}
 
 second :: (b -> c) -> (a,b) -> (a,c)
@@ -324,9 +318,8 @@ last (Text arr off len)
     | len <= 0                 = errorEmptyList "last"
     | n < 0xDC00 || n > 0xDFFF = unsafeChr n
     | otherwise                = U16.chr2 n0 n
-    where
-      n  = A.unsafeIndex arr (off+len-1)
-      n0 = A.unsafeIndex arr (off+len-2)
+    where n  = A.unsafeIndex arr (off+len-1)
+          n0 = A.unsafeIndex arr (off+len-2)
 {-# INLINE [1] last #-}
 
 {-# RULES
@@ -341,11 +334,9 @@ last (Text arr off len)
 -- must be non-empty.  Subject to array fusion.
 tail :: Text -> Text
 tail (Text arr off len)
-    | len <= 0                   = errorEmptyList "tail"
-    | n >= 0xD800 && n <= 0xDBFF = Text arr (off+2) (len-2)
-    | otherwise                  = Text arr (off+1) (len-1)
-    where
-      n = A.unsafeIndex arr off
+    | len <= 0  = errorEmptyList "tail"
+    | otherwise = Text arr (off+d) (len-d)
+    where d = iter_ arr off
 {-# INLINE [1] tail #-}
 
 
@@ -571,13 +562,11 @@ take n t@(Text arr off len)
     | n >= len  = t
     | otherwise = Text arr off (loop off 0)
   where
-      end = off+len
+      end = off + len
       loop !i !count
            | i >= end || count >= n   = i - off
-           | c < 0xD800 || c > 0xDBFF = loop (i+1) (count+1)
-           | otherwise                = loop (i+2) (count+1)
-           where
-             c = arr `A.unsafeIndex` i
+           | otherwise                = loop (i+d) (count+1)
+           where d = iter_ arr i
 {-# INLINE [1] take #-}
 
 {-# RULES
@@ -594,16 +583,12 @@ drop :: Int -> Text -> Text
 drop n t@(Text arr off len)
     | n <= 0    = t
     | n >= len  = empty
-    | otherwise = Text arr newOff newLen
-  where
-      (newOff, newLen) = loop off 0 len
-      end = off + len
-      loop !i !count !l
-          | i >= end || count >= n   = (i,l)
-          | c < 0xD800 || c > 0xDBFF = loop (i+1) (count+1) (l-1)
-          | otherwise                = loop (i+2) (count+1) (l-2)
-          where
-            c = arr `A.unsafeIndex` i
+    | otherwise = loop off 0 len
+  where end = off + len
+        loop !i !count !l
+            | i >= end || count >= n   = Text arr i l
+            | otherwise                = loop (i+d) (count+1) (l-d)
+            where d = iter_ arr i
 {-# INLINE [1] drop #-}
 
 {-# RULES
@@ -630,10 +615,7 @@ dropWhile p t = unstream (S.dropWhile p (stream t))
 inits :: Text -> [Text]
 inits t@(Text arr off len) = loop off
     where loop i | i >= len = [t]
-                 | otherwise = Text arr off i : loop j
-              where j | n < 0xD800 || n > 0xDBFF = i + 1
-                      | otherwise                = i + 2
-                    n = A.unsafeIndex arr i
+                 | otherwise = Text arr off i : loop (i + iter_ arr i)
 
 -- | /O(n)/ Return all final segments of the given 'Text', longest
 -- first.
