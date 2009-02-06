@@ -92,6 +92,7 @@ prop_takeWhile p     = L.takeWhile p `eqP` (unpack . T.takeWhile p)
 prop_takeWhileS p    = L.takeWhile p `eqP` (unpack . unstream . S.takeWhile p . stream)
 prop_dropWhile p     = L.dropWhile p `eqP` (unpack . T.dropWhile p)
 prop_dropWhileS p    = L.dropWhile p `eqP` (unpack . unstream . S.dropWhile p . stream)
+prop_splitAt n       = L.splitAt n   `eqP` ((unpack *** unpack) . T.splitAt n)
 prop_inits           = L.inits       `eqP` (map unpack . T.inits)
 prop_tails           = L.tails       `eqP` (map unpack . T.tails)
 
@@ -179,6 +180,7 @@ tests = [
   ("prop_takeWhileS", mytest prop_takeWhileS),
   ("prop_dropWhile", mytest prop_dropWhile),
   ("prop_dropWhileS", mytest prop_dropWhileS),
+  ("prop_splitAt", mytest prop_splitAt),
   ("prop_inits", mytest prop_inits),
   ("prop_tails", mytest prop_tails),
 

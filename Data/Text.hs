@@ -95,7 +95,7 @@ module Data.Text
     , drop
     , takeWhile
     , dropWhile
-    -- , splitAt
+    , splitAt
     -- , span
     -- , break
     -- , group
@@ -632,6 +632,22 @@ dropWhile p (Text arr off len) = loop off 0
 "TEXT dropWhile -> unfused" [1] forall p t.
     unstream (S.dropWhile p (stream t)) = dropWhile p t
   #-}
+
+-- | /O(n)/ 'splitAt' @n t@ returns a pair whose first element is a
+-- prefix of @t@ of length @n@ and second element is the remainder of
+-- the string. It is equivalent to @('take' n t, 'drop' n t)@.
+splitAt :: Int -> Text -> (Text, Text)
+splitAt n t@(Text arr off len)
+    | n <= 0    = (empty, t)
+    | n >= len  = (t, empty)
+    | otherwise = (Text arr off k, Text arr (off+k) (len-k))
+  where k = loop off 0
+        end = off + len
+        loop !i !count
+            | i >= end || count >= n   = i - off
+            | otherwise                = loop (i+d) (count+1)
+            where d = iter_ arr i
+{-# INLINE splitAt #-}
 
 -- | /O(n)/ Return all initial segments of the given 'Text', shortest
 -- first.
