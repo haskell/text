@@ -273,6 +273,25 @@ head :: Text -> Char
 head t = S.head (stream t)
 {-# INLINE head #-}
 
+-- | Iterate one step through a UTF-16 array, returning the current
+-- character and the step to add to give the next offset to iterate
+-- at.
+iter :: A.Array Word16 -> Int -> (Char,Int)
+iter arr i | m < 0xD800 || m > 0xDBFF = (unsafeChr m,  1)
+           | otherwise                = (U16.chr2 m n, 2)
+  where m = A.unsafeIndex arr i
+        n = A.unsafeIndex arr j
+        j = i + 1
+{-# INLINE iter #-}
+
+-- | Iterate one step through a UTF-16 array, returning the next
+-- offset to iterate at.
+iter_ :: A.Array Word16 -> Int -> Int
+iter_ arr i | m < 0xD800 || m > 0xDBFF = 1
+            | otherwise                = 2
+  where m = A.unsafeIndex arr i
+{-# INLINE iter_ #-}
+
 -- | /O(1)/ Returns the first character and rest of a 'Text', or
 -- 'Nothing' if empty. Subject to array fusion.
 uncons :: Text -> Maybe (Char, Text)
