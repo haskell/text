@@ -617,10 +617,21 @@ takeWhile p t@(Text arr off len) = loop off 0
   #-}
 
 -- | /O(n)/ 'dropWhile' @p@ @xs@ returns the suffix remaining after
--- 'takeWhile' @p@ @xs@.
+-- 'takeWhile' @p@ @xs@. This function is subject to array fusion.
 dropWhile :: (Char -> Bool) -> Text -> Text
-dropWhile p t = unstream (S.dropWhile p (stream t))
-{-# INLINE dropWhile #-}
+dropWhile p (Text arr off len) = loop off 0
+  where loop !i !l | l >= len  = empty
+                   | p c       = loop (i+d) (l+d)
+                   | otherwise = Text arr i (len-l)
+            where (c,d)        = iter arr i
+{-# INLINE [1] dropWhile #-}
+
+{-# RULES
+"TEXT dropWhile -> fused" [~1] forall p t.
+    dropWhile p t = unstream (S.dropWhile p (stream t))
+"TEXT dropWhile -> unfused" [1] forall p t.
+    unstream (S.dropWhile p (stream t)) = dropWhile p t
+  #-}
 
 -- | /O(n)/ Return all initial segments of the given 'Text', shortest
 -- first.
