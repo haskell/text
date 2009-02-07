@@ -10,6 +10,7 @@ import System.Environment
 import Control.Applicative
 import Control.Arrow
 import Control.Monad
+import Data.Word
 import qualified Data.Text as T
 import Data.Text (pack,unpack)
 import qualified Data.Text.Fusion as S
@@ -24,12 +25,34 @@ prop_stream_unstream t = (unstream . stream) t == t
 prop_singleton c     = [c] == (unpack . T.singleton) c
 
 -- Do two functions give the same answer?
+eq :: (Eq a) => (t -> a) -> (t -> a) -> t -> Bool
 eq a b s  = a s == b s
 -- What about with the RHS packed?
-eqP a b s  = a s == b (pack s)
+eqP :: (Eq a) => (String -> a) -> (T.Text -> a) -> String -> Word8 -> Bool
+eqP a b s w  = a s == b t &&
+               a sa == b ta &&
+               a sb == b tb
+    where t             = pack s
+          (sa,sb)       = splitAt m s
+          (ta,tb)       = T.splitAt m t
+          l             = length s
+          m | l == 0    = n
+            | otherwise = n `mod` l
+          n             = fromIntegral w
 -- Or with the string non-empty, and the RHS packed?
-eqEP a b s = let e = notEmpty s
-             in a e == b (pack e)
+eqEP :: (Eq a) =>
+        (String -> a) -> (T.Text -> a) -> NotEmpty String -> Word8 -> Bool
+eqEP a b e w  = a s == b t &&
+                (null sa || a sa == b ta) &&
+                (null sb || a sb == b tb)
+    where (sa,sb)       = splitAt m s
+          (ta,tb)       = T.splitAt m t
+          t             = pack s
+          l             = length s
+          m | l == 0    = n
+            | otherwise = n `mod` l
+          n             = fromIntegral w
+          s             = notEmpty e
 
 prop_cons x          = (x:)     `eqP` (unpack . T.cons x)
 prop_snoc x          = (++ [x]) `eqP` (unpack . (flip T.snoc) x)
@@ -95,6 +118,8 @@ prop_dropWhileS p    = L.dropWhile p `eqP` (unpack . unstream . S.dropWhile p . 
 prop_splitAt n       = L.splitAt n   `eqP` ((unpack *** unpack) . T.splitAt n)
 prop_span p          = L.span p      `eqP` ((unpack *** unpack) . T.span p)
 prop_break p         = L.break p     `eqP` ((unpack *** unpack) . T.break p)
+prop_group           = L.group       `eqP` (map unpack . T.group)
+prop_groupBy p       = L.groupBy p   `eqP` (map unpack . T.groupBy p)
 prop_inits           = L.inits       `eqP` (map unpack . T.inits)
 prop_tails           = L.tails       `eqP` (map unpack . T.tails)
 
@@ -185,6 +210,8 @@ tests = [
   ("prop_splitAt", mytest prop_splitAt),
   ("prop_span", mytest prop_span),
   ("prop_break", mytest prop_break),
+  ("prop_group", mytest prop_group),
+  ("prop_groupBy", mytest prop_groupBy),
   ("prop_inits", mytest prop_inits),
   ("prop_tails", mytest prop_tails),
 

@@ -20,6 +20,7 @@ library
     Data.Text.Array
     Data.Text.Encoding
     Data.Text.Encoding.Fusion
+    Data.Text.Unsafe
     Data.Text.UnsafeChar
     Data.Text.Internal
     Data.Text.Fusion

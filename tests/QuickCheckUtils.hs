@@ -14,6 +14,14 @@ integralRandomR  (a,b) g = case randomR (fromIntegral a :: Integer,
                                          fromIntegral b :: Integer) g of
                             (x,g) -> (fromIntegral x, g)
 
+instance Random Word8 where
+  randomR = integralRandomR
+  random  = randomR (minBound,maxBound)
+
+instance Arbitrary Word8 where
+    arbitrary     = choose (minBound,maxBound)
+    coarbitrary c = variant (fromEnum c `rem` 4)
+
 instance Random Word16 where
   randomR = integralRandomR
   random  = randomR (minBound,maxBound)

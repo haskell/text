@@ -98,8 +98,8 @@ module Data.Text
     , splitAt
     , span
     , break
-    -- , group
-    -- , groupBy
+    , group
+    , groupBy
     , inits
     , tails
 
@@ -145,10 +145,10 @@ module Data.Text
 
 import Prelude (Char, Bool, Functor(..), Int, Maybe(..), String,
                 Eq, (==), (++), error,
-                Show, showsPrec,
-                Read, readsPrec,
-                (&&), (||), (+), (-), (<), (>), (<=), (>=), (.),
+                Read(..), Show(..),
+                (&&), (||), (+), (-), (<), (>), (<=), (>=), (.), ($),
                 not, return, otherwise)
+import Control.Exception (assert)
 import Data.Char (isSpace)
 import Control.Monad.ST (ST)
 import qualified Data.Text.Array as A
@@ -159,8 +159,9 @@ import Data.String (IsString(..))
 
 import qualified Data.Text.Fusion as S
 import Data.Text.Fusion (Stream(..), Step(..), stream, unstream)
-import Data.Text.Internal (Text(..), empty)
+import Data.Text.Internal (Text(..), empty, text)
 import qualified Prelude as P
+import Data.Text.Unsafe (iter, iter_)
 import Data.Text.UnsafeChar (unsafeChr)
 import qualified Data.Text.Utf16 as U16
 
@@ -273,32 +274,13 @@ head :: Text -> Char
 head t = S.head (stream t)
 {-# INLINE head #-}
 
--- | Iterate one step through a UTF-16 array, returning the current
--- character and the step to add to give the next offset to iterate
--- at.
-iter :: A.Array Word16 -> Int -> (Char,Int)
-iter arr i | m < 0xD800 || m > 0xDBFF = (unsafeChr m,  1)
-           | otherwise                = (U16.chr2 m n, 2)
-  where m = A.unsafeIndex arr i
-        n = A.unsafeIndex arr j
-        j = i + 1
-{-# INLINE iter #-}
-
--- | Iterate one step through a UTF-16 array, returning the next
--- offset to iterate at.
-iter_ :: A.Array Word16 -> Int -> Int
-iter_ arr i | m < 0xD800 || m > 0xDBFF = 1
-            | otherwise                = 2
-  where m = A.unsafeIndex arr i
-{-# INLINE iter_ #-}
-
 -- | /O(1)/ Returns the first character and rest of a 'Text', or
 -- 'Nothing' if empty. Subject to array fusion.
 uncons :: Text -> Maybe (Char, Text)
-uncons (Text arr off len)
+uncons t@(Text arr off len)
     | len <= 0  = Nothing
     | otherwise = Just (c, Text arr (off+d) (len-d))
-    where (c,d) = iter arr off
+    where (c,d) = iter t 0
 {-# INLINE uncons #-}
 
 second :: (b -> c) -> (a,b) -> (a,c)
@@ -329,24 +311,35 @@ last (Text arr off len)
     S.last (stream t) = last t
   #-}
 
+-- | Construct a 'Text' without invisibly pinning its byte array in
+-- memory if its length has dwindled to zero.
+textP :: A.Array Word16 -> Int -> Int -> Text
+textP arr off len | len == 0  = empty
+                  | otherwise = text arr off len
+{-# INLINE textP #-}
 
 -- | /O(1)/ Returns all characters after the head of a 'Text', which
 -- must be non-empty.  Subject to array fusion.
 tail :: Text -> Text
-tail (Text arr off len)
+tail t@(Text arr off len)
     | len <= 0  = errorEmptyList "tail"
-    | otherwise = Text arr (off+d) (len-d)
-    where d = iter_ arr off
+    | otherwise = textP arr (off+d) (len-d)
+    where d = iter_ t 0
 {-# INLINE [1] tail #-}
 
-
+{-# RULES
+"TEXT tail -> fused" [~1] forall t.
+    tail t = unstream (S.tail (stream t))
+"TEXT tail -> unfused" [1] forall t.
+    unstream (S.tail (stream t)) = tail t
+ #-}
 
 -- | /O(1)/ Returns all but the last character of a 'Text', which must
 -- be non-empty.  Subject to array fusion.
 init :: Text -> Text
 init (Text arr off len) | len <= 0                   = errorEmptyList "init"
-                        | n >= 0xDC00 && n <= 0xDFFF = Text arr off (len-2)
-                        | otherwise                  = Text arr off (len-1)
+                        | n >= 0xDC00 && n <= 0xDFFF = textP arr off (len-2)
+                        | otherwise                  = textP arr off (len-1)
     where
       n = A.unsafeIndex arr (off+len-1)
 {-# INLINE [1] init #-}
@@ -361,8 +354,15 @@ init (Text arr off len) | len <= 0                   = errorEmptyList "init"
 -- | /O(1)/ Tests whether a 'Text' is empty or not.  Subject to array
 -- fusion.
 null :: Text -> Bool
-null t = S.null (stream t)
-{-# INLINE null #-}
+null (Text _arr _off len) = assert (len >= 0) $ len <= 0
+{-# INLINE [1] null #-}
+
+{-# RULES
+"TEXT null -> fused" [~1] forall t.
+    null t = S.null (stream t)
+"TEXT null -> unfused" [1] forall t.
+    S.null (stream t) = null t
+ #-}
 
 -- | /O(n)/ Returns the number of characters in a 'Text'.
 -- Subject to array fusion.
@@ -560,13 +560,12 @@ take :: Int -> Text -> Text
 take n t@(Text arr off len)
     | n <= 0    = empty
     | n >= len  = t
-    | otherwise = Text arr off (loop off 0)
+    | otherwise = Text arr off (loop 0 0)
   where
-      end = off + len
       loop !i !count
-           | i >= end || count >= n   = i - off
-           | otherwise                = loop (i+d) (count+1)
-           where d = iter_ arr i
+           | i >= len || count >= n = i
+           | otherwise              = loop (i+d) (count+1)
+           where d = iter_ t i
 {-# INLINE [1] take #-}
 
 {-# RULES
@@ -583,12 +582,12 @@ drop :: Int -> Text -> Text
 drop n t@(Text arr off len)
     | n <= 0    = t
     | n >= len  = empty
-    | otherwise = loop off 0 len
+    | otherwise = loop 0 0
   where end = off + len
-        loop !i !count !l
-            | i >= end || count >= n   = Text arr i l
-            | otherwise                = loop (i+d) (count+1) (l-d)
-            where d = iter_ arr i
+        loop !i !count
+            | i >= end || count >= n   = Text arr (off+i) (len-i)
+            | otherwise                = loop (i+d) (count+1)
+            where d = iter_ t i
 {-# INLINE [1] drop #-}
 
 {-# RULES
@@ -602,11 +601,11 @@ drop n t@(Text arr off len)
 -- the longest prefix (possibly empty) of elements that satisfy @p@.
 -- This function is subject to array fusion.
 takeWhile :: (Char -> Bool) -> Text -> Text
-takeWhile p t@(Text arr off len) = loop off 0
-  where loop !i !l | l >= len    = t
-                   | p c         = loop (i+d) (l+d)
-                   | otherwise   = Text arr off l
-            where (c,d)          = iter arr i
+takeWhile p t@(Text arr off len) = loop 0
+  where loop !i | i >= len    = t
+                | p c         = loop (i+d)
+                | otherwise   = textP arr off i
+            where (c,d)       = iter t i
 {-# INLINE [1] takeWhile #-}
 
 {-# RULES
@@ -619,11 +618,11 @@ takeWhile p t@(Text arr off len) = loop off 0
 -- | /O(n)/ 'dropWhile' @p@ @xs@ returns the suffix remaining after
 -- 'takeWhile' @p@ @xs@. This function is subject to array fusion.
 dropWhile :: (Char -> Bool) -> Text -> Text
-dropWhile p (Text arr off len) = loop off 0
+dropWhile p t@(Text arr off len) = loop 0 0
   where loop !i !l | l >= len  = empty
                    | p c       = loop (i+d) (l+d)
-                   | otherwise = Text arr i (len-l)
-            where (c,d)        = iter arr i
+                   | otherwise = Text arr (off+i) (len-l)
+            where (c,d)        = iter t i
 {-# INLINE [1] dropWhile #-}
 
 {-# RULES
@@ -641,12 +640,11 @@ splitAt n t@(Text arr off len)
     | n <= 0    = (empty, t)
     | n >= len  = (t, empty)
     | otherwise = (Text arr off k, Text arr (off+k) (len-k))
-  where k = loop off 0
-        end = off + len
+  where k = loop 0 0
         loop !i !count
-            | i >= end || count >= n = i - off
+            | i >= len || count >= n = i
             | otherwise              = loop (i+d) (count+1)
-            where d                  = iter_ arr i
+            where d                  = iter_ t i
 {-# INLINE splitAt #-}
 
 -- | /O(n)/ 'span', applied to a predicate @p@ and text @t@, returns a
@@ -654,14 +652,11 @@ splitAt n t@(Text arr off len)
 -- @t@ of elements that satisfy @p@, and whose second is the remainder
 -- of the list.
 span :: (Char -> Bool) -> Text -> (Text, Text)
-span p t@(Text arr off len)
-    | k == 0    = (empty, t)
-    | k == len  = (t, empty)
-    | otherwise = (Text arr off k, Text arr (off+k) (len-k))
-  where k = loop off 0
-        loop !i !l | l >= len || not (p c) = l
-                   | otherwise             = loop (i+d) (l+d)
-            where (c,d)                    = iter arr i
+span p t@(Text arr off len) = (textP arr off k, textP arr (off+k) (len-k))
+  where k = loop 0
+        loop !i | i >= len || not (p c) = i
+                | otherwise             = loop (i+d)
+            where (c,d)                 = iter t i
 {-# INLINE span #-}
 
 -- | /O(n)/ 'break' is like 'span', but the prefix returned is over
@@ -670,12 +665,35 @@ break :: (Char -> Bool) -> Text -> (Text, Text)
 break p = span (not . p)
 {-# INLINE break #-}
 
+-- | /O(n)/ Group characters in a string according to a predicate.
+groupBy :: (Char -> Char -> Bool) -> Text -> [Text]
+groupBy p = loop
+  where
+    loop t@(Text arr off len)
+        | null t    = []
+        | otherwise = text arr off n : loop (text arr (off+n) (len-n))
+        where (c,d) = iter t 0
+              n     = d + findAIndexOrEnd (not . p c) (Text arr (off+d) (len-d))
+
+-- | Returns the /array/ index (in units of 'Word16') at which a
+-- character may be found.  This is /not/ the same as the logical
+-- index returned by e.g. 'findIndex'.
+findAIndexOrEnd :: (Char -> Bool) -> Text -> Int
+findAIndexOrEnd q t@(Text _arr _off len) = go 0
+    where go !i | i >= len || q c       = i
+                | otherwise             = go (i+d)
+                where (c,d)             = iter t i
+    
+-- | /O(n)/ Group characters in a string by equality.
+group :: Text -> [Text]
+group = groupBy (==)
+
 -- | /O(n)/ Return all initial segments of the given 'Text', shortest
 -- first.
 inits :: Text -> [Text]
-inits t@(Text arr off len) = loop off
+inits t@(Text arr off len) = loop 0
     where loop i | i >= len = [t]
-                 | otherwise = Text arr off i : loop (i + iter_ arr i)
+                 | otherwise = Text arr off i : loop (i + iter_ t i)
 
 -- | /O(n)/ Return all final segments of the given 'Text', longest
 -- first.
@@ -744,20 +762,18 @@ zipWith f t1 t2 = unstream (S.zipWith f (stream t1) (stream t2))
 -- | /O(n)/ Breaks a 'Text' up into a list of words, delimited by 'Char's
 -- representing white space.
 words :: Text -> [Text]
-words (Text arr off len) = loop0 off off
-    where
-      loop0 start n
-          | n >= len = if start == n
-                       then []
-                       else [Text arr (start+off) (n-start)]
-          | isSpace (unsafeChr c) =
-              if start == n
-              then loop0 (start+1) (start+1)
-              else Text arr (start+off) (n-start) : loop0 (n+1) (n+1)
-          | otherwise = if c < 0xD800 || c > 0xDBFF
-                        then loop0 start (n+1)
-                        else loop0 start (n+2)
-          where c = arr `A.unsafeIndex` n
+words t@(Text arr off len) = loop 0 0
+  where
+    loop !start !n
+        | n >= len = if start == n
+                     then []
+                     else [Text arr (start+off) (n-start)]
+        | isSpace c =
+            if start == n
+            then loop (start+1) (start+1)
+            else Text arr (start+off) (n-start) : loop (n+d) (n+d)
+        | otherwise = loop start (n+d)
+        where (c,d) = iter t n
 {-# INLINE words #-}
 
 -- | /O(n)/ Breaks a 'Text' up into a list of 'Text's at

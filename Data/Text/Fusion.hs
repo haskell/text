@@ -87,6 +87,7 @@ module Data.Text.Fusion
     , find
     , index
     , findIndex
+    , findIndexOrEnd
     , elemIndex
 
     -- * Zipping and unzipping
@@ -763,6 +764,19 @@ findIndex p (Stream next s0 _len) = loop_findIndex 0 s0
       Yield x s' | p x       -> Just i
                  | otherwise -> loop_findIndex (i+1) s'
 {-# INLINE [0] findIndex #-}
+
+-- | The 'findIndexOrEnd' function takes a predicate and a stream and
+-- returns the index of the first element in the stream
+-- satisfying the predicate.
+findIndexOrEnd :: (Char -> Bool) -> Stream Char -> Int
+findIndexOrEnd p (Stream next s0 _len) = loop_findIndex 0 s0
+  where
+    loop_findIndex !i !s = case next s of
+      Done                   -> i
+      Skip    s'             -> loop_findIndex i     s' -- hmm. not caught by QC
+      Yield x s' | p x       -> i
+                 | otherwise -> loop_findIndex (i+1) s'
+{-# INLINE [0] findIndexOrEnd #-}
 
 -- | /O(n)/ The 'elemIndex' function returns the index of the first
 -- element in the given stream which is equal to the query

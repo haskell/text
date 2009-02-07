@@ -35,6 +35,7 @@ module Data.Text.Array
     , unsafeNew
     , unsafeFreeze
     , run
+    , toList
     ) where
 
 #if 0
@@ -106,6 +107,9 @@ class IArray a where
 instance IArray (Array e) where
     length (Array len _ba) = len
     {-# INLINE length #-}
+
+instance (Elt e, Show e) => Show (Array e) where
+    show = show . toList
 
 instance IArray (MArray s e) where
     length (MArray len _ba) = len
@@ -246,6 +250,13 @@ instance Elt Word16 where
     unsafeWrite = unsafeWriteMArray
 
 #endif
+
+-- | Convert an immutable array to a list.
+toList :: Elt e => Array e -> [e]
+toList a = loop 0
+    where loop i | i < len   = unsafeIndex a i : loop (i+1)
+                 | otherwise = []
+          len = length a
 
 -- | An empty immutable array.
 empty :: Elt e => Array e
