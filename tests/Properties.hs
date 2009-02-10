@@ -123,6 +123,18 @@ prop_groupBy p       = L.groupBy p   `eqP` (map unpack . T.groupBy p)
 prop_inits           = L.inits       `eqP` (map unpack . T.inits)
 prop_tails           = L.tails       `eqP` (map unpack . T.tails)
 
+prop_split_i c       = id `eq` (T.intercalate (T.singleton c) . T.split c)
+
+{-
+prop_splitWith p     = splitWith p `eqP` (map unpack . T.splitWith p)
+
+splitWith _ [] = [""]
+splitWith p xs = h : splitWith p (whale t)
+    where (h,t) = break p xs
+          whale (_:xs) = xs
+          whale xs = xs
+-}
+
 prop_lines           = L.lines       `eqP` (map unpack . T.lines)
 prop_words           = L.words       `eqP` (map unpack . T.words)
 prop_unlines         = L.unlines     `eq`  (unpack . T.unlines . map pack)
@@ -214,6 +226,9 @@ tests = [
   ("prop_groupBy", mytest prop_groupBy),
   ("prop_inits", mytest prop_inits),
   ("prop_tails", mytest prop_tails),
+
+  ("prop_split_i", mytest prop_split_i),
+--("prop_splitWith", mytest prop_splitWith),
 
   ("prop_lines", mytest prop_lines),
   ("prop_words", mytest prop_words),

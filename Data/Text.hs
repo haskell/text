@@ -104,8 +104,8 @@ module Data.Text
     , tails
 
     -- ** Breaking into many substrings
-    -- , split
-    -- , splitWith
+    , split
+    , splitWith
     -- , breakSubstring
 
     -- ** Breaking into lines and words
@@ -700,6 +700,43 @@ inits t@(Text arr off len) = loop 0
 tails :: Text -> [Text]
 tails t | null t    = [empty]
         | otherwise = t : tails (tail t)
+
+-- | /O(n)/ Break a 'Text' into pieces separated by the 'Char'
+-- argument, consuming the delimiter. I.e.
+--
+-- > split '\n' "a\nb\nd\ne" == ["a","b","d","e"]
+-- > split 'a'  "aXaXaXa"    == ["","X","X","X",""]
+-- > split 'x'  "x"          == ["",""]
+-- 
+-- and
+--
+-- > intercalate (singleton c) . split c == id
+-- > split == splitWith . (==)
+-- 
+-- As for all splitting functions in this library, this function does
+-- not copy the substrings, it just constructs new 'Text's that are
+-- slices of the original.
+split :: Char -> Text -> [Text]
+split c = splitWith (==c)
+{-# INLINE split #-}
+
+-- | /O(n)/ Splits a 'Text' into components delimited by separators,
+-- where the predicate returns True for a separator element.  The
+-- resulting components do not contain the separators.  Two adjacent
+-- separators result in an empty component in the output.  eg.
+--
+-- > splitWith (=='a') "aabbaca" == ["","","bb","c",""]
+-- > splitWith (=='a') []        == []
+splitWith :: (Char -> Bool) -> Text -> [Text]
+splitWith p = loop
+  where loop t@(Text arr off len)
+            | null t    = [empty]
+            | otherwise = text arr off n : rest
+            where n = findAIndexOrEnd p t
+                  m = n + iter_ t n
+                  rest | n >= len   = []
+                       | otherwise = loop (text arr (off+m) (len-m))
+{-# INLINE splitWith #-}
 
 -- ----------------------------------------------------------------------------
 -- * Searching
