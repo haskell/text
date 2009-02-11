@@ -140,6 +140,8 @@ prop_words           = L.words       `eqP` (map unpack . T.words)
 prop_unlines         = L.unlines     `eq`  (unpack . T.unlines . map pack)
 prop_unwords         = L.unwords     `eq`  (unpack . T.unwords . map pack)
 
+prop_isPrefixOf s    = L.isPrefixOf s`eqP` T.isPrefixOf (pack s)
+
 prop_elem c          = L.elem c      `eqP` T.elem c
 prop_filter p        = L.filter p    `eqP` (unpack . T.filter p)
 prop_find p          = L.find p      `eqP` T.find p
@@ -234,6 +236,8 @@ tests = [
   ("prop_words", mytest prop_words),
   ("prop_unlines", mytest prop_unlines),
   ("prop_unwords", mytest prop_unwords),
+
+  ("prop_isPrefixOf", mytest prop_isPrefixOf),
 
   ("prop_elem", mytest prop_elem),
   ("prop_filter", mytest prop_filter),

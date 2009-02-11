@@ -115,7 +115,7 @@ module Data.Text
     , unwords
 
     -- * Predicates
-    -- , isPrefixOf
+    , isPrefixOf
     -- , isSuffixOf
     -- , isInfixOf
 
@@ -143,7 +143,7 @@ module Data.Text
     , -- sort
     ) where
 
-import Prelude (Char, Bool, Functor(..), Int, Maybe(..), String,
+import Prelude (Char, Bool(..), Functor(..), Int, Maybe(..), String,
                 Eq, (==), (++), error,
                 Read(..), Show(..),
                 (&&), (||), (+), (-), (<), (>), (<=), (>=), (.), ($),
@@ -835,6 +835,15 @@ unlines = concat . L.map (`snoc` '\n')
 unwords :: [Text] -> Text
 unwords = intercalate (singleton ' ')
 {-# INLINE unwords #-}
+
+isPrefixOf :: Text -> Text -> Bool
+isPrefixOf a@(Text _ _ alen) b@(Text _ _ blen) = alen <= blen && loop 0 0
+    where loop !i !j | i >= alen = True
+                     | c == e    = loop (i+d) (j+f)
+                     | otherwise = False
+                     where (c,d) = iter a i
+                           (e,f) = iter b j
+{-# INLINE [1] isPrefixOf #-}
 
 errorEmptyList :: String -> a
 errorEmptyList fun = error ("Data.Text." ++ fun ++ ": empty list")
