@@ -123,7 +123,7 @@ module Data.Text
     , elem
     , filter
     , find
-    -- , partition
+    , partition
 
     -- , findSubstring
     
@@ -758,6 +758,15 @@ find :: (Char -> Bool) -> Text -> Maybe Char
 find p t = S.find p (stream t)
 {-# INLINE find #-}
 
+-- | /O(n)/ The 'partition' function takes a predicate and a 'Text',
+-- and returns the pair of 'Text's with elements which do and do not
+-- satisfy the predicate, respectively; i.e.
+--
+-- > partition p t == (filter p t, filter (not . p) t)
+partition :: (Char -> Bool) -> Text -> (Text, Text)
+partition p t = (filter p t, filter (not . p) t)
+{-# INLINE partition #-}
+
 -- | Break a string on a substring, returning a pair of the part of the
 -- string prior to the match, and the rest of the string.
 --
@@ -796,6 +805,7 @@ breakSubstring pat src = search 0 src
         | null s             = (src,empty)      -- not found
         | pat `isPrefixOf` s = (take n src,s)
         | otherwise          = search (n+1) (tail s)
+{-# INLINE breakSubstring #-}
 
 -- | /O(n)/ 'filter', applied to a predicate and a 'Text',
 -- returns a 'Text' containing those characters that satisfy the

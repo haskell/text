@@ -157,6 +157,7 @@ prop_isInfixOf s     = L.isInfixOf s `eqP` T.isInfixOf (pack s)
 prop_elem c          = L.elem c      `eqP` T.elem c
 prop_filter p        = L.filter p    `eqP` (unpack . T.filter p)
 prop_find p          = L.find p      `eqP` T.find p
+prop_partition p     = L.partition p `eqP` (unpack2 . T.partition p)
 
 prop_index x s       = x < L.length s && x >= 0 ==>
                        (L.!!) s x == T.index (pack s) x
@@ -259,6 +260,7 @@ tests = [
   ("prop_elem", mytest prop_elem),
   ("prop_filter", mytest prop_filter),
   ("prop_find", mytest prop_find),
+  ("prop_partition", mytest prop_partition),
 
   ("prop_index", mytest prop_index),
   ("prop_findIndex", mytest prop_findIndex),
