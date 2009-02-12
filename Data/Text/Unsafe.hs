@@ -43,9 +43,9 @@ unsafeTail t@(Text arr off len) =
   where d = iter_ t 0
 {-# INLINE unsafeTail #-}
 
--- | /O(1)/ Iterate one step through a UTF-16 array, returning the
--- current character and the delta to add to give the next offset to
--- iterate at.
+-- | /O(1)/ Iterate one step forwards through a UTF-16 array,
+-- returning the current character and the delta to add to give the
+-- next offset to iterate at.
 iter :: Text -> Int -> (Char,Int)
 iter (Text arr off len) i
     | m < 0xD800 || m > 0xDBFF = (unsafeChr m, 1)
