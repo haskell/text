@@ -191,7 +191,7 @@ tests = [
   ("prop_intercalate", mytest prop_intercalate),
   ("prop_intersperse", mytest prop_intersperse),
   ("prop_transpose", mytest prop_transpose),
---("prop_reverse", mytest prop_reverse),
+  ("prop_reverse", mytest prop_reverse),
 
   ("prop_foldl", mytest prop_foldl),
   ("prop_foldl'", mytest prop_foldl'),

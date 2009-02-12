@@ -385,11 +385,20 @@ reverse (Stream next s len) = Text (A.run (A.unsafeNew len >>= fill)) 0 len
         loop !s0 !i = case next s0 of
                         Done       -> return marr
                         Skip s1    -> loop s1 i
-                        Yield x s1 -> do
-                          let i' = i - 1
-                              x' = fromIntegral (ord x) :: Word16
-                          A.unsafeWrite marr i' x'
-                          loop s1 i'
+                        Yield x s1
+                            | n < 0x10000 -> do
+                                     let i' = i - 1
+                                     A.unsafeWrite marr i' (fromIntegral n)
+                                     loop s1 i'
+                            | otherwise -> do
+                                     let i' = i - 2
+                                     A.unsafeWrite marr i'     l
+                                     A.unsafeWrite marr (i'+1) r
+                                     loop s1 i'
+                            where n = ord x
+                                  m = n - 0x10000
+                                  l = fromIntegral $ (m `shiftR` 10) + 0xD800
+                                  r = fromIntegral $ (m .&. 0x3FF) + 0xDC00
 {-# INLINE [0] reverse #-}
 
 -- ----------------------------------------------------------------------------
