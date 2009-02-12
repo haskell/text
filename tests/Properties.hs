@@ -164,6 +164,7 @@ prop_index x s       = x < L.length s && x >= 0 ==>
 prop_findIndex p     = L.findIndex p `eqP` T.findIndex p
 prop_findIndices p   = L.findIndices p`eqP` T.findIndices p
 prop_elemIndex c     = L.elemIndex c `eqP` T.elemIndex c
+prop_elemIndices c   = L.elemIndices c`eqP` T.elemIndices c
 prop_zipWith c s     = L.zipWith c s `eqP` (unpack . T.zipWith c (pack s))
 
 main = run tests =<< getArgs
@@ -267,5 +268,6 @@ tests = [
   ("prop_findIndex", mytest prop_findIndex),
   ("prop_findIndices", mytest prop_findIndices),
   ("prop_elemIndex", mytest prop_elemIndex),
+  ("prop_elemIndices", mytest prop_elemIndices),
   ("prop_zipWith", mytest prop_zipWith)
   ]

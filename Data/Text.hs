@@ -132,7 +132,7 @@ module Data.Text
     , findIndex
     , findIndices
     , elemIndex
-    -- , elemIndices
+    , elemIndices
     -- , count
 
     -- * Zipping and unzipping
@@ -843,6 +843,14 @@ findIndices p t = S.findIndices p (stream t)
 -- fusion.
 elemIndex :: Char -> Text -> Maybe Int
 elemIndex c t = S.elemIndex c (stream t)
+{-# INLINE elemIndex #-}
+
+-- | /O(n)/ The 'elemIndices' function returns the index of every
+-- element in the given 'Text' which is equal to the query
+-- element. This function is subject to fusion.
+elemIndices :: Char -> Text -> [Int]
+elemIndices c t = S.elemIndices c (stream t)
+{-# INLINE elemIndices #-}
 
 -------------------------------------------------------------------------------
 -- * Zipping

@@ -93,6 +93,7 @@ module Data.Text.Fusion
     , findIndices
     , findIndexOrEnd
     , elemIndex
+    , elemIndices
 
     -- * Zipping and unzipping
     , zipWith
@@ -820,14 +821,22 @@ findIndexOrEnd p (Stream next s0 _len) = loop_findIndex 0 s0
 -- element in the given stream which is equal to the query
 -- element, or 'Nothing' if there is no such element.
 elemIndex :: Char -> Stream Char -> Maybe Int
-elemIndex a (Stream next s0 _len) = loop_elemIndex 0 s0
-  where
-    loop_elemIndex !i !s = case next s of
-      Done                   -> Nothing
-      Skip    s'             -> loop_elemIndex i     s'
-      Yield x s' | a == x    -> Just i
-                 | otherwise -> loop_elemIndex (i+1) s'
+elemIndex a s = case elemIndices a s of
+                  (i:_) -> Just i
+                  _     -> Nothing
 {-# INLINE [0] elemIndex #-}
+
+-- | /O(n)/ The 'elemIndices' function returns the index of every
+-- element in the given stream which is equal to the query element.
+elemIndices :: Char -> Stream Char -> [Int]
+elemIndices a (Stream next s0 _len) = loop 0 s0
+  where
+    loop !i !s = case next s of
+      Done                   -> []
+      Skip    s'             -> loop i s'
+      Yield x s' | a == x    -> i : loop (i+1) s'
+                 | otherwise -> loop (i+1) s'
+{-# INLINE [0] elemIndices #-}
 
 -------------------------------------------------------------------------------
 -- * Zipping
