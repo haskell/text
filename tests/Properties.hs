@@ -143,6 +143,7 @@ prop_unwords         = L.unwords     `eq`  (unpack . T.unwords . map pack)
 prop_isPrefixOf s    = L.isPrefixOf s`eqP` T.isPrefixOf (pack s)
 prop_isPrefixOfS s   = L.isPrefixOf s`eqP` (S.isPrefixOf (stream $ pack s) . stream)
 prop_isSuffixOf s    = L.isSuffixOf s`eqP` T.isSuffixOf (pack s)
+prop_isInfixOf s     = L.isInfixOf s `eqP` T.isInfixOf (pack s)
 
 prop_elem c          = L.elem c      `eqP` T.elem c
 prop_filter p        = L.filter p    `eqP` (unpack . T.filter p)
@@ -242,6 +243,7 @@ tests = [
   ("prop_isPrefixOf", mytest prop_isPrefixOf),
   ("prop_isPrefixOfS", mytest prop_isPrefixOfS),
   ("prop_isSuffixOf", mytest prop_isSuffixOf),
+  ("prop_isInfixOf", mytest prop_isInfixOf),
 
   ("prop_elem", mytest prop_elem),
   ("prop_filter", mytest prop_filter),

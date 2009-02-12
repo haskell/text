@@ -117,7 +117,7 @@ module Data.Text
     -- * Predicates
     , isPrefixOf
     , isSuffixOf
-    -- , isInfixOf
+    , isInfixOf
 
     -- * Searching
     , elem
@@ -860,6 +860,13 @@ isSuffixOf a@(Text _aarr _aoff alen) b@(Text barr boff blen) =
         b' | d == 0    = b
            | otherwise = Text barr (boff+d) alen
 {-# INLINE isSuffixOf #-}
+
+-- | /O(n)/ The 'isInfixOf' function takes two 'Text's and returns
+-- 'True' iff the first is contained, wholly and intact, anywhere
+-- within the second.
+isInfixOf :: Text -> Text -> Bool
+isInfixOf needle haystack = L.any (isPrefixOf needle) (tails haystack)
+{-# INLINE isInfixOf #-}
 
 errorEmptyList :: String -> a
 errorEmptyList fun = error ("Data.Text." ++ fun ++ ": empty list")
