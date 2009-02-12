@@ -51,8 +51,9 @@ if (_k_) < 0 || (_k_) >= (_len_) then error ("Data.Text.Array." ++ (_func_) ++ "
 #if defined(__GLASGOW_HASKELL__)
 #include "MachDeps.h"
 
-import GHC.Base (ByteArray#, MutableByteArray#, Int(..), indexWord16Array#,
-                 newByteArray#, readWord16Array#, unsafeCoerce#,
+import GHC.Base (ByteArray#, MutableByteArray#, Int(..), indexIntArray#,
+                 indexWord16Array#, newByteArray#, readIntArray#,
+                 readWord16Array#, unsafeCoerce#, writeIntArray#,
                  writeWord16Array#, (+#), (*#))
 import GHC.Prim (Int#)
 import GHC.ST (ST(..), runST)
@@ -160,6 +161,9 @@ unsafeFreeze :: MArray s e -> ST s (Array e)
 
 #if defined(__GLASGOW_HASKELL__)
 
+iNT_SCALE :: Int# -> Int#
+iNT_SCALE n# = scale# *# n# where I# scale# = SIZEOF_INT
+
 wORD16_SCALE :: Int# -> Int#
 wORD16_SCALE n# = scale# *# n# where I# scale# = SIZEOF_WORD16
 
@@ -218,6 +222,38 @@ new len initVal = do
   marr <- unsafeNew len
   sequence_ [unsafeWrite marr i initVal | i <- [0..len-1]]
   return marr
+
+instance Elt Int where
+#if defined(__GLASGOW_HASKELL__)
+
+    bytesInArray (I# i#) _ = I# (iNT_SCALE i#)
+    {-# INLINE bytesInArray #-}
+
+    unsafeIndex (Array len ba#) i@(I# i#) =
+      CHECK_BOUNDS("unsafeIndex",len,i)
+        case indexIntArray# ba# i# of r# -> (I# r#)
+    {-# INLINE unsafeIndex #-}
+
+    unsafeRead (MArray len mba#) i@(I# i#) = ST $ \s# ->
+      CHECK_BOUNDS("unsafeRead",len,i)
+      case readIntArray# mba# i# s# of
+        (# s2#, r# #) -> (# s2#, I# r# #)
+    {-# INLINE unsafeRead #-}
+
+    unsafeWrite (MArray len marr#) i@(I# i#) (I# e#) = ST $ \s1# ->
+      CHECK_BOUNDS("unsafeWrite",len,i)
+      case writeIntArray# marr# i# e# s1# of
+        s2# -> (# s2#, () #)
+    {-# INLINE unsafeWrite #-}
+
+#elif defined(__HUGS__)
+
+    bytesInArray n w = sizeOf w * n
+    unsafeIndex = unsafeIndexArray
+    unsafeRead = unsafeReadMArray
+    unsafeWrite = unsafeWriteMArray
+
+#endif
 
 instance Elt Word16 where
 #if defined(__GLASGOW_HASKELL__)
