@@ -130,7 +130,7 @@ module Data.Text
     -- * Indexing
     , index
     , findIndex
-    -- , findIndices
+    , findIndices
     , elemIndex
     -- , elemIndices
     -- , count
@@ -823,16 +823,24 @@ index :: Text -> Int -> Char
 index t n = S.index (stream t) n
 {-# INLINE index #-}
 
--- | The 'findIndex' function takes a predicate and a 'Text' and
--- returns the index of the first element in the 'Text'
--- satisfying the predicate.
+-- | /O(n)/ The 'findIndex' function takes a predicate and a 'Text'
+-- and returns the index of the first element in the 'Text' satisfying
+-- the predicate. This function is subject to fusion.
 findIndex :: (Char -> Bool) -> Text -> Maybe Int
 findIndex p t = S.findIndex p (stream t)
 {-# INLINE findIndex #-}
 
+-- | The 'findIndices' function extends 'findIndex', by returning the
+-- indices of all elements satisfying the predicate, in ascending
+-- order. This function is subject to fusion.
+findIndices :: (Char -> Bool) -> Text -> [Int]
+findIndices p t = S.findIndices p (stream t)
+{-# INLINE findIndices #-}
+
 -- | /O(n)/ The 'elemIndex' function returns the index of the first
 -- element in the given 'Text' which is equal to the query element, or
--- 'Nothing' if there is no such element.
+-- 'Nothing' if there is no such element. This function is subject to
+-- fusion.
 elemIndex :: Char -> Text -> Maybe Int
 elemIndex c t = S.elemIndex c (stream t)
 

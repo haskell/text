@@ -90,6 +90,7 @@ module Data.Text.Fusion
     , find
     , index
     , findIndex
+    , findIndices
     , findIndexOrEnd
     , elemIndex
 
@@ -784,14 +785,23 @@ index (Stream next s0 _len) n0
 -- returns the index of the first element in the stream
 -- satisfying the predicate.
 findIndex :: (Char -> Bool) -> Stream Char -> Maybe Int
-findIndex p (Stream next s0 _len) = loop_findIndex 0 s0
+findIndex p s = case findIndices p s of
+                  (i:_) -> Just i
+                  _     -> Nothing
+{-# INLINE [0] findIndex #-}
+
+-- | The 'findIndices' function takes a predicate and a stream and
+-- returns all indices of the elements in the stream
+-- satisfying the predicate.
+findIndices :: (Char -> Bool) -> Stream Char -> [Int]
+findIndices p (Stream next s0 _len) = loop_findIndex 0 s0
   where
     loop_findIndex !i !s = case next s of
-      Done                   -> Nothing
+      Done                   -> []
       Skip    s'             -> loop_findIndex i     s' -- hmm. not caught by QC
-      Yield x s' | p x       -> Just i
+      Yield x s' | p x       -> i : loop_findIndex (i+1) s'
                  | otherwise -> loop_findIndex (i+1) s'
-{-# INLINE [0] findIndex #-}
+{-# INLINE [0] findIndices #-}
 
 -- | The 'findIndexOrEnd' function takes a predicate and a stream and
 -- returns the index of the first element in the stream

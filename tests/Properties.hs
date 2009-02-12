@@ -162,6 +162,7 @@ prop_partition p     = L.partition p `eqP` (unpack2 . T.partition p)
 prop_index x s       = x < L.length s && x >= 0 ==>
                        (L.!!) s x == T.index (pack s) x
 prop_findIndex p     = L.findIndex p `eqP` T.findIndex p
+prop_findIndices p   = L.findIndices p`eqP` T.findIndices p
 prop_elemIndex c     = L.elemIndex c `eqP` T.elemIndex c
 prop_zipWith c s     = L.zipWith c s `eqP` (unpack . T.zipWith c (pack s))
 
@@ -264,6 +265,7 @@ tests = [
 
   ("prop_index", mytest prop_index),
   ("prop_findIndex", mytest prop_findIndex),
+  ("prop_findIndices", mytest prop_findIndices),
   ("prop_elemIndex", mytest prop_elemIndex),
   ("prop_zipWith", mytest prop_zipWith)
   ]
