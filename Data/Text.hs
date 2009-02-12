@@ -138,7 +138,7 @@ module Data.Text
     -- * Zipping and unzipping
     , zipWith
 
-    -- * Ordered ByteStrings
+    -- * Ordered text
     , -- sort
     ) where
 
@@ -770,17 +770,9 @@ partition p t = (filter p t, filter (not . p) t)
 -- | Break a string on a substring, returning a pair of the part of the
 -- string prior to the match, and the rest of the string.
 --
--- The following relationships hold:
+-- The following relationship holds:
 --
--- > break (== c) l == breakSubstring (singleton c) l
---
--- and:
---
--- > findSubstring s l ==
--- >    if null s then Just 0
--- >              else case breakSubstring s l of
--- >                       (x,y) | null y    -> Nothing
--- >                             | otherwise -> Just (length x)
+-- > break (==c) l == breakSubstring (singleton c) l
 --
 -- For example, to tokenise a string, dropping delimiters:
 --
