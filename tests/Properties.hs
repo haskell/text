@@ -109,15 +109,17 @@ prop_unfoldrN n m    = (L.take n . L.unfoldr f) `eq` (unpack . T.unfoldrN n f)
     where f c | fromEnum c * 100 > m = Nothing
               | otherwise            = Just (c, succ c)
 
+unpack2 = unpack *** unpack
+
 prop_take n          = L.take n      `eqP` (unpack . T.take n)
 prop_drop n          = L.drop n      `eqP` (unpack . T.drop n)
 prop_takeWhile p     = L.takeWhile p `eqP` (unpack . T.takeWhile p)
 prop_takeWhileS p    = L.takeWhile p `eqP` (unpack . unstream . S.takeWhile p . stream)
 prop_dropWhile p     = L.dropWhile p `eqP` (unpack . T.dropWhile p)
 prop_dropWhileS p    = L.dropWhile p `eqP` (unpack . unstream . S.dropWhile p . stream)
-prop_splitAt n       = L.splitAt n   `eqP` ((unpack *** unpack) . T.splitAt n)
-prop_span p          = L.span p      `eqP` ((unpack *** unpack) . T.span p)
-prop_break p         = L.break p     `eqP` ((unpack *** unpack) . T.break p)
+prop_splitAt n       = L.splitAt n   `eqP` (unpack2 . T.splitAt n)
+prop_span p          = L.span p      `eqP` (unpack2 . T.span p)
+prop_break p         = L.break p     `eqP` (unpack2 . T.break p)
 prop_group           = L.group       `eqP` (map unpack . T.group)
 prop_groupBy p       = L.groupBy p   `eqP` (map unpack . T.groupBy p)
 prop_inits           = L.inits       `eqP` (map unpack . T.inits)
