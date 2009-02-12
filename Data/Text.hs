@@ -106,7 +106,7 @@ module Data.Text
     -- ** Breaking into many substrings
     , split
     , splitWith
-    -- , breakSubstring
+    , breakSubstring
 
     -- ** Breaking into lines and words
     , lines
@@ -757,6 +757,45 @@ elem c t = S.elem c (stream t)
 find :: (Char -> Bool) -> Text -> Maybe Char
 find p t = S.find p (stream t)
 {-# INLINE find #-}
+
+-- | Break a string on a substring, returning a pair of the part of the
+-- string prior to the match, and the rest of the string.
+--
+-- The following relationships hold:
+--
+-- > break (== c) l == breakSubstring (singleton c) l
+--
+-- and:
+--
+-- > findSubstring s l ==
+-- >    if null s then Just 0
+-- >              else case breakSubstring s l of
+-- >                       (x,y) | null y    -> Nothing
+-- >                             | otherwise -> Just (length x)
+--
+-- For example, to tokenise a string, dropping delimiters:
+--
+-- > tokenise x y = h : if null t then [] else tokenise x (drop (length x) t)
+-- >     where (h,t) = breakSubstring x y
+--
+-- To skip to the first occurence of a string:
+--
+-- > snd (breakSubstring x y)
+--
+-- To take the parts of a string before a delimiter:
+--
+-- > fst (breakSubstring x y)
+--
+breakSubstring :: Text -- ^ String to search for
+               -> Text -- ^ String to search in
+               -> (Text,Text) -- ^ Head and tail of string broken at substring
+
+breakSubstring pat src = search 0 src
+  where
+    search !n !s
+        | null s             = (src,empty)      -- not found
+        | pat `isPrefixOf` s = (take n src,s)
+        | otherwise          = search (n+1) (tail s)
 
 -- | /O(n)/ 'filter', applied to a predicate and a 'Text',
 -- returns a 'Text' containing those characters that satisfy the

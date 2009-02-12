@@ -137,6 +137,13 @@ splitWith p xs = h : splitWith p (whale t)
           whale xs = xs
 -}
 
+prop_breakSubstring_isInfixOf s l
+                     = T.isInfixOf s l ==
+                       T.null s || (not . T.null . snd $ T.breakSubstring s l)
+prop_breakSubstringC c
+                     = L.break (==c) `eqP`
+                       (unpack2 . T.breakSubstring (T.singleton c))
+
 prop_lines           = L.lines       `eqP` (map unpack . T.lines)
 prop_words           = L.words       `eqP` (map unpack . T.words)
 prop_unlines         = L.unlines     `eq`  (unpack . T.unlines . map pack)
@@ -236,6 +243,8 @@ tests = [
 
   ("prop_split_i", mytest prop_split_i),
 --("prop_splitWith", mytest prop_splitWith),
+  ("prop_breakSubstringC", mytest prop_breakSubstringC),
+  ("prop_breakSubstring_isInfixOf", mytest prop_breakSubstring_isInfixOf),
 
   ("prop_lines", mytest prop_lines),
   ("prop_words", mytest prop_words),
