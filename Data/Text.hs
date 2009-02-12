@@ -837,13 +837,16 @@ unwords = intercalate (singleton ' ')
 {-# INLINE unwords #-}
 
 isPrefixOf :: Text -> Text -> Bool
-isPrefixOf a@(Text _ _ alen) b@(Text _ _ blen) = alen <= blen && loop 0 0
-    where loop !i !j | i >= alen = True
-                     | c == e    = loop (i+d) (j+f)
-                     | otherwise = False
-                     where (c,d) = iter a i
-                           (e,f) = iter b j
+isPrefixOf a@(Text _ _ alen) b@(Text _ _ blen) =
+    alen <= blen && S.isPrefixOf (stream a) (stream b)
 {-# INLINE [1] isPrefixOf #-}
+
+{-# RULES
+"TEXT isPrefixOf -> fused" [~1] forall s t.
+    isPrefixOf s t = S.isPrefixOf (stream s) (stream t)
+"TEXT isPrefixOf -> unfused" [1] forall s t.
+    S.isPrefixOf (stream s) (stream t) = isPrefixOf s t
+  #-}
 
 errorEmptyList :: String -> a
 errorEmptyList fun = error ("Data.Text." ++ fun ++ ": empty list")

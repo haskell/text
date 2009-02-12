@@ -79,6 +79,9 @@ module Data.Text.Fusion
     , takeWhile
     , dropWhile
 
+    -- * Predicates
+    , isPrefixOf
+
     -- * Searching
     , elem
     , filter
@@ -683,6 +686,19 @@ dropWhile p (Stream next0 s0 len) = Stream next (S1 :!: s0) len
       Yield x s' -> Yield x (S2 :!: s')
 {-# INLINE [0] dropWhile #-}
 
+isPrefixOf :: (Eq a) => Stream a -> Stream a -> Bool
+isPrefixOf (Stream next1 s1 _) (Stream next2 s2 _) = loop (next1 s1) (next2 s2)
+    where
+      loop Done      _ = True
+      loop _    Done = False
+      loop (Skip s1')     (Skip s2')     = loop (next1 s1') (next2 s2')
+      loop (Skip s1')     x2             = loop (next1 s1') x2
+      loop x1             (Skip s2')     = loop x1          (next2 s2')
+      loop (Yield x1 s1') (Yield x2 s2') = x1 == x2 &&
+                                           loop (next1 s1') (next2 s2')
+{-# INLINE [0] isPrefixOf #-}
+{-# SPECIALISE isPrefixOf :: Stream Char -> Stream Char -> Bool #-}
+
 -- ----------------------------------------------------------------------------
 -- * Searching
 
@@ -810,6 +826,7 @@ zipWith f (Stream next0 sa0 len1) (Stream next1 sb0 len2) = Stream next (sa0 :!:
                                        Skip sb' -> Skip (sa' :!: sb' :!: Just a)
                                        Yield b sb' -> Yield (f a b) (sa' :!: sb' :!: Nothing)
 {-# INLINE [0] zipWith #-}
+
 
 errorEmptyList :: String -> a
 errorEmptyList fun = error ("Data.Text.Fusion." ++ fun ++ ": empty list")
