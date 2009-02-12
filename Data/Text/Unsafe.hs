@@ -50,10 +50,10 @@ iter :: Text -> Int -> (Char,Int)
 iter (Text arr off len) i
     | m < 0xD800 || m > 0xDBFF = (unsafeChr m, 1)
     | otherwise                = (chr2 m n,    2)
-  where m = assert (i < len) $ A.unsafeIndex arr j
-        n = assert (j < len) $ A.unsafeIndex arr k
-        j = off + i
-        k = j + 1
+  where m = assert (i < len)     $ A.unsafeIndex arr j
+        n = assert (i + 1 < len) $ A.unsafeIndex arr k
+        j = assert (i >= 0)      $ off + i
+        k =                        j + 1
 {-# INLINE iter #-}
 
 -- | /O(1)/ Iterate one step through a UTF-16 array, returning the
