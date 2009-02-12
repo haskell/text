@@ -133,7 +133,7 @@ module Data.Text
     , findIndices
     , elemIndex
     , elemIndices
-    -- , count
+    , count
 
     -- * Zipping and unzipping
     , zipWith
@@ -561,9 +561,9 @@ take n t@(Text arr off len)
     | n >= len  = t
     | otherwise = Text arr off (loop 0 0)
   where
-      loop !i !count
-           | i >= len || count >= n = i
-           | otherwise              = loop (i+d) (count+1)
+      loop !i !cnt
+           | i >= len || cnt >= n = i
+           | otherwise            = loop (i+d) (cnt+1)
            where d = iter_ t i
 {-# INLINE [1] take #-}
 
@@ -583,9 +583,9 @@ drop n t@(Text arr off len)
     | n >= len  = empty
     | otherwise = loop 0 0
   where end = off + len
-        loop !i !count
-            | i >= end || count >= n   = Text arr (off+i) (len-i)
-            | otherwise                = loop (i+d) (count+1)
+        loop !i !cnt
+            | i >= end || cnt >= n   = Text arr (off+i) (len-i)
+            | otherwise              = loop (i+d) (cnt+1)
             where d = iter_ t i
 {-# INLINE [1] drop #-}
 
@@ -640,10 +640,10 @@ splitAt n t@(Text arr off len)
     | n >= len  = (t, empty)
     | otherwise = (Text arr off k, Text arr (off+k) (len-k))
   where k = loop 0 0
-        loop !i !count
-            | i >= len || count >= n = i
-            | otherwise              = loop (i+d) (count+1)
-            where d                  = iter_ t i
+        loop !i !cnt
+            | i >= len || cnt >= n = i
+            | otherwise            = loop (i+d) (cnt+1)
+            where d                = iter_ t i
 {-# INLINE splitAt #-}
 
 -- | /O(n)/ 'span', applied to a predicate @p@ and text @t@, returns a
@@ -851,6 +851,13 @@ elemIndex c t = S.elemIndex c (stream t)
 elemIndices :: Char -> Text -> [Int]
 elemIndices c t = S.elemIndices c (stream t)
 {-# INLINE elemIndices #-}
+
+-- | /O(n)/ The 'count' function returns the number of times the query
+-- element appears in the given 'Text'. This function is subject to
+-- fusion.
+count :: Char -> Text -> Int
+count c t = S.count c (stream t)
+{-# INLINE count #-}
 
 -------------------------------------------------------------------------------
 -- * Zipping

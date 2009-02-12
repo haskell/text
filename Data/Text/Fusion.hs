@@ -94,6 +94,7 @@ module Data.Text.Fusion
     , findIndexOrEnd
     , elemIndex
     , elemIndices
+    , count
 
     -- * Zipping and unzipping
     , zipWith
@@ -837,6 +838,18 @@ elemIndices a (Stream next s0 _len) = loop 0 s0
       Yield x s' | a == x    -> i : loop (i+1) s'
                  | otherwise -> loop (i+1) s'
 {-# INLINE [0] elemIndices #-}
+
+-- | /O(n)/ The 'count' function returns the number of times the query
+-- element appears in the given stream.
+count :: Char -> Stream Char -> Int
+count a (Stream next s0 _len) = loop 0 s0
+  where
+    loop !i !s = case next s of
+      Done                   -> i
+      Skip    s'             -> loop i s'
+      Yield x s' | a == x    -> loop (i+1) s'
+                 | otherwise -> loop i s'
+{-# INLINE [0] count #-}
 
 -------------------------------------------------------------------------------
 -- * Zipping
