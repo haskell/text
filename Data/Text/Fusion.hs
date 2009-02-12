@@ -513,6 +513,7 @@ any p (Stream next0 s0 _len) = loop_any s0
                       Skip s'                -> loop_any s'
                       Yield x s' | p x       -> True
                                  | otherwise -> loop_any s'
+{-# INLINE [0] any #-}
 
 -- | /O(n)/ all @p @xs determines if all characters in the 'Text'
 -- @xs@ satisify the predicate @p@.
@@ -524,6 +525,7 @@ all p (Stream next0 s0 _len) = loop_all s0
                       Skip s'                -> loop_all s'
                       Yield x s' | p x       -> loop_all s'
                                  | otherwise -> False
+{-# INLINE [0] all #-}
 
 -- | /O(n)/ maximum returns the maximum value from a stream, which must be
 -- non-empty.
@@ -540,6 +542,7 @@ maximum (Stream next0 s0 _len) = loop0_maximum s0
                              Yield x s'
                                  | x > z     -> loop_maximum x s'
                                  | otherwise -> loop_maximum z s'
+{-# INLINE [0] maximum #-}
 
 -- | /O(n)/ minimum returns the minimum value from a 'Text', which must be
 -- non-empty.
@@ -556,9 +559,7 @@ minimum (Stream next0 s0 _len) = loop0_minimum s0
                              Yield x s'
                                  | x < z     -> loop_minimum x s'
                                  | otherwise -> loop_minimum z s'
-
-
-
+{-# INLINE [0] minimum #-}
 
 -- -----------------------------------------------------------------------------
 -- * Building streams
