@@ -126,7 +126,6 @@ module Data.Text
     -- , partition
 
     -- , findSubstring
-    -- , findSubstrings
     
     -- * Indexing
     , index
