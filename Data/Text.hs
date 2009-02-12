@@ -116,7 +116,7 @@ module Data.Text
 
     -- * Predicates
     , isPrefixOf
-    -- , isSuffixOf
+    , isSuffixOf
     -- , isInfixOf
 
     -- * Searching
@@ -850,6 +850,16 @@ isPrefixOf a@(Text _ _ alen) b@(Text _ _ blen) =
 "TEXT isPrefixOf -> unfused" [1] forall s t.
     S.isPrefixOf (stream s) (stream t) = isPrefixOf s t
   #-}
+
+-- | /O(n)/ The 'isSuffixOf' function takes two 'Text's and returns
+-- 'True' iff the first is a suffix of the second.
+isSuffixOf :: Text -> Text -> Bool
+isSuffixOf a@(Text _aarr _aoff alen) b@(Text barr boff blen) =
+    d >= 0 && a == b'
+  where d              = blen - alen
+        b' | d == 0    = b
+           | otherwise = Text barr (boff+d) alen
+{-# INLINE isSuffixOf #-}
 
 errorEmptyList :: String -> a
 errorEmptyList fun = error ("Data.Text." ++ fun ++ ": empty list")
