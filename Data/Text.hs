@@ -836,6 +836,9 @@ unwords :: [Text] -> Text
 unwords = intercalate (singleton ' ')
 {-# INLINE unwords #-}
 
+-- | /O(n)/ The 'isPrefixOf' function takes two 'Text's and returns
+-- 'True' iff the first is a prefix of the second.  This function is
+-- subject to fusion.
 isPrefixOf :: Text -> Text -> Bool
 isPrefixOf a@(Text _ _ alen) b@(Text _ _ blen) =
     alen <= blen && S.isPrefixOf (stream a) (stream b)

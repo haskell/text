@@ -686,6 +686,8 @@ dropWhile p (Stream next0 s0 len) = Stream next (S1 :!: s0) len
       Yield x s' -> Yield x (S2 :!: s')
 {-# INLINE [0] dropWhile #-}
 
+-- | /O(n)/ The 'isPrefixOf' function takes two 'Stream's and returns
+-- 'True' iff the first is a prefix of the second.
 isPrefixOf :: (Eq a) => Stream a -> Stream a -> Bool
 isPrefixOf (Stream next1 s1 _) (Stream next2 s2 _) = loop (next1 s1) (next2 s2)
     where
