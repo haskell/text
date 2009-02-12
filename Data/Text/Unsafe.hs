@@ -12,6 +12,7 @@ module Data.Text.Unsafe
     (
       iter
     , iter_
+    , reverseIter
     , unsafeHead
     , unsafeTail
     ) where
@@ -62,3 +63,16 @@ iter_ (Text arr off len) i | m < 0xD800 || m > 0xDBFF = 1
                            | otherwise                = 2
   where m = assert (i >= 0 && i < len) $ A.unsafeIndex arr (off+i)
 {-# INLINE iter_ #-}
+
+-- | /O(1)/ Iterate one step backwards through a UTF-16 array,
+-- returning the current character and the delta to add (i.e. a
+-- negative number) to give the next offset to iterate at.
+reverseIter :: Text -> Int -> (Char,Int)
+reverseIter (Text arr off len) i
+    | m < 0xDC00 || m > 0xDFFF = (unsafeChr m, -1)
+    | otherwise                = (chr2 n m,    -2)
+  where m = assert (i < len)    $ A.unsafeIndex arr j
+        n = assert (i - 1 >= 0) $ A.unsafeIndex arr k
+        j = assert (i >= 0)     $ off + i
+        k =                       j - 1
+{-# INLINE reverseIter #-}
