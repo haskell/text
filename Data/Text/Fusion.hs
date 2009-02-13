@@ -111,7 +111,7 @@ import qualified Data.List as L
 import Data.Word (Word16)
 import GHC.Exts (Int(..), (+#))
 import Data.Text.Internal (Text(..))
-import Data.Text.UnsafeChar (unsafeChr)
+import Data.Text.UnsafeChar (unsafeChr, unsafeWrite)
 import qualified Data.Text.Array as A
 import qualified Data.Text.Internal as I
 import qualified Data.Text.Utf16 as U16
@@ -149,29 +149,17 @@ unstream :: Stream Char -> Text
 unstream (Stream _next0 _s0 0) = I.empty
 unstream (Stream next0 s0 len) = Text (fst a) 0 (snd a)
     where
-      a = runST (A.unsafeNew len >>= (\arr -> loop arr 0 len s0))
-      loop arr !i !top !s
+      a = runST (A.unsafeNew len >>= (\arr -> loop arr len s0 0))
+      loop arr !top !s !i
           | i + 1 >= top = case next0 s of
                             Done -> liftM2 (,) (A.unsafeFreeze arr) (return i)
                             _    -> do
                               arr' <- A.unsafeNew (top*2)
-                              copy arr arr' >> loop arr' i (top*2) s
+                              copy arr arr' >> loop arr' (top*2) s i
           | otherwise = case next0 s of
                Done       -> liftM2 (,) (A.unsafeFreeze arr) (return i)
-               Skip s'    -> loop arr i top s'
-               Yield x s'
-                   | n < 0x10000 -> do
-                        A.unsafeWrite arr i (fromIntegral n)
-                        loop arr (i+1) top s'
-                   | otherwise   -> do
-                        A.unsafeWrite arr i       l
-                        A.unsafeWrite arr (i + 1) r
-                        loop arr (i+2) top s'
-                   where
-                     n = ord x
-                     m = n - 0x10000
-                     l = fromIntegral $ (m `shiftR` 10) + 0xD800
-                     r = fromIntegral $ (m .&. 0x3FF) + 0xDC00
+               Skip s'    -> loop arr top s' i
+               Yield x s' -> unsafeWrite arr i x >>= loop arr top s'
 {-# INLINE [0] unstream #-}
 {-# RULES "STREAM stream/unstream fusion" forall s. stream (unstream s) = s #-}
 
