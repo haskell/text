@@ -160,7 +160,7 @@ import qualified Data.Text.Fusion as S
 import Data.Text.Fusion (Stream(..), Step(..), stream, unstream)
 import Data.Text.Internal (Text(..), empty, text)
 import qualified Prelude as P
-import Data.Text.Unsafe (iter, iter_)
+import Data.Text.Unsafe (iter, iter_, unsafeHead, unsafeTail)
 import Data.Text.UnsafeChar (unsafeChr)
 import qualified Data.Text.Utf16 as U16
 
@@ -510,7 +510,7 @@ scanl f z t = unstream (S.scanl f z (stream t))
 -- > scanl1 f [x1, x2, ...] == [x1, x1 `f` x2, ...]
 scanl1 :: (Char -> Char -> Char) -> Text -> Text
 scanl1 f t | null t    = empty
-           | otherwise = scanl f (head t) (tail t)
+           | otherwise = scanl f (unsafeHead t) (unsafeTail t)
 {-# INLINE scanl1 #-}
 
 -- | /O(n)/ Like a combination of 'map' and 'foldl'. Applies a
