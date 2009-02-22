@@ -81,7 +81,7 @@ module Data.Text
 
     -- ** Accumulating maps
     , mapAccumL
-    -- , mapAccumR
+    , mapAccumR
 
     -- ** Generation and unfolding
     , replicate
@@ -537,6 +537,17 @@ mapAccumL f s t = case uncons t of
                     Just (x, xs) -> (s'', cons y ys)
                         where (s', y ) = f s x
                               (s'',ys) = mapAccumL f s' xs
+
+-- | The 'mapAccumR' function behaves like a combination of 'map' and
+-- 'foldr'; it applies a function to each element of a 'Text', passing
+-- an accumulating parameter from right to left, and returning a final
+-- value of this accumulator together with the new 'Text'.
+mapAccumR :: (a -> Char -> (a,Char)) -> a -> Text -> (a, Text)
+mapAccumR f s t = case uncons t of
+                    Nothing -> (s, empty)
+                    Just (x, xs) ->  (s'', cons y ys)
+                        where (s'',y ) = f s' x
+                              (s', ys) = mapAccumR f s xs
 
 -- -----------------------------------------------------------------------------
 -- ** Generating and unfolding 'Text's
