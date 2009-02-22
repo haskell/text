@@ -123,9 +123,26 @@ default(Int)
 infixl 2 :!:
 data PairS a b = !a :!: !b
 
+-- | Allow a function over a stream to switch between two states.
 data Switch = S1 | S2
 
-data Stream a = forall s. Stream (s -> Step s a) !s {-# UNPACK #-}!Int
+data Stream a =
+    forall s. Stream
+    (s -> Step s a)             -- stepper function
+    !s                          -- current state
+    {-# UNPACK #-}!Int          -- length hint
+
+-- The length hint in a Stream has two roles.  If its value is zero,
+-- we trust it, and treat the stream as empty.  Otherwise, we treat it
+-- as a hint: it should usually be accurate, so we use it when
+-- unstreaming to decide what size array to allocate.  However, the
+-- unstreaming functions must be able to cope with the hint being too
+-- small or too large.
+--
+-- The size hint tries to track the UTF-16 code points in a stream,
+-- but often counts the number of characters instead.  It can easily
+-- undercount if, for instance, a transformed stream contains astral
+-- plane characters (those above 0x10000).
 
 data Step s a = Done
               | Skip !s
