@@ -1,5 +1,5 @@
-{-# LANGUAGE CPP, ExistentialQuantification, MagicHash, Rank2Types,
-             ScopedTypeVariables, UnboxedTuples #-}
+{-# LANGUAGE BangPatterns, CPP, ExistentialQuantification, MagicHash,
+             Rank2Types, ScopedTypeVariables, UnboxedTuples #-}
 -- |
 -- Module      : Data.Text.Array
 -- Copyright   : (c) Bryan O'Sullivan 2009
@@ -35,7 +35,10 @@ module Data.Text.Array
     , unsafeNew
     , unsafeFreeze
     , run
+    , run2
     , toList
+    , copy
+    , unsafeCopy
     ) where
 
 #if 0
@@ -61,7 +64,6 @@ import GHC.Word (Word16(..))
 
 #elif defined(__HUGS__)
 
-import Control.Exception (assert)
 import Hugs.ByteArray (ByteArray, MutableByteArray, readByteArray,
                        newMutableByteArray, readMutableByteArray,
                        unsafeFreezeMutableByteArray, writeMutableByteArray)
@@ -72,6 +74,7 @@ import Hugs.ST (ST(..), runST)
 # error not implemented for this compiler
 #endif
 
+import Control.Exception (assert)
 import Data.Typeable (Typeable1(..), Typeable2(..), TyCon, mkTyCon, mkTyConApp)
 import Data.Word (Word16)
 import Prelude hiding (length, read)
@@ -169,7 +172,7 @@ wORD16_SCALE n# = scale# *# n# where I# scale# = SIZEOF_WORD16
 
 -- | Create an uninitialized mutable array.
 unsafeNew :: forall s e. Elt e => Int -> ST s (MArray s e)
-unsafeNew n = ST $ \s1# ->
+unsafeNew n = assert (n >= 0) . ST $ \s1# ->
    case bytesInArray n (undefined :: e) of
      len@(I# len#) ->
 #if defined(BOUNDS_CHECKING)
@@ -302,3 +305,41 @@ empty = runST (unsafeNew 0 >>= unsafeFreeze)
 -- its result.
 run :: Elt e => (forall s. ST s (MArray s e)) -> Array e
 run k = runST (k >>= unsafeFreeze)
+
+-- | Run an action in the ST monad and return an immutable array of
+-- its result paired with whatever else the action returns.
+run2 :: Elt e => (forall s. ST s (MArray s e, a)) -> (Array e, a)
+run2 k = runST (do
+                 (marr,b) <- k
+                 arr <- unsafeFreeze marr
+                 return (arr,b))
+
+-- | Copy an array in its entirety. The destination array must be at
+-- least as big as the source.
+copy :: Elt e => MArray s e     -- ^ source array
+     -> MArray s e              -- ^ destination array
+     -> ST s ()
+copy src dest
+    | length dest >= length src = copy_loop 0
+    | otherwise                 = fail "Data.Text.Array.copy: array too small"
+    where
+      len = length src
+      copy_loop i
+          | i >= len  = return ()
+          | otherwise = do unsafeRead src i >>= unsafeWrite dest i
+                           copy_loop (i+1)
+{-# INLINE copy #-}
+
+-- | Unsafely copy the elements of an array.
+unsafeCopy :: Elt e =>
+              MArray s e -> Int -> MArray s e -> Int -> Int -> ST s ()
+unsafeCopy src sidx dest didx count =
+    assert (sidx + count <= length src) .
+    assert (didx + count <= length dest) $
+    copy_loop sidx didx 0
+    where
+      copy_loop !i !j !c
+          | c >= count  = return ()
+          | otherwise = do unsafeRead src i >>= unsafeWrite dest j
+                           copy_loop (i+1) (j+1) (c+1)
+{-# INLINE unsafeCopy #-}
