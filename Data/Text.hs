@@ -530,12 +530,12 @@ scanr1 f t | null t    = empty
 -- | /O(n)/ Like a combination of 'map' and 'foldl'. Applies a
 -- function to each element of a 'Text', passing an accumulating
 -- parameter from left to right, and returns a final 'Text'.
---
--- /Note/: Unlike the version over lists, this function does not return a
--- final value for the accumulator.
-mapAccumL :: (a -> Char -> (a,Char)) -> a -> Text -> Text
-mapAccumL f z t = unstream (S.mapAccumL f z (stream t))
-{-# INLINE mapAccumL #-}
+mapAccumL :: (a -> Char -> (a,Char)) -> a -> Text -> (a, Text)
+mapAccumL f s t = case uncons t of
+                    Nothing -> (s, empty)
+                    Just (x, xs) -> (s'', cons y ys)
+                        where (s', y ) = f s x
+                              (s'',ys) = mapAccumL f s' xs
 
 -- -----------------------------------------------------------------------------
 -- ** Generating and unfolding 'Text's
