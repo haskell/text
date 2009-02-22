@@ -23,6 +23,7 @@ module Data.Text.Fusion
     -- * Creation and elimination
     , stream
     , unstream
+    , reverseStream
     , empty
 
     -- * Basic interface
@@ -63,6 +64,7 @@ module Data.Text.Fusion
     -- * Construction
     -- ** Scans
     , scanl
+    , reverseScanr
 
     -- ** Accumulating maps
     , mapAccumL
@@ -103,15 +105,14 @@ module Data.Text.Fusion
 import Prelude (Bool(..), Char, Either(..), Eq(..), Maybe(..), Monad(..),
                 Num(..), Ord(..), String, ($), (++), (.), (&&), error,
                 fromIntegral, fst, otherwise, snd)
-import Data.Char (ord)
 import Control.Monad (liftM2)
-import Control.Monad.ST (runST, ST)
-import Data.Bits (shiftR, (.&.))
+import Control.Monad.ST (runST)
 import qualified Data.List as L
-import Data.Word (Word16)
 import GHC.Exts (Int(..), (+#))
+import Data.Bits ((.&.), shiftR)
+import Data.Char (ord)
 import Data.Text.Internal (Text(..))
-import Data.Text.UnsafeChar (unsafeChr, unsafeWrite)
+import Data.Text.UnsafeChar (unsafeChr, unsafeWrite, unsafeWriteRev)
 import qualified Data.Text.Array as A
 import qualified Data.Text.Internal as I
 import qualified Data.Text.Utf16 as U16
@@ -129,7 +130,7 @@ data Step s a = Done
               | Skip !s
               | Yield !a !s
 
--- | /O(n)/ Convert a Text into a Stream Char.
+-- | /O(n)/ Convert a 'Text' into a 'Stream Char'.
 stream :: Text -> Stream Char
 stream (Text arr off len) = Stream next off len
     where
@@ -144,10 +145,26 @@ stream (Text arr off len) = Stream next off len
             n2 = A.unsafeIndex arr (i + 1)
 {-# INLINE [0] stream #-}
 
+-- | /O(n)/ Convert a 'Text' into a 'Stream Char', but iterate
+-- backwards.
+reverseStream :: Text -> Stream Char
+reverseStream (Text arr off len) = Stream next (off+len-1) len
+    where
+      {-# INLINE next #-}
+      next !i
+          | i < off                    = Done
+          | n >= 0xDC00 && n <= 0xDFFF = Yield (U16.chr2 n2 n) (i - 2)
+          | otherwise                  = Yield (unsafeChr n) (i - 1)
+          where
+            n  = A.unsafeIndex arr i
+            n2 = A.unsafeIndex arr (i - 1)
+{-# INLINE [0] reverseStream #-}
+
 -- | /O(n)/ Convert a Stream Char into a Text.
 unstream :: Stream Char -> Text
-unstream (Stream _next0 _s0 0) = I.empty
-unstream (Stream next0 s0 len) = Text (fst a) 0 (snd a)
+unstream (Stream next0 s0 len)
+    | len == 0 = I.empty
+    | otherwise = Text (fst a) 0 (snd a)
     where
       a = runST (A.unsafeNew len >>= (\arr -> loop arr len s0 0))
       loop arr !top !s !i
@@ -155,7 +172,7 @@ unstream (Stream next0 s0 len) = Text (fst a) 0 (snd a)
                             Done -> liftM2 (,) (A.unsafeFreeze arr) (return i)
                             _    -> do
                               arr' <- A.unsafeNew (top*2)
-                              copy arr arr' >> loop arr' (top*2) s i
+                              A.copy arr arr' >> loop arr' (top*2) s i
           | otherwise = case next0 s of
                Done       -> liftM2 (,) (A.unsafeFreeze arr) (return i)
                Skip s'    -> loop arr top s' i
@@ -168,15 +185,6 @@ empty :: Stream Char
 empty = Stream next () 0
     where next _ = Done
 {-# INLINE [0] empty #-}
-
-copy :: A.MArray s Word16 -> A.MArray s Word16 -> ST s ()
-copy src dest = copy_loop 0
-    where
-      len = A.length src
-      copy_loop i
-          | i >= len   = return ()
-          | otherwise = do A.unsafeRead src i >>= A.unsafeWrite dest i
-                           copy_loop (i+1)
 
 -- | /O(n)/ Determines if two streams are equal.
 eq :: Ord a => Stream a -> Stream a -> Bool
@@ -369,27 +377,37 @@ intersperse c (Stream next0 s0 len) = Stream next (s0 :!: Nothing :!: S1) len
 
 -- | /O(n)/ Reverse the characters of a string.
 reverse :: Stream Char -> Text
-reverse (Stream next s len) = Text (A.run (A.unsafeNew len >>= fill)) 0 len
+reverse (Stream next s len0)
+    | len0 == 0 = I.empty
+    | otherwise = Text arr off' len'
   where
-    fill marr = loop s len
-      where
-        loop !s0 !i = case next s0 of
-                        Done       -> return marr
-                        Skip s1    -> loop s1 i
-                        Yield x s1
-                            | n < 0x10000 -> do
-                                     let i' = i - 1
-                                     A.unsafeWrite marr i' (fromIntegral n)
-                                     loop s1 i'
-                            | otherwise -> do
-                                     let i' = i - 2
-                                     A.unsafeWrite marr i'     l
-                                     A.unsafeWrite marr (i'+1) r
-                                     loop s1 i'
-                            where n = ord x
-                                  m = n - 0x10000
-                                  l = fromIntegral $ (m `shiftR` 10) + 0xD800
-                                  r = fromIntegral $ (m .&. 0x3FF) + 0xDC00
+    len0' = max len0 4
+    (arr, (off', len')) = A.run2 (A.unsafeNew len0 >>= loop s (len0'-1) len0')
+    loop !s0 !i !len marr =
+        case next s0 of
+          Done -> return (marr, (j, len-j))
+              where j = i + 1
+          Skip s1    -> loop s1 i len marr
+          Yield x s1 | i < least -> do
+                       let newLen = len * 2
+                       marr' <- A.unsafeNew newLen
+                       A.unsafeCopy marr 0 marr' (newLen-len) len
+                       write s1 (len+i) newLen marr'
+                     | otherwise -> write s1 i len marr
+            where n = ord x
+                  least | n < 0x10000 = 0
+                        | otherwise   = 1
+                  m = n - 0x10000
+                  lo = fromIntegral $ (m `shiftR` 10) + 0xD800
+                  hi = fromIntegral $ (m .&. 0x3FF) + 0xDC00
+                  write s i len marr
+                      | n < 0x10000 = do
+                          A.unsafeWrite marr i (fromIntegral n)
+                          loop s (i-1) len marr
+                      | otherwise = do
+                          A.unsafeWrite marr (i-1) lo
+                          A.unsafeWrite marr i hi
+                          loop s (i-2) len marr
 {-# INLINE [0] reverse #-}
 
 -- ----------------------------------------------------------------------------
@@ -566,6 +584,20 @@ scanl f z0 (Stream next0 s0 len) = Stream next (S1 :!: z0 :!: s0) (len+1)
                               Skip s'    -> Skip (S2 :!: z :!: s')
                               Done       -> Done
 {-# INLINE [0] scanl #-}
+
+-- | /O(n)/ Perform the equivalent of 'scanr' over a list, only with
+-- the input and result reversed.
+reverseScanr :: (Char -> Char -> Char) -> Char -> Stream Char -> Stream Char
+reverseScanr f z0 (Stream next0 s0 len) = Stream next (S1 :!: z0 :!: s0) (len+1)
+  where
+    {-# INLINE next #-}
+    next (S1 :!: z :!: s) = Yield z (S2 :!: z :!: s)
+    next (S2 :!: z :!: s) = case next0 s of
+                              Yield x s' -> let !x' = f x z
+                                            in Yield x' (S2 :!: x' :!: s')
+                              Skip s'    -> Skip (S2 :!: z :!: s')
+                              Done       -> Done
+{-# INLINE reverseScanr #-}
 
 -- -----------------------------------------------------------------------------
 -- ** Accumulating maps
