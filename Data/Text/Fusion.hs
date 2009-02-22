@@ -103,8 +103,8 @@ module Data.Text.Fusion
     ) where
 
 import Prelude (Bool(..), Char, Either(..), Eq(..), Maybe(..), Monad(..),
-                Num(..), Ord(..), String, ($), (++), (.), (&&), error,
-                fromIntegral, fst, otherwise, snd)
+                Num(..), Ord(..), String, ($), (++), (.), (&&),
+                fromIntegral, otherwise)
 import Control.Monad (liftM2)
 import Control.Monad.ST (runST)
 import qualified Data.List as L
@@ -116,6 +116,7 @@ import Data.Text.UnsafeChar (unsafeChr, unsafeWrite, unsafeWriteRev)
 import qualified Data.Text.Array as A
 import qualified Data.Text.Internal as I
 import qualified Data.Text.Utf16 as U16
+import qualified Prelude as P
 
 default(Int)
 
@@ -164,7 +165,7 @@ reverseStream (Text arr off len) = Stream next (off+len-1) len
 unstream :: Stream Char -> Text
 unstream (Stream next0 s0 len)
     | len == 0 = I.empty
-    | otherwise = Text (fst a) 0 (snd a)
+    | otherwise = Text (P.fst a) 0 (P.snd a)
     where
       a = runST (A.unsafeNew len >>= (\arr -> loop arr len s0 0))
       loop arr !top !s !i
@@ -200,8 +201,14 @@ eq (Stream next1 s1 _) (Stream next2 s2 _) = cmp (next1 s1) (next2 s2)
                                           cmp (next1 s1') (next2 s2')
 {-# SPECIALISE eq :: Stream Char -> Stream Char -> Bool #-}
 
+streamError :: String -> String -> a
+streamError func msg = P.error $ "Data.Text.Fusion." ++ func ++ ": " ++ msg
+
 internalError :: String -> a
-internalError func = error $ "Data.Text.Fusion." ++ func ++ ": internal error"
+internalError func = streamError func "Internal error"
+
+emptyError :: String -> a
+emptyError func = internalError func "Empty input"
 
 -- ----------------------------------------------------------------------------
 -- * Basic stream functions
@@ -254,7 +261,7 @@ head (Stream next s0 _len) = loop_head s0
       loop_head !s = case next s of
                       Yield x _ -> x
                       Skip s' -> loop_head s'
-                      Done -> error "head: Empty list"
+                      Done -> streamError "head" "Empty stream"
 {-# INLINE [0] head #-}
 
 -- | /O(1)/ Returns the first character and remainder of a 'Stream
@@ -274,7 +281,7 @@ last :: Stream Char -> Char
 last (Stream next s0 _len) = loop0_last s0
     where
       loop0_last !s = case next s of
-                        Done       -> error "last: Empty list"
+                        Done       -> emptyError "last"
                         Skip s'    -> loop0_last  s'
                         Yield x s' -> loop_last x s'
       loop_last !x !s = case next s of
@@ -290,7 +297,7 @@ tail (Stream next0 s0 len) = Stream next (False :!: s0) (len-1)
     where
       {-# INLINE next #-}
       next (False :!: s) = case next0 s of
-                          Done -> error "tail"
+                          Done -> emptyError "tail"
                           Skip s' -> Skip (False :!: s')
                           Yield _ s' -> Skip (True :!: s')
       next (True :!: s) = case next0 s of
@@ -307,7 +314,7 @@ init (Stream next0 s0 len) = Stream next (Nothing :!: s0) (len-1)
     where
       {-# INLINE next #-}
       next (Nothing :!: s) = case next0 s of
-                               Done       -> errorEmptyList "init"
+                               Done       -> emptyError "init"
                                Skip s'    -> Skip (Nothing :!: s')
                                Yield x s' -> Skip (Just x  :!: s')
       next (Just x :!: s)  = case next0 s of
@@ -443,7 +450,7 @@ foldl1 f (Stream next s0 _len) = loop0_foldl1 s0
       loop0_foldl1 !s = case next s of
                           Skip s' -> loop0_foldl1 s'
                           Yield x s' -> loop_foldl1 x s'
-                          Done -> errorEmptyList "foldl1"
+                          Done -> emptyError "foldl1"
       loop_foldl1 z !s = case next s of
                            Done -> z
                            Skip s' -> loop_foldl1 z s'
@@ -457,7 +464,7 @@ foldl1' f (Stream next s0 _len) = loop0_foldl1' s0
       loop0_foldl1' !s = case next s of
                            Skip s' -> loop0_foldl1' s'
                            Yield x s' -> loop_foldl1' x s'
-                           Done -> errorEmptyList "foldl1"
+                           Done -> emptyError "foldl1"
       loop_foldl1' !z !s = case next s of
                              Done -> z
                              Skip s' -> loop_foldl1' z s'
@@ -483,7 +490,7 @@ foldr1 :: (Char -> Char -> Char) -> Stream Char -> Char
 foldr1 f (Stream next s0 _len) = loop0_foldr1 s0
   where
     loop0_foldr1 !s = case next s of
-      Done       -> error "foldr1"
+      Done       -> emptyError "foldr1"
       Skip    s' -> loop0_foldr1  s'
       Yield x s' -> loop_foldr1 x s'
 
@@ -542,7 +549,7 @@ maximum :: Stream Char -> Char
 maximum (Stream next0 s0 _len) = loop0_maximum s0
     where
       loop0_maximum !s   = case next0 s of
-                             Done       -> errorEmptyList "maximum"
+                             Done       -> emptyError "maximum"
                              Skip s'    -> loop0_maximum s'
                              Yield x s' -> loop_maximum x s'
       loop_maximum !z !s = case next0 s of
@@ -559,7 +566,7 @@ minimum :: Stream Char -> Char
 minimum (Stream next0 s0 _len) = loop0_minimum s0
     where
       loop0_minimum !s   = case next0 s of
-                             Done       -> errorEmptyList "minimum"
+                             Done       -> emptyError "minimum"
                              Skip s'    -> loop0_minimum s'
                              Yield x s' -> loop_minimum x s'
       loop_minimum !z !s = case next0 s of
@@ -800,11 +807,11 @@ filter p (Stream next0 s0 len) = Stream next s0 len
 -- | /O(1)/ stream index (subscript) operator, starting from 0.
 index :: Stream Char -> Int -> Char
 index (Stream next s0 _len) n0
-  | n0 < 0    = error "Stream.(!!): negative index"
+  | n0 < 0    = streamError "index" "Negative index"
   | otherwise = loop_index n0 s0
   where
     loop_index !n !s = case next s of
-      Done                   -> error "Stream.(!!): index too large"
+      Done                   -> streamError "index" "Index too large"
       Skip    s'             -> loop_index  n    s'
       Yield x s' | n == 0    -> x
                  | otherwise -> loop_index (n-1) s'
@@ -897,7 +904,3 @@ zipWith f (Stream next0 sa0 len1) (Stream next1 sb0 len2) = Stream next (sa0 :!:
                                        Skip sb' -> Skip (sa' :!: sb' :!: Just a)
                                        Yield b sb' -> Yield (f a b) (sa' :!: sb' :!: Nothing)
 {-# INLINE [0] zipWith #-}
-
-
-errorEmptyList :: String -> a
-errorEmptyList fun = error ("Data.Text.Fusion." ++ fun ++ ": empty list")

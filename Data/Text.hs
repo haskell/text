@@ -143,7 +143,7 @@ module Data.Text
     ) where
 
 import Prelude (Char, Bool(..), Functor(..), Int, Maybe(..), String,
-                Eq, (==), (++), error,
+                Eq, (==), (++),
                 Read(..), Show(..),
                 (&&), (||), (+), (-), (<), (>), (<=), (>=), (.), ($),
                 not, return, otherwise)
@@ -297,7 +297,7 @@ second f (a, b) = (a, f b)
 -- non-empty.  Subject to array fusion.
 last :: Text -> Char
 last (Text arr off len)
-    | len <= 0                 = errorEmptyList "last"
+    | len <= 0                 = emptyError "last"
     | n < 0xDC00 || n > 0xDFFF = unsafeChr n
     | otherwise                = U16.chr2 n0 n
     where n  = A.unsafeIndex arr (off+len-1)
@@ -322,7 +322,7 @@ textP arr off len | len == 0  = empty
 -- must be non-empty.  Subject to array fusion.
 tail :: Text -> Text
 tail t@(Text arr off len)
-    | len <= 0  = errorEmptyList "tail"
+    | len <= 0  = emptyError "tail"
     | otherwise = textP arr (off+d) (len-d)
     where d = iter_ t 0
 {-# INLINE [1] tail #-}
@@ -337,7 +337,7 @@ tail t@(Text arr off len)
 -- | /O(1)/ Returns all but the last character of a 'Text', which must
 -- be non-empty.  Subject to array fusion.
 init :: Text -> Text
-init (Text arr off len) | len <= 0                   = errorEmptyList "init"
+init (Text arr off len) | len <= 0                   = emptyError "init"
                         | n >= 0xDC00 && n <= 0xDFFF = textP arr off (len-2)
                         | otherwise                  = textP arr off (len-1)
     where
@@ -957,5 +957,5 @@ isInfixOf :: Text -> Text -> Bool
 isInfixOf needle haystack = L.any (isPrefixOf needle) (tails haystack)
 {-# INLINE isInfixOf #-}
 
-errorEmptyList :: String -> a
-errorEmptyList fun = error ("Data.Text." ++ fun ++ ": empty list")
+emptyError :: String -> a
+emptyError fun = P.error ("Data.Text." ++ fun ++ ": empty input")
