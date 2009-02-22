@@ -101,6 +101,7 @@ prop_minimum         = L.minimum     `eqEP` T.minimum
 prop_scanl f z       = L.scanl f z   `eqP`  (unpack . T.scanl f z)
 prop_scanl1 f        = L.scanl1 f    `eqP`  (unpack . T.scanl1 f)
 prop_scanr f z       = L.scanr f z   `eqP`  (unpack . T.scanr f z)
+prop_scanr1 f        = L.scanr1 f    `eqP`  (unpack . T.scanr1 f)
 
 prop_mapAccumL f z   = (snd . L.mapAccumL f z)`eqP` (unpack . T.mapAccumL f z)
     where types = f :: Int -> Char -> (Int,Char)
@@ -240,6 +241,7 @@ tests = [
   ("prop_scanl", mytest prop_scanl),
   ("prop_scanl1", mytest prop_scanl1),
   ("prop_scanr", mytest prop_scanr),
+  ("prop_scanr1", mytest prop_scanr1),
 
   ("prop_mapAccumL", mytest prop_mapAccumL),
 

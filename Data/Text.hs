@@ -77,7 +77,7 @@ module Data.Text
     , scanl
     , scanl1
     , scanr
-    -- , scanr1
+    , scanr1
 
     -- ** Accumulating maps
     , mapAccumL
@@ -520,9 +520,12 @@ scanr :: (Char -> Char -> Char) -> Char -> Text -> Text
 scanr f z = S.reverse . S.reverseScanr f z . reverseStream
 {-# INLINE scanr #-}
 
-shorten n t@(S.Stream arr off len) | n < len && n > 0 = S.Stream arr off n
-                                   | otherwise        = t
-info (S.Stream _ _ len) = len
+-- | /O(n)/ 'scanr1' is a variant of 'scanr' that has no starting
+-- value argument.  This function is subject to array fusion.
+scanr1 :: (Char -> Char -> Char) -> Text -> Text
+scanr1 f t | null t    = empty
+           | otherwise = scanr f (last t) (init t)
+{-# INLINE scanr1 #-}
 
 -- | /O(n)/ Like a combination of 'map' and 'foldl'. Applies a
 -- function to each element of a 'Text', passing an accumulating
