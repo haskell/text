@@ -278,10 +278,11 @@ head t = S.head (stream t)
 uncons :: Text -> Maybe (Char, Text)
 uncons t@(Text arr off len)
     | len <= 0  = Nothing
-    | otherwise = Just (c, Text arr (off+d) (len-d))
+    | otherwise = Just (c, textP arr (off+d) (len-d))
     where (c,d) = iter t 0
 {-# INLINE uncons #-}
 
+-- | Lifted from Control.Arrow and specialized.
 second :: (b -> c) -> (a,b) -> (a,c)
 second f (a, b) = (a, f b)
 
