@@ -76,7 +76,7 @@ module Data.Text
     -- ** Scans
     , scanl
     , scanl1
-    -- , scanr
+    , scanr
     -- , scanr1
 
     -- ** Accumulating maps
@@ -157,7 +157,7 @@ import Data.Word (Word16)
 import Data.String (IsString(..))
 
 import qualified Data.Text.Fusion as S
-import Data.Text.Fusion (Stream(..), Step(..), stream, unstream)
+import Data.Text.Fusion (Stream(..), Step(..), stream, reverseStream, unstream)
 import Data.Text.Internal (Text(..), empty, text)
 import qualified Prelude as P
 import Data.Text.Unsafe (iter, iter_, unsafeHead, unsafeTail)
@@ -512,6 +512,17 @@ scanl1 :: (Char -> Char -> Char) -> Text -> Text
 scanl1 f t | null t    = empty
            | otherwise = scanl f (unsafeHead t) (unsafeTail t)
 {-# INLINE scanl1 #-}
+
+-- | /O(n)/ 'scanr' is the right-to-left dual of 'scanl'.
+--
+-- > scanr f v t == reverse (scanl (flip f) v t)
+scanr :: (Char -> Char -> Char) -> Char -> Text -> Text
+scanr f z = S.reverse . S.reverseScanr f z . reverseStream
+{-# INLINE scanr #-}
+
+shorten n t@(S.Stream arr off len) | n < len && n > 0 = S.Stream arr off n
+                                   | otherwise        = t
+info (S.Stream _ _ len) = len
 
 -- | /O(n)/ Like a combination of 'map' and 'foldl'. Applies a
 -- function to each element of a 'Text', passing an accumulating

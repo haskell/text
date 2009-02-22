@@ -19,8 +19,10 @@ module Data.Text.UnsafeChar
     , unsafeChr8
     , unsafeChr32
     , unsafeWrite
+    , unsafeWriteRev
     ) where
 
+import Control.Exception (assert)
 import Control.Monad.ST (ST)
 import Data.Bits ((.&.), shiftR)
 import Data.Char (ord)
@@ -43,14 +45,33 @@ unsafeChr32 (W32# w#) = C# (chr# (word2Int# w#))
 unsafeWrite :: A.MArray s Word16 -> Int -> Char -> ST s Int
 unsafeWrite marr i c
     | n < 0x10000 = do
-        A.unsafeWrite marr i (fromIntegral n)
+        assert (i >= 0) . assert (i < A.length marr) $
+          A.unsafeWrite marr i (fromIntegral n)
         return (i+1)
     | otherwise = do
-        A.unsafeWrite marr i     l
-        A.unsafeWrite marr (i+1) r
+        assert (i >= 0) . assert (i < A.length marr - 1) $
+          A.unsafeWrite marr i lo
+        A.unsafeWrite marr (i+1) hi
         return (i+2)
     where n = ord c
           m = n - 0x10000
-          l = fromIntegral $ (m `shiftR` 10) + 0xD800
-          r = fromIntegral $ (m .&. 0x3FF) + 0xDC00
+          lo = fromIntegral $ (m `shiftR` 10) + 0xD800
+          hi = fromIntegral $ (m .&. 0x3FF) + 0xDC00
 {-# INLINE unsafeWrite #-}
+
+unsafeWriteRev :: A.MArray s Word16 -> Int -> Char -> ST s Int
+unsafeWriteRev marr i c
+    | n < 0x10000 = do
+        assert (i >= 0) . assert (i < A.length marr) $
+          A.unsafeWrite marr i (fromIntegral n)
+        return (i-1)
+    | otherwise = do
+        assert (i >= 1) . assert (i < A.length marr) $
+          A.unsafeWrite marr (i-1) lo
+        A.unsafeWrite marr i hi
+        return (i-2)
+    where n = ord c
+          m = n - 0x10000
+          lo = fromIntegral $ (m `shiftR` 10) + 0xD800
+          hi = fromIntegral $ (m .&. 0x3FF) + 0xDC00
+{-# INLINE unsafeWriteRev #-}

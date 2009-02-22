@@ -14,7 +14,7 @@ import Data.Word
 import qualified Data.Text as T
 import Data.Text (pack,unpack)
 import qualified Data.Text.Fusion as S
-import Data.Text.Fusion (unstream,stream)
+import Data.Text.Fusion (stream, unstream)
 import qualified Data.List as L
 
 
@@ -22,16 +22,17 @@ import QuickCheckUtils
 
 prop_pack_unpack s   = (unpack . pack) s == s
 prop_stream_unstream t = (unstream . stream) t == t
+prop_reverse_stream t = (S.reverse . S.reverseStream) t == t
 prop_singleton c     = [c] == (unpack . T.singleton) c
 
 -- Do two functions give the same answer?
 eq :: (Eq a) => (t -> a) -> (t -> a) -> t -> Bool
 eq a b s  = a s == b s
 -- What about with the RHS packed?
-eqP :: (Eq a) => (String -> a) -> (T.Text -> a) -> String -> Word8 -> Bool
-eqP a b s w  = a s == b t &&
-               a sa == b ta &&
-               a sb == b tb
+eqP :: (Eq a, Show a) => (String -> a) -> (T.Text -> a) -> String -> Word8 -> Bool
+eqP a b s w  = eq "orig" (a s) (b t) &&
+               eq "head" (a sa) (b ta) &&
+               eq "tail" (a sb) (b tb)
     where t             = pack s
           (sa,sb)       = splitAt m s
           (ta,tb)       = T.splitAt m t
@@ -39,6 +40,8 @@ eqP a b s w  = a s == b t &&
           m | l == 0    = n
             | otherwise = n `mod` l
           n             = fromIntegral w
+          eq s a b | a == b = True
+                   | otherwise = trace (s ++ ": " ++ show a ++ " /= " ++ show b) False
 -- Or with the string non-empty, and the RHS packed?
 eqEP :: (Eq a) =>
         (String -> a) -> (T.Text -> a) -> NotEmpty String -> Word8 -> Bool
@@ -76,6 +79,7 @@ prop_intercalate c   = L.intercalate c `eq` (unpack . T.intercalate (pack c) . m
 prop_intersperse c   = L.intersperse c `eqP` (unpack . T.intersperse c)
 prop_transpose       = L.transpose `eq` (map unpack . T.transpose . map pack)
 prop_reverse         = L.reverse `eqP` (unpack . T.reverse)
+prop_reverse_short n = L.reverse `eqP` (unpack . S.reverse . shorten n . stream)
 
 prop_foldl f z       = L.foldl f z  `eqP`  (T.foldl f z)
     where types      = f :: Char -> Char -> Char
@@ -96,6 +100,7 @@ prop_minimum         = L.minimum     `eqEP` T.minimum
 
 prop_scanl f z       = L.scanl f z   `eqP`  (unpack . T.scanl f z)
 prop_scanl1 f        = L.scanl1 f    `eqP`  (unpack . T.scanl1 f)
+prop_scanr f z       = L.scanr f z   `eqP`  (unpack . T.scanr f z)
 
 prop_mapAccumL f z   = (snd . L.mapAccumL f z)`eqP` (unpack . T.mapAccumL f z)
     where types = f :: Int -> Char -> (Int,Char)
@@ -168,6 +173,14 @@ prop_elemIndices c   = L.elemIndices c`eqP` T.elemIndices c
 prop_count c         = (L.length . L.elemIndices c) `eqP` T.count c
 prop_zipWith c s     = L.zipWith c s `eqP` (unpack . T.zipWith c (pack s))
 
+-- Make a stream appear shorter than it really is, to ensure that
+-- functions that consume inaccurately sized streams behave
+-- themselves.
+shorten :: Int -> S.Stream a -> S.Stream a
+shorten n t@(S.Stream arr off len)
+    | n < len && n > 0 = S.Stream arr off n
+    | otherwise        = t
+
 main = run tests =<< getArgs
 
 run :: [(String, Int -> IO (Bool,Int))] -> [String] -> IO ()
@@ -185,6 +198,7 @@ tests :: [(String, Int -> IO (Bool, Int))]
 tests = [
   ("prop_pack_unpack", mytest prop_pack_unpack),
   ("prop_stream_unstream", mytest prop_stream_unstream),
+  ("prop_reverse_stream", mytest prop_reverse_stream),
   ("prop_singleton", mytest prop_singleton),
 
   ("prop_cons", mytest prop_cons),
@@ -207,6 +221,7 @@ tests = [
   ("prop_intersperse", mytest prop_intersperse),
   ("prop_transpose", mytest prop_transpose),
   ("prop_reverse", mytest prop_reverse),
+  ("prop_reverse_short", mytest prop_reverse_short),
 
   ("prop_foldl", mytest prop_foldl),
   ("prop_foldl'", mytest prop_foldl'),
@@ -224,6 +239,7 @@ tests = [
 
   ("prop_scanl", mytest prop_scanl),
   ("prop_scanl1", mytest prop_scanl1),
+  ("prop_scanr", mytest prop_scanr),
 
   ("prop_mapAccumL", mytest prop_mapAccumL),
 
