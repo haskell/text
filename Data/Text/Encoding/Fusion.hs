@@ -82,7 +82,7 @@ streamUtf8 bs = Stream next 0 l
           | i+1 < l && U8.validate2 x1 x2 = Yield (U8.chr2 x1 x2) (i+2)
           | i+2 < l && U8.validate3 x1 x2 x3 = Yield (U8.chr3 x1 x2 x3) (i+3)
           | i+3 < l && U8.validate4 x1 x2 x3 x4 = Yield (U8.chr4 x1 x2 x3 x4) (i+4)
-          | otherwise = error "bsStream: bad UTF-8 stream"
+          | otherwise = encodingError "UTF-8"
           where
             x1 = idx i
             x2 = idx (i + 1)
@@ -100,7 +100,7 @@ streamUtf16LE bs = Stream next 0 l
           | i >= l                         = Done
           | i+1 < l && U16.validate1 x1    = Yield (unsafeChr x1) (i+2)
           | i+3 < l && U16.validate2 x1 x2 = Yield (U16.chr2 x1 x2) (i+4)
-          | otherwise = error $ "bsStream: bad UTF-16LE stream"
+          | otherwise = encodingError "UTF-16LE"
           where
             x1    = (shiftL (idx (i + 1)) 8) + (idx i)
             x2    = (shiftL (idx (i + 3)) 8) + (idx (i + 2))
@@ -116,7 +116,7 @@ streamUtf16BE bs = Stream next 0 l
           | i >= l                         = Done
           | i+1 < l && U16.validate1 x1    = Yield (unsafeChr x1) (i+2)
           | i+3 < l && U16.validate2 x1 x2 = Yield (U16.chr2 x1 x2) (i+4)
-          | otherwise = error $ "bsStream: bad UTF16-BE stream "
+          | otherwise = encodingError "UTF16-BE"
           where
             x1    = (shiftL (idx i) 8) + (idx (i + 1))
             x2    = (shiftL (idx (i + 2)) 8) + (idx (i + 3))
@@ -131,7 +131,7 @@ streamUtf32BE bs = Stream next 0 l
       next i
           | i >= l                    = Done
           | i+3 < l && U32.validate x = Yield (unsafeChr32 x) (i+4)
-          | otherwise                 = error "bsStream: bad UTF-32BE stream"
+          | otherwise                 = encodingError "UTF-32BE"
           where
             x     = shiftL x1 24 + shiftL x2 16 + shiftL x3 8 + x4
             x1    = idx i
@@ -149,7 +149,7 @@ streamUtf32LE bs = Stream next 0 l
       next i
           | i >= l                    = Done
           | i+3 < l && U32.validate x = Yield (unsafeChr32 x) (i+4)
-          | otherwise                 = error "bsStream: bad UTF-32LE stream"
+          | otherwise                 = encodingError "UTF-32LE"
           where
             x     = shiftL x4 24 + shiftL x3 16 + shiftL x2 8 + x1
             x1    = idx i
@@ -324,3 +324,7 @@ unstream (Stream next s0 len) = unsafePerformIO $ do
 internalError :: String -> a
 internalError func =
     error $ "Data.Text.Encoding.Fusion." ++ func ++ ": internal error"
+
+encodingError :: String -> a
+encodingError encoding =
+    error $ "Data.Text.Encoding.Fusion: Bad " ++ encoding ++ " stream"
