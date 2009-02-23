@@ -39,6 +39,7 @@ data Text = Text
     {-# UNPACK #-} !Int              -- length
     deriving (Typeable)
 
+-- | Smart constructor.
 text :: A.Array Word16 -> Int -> Int -> Text
 text arr off len =
     assert (len >= 0) .
@@ -55,6 +56,7 @@ empty :: Text
 empty = Text A.empty 0 0
 {-# INLINE [1] empty #-}
 
+-- | A useful 'show'-like function for debugging purposes.
 showText :: Text -> String
 showText (Text arr off len) =
     "Text " ++ (show . take (off+len) . A.toList) arr ++ ' ' :

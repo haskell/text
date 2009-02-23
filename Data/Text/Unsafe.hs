@@ -1,11 +1,11 @@
 -- |
 -- Module      : Data.Text.Unsafe
--- License     : BSD-style
 -- Copyright   : (c) Bryan O'Sullivan 2009
+-- License     : BSD-style
 -- Maintainer  : bos@serpentine.com
 -- Stability   : experimental
 -- Portability : portable
--- 
+--
 -- A module containing unsafe 'Text' operations, for very very careful
 -- use in heavily tested code.
 module Data.Text.Unsafe
