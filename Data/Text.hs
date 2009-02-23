@@ -755,13 +755,11 @@ split c = splitWith (==c)
 -- > splitWith (=='a') []        == []
 splitWith :: (Char -> Bool) -> Text -> [Text]
 splitWith p = loop
-  where loop t@(Text arr off len)
-            | null t    = [empty]
-            | otherwise = text arr off n : rest
-            where n = findAIndexOrEnd p t
-                  m = n + iter_ t n
-                  rest | n >= len   = []
-                       | otherwise = loop (text arr (off+m) (len-m))
+    where loop s | null s    = []
+                 | otherwise = if null s'
+                               then [s]
+                               else l : loop (unsafeTail s')
+              where (l, s') = break p s
 {-# INLINE splitWith #-}
 
 -- ----------------------------------------------------------------------------

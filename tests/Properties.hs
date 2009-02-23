@@ -138,12 +138,11 @@ prop_split_i c       = id `eq` (T.intercalate (T.singleton c) . T.split c)
 {-
 prop_splitWith p     = splitWith p `eqP` (map unpack . T.splitWith p)
 
-splitWith _ [] = [""]
-splitWith p xs = h : splitWith p (whale t)
-    where (h,t) = break p xs
-          whale (_:xs) = xs
-          whale xs = xs
--}
+splitWith _ "" =  []
+splitWith p s  = if null s'
+                 then [s]
+                 else l : splitWith p (tail s')
+    where (l, s') = break p s
 
 prop_breakSubstring_isInfixOf s l
                      = T.isInfixOf s l ==
@@ -275,7 +274,7 @@ tests = [
   ("prop_tails", mytest prop_tails),
 
   ("prop_split_i", mytest prop_split_i),
---("prop_splitWith", mytest prop_splitWith),
+  ("prop_splitWith", mytest prop_splitWith),
   ("prop_breakSubstringC", mytest prop_breakSubstringC),
   ("prop_breakSubstring_isInfixOf", mytest prop_breakSubstring_isInfixOf),
 
