@@ -33,11 +33,11 @@ import Data.Typeable (Typeable)
 import Data.Word (Word16)
 
 -- | A space efficient, packed, unboxed Unicode text type.
-data Text = Text {
-      textArray :: {-# UNPACK #-} !(A.Array Word16) -- payload
-    , textOffset :: {-# UNPACK #-} !Int              -- offset
-    , textLength :: {-# UNPACK #-} !Int              -- length
-    } deriving (Typeable)
+data Text = Text
+    {-# UNPACK #-} !(A.Array Word16) -- payload
+    {-# UNPACK #-} !Int              -- offset
+    {-# UNPACK #-} !Int              -- length
+    deriving (Typeable)
 
 text :: A.Array Word16 -> Int -> Int -> Text
 text arr off len =
