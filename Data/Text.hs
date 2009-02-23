@@ -110,6 +110,7 @@ module Data.Text
 
     -- ** Breaking into lines and words
     , lines
+    , lines'
     , words
     , unlines
     , unwords
@@ -143,7 +144,7 @@ module Data.Text
     ) where
 
 import Prelude (Char, Bool(..), Functor(..), Int, Maybe(..), String,
-                Eq, (==), (++),
+                Eq(..), (++),
                 Read(..), Show(..),
                 (&&), (||), (+), (-), (<), (>), (<=), (>=), (.), ($),
                 not, return, otherwise)
@@ -904,15 +905,33 @@ words t@(Text arr off len) = loop 0 0
 
 -- | /O(n)/ Breaks a 'Text' up into a list of 'Text's at
 -- newline 'Char's. The resulting strings do not contain newlines.
---
 lines :: Text -> [Text]
-lines ps
-    | null ps = []
-    | otherwise = case search ps of
-             Nothing -> [ps]
-             Just n  -> take n ps : lines (drop (n+1) ps)
-    where search = elemIndex '\n'
+lines ps | null ps   = []
+         | otherwise = h : if null t
+                           then []
+                           else lines (unsafeTail t)
+    where (h,t) = span (/= '\n') ps
 {-# INLINE lines #-}
+
+-- | /O(n)/ Portably breaks a 'Text' up into a list of 'Text's at line
+-- boundaries.
+--
+-- A line boundary is considered to be either a line feed, a carriage
+-- return immediately followed by a line feed, or a carriage return.
+-- This accounts for both Unix and Windows line ending conventions,
+-- and for the old convention used on Mac OS 9 and earlier.
+lines' :: Text -> [Text]
+lines' ps | null ps   = []
+          | otherwise = h : case uncons t of
+                              Nothing -> []
+                              Just (c,t')
+                                  | c == '\n' -> lines t'
+                                  | c == '\r' -> case uncons t' of
+                                                   Just ('\n',t'') -> lines t''
+                                                   _               -> lines t'
+    where (h,t) = span notEOL ps
+          notEOL c = c /= '\n' && c /= '\r'
+{-# INLINE lines' #-}
 
 -- | /O(n)/ Joins lines, after appending a terminating newline to
 -- each.
