@@ -725,7 +725,7 @@ inits t@(Text arr off len) = loop 0
 -- first.
 tails :: Text -> [Text]
 tails t | null t    = [empty]
-        | otherwise = t : tails (tail t)
+        | otherwise = t : tails (unsafeTail t)
 
 -- | /O(n)/ Break a 'Text' into pieces separated by the 'Char'
 -- argument, consuming the delimiter. I.e.
@@ -821,7 +821,7 @@ breakSubstring pat src = search 0 src
     search !n !s
         | null s             = (src,empty)      -- not found
         | pat `isPrefixOf` s = (take n src,s)
-        | otherwise          = search (n+1) (tail s)
+        | otherwise          = search (n+1) (unsafeTail s)
 {-# INLINE breakSubstring #-}
 
 -- | /O(n)/ 'filter', applied to a predicate and a 'Text',
