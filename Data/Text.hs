@@ -139,7 +139,7 @@ module Data.Text
     -- * Zipping and unzipping
     , zipWith
 
-    -- * Ordered text
+    -- -* Ordered text
     , -- sort
     ) where
 
@@ -399,7 +399,7 @@ reverse t = S.reverse (stream t)
 
 -- | /O(n)/ The 'transpose' function transposes the rows and columns
 -- of its 'Text' argument.  Note that this function uses 'pack',
--- 'unpack', and the 'List' version of transpose and is thus not very
+-- 'unpack', and the list version of transpose, and is thus not very
 -- efficient.
 transpose :: [Text] -> [Text]
 transpose ts = P.map pack (L.transpose (P.map unpack ts))
@@ -407,7 +407,7 @@ transpose ts = P.map pack (L.transpose (P.map unpack ts))
 -- -----------------------------------------------------------------------------
 -- * Reducing 'Text's (folds)
 
--- | 'foldl', applied to a binary operator, a starting value
+-- | /O(n)/ 'foldl', applied to a binary operator, a starting value
 -- (typically the left-identity of the operator), and a 'Text',
 -- reduces the 'Text' using the binary operator, from left to right.
 -- Subject to array fusion.
@@ -415,26 +415,26 @@ foldl :: (b -> Char -> b) -> b -> Text -> b
 foldl f z t = S.foldl f z (stream t)
 {-# INLINE foldl #-}
 
--- | A strict version of 'foldl'.
+-- | /O(n)/ A strict version of 'foldl'.
 -- Subject to array fusion.
 foldl' :: (b -> Char -> b) -> b -> Text -> b
 foldl' f z t = S.foldl' f z (stream t)
 {-# INLINE foldl' #-}
 
--- | A variant of 'foldl' that has no starting value argument, and
--- thus must be applied to a non-empty 'Text'.  Subject to array
+-- | /O(n)/ A variant of 'foldl' that has no starting value argument,
+-- and thus must be applied to a non-empty 'Text'.  Subject to array
 -- fusion.
 foldl1 :: (Char -> Char -> Char) -> Text -> Char
 foldl1 f t = S.foldl1 f (stream t)
 {-# INLINE foldl1 #-}
 
--- | A strict version of 'foldl1'.
+-- | /O(n)/ A strict version of 'foldl1'.
 -- Subject to array fusion.
 foldl1' :: (Char -> Char -> Char) -> Text -> Char
 foldl1' f t = S.foldl1' f (stream t)
 {-# INLINE foldl1' #-}
 
--- | 'foldr', applied to a binary operator, a starting value
+-- | /O(n)/ 'foldr', applied to a binary operator, a starting value
 -- (typically the right-identity of the operator), and a 'Text',
 -- reduces the 'Text' using the binary operator, from right to left.
 -- Subject to array fusion.
@@ -442,7 +442,7 @@ foldr :: (Char -> b -> b) -> b -> Text -> b
 foldr f z t = S.foldr f z (stream t)
 {-# INLINE foldr #-}
 
--- | A variant of 'foldr' that has no starting value argument, and
+-- | /O(n)/ A variant of 'foldr' that has no starting value argument, and
 -- thust must be applied to a non-empty 'Text'.  Subject to array
 -- fusion.
 foldr1 :: (Char -> Char -> Char) -> Text -> Char
@@ -457,23 +457,23 @@ concat :: [Text] -> Text
 concat ts = unstream (S.concat (L.map stream ts))
 {-# INLINE concat #-}
 
--- | Map a function over a 'Text' that results in a 'Text', and concatenate the
--- results.  This function is subject to array fusion.
+-- | /O(n)/ Map a function over a 'Text' that results in a 'Text', and
+-- concatenate the results.  This function is subject to array fusion.
 --
--- Note: if in 'concatMap' @f @xs, @f@ is defined in terms of fusible
+-- Note: if in 'concatMap' @f@ @t@, @f@ is defined in terms of fusible
 -- functions, it will also be fusible.
 concatMap :: (Char -> Text) -> Text -> Text
 concatMap f t = unstream (S.concatMap (stream . f) (stream t))
 {-# INLINE concatMap #-}
 
--- | 'any' @p @xs determines whether any character in the 'Text' @xs@
--- satisifes the predicate @p@. Subject to array fusion.
+-- | /O(n)/ 'any' @p@ @t@ determines whether any character in the
+-- 'Text' @t@ satisifes the predicate @p@. Subject to array fusion.
 any :: (Char -> Bool) -> Text -> Bool
 any p t = S.any p (stream t)
 {-# INLINE any #-}
 
--- | 'all' @p @xs determines whether all characters in the 'Text' @xs@
--- satisify the predicate @p@. Subject to array fusion.
+-- | /O(n)/ 'all' @p@ @t@ determines whether all characters in the
+-- 'Text' @t@ satisify the predicate @p@. Subject to array fusion.
 all :: (Char -> Bool) -> Text -> Bool
 all p t = S.all p (stream t)
 {-# INLINE all #-}
@@ -553,6 +553,8 @@ mapAccumR f s t = case uncons t of
 -- -----------------------------------------------------------------------------
 -- ** Generating and unfolding 'Text's
 
+-- | /O(n)/ 'replicate' @n@ @c@ is a 'Text' of length @n@ with @c@ the
+-- value of every element.
 replicate :: Int -> Char -> Text
 replicate n c = unstream (S.replicate n c)
 {-# INLINE replicate #-}
@@ -579,7 +581,7 @@ unfoldrN n f s = unstream (S.unfoldrN n f s)
 -- -----------------------------------------------------------------------------
 -- * Substrings
 
--- /O(n) 'take' @n@, applied to a 'Text', returns the prefix of the
+-- | /O(n)/ 'take' @n@, applied to a 'Text', returns the prefix of the
 -- 'Text' of length @n@, or the 'Text' itself if @n@ is greater than
 -- the length of the Text.
 take :: Int -> Text -> Text
@@ -792,8 +794,8 @@ partition :: (Char -> Bool) -> Text -> (Text, Text)
 partition p t = (filter p t, filter (not . p) t)
 {-# INLINE partition #-}
 
--- | Break a string on a substring, returning a pair of the part of the
--- string prior to the match, and the rest of the string.
+-- | /O(n)/ Break a string on a substring, returning a pair of the
+-- part of the string prior to the match, and the rest of the string.
 --
 -- The following relationship holds:
 --
