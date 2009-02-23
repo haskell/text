@@ -110,7 +110,7 @@ module Data.Text
 
     -- ** Breaking into lines and words
     , lines
-    , lines'
+    --, lines'
     , words
     , unlines
     , unwords
@@ -918,6 +918,7 @@ lines ps | null ps   = []
 -- return immediately followed by a line feed, or a carriage return.
 -- This accounts for both Unix and Windows line ending conventions,
 -- and for the old convention used on Mac OS 9 and earlier.
+{-
 lines' :: Text -> [Text]
 lines' ps | null ps   = []
           | otherwise = h : case uncons t of
@@ -927,9 +928,10 @@ lines' ps | null ps   = []
                                   | c == '\r' -> case uncons t' of
                                                    Just ('\n',t'') -> lines t''
                                                    _               -> lines t'
-    where (h,t) = span notEOL ps
+    where (h,t)    = span notEOL ps
           notEOL c = c /= '\n' && c /= '\r'
 {-# INLINE lines' #-}
+-}
 
 -- | /O(n)/ Joins lines, after appending a terminating newline to
 -- each.

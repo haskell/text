@@ -135,7 +135,6 @@ prop_tails           = L.tails       `eqP` (map unpack . T.tails)
 
 prop_split_i c       = id `eq` (T.intercalate (T.singleton c) . T.split c)
 
-{-
 prop_splitWith p     = splitWith p `eqP` (map unpack . T.splitWith p)
 
 splitWith _ "" =  []
@@ -152,6 +151,7 @@ prop_breakSubstringC c
                        (unpack2 . T.breakSubstring (T.singleton c))
 
 prop_lines           = L.lines       `eqP` (map unpack . T.lines)
+{-
 prop_lines'          = lines'        `eqP` (map unpack . T.lines')
     where lines' "" =  []
           lines' s =  let (l, s') = break eol s
@@ -160,6 +160,7 @@ prop_lines'          = lines'        `eqP` (map unpack . T.lines')
                                 ('\r':'\n':s'') -> lines' s''
                                 (_:s'') -> lines' s''
           eol c = c == '\r' || c == '\n'
+-}
 prop_words           = L.words       `eqP` (map unpack . T.words)
 prop_unlines         = L.unlines     `eq`  (unpack . T.unlines . map pack)
 prop_unwords         = L.unwords     `eq`  (unpack . T.unwords . map pack)
@@ -279,7 +280,7 @@ tests = [
   ("prop_breakSubstring_isInfixOf", mytest prop_breakSubstring_isInfixOf),
 
   ("prop_lines", mytest prop_lines),
-  ("prop_lines'", mytest prop_lines'),
+--("prop_lines'", mytest prop_lines'),
   ("prop_words", mytest prop_words),
   ("prop_unlines", mytest prop_unlines),
   ("prop_unwords", mytest prop_unwords),
