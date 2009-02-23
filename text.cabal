@@ -1,13 +1,12 @@
 name:           text
 version:        0.0
-synopsis:       A Unicode Text type
-description:    An efficient string type in the style of "Data.ByteString" but
-                for Unicode.
+synopsis:       An efficient packed Unicode text type
+description:    An efficient packed Unicode text type.
 license:        BSD3
 license-file:   LICENSE
 author:         Tom Harper <rtharper@aftereternity.co.uk>
-maintainer:     Tom Harper <rtharper@aftereternity.co.uk>
-                Bryan O'Sullivan <bos@serpentine.com>
+maintainer:     Bryan O'Sullivan <bos@serpentine.com>
+                Tom Harper <rtharper@aftereternity.co.uk>
                 Duncan Coutts <duncan@haskell.org>
 copyright:      2008-2009 Tom Harper
 category:       Data, Text
@@ -17,13 +16,14 @@ cabal-version:  >= 1.2
 library
   exposed-modules:
     Data.Text
-    Data.Text.Array
     Data.Text.Encoding
     Data.Text.Encoding.Fusion
+    Data.Text.Fusion
+  other-modules:
+    Data.Text.Array
+    Data.Text.Internal
     Data.Text.Unsafe
     Data.Text.UnsafeChar
-    Data.Text.Internal
-    Data.Text.Fusion
     Data.Text.Utf8
     Data.Text.Utf32
     Data.Text.Utf16

@@ -3,7 +3,6 @@
 import Test.QuickCheck
 import Text.Show.Functions
 
-import Prelude 
 import Debug.Trace
 import Text.Printf
 import System.Environment
