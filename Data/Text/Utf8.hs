@@ -30,10 +30,13 @@ module Data.Text.Utf8
     , validate4
     ) where
 
+import Control.Exception (assert)
 import Data.Char (ord)
 import Data.Bits (shiftR, (.&.))
 import GHC.Exts
 import GHC.Word (Word8(..))
+
+default(Int)
 
 between :: Word8                -- ^ byte to check
         -> Word8                -- ^ lower bound
@@ -43,28 +46,28 @@ between x y z = x >= y && x <= z
 {-# INLINE between #-}
 
 ord2   :: Char -> (Word8,Word8)
-ord2 c = (x1,x2)
+ord2 c = assert (n >= 0x80 && n <= 0x07ff) (x1,x2)
     where
       n  = ord c
-      x1 = fromIntegral $ (shiftR n 6) + (0xC0 :: Int) :: Word8
-      x2 = fromIntegral $ (n .&. 0x3F) + (0x80 :: Int) :: Word8
+      x1 = fromIntegral $ (n `shiftR` 6) + 0xC0
+      x2 = fromIntegral $ (n .&. 0x3F)   + 0x80
 
 ord3   :: Char -> (Word8,Word8,Word8)
-ord3 c = (x1,x2,x3)
+ord3 c = assert (n >= 0x0800 && n <= 0xffff) (x1,x2,x3)
     where
       n  = ord c
-      x1 = fromIntegral $ (shiftR n 12) + (0xE0::Int) :: Word8
-      x2 = fromIntegral $ ((shiftR n 6) .&. (0x3F::Int)) + (0x80::Int) :: Word8
-      x3 = fromIntegral $ (n .&. (0x3F::Int)) + (0x80::Int) :: Word8
+      x1 = fromIntegral $ (n `shiftR` 12) + 0xE0
+      x2 = fromIntegral $ ((n `shiftR` 6) .&. 0x3F) + 0x80
+      x3 = fromIntegral $ (n .&. 0x3F) + 0x80
 
 ord4   :: Char -> (Word8,Word8,Word8,Word8)
-ord4 c = (x1,x2,x3,x4)
+ord4 c = assert (n >= 0x10000) (x1,x2,x3,x4)
     where
       n  = ord c
-      x1 = fromIntegral $ (shiftR n 18) + (0xF0::Int) :: Word8
-      x2 = fromIntegral $ ((shiftR n 12) .&. (0x3F::Int)) + (0x80::Int) :: Word8
-      x3 = fromIntegral $ ((shiftR n 6) .&. (0x3F::Int)) + (0x80::Int) :: Word8
-      x4 = fromIntegral $ (n .&. (0x3F::Int)) + (0x80::Int) :: Word8
+      x1 = fromIntegral $ (n `shiftR` 18) + 0xF0
+      x2 = fromIntegral $ ((n `shiftR` 12) .&. 0x3F) + 0x80
+      x3 = fromIntegral $ ((n `shiftR` 6) .&. 0x3F) + 0x80
+      x4 = fromIntegral $ (n .&. 0x3F) + 0x80
 
 chr2       :: Word8 -> Word8 -> Char
 chr2 (W8# x1#) (W8# x2#) = C# (chr# (z1# +# z2#))
@@ -72,7 +75,7 @@ chr2 (W8# x1#) (W8# x2#) = C# (chr# (z1# +# z2#))
       y1# = word2Int# x1#
       y2# = word2Int# x2#
       z1# = uncheckedIShiftL# (y1# -# 0xC0#) 6#
-      z2# = y2# -# 0x8F#
+      z2# = y2# -# 0x80#
 {-# INLINE chr2 #-}
 
 chr3          :: Word8 -> Word8 -> Word8 -> Char

@@ -8,6 +8,7 @@ import qualified Data.Text as T
 import System.IO
 import System.Random
 import Test.QuickCheck
+import qualified Data.ByteString as B
 
 integralRandomR :: (Integral a, RandomGen g) => (a,a) -> g -> (a,g)
 integralRandomR  (a,b) g = case randomR (fromIntegral a :: Integer,
@@ -15,12 +16,16 @@ integralRandomR  (a,b) g = case randomR (fromIntegral a :: Integer,
                             (x,g) -> (fromIntegral x, g)
 
 instance Random Word8 where
-  randomR = integralRandomR
-  random  = randomR (minBound,maxBound)
+    randomR = integralRandomR
+    random  = randomR (minBound,maxBound)
 
 instance Arbitrary Word8 where
     arbitrary     = choose (minBound,maxBound)
     coarbitrary c = variant (fromEnum c `rem` 4)
+
+instance Arbitrary B.ByteString where
+  arbitrary = B.pack `fmap` arbitrary
+  coarbitrary s = coarbitrary (B.unpack s)
 
 instance Random Word16 where
   randomR = integralRandomR
@@ -50,6 +55,10 @@ instance Arbitrary a => Arbitrary (NotEmpty [a]) where
 
 instance Arbitrary (NotEmpty T.Text) where
     arbitrary   = (fmap T.pack) `fmap` arbitrary
+    coarbitrary = coarbitrary . notEmpty
+
+instance Arbitrary (NotEmpty B.ByteString) where
+    arbitrary   = (fmap B.pack) `fmap` arbitrary
     coarbitrary = coarbitrary . notEmpty
 
 debug = False

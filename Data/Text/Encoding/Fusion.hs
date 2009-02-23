@@ -56,7 +56,7 @@ import qualified Data.Text.Utf16 as U16
 import qualified Data.Text.Utf32 as U32
 import qualified Data.Text.Utf8 as U8
 
-data T4 a b c d = T4 !a !b !c !d
+data T4 a b c d = T4 {-# UNPACK #-} !a {-# UNPACK #-} !b {-# UNPACK #-} !c {-# UNPACK #-} !d
 
 streamASCII :: ByteString -> Stream Char
 streamASCII bs = Stream next 0 l
@@ -169,36 +169,32 @@ restreamASCII (Stream next0 s0 len) =  Stream next s0 (len*2)
                       where x' = fromIntegral (ord x) :: Word8
 {-# INLINE restreamASCII #-}
 
+data M = N | J {-# UNPACK #-} !Word8
+       deriving (Eq, Ord, Show)
+
 -- | /O(n)/ Convert a Stream Char into a UTF-8 encoded Stream Word8.
 restreamUtf8 :: Stream Char -> Stream Word8
 restreamUtf8 (Stream next0 s0 len) =
-    Stream next (T4 (Just s0) Nothing Nothing Nothing) (len*2)
+    Stream next (T4 s0 N N N) (len*2)
     where
       {-# INLINE next #-}
-      next (T4 (Just s) Nothing Nothing Nothing) = case next0 s of
+      next (T4 s N N N) = case next0 s of
                   Done              -> Done
-                  Skip s'           -> Skip (T4 (Just s') Nothing Nothing Nothing)
+                  Skip s'           -> Skip (T4 s' N N N)
                   Yield x xs
-                      | n <= 0x7F   -> Yield c         (T4 (Just xs) Nothing Nothing Nothing)
-                      | n <= 0x07FF -> Yield (fst c2)  (T4 (Just xs) (Just $ snd c2) Nothing Nothing)
-                      | n <= 0xFFFF -> Yield (fst3 c3) (T4 (Just xs) (Just $ snd3 c3) (Just $ trd3 c3) Nothing)
-                      | otherwise   -> Yield (fst4 c4) (T4 (Just xs) (Just $ snd4 c4) (Just $ trd4 c4) (Just $ fth4 c4))
+                      | n <= 0x7F   -> Yield c  (T4 xs N N N)
+                      | n <= 0x07FF -> Yield a2 (T4 xs (J b2) N N)
+                      | n <= 0xFFFF -> Yield a3 (T4 xs (J b3) (J c3) N)
+                      | otherwise   -> Yield a4 (T4 xs (J b4) (J c4) (J d4))
                       where
                         n  = ord x
                         c  = fromIntegral n
-                        c2 = U8.ord2 x
-                        c3 = U8.ord3 x
-                        c4 = U8.ord4 x
-                        fst3 (x1,_,_)   = x1
-                        snd3 (_,x2,_)   = x2
-                        trd3 (_,_,x3)   = x3
-                        fst4 (x1,_,_,_) = x1
-                        snd4 (_,x2,_,_) = x2
-                        trd4 (_,_,x3,_) = x3
-                        fth4 (_,_,_,x4) = x4
-      next (T4 (Just s) (Just x2) Nothing Nothing) = Yield x2 (T4 (Just s) Nothing Nothing Nothing)
-      next (T4 (Just s) (Just x2) x3 Nothing)      = Yield x2 (T4 (Just s) x3 Nothing Nothing)
-      next (T4 (Just s) (Just x2) x3 x4)           = Yield x2 (T4 (Just s) x3 x4 Nothing)
+                        (a2,b2) = U8.ord2 x
+                        (a3,b3,c3) = U8.ord3 x
+                        (a4,b4,c4,d4) = U8.ord4 x
+      next (T4 s (J x2) N N)   = Yield x2 (T4 s N N N)
+      next (T4 s (J x2) x3 N)  = Yield x2 (T4 s x3 N N)
+      next (T4 s (J x2) x3 x4) = Yield x2 (T4 s x3 x4 N)
       next _ = internalError "restreamUtf8"
 {-# INLINE restreamUtf8 #-}
 

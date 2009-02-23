@@ -3,6 +3,7 @@
 import Test.QuickCheck
 import Text.Show.Functions
 
+import Data.Char
 import Debug.Trace
 import Text.Printf
 import System.Environment
@@ -10,19 +11,24 @@ import Control.Applicative
 import Control.Arrow
 import Control.Monad
 import Data.Word
+import qualified Data.ByteString as B
 import qualified Data.Text as T
 import Data.Text (pack,unpack)
+import qualified Data.Text.Encoding as E
 import qualified Data.Text.Fusion as S
 import Data.Text.Fusion (stream, unstream)
 import qualified Data.List as L
 
-
 import QuickCheckUtils
 
-prop_pack_unpack s   = (unpack . pack) s == s
+prop_pack_unpack s     = (unpack . pack) s == s
 prop_stream_unstream t = (unstream . stream) t == t
-prop_reverse_stream t = (S.reverse . S.reverseStream) t == t
-prop_singleton c     = [c] == (unpack . T.singleton) c
+prop_reverse_stream t  = (S.reverse . S.reverseStream) t == t
+prop_singleton c       = [c] == (unpack . T.singleton) c
+
+prop_ascii t           = E.decodeASCII (E.encodeASCII a) == a
+    where a            = T.map (\c -> chr (ord c `mod` 128)) t
+prop_utf8              = (E.decodeUtf8 . E.encodeUtf8) `eq` id
 
 -- Do two functions give the same answer?
 eq :: (Eq a) => (t -> a) -> (t -> a) -> t -> Bool
@@ -210,6 +216,9 @@ tests = [
   ("prop_stream_unstream", mytest prop_stream_unstream),
   ("prop_reverse_stream", mytest prop_reverse_stream),
   ("prop_singleton", mytest prop_singleton),
+
+  ("prop_ascii", mytest prop_ascii),
+  ("prop_utf8", mytest prop_utf8),
 
   ("prop_cons", mytest prop_cons),
   ("prop_snoc", mytest prop_snoc),
