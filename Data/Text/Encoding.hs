@@ -85,7 +85,7 @@ decodeUtf32LE bs = F.unstream (E.streamUtf32LE bs)
 
 -- | Decode text from big endian UTF-32 encoding.
 decodeUtf32BE :: ByteString -> Text
-decodeUtf32BE bs = F.unstream (E.streamUtf32LE bs)
+decodeUtf32BE bs = F.unstream (E.streamUtf32BE bs)
 {-# INLINE decodeUtf32BE #-}
 
 -- | Encode text using little endian UTF-32 encoding.
