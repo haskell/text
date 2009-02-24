@@ -42,6 +42,7 @@ prop_ascii t           = E.decodeASCII (E.encodeASCII a) == a
     where a            = T.map (\c -> chr (ord c `mod` 128)) t
 prop_utf8              = (E.decodeUtf8 . E.encodeUtf8) `eq` id
 prop_utf16LE           = (E.decodeUtf16LE . E.encodeUtf16LE) `eq` id
+prop_utf16BE           = (E.decodeUtf16BE . E.encodeUtf16BE) `eq` id
 
 -- Do two functions give the same answer?
 eq :: (Eq a) => (t -> a) -> (t -> a) -> t -> Bool
@@ -233,6 +234,7 @@ tests = [
   ("prop_ascii", mytest prop_ascii),
   ("prop_utf8", mytest prop_utf8),
   ("prop_utf16LE", mytest prop_utf16LE),
+  ("prop_utf16BE", mytest prop_utf16BE),
 
   ("prop_cons", mytest prop_cons),
   ("prop_snoc", mytest prop_snoc),
