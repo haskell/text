@@ -38,7 +38,7 @@ prop_stream_unstream t = (unstream . stream) t == t
 prop_reverse_stream t  = (S.reverse . S.reverseStream) t == t
 prop_singleton c       = [c] == (unpack . T.singleton) c
 
-prop_ascii t           = E.decodeASCII (E.encodeASCII a) == a
+prop_ascii t           = E.decodeASCII (E.encodeUtf8 a) == a
     where a            = T.map (\c -> chr (ord c `mod` 128)) t
 prop_utf8              = (E.decodeUtf8 . E.encodeUtf8) `eq` id
 prop_utf16LE           = (E.decodeUtf16LE . E.encodeUtf16LE) `eq` id
