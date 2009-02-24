@@ -24,7 +24,6 @@ module Data.Text.Encoding
     , decodeUtf32BE
 
     -- * Encoding Text to ByteStrings
-    , encodeASCII
     , encodeUtf8
     , encodeUtf16LE
     , encodeUtf16BE
@@ -46,12 +45,6 @@ decodeASCII bs = F.unstream (E.streamASCII bs)
 decodeUtf8 :: ByteString -> Text
 decodeUtf8 bs = F.unstream (E.streamUtf8 bs)
 {-# INLINE decodeUtf8 #-}
-
--- | Encode text using a 7-bit ASCII representation. /Note/: non-ASCII
--- characters in the input 'Text' will be /truncated/.
-encodeASCII :: Text -> ByteString
-encodeASCII txt = E.unstream (E.restreamASCII (F.stream txt))
-{-# INLINE encodeASCII #-}
 
 -- | Encode text using UTF-8 encoding.
 encodeUtf8 :: Text -> ByteString

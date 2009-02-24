@@ -1,7 +1,7 @@
 {-# LANGUAGE MagicHash #-}
 
 -- |
--- Module      : Data.Text.Utf16
+-- Module      : Data.Text.Encoding.Utf16
 -- Copyright   : (c) Tom Harper 2008-2009,
 --               (c) Bryan O'Sullivan 2009,
 --               (c) Duncan Coutts 2009
@@ -13,7 +13,7 @@
 -- Portability : GHC
 --
 -- Basic UTF-16 validation and character manipulation.
-module Data.Text.Utf16
+module Data.Text.Encoding.Utf16
     (
       chr2
     , validate1

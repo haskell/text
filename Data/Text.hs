@@ -163,7 +163,7 @@ import Data.Text.Internal (Text(..), empty, text)
 import qualified Prelude as P
 import Data.Text.Unsafe (iter, iter_, unsafeHead, unsafeTail)
 import Data.Text.UnsafeChar (unsafeChr)
-import qualified Data.Text.Utf16 as U16
+import qualified Data.Text.Encoding.Utf16 as U16
 
 -- $fusion
 --

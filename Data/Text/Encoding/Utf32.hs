@@ -1,5 +1,5 @@
 -- |
--- Module      : Data.Text.Utf16
+-- Module      : Data.Text.Encoding.Utf16
 -- Copyright   : (c) Tom Harper 2008-2009,
 --               (c) Bryan O'Sullivan 2009,
 --               (c) Duncan Coutts 2009
@@ -11,7 +11,7 @@
 -- Portability : portable
 --
 -- Basic UTF-32 validation.
-module Data.Text.Utf32
+module Data.Text.Encoding.Utf32
     (
       validate
     ) where

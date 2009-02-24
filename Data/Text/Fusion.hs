@@ -115,7 +115,7 @@ import Data.Text.Internal (Text(..))
 import Data.Text.UnsafeChar (unsafeChr, unsafeWrite, unsafeWriteRev)
 import qualified Data.Text.Array as A
 import qualified Data.Text.Internal as I
-import qualified Data.Text.Utf16 as U16
+import qualified Data.Text.Encoding.Utf16 as U16
 import qualified Prelude as P
 
 default(Int)

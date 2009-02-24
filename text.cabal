@@ -24,9 +24,9 @@ library
     Data.Text.Internal
     Data.Text.Unsafe
     Data.Text.UnsafeChar
-    Data.Text.Utf8
-    Data.Text.Utf32
-    Data.Text.Utf16
+    Data.Text.Encoding.Utf8
+    Data.Text.Encoding.Utf16
+    Data.Text.Encoding.Utf32
 
   build-depends:
     base       < 5,

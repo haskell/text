@@ -31,7 +31,6 @@ module Data.Text.Encoding.Fusion
     -- * Restreaming
     -- Restreaming is the act of converting from one 'Stream'
     -- representation to another.
-    , restreamASCII
     , restreamUtf8
     , restreamUtf16LE
     , restreamUtf16BE
@@ -52,9 +51,9 @@ import Foreign.Storable (pokeByteOff)
 import System.IO.Unsafe (unsafePerformIO)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Unsafe as B
-import qualified Data.Text.Utf16 as U16
-import qualified Data.Text.Utf32 as U32
-import qualified Data.Text.Utf8 as U8
+import qualified Data.Text.Encoding.Utf8 as U8
+import qualified Data.Text.Encoding.Utf16 as U16
+import qualified Data.Text.Encoding.Utf32 as U32
 
 -- Specialised, strict Maybe-like type.
 data M = N
@@ -174,16 +173,6 @@ streamUtf32LE bs = Stream next 0 l
             x4    = idx $ i+3
             idx = fromIntegral . B.unsafeIndex bs :: Int -> Word32
 {-# INLINE [0] streamUtf32LE #-}
-
-restreamASCII :: Stream Char -> Stream Word8
-restreamASCII (Stream next0 s0 len) =  Stream next s0 (len*2)
-    where
-      next !s = case next0 s of
-                  Done -> Done
-                  Skip s' -> Skip s'
-                  Yield x xs -> Yield x' xs
-                      where x' = fromIntegral (ord x) :: Word8
-{-# INLINE restreamASCII #-}
 
 -- | /O(n)/ Convert a Stream Char into a UTF-8 encoded Stream Word8.
 restreamUtf8 :: Stream Char -> Stream Word8

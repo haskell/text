@@ -20,7 +20,7 @@ module Data.Text.Unsafe
 import Control.Exception (assert)
 import Data.Text.Internal (Text(..))
 import Data.Text.UnsafeChar (unsafeChr)
-import Data.Text.Utf16 (chr2)
+import Data.Text.Encoding.Utf16 (chr2)
 import qualified Data.Text.Array as A
 
 -- | /O(1)/ A variant of 'head' for non-empty 'Text'. 'unsafeHead'
