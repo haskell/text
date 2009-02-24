@@ -102,8 +102,8 @@ streamUtf16LE bs = Stream next 0 l
           | i+3 < l && U16.validate2 x1 x2 = Yield (U16.chr2 x1 x2) (i+4)
           | otherwise = encodingError "UTF-16LE"
           where
-            x1    = (shiftL (idx (i + 1)) 8) + (idx i)
-            x2    = (shiftL (idx (i + 3)) 8) + (idx (i + 2))
+            x1    = (idx (i + 1) `shiftL` 8) + idx i
+            x2    = (idx (i + 3) `shiftL` 8) + idx (i + 2)
             idx = fromIntegral . B.unsafeIndex bs :: Int -> Word16
 {-# INLINE [0] streamUtf16LE #-}
 
@@ -225,15 +225,17 @@ restreamUtf16BE (Stream next0 s0 len) =
 
 restreamUtf16LE :: Stream Char -> Stream Word8
 restreamUtf16LE (Stream next0 s0 len) =
-    Stream next (T4 (Just s0) Nothing Nothing Nothing) (len*2)
+    Stream next (T4 s0 N N N) (len*2)
     where
       {-# INLINE next #-}
-      next (T4 (Just s) Nothing Nothing Nothing) = case next0 s of
+      next (T4 s N N N) = case next0 s of
           Done -> Done
-          Skip s' -> Skip (T4 (Just s') Nothing Nothing Nothing)
+          Skip s' -> Skip (T4 s' N N N)
           Yield x xs
-              | n < 0x10000 -> Yield (fromIntegral n) (T4 (Just xs) (Just (fromIntegral $ shiftR n 8)) Nothing Nothing)
-              | otherwise   -> Yield c1                          (T4 (Just xs) (Just c2) (Just c3) (Just c4))
+              | n < 0x10000 -> Yield (fromIntegral n) $
+                               T4 xs (J (fromIntegral $ shiftR n 8)) N N
+              | otherwise   -> Yield c1 $
+                               T4 xs (J c2) (J c3) (J c4)
               where
                 n  = ord x
                 n1 = n - 0x10000
@@ -242,9 +244,9 @@ restreamUtf16LE (Stream next0 s0 len) =
                 n2 = n1 .&. 0x3FF
                 c4 = fromIntegral (shiftR n2 8 + 0xDC)
                 c3 = fromIntegral n2
-      next (T4 (Just s) (Just x2) Nothing Nothing) = Yield x2 (T4 (Just s) Nothing Nothing Nothing)
-      next (T4 (Just s) (Just x2) x3 Nothing)      = Yield x2 (T4 (Just s) x3 Nothing Nothing)
-      next (T4 (Just s) (Just x2) x3 x4)           = Yield x2 (T4 (Just s) x3 x4 Nothing)
+      next (T4 s (J x2) N N)   = Yield x2 (T4 s N N N)
+      next (T4 s (J x2) x3 N)  = Yield x2 (T4 s x3 N N)
+      next (T4 s (J x2) x3 x4) = Yield x2 (T4 s x3 x4 N)
       next _ = internalError "restreamUtf16LE"
 {-# INLINE restreamUtf16LE #-}
 

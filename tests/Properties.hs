@@ -15,11 +15,23 @@ import qualified Data.ByteString as B
 import qualified Data.Text as T
 import Data.Text (pack,unpack)
 import qualified Data.Text.Encoding as E
+import Control.Exception
 import qualified Data.Text.Fusion as S
 import Data.Text.Fusion (stream, unstream)
 import qualified Data.List as L
+import System.IO.Unsafe
+import Prelude hiding (catch)
 
 import QuickCheckUtils
+
+-- If a pure property threatens to crash, wrap it with this to keep
+-- QuickCheck from bombing out.
+crashy :: a -> a -> a
+{-# NOINLINE crashy #-}
+crashy onException p = unsafePerformIO $
+    (return $! p) `catch` \e ->
+    let types = e :: SomeException
+    in trace ("*** Exception: " ++ show e) return onException
 
 prop_pack_unpack s     = (unpack . pack) s == s
 prop_stream_unstream t = (unstream . stream) t == t
@@ -29,10 +41,11 @@ prop_singleton c       = [c] == (unpack . T.singleton) c
 prop_ascii t           = E.decodeASCII (E.encodeASCII a) == a
     where a            = T.map (\c -> chr (ord c `mod` 128)) t
 prop_utf8              = (E.decodeUtf8 . E.encodeUtf8) `eq` id
+prop_utf16LE           = (E.decodeUtf16LE . E.encodeUtf16LE) `eq` id
 
 -- Do two functions give the same answer?
 eq :: (Eq a) => (t -> a) -> (t -> a) -> t -> Bool
-eq a b s  = a s == b s
+eq a b s  = crashy False $ a s == b s
 -- What about with the RHS packed?
 eqP :: (Eq a, Show a) => (String -> a) -> (T.Text -> a) -> String -> Word8 -> Bool
 eqP a b s w  = eq "orig" (a s) (b t) &&
@@ -45,7 +58,7 @@ eqP a b s w  = eq "orig" (a s) (b t) &&
           m | l == 0    = n
             | otherwise = n `mod` l
           n             = fromIntegral w
-          eq s a b | a == b = True
+          eq s a b | crashy False $ a == b = True
                    | otherwise = trace (s ++ ": " ++ show a ++ " /= " ++ show b) False
 -- Or with the string non-empty, and the RHS packed?
 eqEP :: (Eq a) =>
@@ -219,6 +232,7 @@ tests = [
 
   ("prop_ascii", mytest prop_ascii),
   ("prop_utf8", mytest prop_utf8),
+  ("prop_utf16LE", mytest prop_utf16LE),
 
   ("prop_cons", mytest prop_cons),
   ("prop_snoc", mytest prop_snoc),

@@ -33,7 +33,7 @@ chr2 (W16# a#) (W16# b#) = C# (chr# (upper# +# lower# +# 0x10000#))
 {-# INLINE chr2 #-}
 
 validate1    :: Word16 -> Bool
-validate1 x1 = (x1 >= 0 && x1 < 0xD800) || (x1 > 0xDFFF && x1 < 0x10000)
+validate1 x1 = (x1 >= 0 && x1 < 0xD800) || x1 > 0xDFFF
 {-# INLINE validate1 #-}
 
 validate2       ::  Word16 -> Word16 -> Bool
