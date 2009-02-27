@@ -18,6 +18,7 @@ library
     Data.Text
     Data.Text.Encoding
     Data.Text.Encoding.Fusion
+    Data.Text.Foreign
     Data.Text.Fusion
   other-modules:
     Data.Text.Array
