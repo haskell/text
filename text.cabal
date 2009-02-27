@@ -12,6 +12,7 @@ copyright:      2008-2009 Tom Harper
 category:       Data, Text
 build-type:     Simple
 cabal-version:  >= 1.2
+extra-source-files: README
 
 library
   exposed-modules:
