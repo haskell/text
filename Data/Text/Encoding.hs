@@ -11,7 +11,10 @@
 -- Portability : portable
 --
 -- Functions for converting 'Text' values to and from 'ByteString',
--- using several common encodings.
+-- using several standard encodings.
+--
+-- To make use of a much larger variety of encodings, use the @text-icu@
+-- package.
 
 module Data.Text.Encoding
     (

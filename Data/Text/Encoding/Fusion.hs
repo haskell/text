@@ -76,7 +76,7 @@ streamASCII bs = Stream next 0 l
             x1 = B.unsafeIndex bs i
 {-# INLINE [0] streamASCII #-}
 
--- | /O(n) Convert a 'ByteString' into a 'Stream Char', using UTF-8
+-- | /O(n)/ Convert a 'ByteString' into a 'Stream Char', using UTF-8
 -- encoding.
 streamUtf8 :: ByteString -> Stream Char
 streamUtf8 bs = Stream next 0 l
@@ -98,7 +98,7 @@ streamUtf8 bs = Stream next 0 l
             idx = B.unsafeIndex bs
 {-# INLINE [0] streamUtf8 #-}
 
--- | /O(n) Convert a 'ByteString' into a 'Stream Char', using little
+-- | /O(n)/ Convert a 'ByteString' into a 'Stream Char', using little
 -- endian UTF-16 encoding.
 streamUtf16LE :: ByteString -> Stream Char
 streamUtf16LE bs = Stream next 0 l
@@ -116,7 +116,7 @@ streamUtf16LE bs = Stream next 0 l
             idx = fromIntegral . B.unsafeIndex bs :: Int -> Word16
 {-# INLINE [0] streamUtf16LE #-}
 
--- | /O(n) Convert a 'ByteString' into a 'Stream Char', using big
+-- | /O(n)/ Convert a 'ByteString' into a 'Stream Char', using big
 -- endian UTF-16 encoding.
 streamUtf16BE :: ByteString -> Stream Char
 streamUtf16BE bs = Stream next 0 l
@@ -134,7 +134,7 @@ streamUtf16BE bs = Stream next 0 l
             idx = fromIntegral . B.unsafeIndex bs :: Int -> Word16
 {-# INLINE [0] streamUtf16BE #-}
 
--- | /O(n) Convert a 'ByteString' into a 'Stream Char', using big
+-- | /O(n)/ Convert a 'ByteString' into a 'Stream Char', using big
 -- endian UTF-32 encoding.
 streamUtf32BE :: ByteString -> Stream Char
 streamUtf32BE bs = Stream next 0 l
@@ -154,7 +154,7 @@ streamUtf32BE bs = Stream next 0 l
             idx = fromIntegral . B.unsafeIndex bs :: Int -> Word32
 {-# INLINE [0] streamUtf32BE #-}
 
--- | /O(n) Convert a 'ByteString' into a 'Stream Char', using little
+-- | /O(n)/ Convert a 'ByteString' into a 'Stream Char', using little
 -- endian UTF-32 encoding.
 streamUtf32LE :: ByteString -> Stream Char
 streamUtf32LE bs = Stream next 0 l
