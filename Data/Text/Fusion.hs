@@ -1,4 +1,4 @@
-{-# LANGUAGE ExistentialQuantification, BangPatterns, MagicHash #-}
+{-# LANGUAGE BangPatterns, MagicHash #-}
 
 -- |
 -- Module      : Data.Text.Fusion
@@ -22,6 +22,7 @@ module Data.Text.Fusion
 
     -- * Creation and elimination
     , stream
+    , streamList
     , unstream
     , reverseStream
     , empty
@@ -114,39 +115,12 @@ import Data.Char (ord)
 import Data.Text.Internal (Text(..))
 import Data.Text.UnsafeChar (unsafeChr, unsafeWrite, unsafeWriteRev)
 import qualified Data.Text.Array as A
+import Data.Text.Fusion.Internal
 import qualified Data.Text.Internal as I
 import qualified Data.Text.Encoding.Utf16 as U16
 import qualified Prelude as P
 
 default(Int)
-
-infixl 2 :!:
-data PairS a b = !a :!: !b
-
--- | Allow a function over a stream to switch between two states.
-data Switch = S1 | S2
-
-data Stream a =
-    forall s. Stream
-    (s -> Step s a)             -- stepper function
-    !s                          -- current state
-    {-# UNPACK #-}!Int          -- length hint
-
--- The length hint in a Stream has two roles.  If its value is zero,
--- we trust it, and treat the stream as empty.  Otherwise, we treat it
--- as a hint: it should usually be accurate, so we use it when
--- unstreaming to decide what size array to allocate.  However, the
--- unstreaming functions must be able to cope with the hint being too
--- small or too large.
---
--- The size hint tries to track the UTF-16 code points in a stream,
--- but often counts the number of characters instead.  It can easily
--- undercount if, for instance, a transformed stream contains astral
--- plane characters (those above 0x10000).
-
-data Step s a = Done
-              | Skip !s
-              | Yield !a !s
 
 -- | /O(n)/ Convert a 'Text' into a 'Stream Char'.
 stream :: Text -> Stream Char
@@ -182,7 +156,7 @@ reverseStream (Text arr off len) = Stream next (off+len-1) len
 unstream :: Stream Char -> Text
 unstream (Stream next0 s0 len)
     | len == 0 = I.empty
-    | otherwise = Text (P.fst a) 0 (P.snd a)
+    | otherwise = I.textP (P.fst a) 0 (P.snd a)
     where
       a = runST (A.unsafeNew len >>= (\arr -> loop arr len s0 0))
       loop arr !top !s !i
@@ -197,26 +171,6 @@ unstream (Stream next0 s0 len)
                Yield x s' -> unsafeWrite arr i x >>= loop arr top s'
 {-# INLINE [0] unstream #-}
 {-# RULES "STREAM stream/unstream fusion" forall s. stream (unstream s) = s #-}
-
--- | The empty stream.
-empty :: Stream Char
-empty = Stream next () 0
-    where next _ = Done
-{-# INLINE [0] empty #-}
-
--- | /O(n)/ Determines if two streams are equal.
-eq :: Ord a => Stream a -> Stream a -> Bool
-eq (Stream next1 s1 _) (Stream next2 s2 _) = cmp (next1 s1) (next2 s2)
-    where
-      cmp Done Done = True
-      cmp Done _    = False
-      cmp _    Done = False
-      cmp (Skip s1')     (Skip s2')     = cmp (next1 s1') (next2 s2')
-      cmp (Skip s1')     x2             = cmp (next1 s1') x2
-      cmp x1             (Skip s2')     = cmp x1          (next2 s2')
-      cmp (Yield x1 s1') (Yield x2 s2') = x1 == x2 &&
-                                          cmp (next1 s1') (next2 s2')
-{-# SPECIALISE eq :: Stream Char -> Stream Char -> Bool #-}
 
 streamError :: String -> String -> a
 streamError func msg = P.error $ "Data.Text.Fusion." ++ func ++ ": " ++ msg
@@ -403,7 +357,7 @@ intersperse c (Stream next0 s0 len) = Stream next (s0 :!: Nothing :!: S1) len
 reverse :: Stream Char -> Text
 reverse (Stream next s len0)
     | len0 == 0 = I.empty
-    | otherwise = Text arr off' len'
+    | otherwise = I.textP arr off' len'
   where
     len0' = max len0 4
     (arr, (off', len')) = A.run2 (A.unsafeNew len0' >>= loop s (len0'-1) len0')

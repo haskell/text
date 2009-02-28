@@ -158,8 +158,10 @@ import Data.Word (Word16)
 import Data.String (IsString(..))
 
 import qualified Data.Text.Fusion as S
+import qualified Data.Text.Fusion.Internal as S
 import Data.Text.Fusion (Stream(..), Step(..), stream, reverseStream, unstream)
-import Data.Text.Internal (Text(..), empty, text)
+
+import Data.Text.Internal (Text(..), empty, text, textP)
 import qualified Prelude as P
 import Data.Text.Unsafe (iter, iter_, unsafeHead, unsafeTail)
 import Data.Text.UnsafeChar (unsafeChr)
@@ -195,26 +197,13 @@ instance IsString Text where
 --
 -- This function is subject to array fusion.
 pack :: String -> Text
-pack str = (unstream (stream_list str))
-    where
-      stream_list s0 = S.Stream next s0 (P.length s0) -- total guess
-          where
-            next []     = S.Done
-            next (x:xs) = S.Yield x xs
+pack = unstream . S.streamList
 {-# INLINE [1] pack #-}
--- TODO: Has to do validation! -- No, it doesn't, the
 
 -- | /O(n)/ Convert a Text into a String.
 -- Subject to array fusion.
 unpack :: Text -> String
-unpack txt = (unstream_list (stream txt))
-    where
-      unstream_list (S.Stream next s0 _len) = unfold s0
-          where
-            unfold !s = case next s of
-                          S.Done       -> []
-                          S.Skip s'    -> unfold s'
-                          S.Yield x s' -> x : unfold s'
+unpack = S.unstreamList . stream
 {-# INLINE [1] unpack #-}
 
 -- | /O(1)/ Convert a character into a Text.
@@ -311,13 +300,6 @@ last (Text arr off len)
 "TEXT last -> unfused" [1] forall t.
     S.last (stream t) = last t
   #-}
-
--- | Construct a 'Text' without invisibly pinning its byte array in
--- memory if its length has dwindled to zero.
-textP :: A.Array Word16 -> Int -> Int -> Text
-textP arr off len | len == 0  = empty
-                  | otherwise = text arr off len
-{-# INLINE textP #-}
 
 -- | /O(1)/ Returns all characters after the head of a 'Text', which
 -- must be non-empty.  Subject to array fusion.

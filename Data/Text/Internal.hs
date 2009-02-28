@@ -21,6 +21,7 @@ module Data.Text.Internal
       Text(..)
     -- * Construction
     , text
+    , textP
     -- * Code that must be here for accessibility
     , empty
     -- * Debugging
@@ -55,6 +56,13 @@ text arr off len =
 empty :: Text
 empty = Text A.empty 0 0
 {-# INLINE [1] empty #-}
+
+-- | Construct a 'Text' without invisibly pinning its byte array in
+-- memory if its length has dwindled to zero.
+textP :: A.Array Word16 -> Int -> Int -> Text
+textP arr off len | len == 0  = empty
+                  | otherwise = text arr off len
+{-# INLINE textP #-}
 
 -- | A useful 'show'-like function for debugging purposes.
 showText :: Text -> String

@@ -21,9 +21,13 @@ library
     Data.Text.Encoding.Fusion
     Data.Text.Foreign
     Data.Text.Fusion
+    Data.Text.Lazy
+    Data.Text.Lazy.Fusion
   other-modules:
     Data.Text.Array
     Data.Text.Internal
+    Data.Text.Fusion.Internal
+    Data.Text.Lazy.Internal
     Data.Text.Unsafe
     Data.Text.UnsafeChar
     Data.Text.Encoding.Utf8

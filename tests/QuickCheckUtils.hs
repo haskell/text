@@ -5,6 +5,7 @@ module QuickCheckUtils where
 import Data.List
 import Data.Word
 import qualified Data.Text as T
+import qualified Data.Text.Lazy as TL
 import System.IO
 import System.Random
 import Test.QuickCheck
@@ -43,6 +44,10 @@ instance Arbitrary T.Text where
     arbitrary     = T.pack `fmap` arbitrary
     coarbitrary s = coarbitrary (T.unpack s)
 
+instance Arbitrary TL.Text where
+    arbitrary     = TL.pack `fmap` arbitrary
+    coarbitrary s = coarbitrary (TL.unpack s)
+
 newtype NotEmpty a = NotEmpty { notEmpty :: a }
     deriving (Eq, Ord, Show)
 
@@ -55,6 +60,10 @@ instance Arbitrary a => Arbitrary (NotEmpty [a]) where
 
 instance Arbitrary (NotEmpty T.Text) where
     arbitrary   = (fmap T.pack) `fmap` arbitrary
+    coarbitrary = coarbitrary . notEmpty
+
+instance Arbitrary (NotEmpty TL.Text) where
+    arbitrary   = (fmap TL.pack) `fmap` arbitrary
     coarbitrary = coarbitrary . notEmpty
 
 instance Arbitrary (NotEmpty B.ByteString) where
