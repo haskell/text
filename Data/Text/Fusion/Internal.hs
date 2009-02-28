@@ -23,11 +23,11 @@ module Data.Text.Fusion.Internal
     , empty
     , streamList
     , unstreamList
-    , eq
     ) where
 
 infixl 2 :!:
 data PairS a b = !a :!: !b
+               deriving (Eq, Ord, Read, Show)
 
 -- | Allow a function over a stream to switch between two states.
 data Switch = S1 | S2
@@ -35,6 +35,14 @@ data Switch = S1 | S2
 data Step s a = Done
               | Skip !s
               | Yield !a !s
+
+instance Show a => Show (Step s a)
+    where show Done        = "Done"
+          show (Skip _)    = "Skip"
+          show (Yield x _) = "Yield " ++ show x
+
+instance Eq a => Eq (Stream a) where
+    (==) = eq
 
 -- The length hint in a Stream has two roles.  If its value is zero,
 -- we trust it, and treat the stream as empty.  Otherwise, we treat it

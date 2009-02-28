@@ -154,7 +154,8 @@ import Data.Text.Lazy.Fusion
 import Data.Text.Lazy.Internal
 
 instance Eq Text where
-    t1 == t2 = stream t1 `S.eq` stream t2
+    t1 == t2 = stream t1 == stream t2
+    {-# INLINE (==) #-}
 
 instance Show Text where
     showsPrec p ps r = showsPrec p (unpack ps) r
