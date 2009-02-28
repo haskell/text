@@ -208,6 +208,11 @@ prop_T_elemIndices c   = L.elemIndices c`eqP` T.elemIndices c
 prop_T_count c         = (L.length . L.elemIndices c) `eqP` T.count c
 prop_T_zipWith c s     = L.zipWith c s `eqP` (T.unpack . T.zipWith c (T.pack s))
 
+-- Regression tests.
+prop_S_filter_eq s = S.filter p t == S.streamList (filter p s)
+    where p = (/= S.last t)
+          t = S.streamList s
+
 -- Make a stream appear shorter than it really is, to ensure that
 -- functions that consume inaccurately sized streams behave
 -- themselves.
@@ -335,5 +340,7 @@ tests = [
   ("prop_T_elemIndex", mytest prop_T_elemIndex),
   ("prop_T_elemIndices", mytest prop_T_elemIndices),
   ("prop_T_count", mytest prop_T_count),
-  ("prop_T_zipWith", mytest prop_T_zipWith)
+  ("prop_T_zipWith", mytest prop_T_zipWith),
+
+  ("prop_S_filter_eq", mytest prop_S_filter_eq)
   ]
