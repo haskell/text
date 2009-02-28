@@ -67,18 +67,19 @@ empty = Stream next () 0
 {-# INLINE [0] empty #-}
 
 -- | /O(n)/ Determines if two streams are equal.
-eq :: Ord a => Stream a -> Stream a -> Bool
-{-# INLINE eq #-}
+eq :: (Eq a) => Stream a -> Stream a -> Bool
 eq (Stream next1 s1 _) (Stream next2 s2 _) = cmp (next1 s1) (next2 s2)
     where
-      cmp Done Done = True
-      cmp Done _    = False
-      cmp _    Done = False
+      cmp Done Done                     = True
       cmp (Skip s1')     (Skip s2')     = cmp (next1 s1') (next2 s2')
       cmp (Skip s1')     x2             = cmp (next1 s1') x2
       cmp x1             (Skip s2')     = cmp x1          (next2 s2')
+      cmp Done _                        = False
+      cmp _    Done                     = False
       cmp (Yield x1 s1') (Yield x2 s2') = x1 == x2 &&
                                           cmp (next1 s1') (next2 s2')
+{-# INLINE [0] eq #-}
+{-# SPECIALISE eq :: Stream Char -> Stream Char -> Bool #-}
 
 streamList :: [a] -> Stream a
 {-# INLINE streamList #-}

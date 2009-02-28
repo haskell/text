@@ -172,26 +172,6 @@ unstream (Stream next0 s0 len)
 {-# INLINE [0] unstream #-}
 {-# RULES "STREAM stream/unstream fusion" forall s. stream (unstream s) = s #-}
 
--- | The empty stream.
-empty :: Stream Char
-empty = Stream next () 0
-    where next _ = Done
-{-# INLINE [0] empty #-}
-
--- | /O(n)/ Determines if two streams are equal.
-eq :: Ord a => Stream a -> Stream a -> Bool
-eq (Stream next1 s1 _) (Stream next2 s2 _) = cmp (next1 s1) (next2 s2)
-    where
-      cmp Done Done = True
-      cmp Done _    = False
-      cmp _    Done = False
-      cmp (Skip s1')     (Skip s2')     = cmp (next1 s1') (next2 s2')
-      cmp (Skip s1')     x2             = cmp (next1 s1') x2
-      cmp x1             (Skip s2')     = cmp x1          (next2 s2')
-      cmp (Yield x1 s1') (Yield x2 s2') = x1 == x2 &&
-                                          cmp (next1 s1') (next2 s2')
-{-# SPECIALISE eq :: Stream Char -> Stream Char -> Bool #-}
-
 streamError :: String -> String -> a
 streamError func msg = P.error $ "Data.Text.Fusion." ++ func ++ ": " ++ msg
 
