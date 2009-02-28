@@ -406,7 +406,7 @@ reverse (Stream next s len0)
     | otherwise = Text arr off' len'
   where
     len0' = max len0 4
-    (arr, (off', len')) = A.run2 (A.unsafeNew len0 >>= loop s (len0'-1) len0')
+    (arr, (off', len')) = A.run2 (A.unsafeNew len0' >>= loop s (len0'-1) len0')
     loop !s0 !i !len marr =
         case next s0 of
           Done -> return (marr, (j, len-j))
