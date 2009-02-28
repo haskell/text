@@ -1,8 +1,6 @@
 -- |
 -- Module      : Data.Text.Lazy.Fusion
--- Copyright   : (c) Tom Harper 2008-2009,
---               (c) Bryan O'Sullivan 2009,
---               (c) Duncan Coutts 2009
+-- Copyright   : (c) Bryan O'Sullivan 2009
 --
 -- License     : BSD-style
 -- Maintainer  : rtharper@aftereternity.co.uk, bos@serpentine.com,
@@ -16,6 +14,7 @@ module Data.Text.Lazy.Fusion
     (
       stream
     , unstream
+    , unstreamChunks
     ) where
 
 import Data.Text.Fusion.Internal
@@ -28,6 +27,7 @@ import Data.Text.Unsafe (iter)
 
 default(Int)
 
+-- | /O(n)/ Convert a 'Text' into a 'Stream Char'.
 stream :: Text -> Stream Char
 stream text = Stream next (text :!: 0) 4
   where
@@ -38,23 +38,25 @@ stream text = Stream next (text :!: 0) 4
         where (c,d) = iter t i
 {-# INLINE [0] stream #-}
 
-unstream :: Stream Char -> Text
-unstream (Stream next s0 len0)
+-- | /O(n)/ Convert a 'Stream Char' into a 'Text', using the given
+-- chunk size.
+unstreamChunks :: Int -> Stream Char -> Text
+unstreamChunks chunkSize (Stream next s0 len0)
   | len0 == 0 = Empty
   | otherwise = outer s0
   where
     outer s = case next s of
-                Done    -> Empty
-                Skip s' -> outer s'
-                Yield x s' -> chunk t (outer s'')
-                  where (t,s'') = fill x s'
-    fill x s = (I.Text a 0 l,s')
-        where (a,(s',l)) = A.run2 (A.unsafeNew initLen >>= (\arr -> inner arr initLen x s 0))
-    initLen = 8
+                Done       -> Empty
+                Skip s'    -> outer s'
+                Yield x s' -> I.Text arr 0 len `chunk` outer s''
+                  where (arr,(s'',len)) = A.run2 fill
+                        fill = do arr <- A.unsafeNew unknownLength
+                                  inner arr unknownLength x s' 0
+                        unknownLength = 4
     inner marr len x s i
-        | i + 1 >= defaultChunkSize = return (marr, (s,i))
-        | i + 1 >= len = do
-            let newLen = min (len * 2) defaultChunkSize
+        | i + 1 >= chunkSize = return (marr, (s,i))
+        | i + 1 >= len       = do
+            let newLen = min (len * 2) chunkSize
             marr' <- A.unsafeNew newLen
             A.copy marr marr'
             inner marr' newLen x s i
@@ -64,5 +66,12 @@ unstream (Stream next s0 len0)
                                 return (marr,(s,i'))
               Skip s'     -> inner marr len x s i
               Yield x' s' -> unsafeWrite marr i x >>= inner marr len x' s' 
+{-# INLINE [0] unstreamChunks #-}
+
+-- | /O(n)/ Convert a 'Stream Char' into a 'Text', using
+-- 'defaultChunkSize'.
+unstream :: Stream Char -> Text
+unstream = unstreamChunks defaultChunkSize
 {-# INLINE [0] unstream #-}
+
 {-# RULES "STREAM stream/unstream fusion" forall s. stream (unstream s) = s #-}

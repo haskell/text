@@ -39,6 +39,7 @@ prop_T_stream_unstream   = (S.unstream . S.stream) `eq` id
 prop_TL_stream_unstream  = (SL.unstream . SL.stream) `eq` id
 prop_T_reverse_stream t  = (S.reverse . S.reverseStream) t == t
 prop_T_singleton c       = [c] == (T.unpack . T.singleton) c
+prop_TL_singleton c      = [c] == (TL.unpack . TL.singleton) c
 
 prop_T_ascii t           = E.decodeASCII (E.encodeUtf8 a) == a
     where a            = T.map (\c -> chr (ord c `mod` 128)) t
@@ -236,6 +237,7 @@ tests = [
   ("prop_TL_stream_unstream", mytest prop_TL_stream_unstream),
   ("prop_T_reverse_stream", mytest prop_T_reverse_stream),
   ("prop_T_singleton", mytest prop_T_singleton),
+  ("prop_TL_singleton", mytest prop_TL_singleton),
 
   ("prop_T_ascii", mytest prop_T_ascii),
   ("prop_T_utf8", mytest prop_T_utf8),

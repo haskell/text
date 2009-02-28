@@ -152,7 +152,7 @@ reverseStream (Text arr off len) = Stream next (off+len-1) len
             n2 = A.unsafeIndex arr (i - 1)
 {-# INLINE [0] reverseStream #-}
 
--- | /O(n)/ Convert a Stream Char into a Text.
+-- | /O(n)/ Convert a 'Stream Char' into a 'Text'.
 unstream :: Stream Char -> Text
 unstream (Stream next0 s0 len)
     | len == 0 = I.empty

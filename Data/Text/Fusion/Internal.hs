@@ -19,6 +19,7 @@ module Data.Text.Fusion.Internal
     , Switch(..)
     , Step(..)
     , Stream(..)
+    , singleton
     , empty
     , streamList
     , unstreamList
@@ -52,6 +53,12 @@ data Stream a =
     (s -> Step s a)             -- stepper function
     !s                          -- current state
     {-# UNPACK #-}!Int          -- length hint
+
+singleton :: Char -> Stream Char
+singleton c = Stream next False 1
+    where next False = Yield c True
+          next True  = Done
+{-# INLINE singleton #-}
 
 -- | The empty stream.
 empty :: Stream a

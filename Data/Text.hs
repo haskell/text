@@ -140,7 +140,7 @@ module Data.Text
     , zipWith
 
     -- -* Ordered text
-    , -- sort
+    -- , sort
     ) where
 
 import Prelude (Char, Bool(..), Functor(..), Int, Maybe(..), String,
@@ -209,11 +209,7 @@ unpack = S.unstreamList . stream
 -- | /O(1)/ Convert a character into a Text.
 -- Subject to array fusion.
 singleton :: Char -> Text
-singleton c = unstream (Stream next (c:[]) 1)
-    where
-      {-# INLINE next #-}
-      next (k:ks) = Yield k ks
-      next []     = Done
+singleton = unstream . S.singleton
 {-# INLINE [1] singleton #-}
 
 -- -----------------------------------------------------------------------------
