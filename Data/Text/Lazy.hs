@@ -40,7 +40,7 @@ module Data.Text.Lazy
     , empty
 
     -- * Basic interface
-    -- , cons
+    , cons
     -- , snoc
     , append
     -- , uncons
@@ -193,6 +193,17 @@ singleton c = Chunk (T.singleton c) Empty
 "TEXT singleton -> unfused" [1] forall c.
     unstream (S.singleton c) = singleton c
   #-}
+
+cons :: Char -> Text -> Text
+cons c t = Chunk (T.singleton c) t
+{-# INLINE [1] cons #-}
+
+{-# RULES
+"LAZY TEXT cons -> fused" [~1] forall c t.
+    cons c t = unstream (S.cons c (stream t))
+"LAZY TEXT cons -> unfused" [1] forall c t.
+    unstream (S.cons c (stream t)) = cons c t
+ #-}
 
 -- | /O(n\/c)/ Append two 'Text's
 append :: Text -> Text -> Text
