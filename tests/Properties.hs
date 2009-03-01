@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleInstances #-}
 {-# OPTIONS_GHC -fno-enable-rewrite-rules #-}
 
 import Test.QuickCheck
@@ -49,32 +50,51 @@ prop_T_utf16BE           = (E.decodeUtf16BE . E.encodeUtf16BE) `eq` id
 prop_T_utf32LE           = (E.decodeUtf32LE . E.encodeUtf32LE) `eq` id
 prop_T_utf32BE           = (E.decodeUtf32BE . E.encodeUtf32BE) `eq` id
 
+class Target t where
+    packT    :: String -> t
+    splitAtT :: Int -> t -> (t,t)
+
+instance Target (S.Stream Char) where
+    packT        = S.streamList
+    splitAtT n s = (S.take n s, S.drop n s)
+
+instance Target T.Text where
+    packT    = T.pack
+    splitAtT = T.splitAt
+
+instance Target TL.Text where
+    packT    = TL.pack
+    splitAtT = TL.splitAt
+
 -- Do two functions give the same answer?
 eq :: (Eq a) => (t -> a) -> (t -> a) -> t -> Bool
 eq a b s  = crashy False $ a s == b s
+
 -- What about with the RHS packed?
-eqP :: (Eq a, Show a) => (String -> a) -> (T.Text -> a) -> String -> Word8 -> Bool
+eqP :: (Eq a, Show a, Target t) =>
+       (String -> a) -> (t -> a) -> String -> Word8 -> Bool
 eqP a b s w  = eq "orig" (a s) (b t) &&
                eq "head" (a sa) (b ta) &&
                eq "tail" (a sb) (b tb)
-    where t             = T.pack s
+    where t             = packT s
           (sa,sb)       = splitAt m s
-          (ta,tb)       = T.splitAt m t
+          (ta,tb)       = splitAtT m t
           l             = length s
           m | l == 0    = n
             | otherwise = n `mod` l
           n             = fromIntegral w
           eq s a b | crashy False $ a == b = True
                    | otherwise = trace (s ++ ": " ++ show a ++ " /= " ++ show b) False
+
 -- Or with the string non-empty, and the RHS packed?
-eqEP :: (Eq a) =>
-        (String -> a) -> (T.Text -> a) -> NotEmpty String -> Word8 -> Bool
+eqEP :: (Eq a, Target t) =>
+        (String -> a) -> (t -> a) -> NotEmpty String -> Word8 -> Bool
 eqEP a b e w  = a s == b t &&
                 (null sa || a sa == b ta) &&
                 (null sb || a sb == b tb)
     where (sa,sb)       = splitAt m s
-          (ta,tb)       = T.splitAt m t
-          t             = T.pack s
+          (ta,tb)       = splitAtT m t
+          t             = packT s
           l             = length s
           m | l == 0    = n
             | otherwise = n `mod` l
