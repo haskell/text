@@ -101,6 +101,7 @@ eqEP a b e w  = a s == b t &&
           n             = fromIntegral w
           s             = notEmpty e
 
+prop_S_cons x          = (x:)     `eqP` (S.unstreamList . S.cons x)
 prop_T_cons x          = (x:)     `eqP` (T.unpack . T.cons x)
 prop_TL_cons x         = ((x:)     `eqP` (TL.unpack . TL.cons x))
 prop_T_snoc x          = (++ [x]) `eqP` (T.unpack . (flip T.snoc) x)
@@ -272,6 +273,7 @@ tests = [
   ("prop_T_utf32LE", mytest prop_T_utf32LE),
   ("prop_T_utf32BE", mytest prop_T_utf32BE),
 
+  ("prop_S_cons", mytest prop_S_cons),
   ("prop_T_cons", mytest prop_T_cons),
   ("prop_TL_cons", mytest prop_TL_cons),
   ("prop_T_snoc", mytest prop_T_snoc),
