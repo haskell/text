@@ -146,7 +146,7 @@ module Data.Text
 import Prelude (Char, Bool(..), Functor(..), Int, Maybe(..), String,
                 Eq(..), Ord(..), (++),
                 Read(..), Show(..),
-                (&&), (||), (+), (-), (<), (>), (<=), (>=), (.), ($),
+                (&&), (||), (+), (-), (.), ($),
                 not, return, otherwise)
 import Control.Exception (assert)
 import Data.Char (isSpace)
@@ -245,10 +245,10 @@ append (Text arr1 off1 len1) (Text arr2 off2 len2) = Text (A.run x) 0 len
         copy arr2 off2 (len2+off2) arr len1
         return arr
             where
-              copy arr i max arr' j
-                  | i >= max  = return ()
+              copy arr i top arr' j
+                  | i >= top  = return ()
                   | otherwise = do A.unsafeWrite arr' j (arr `A.unsafeIndex` i)
-                                   copy arr (i+1) max arr' (j+1)
+                                   copy arr (i+1) top arr' (j+1)
 {-# INLINE append #-}
 
 {-# RULES

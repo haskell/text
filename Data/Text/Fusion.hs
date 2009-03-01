@@ -105,14 +105,12 @@ module Data.Text.Fusion
 import Prelude (Bool(..), Char, Either(..), Eq(..), Maybe(..), Monad(..),
                 Num(..), Ord(..), String, ($), (++), (.), (&&),
                 fromIntegral, otherwise)
-import Control.Monad (liftM2)
-import Control.Monad.ST (runST)
 import qualified Data.List as L
 import GHC.Exts (Int(..), (+#))
 import Data.Bits ((.&.), shiftR)
 import Data.Char (ord)
 import Data.Text.Internal (Text(..))
-import Data.Text.UnsafeChar (unsafeChr, unsafeWrite, unsafeWriteRev)
+import Data.Text.UnsafeChar (unsafeChr, unsafeWrite)
 import qualified Data.Text.Array as A
 import Data.Text.Fusion.Internal
 import qualified Data.Text.Internal as I
@@ -154,18 +152,18 @@ reverseStream (Text arr off len) = Stream next (off+len-1) len
 -- | /O(n)/ Convert a 'Stream Char' into a 'Text'.
 unstream :: Stream Char -> Text
 unstream (Stream next0 s0 len)
-    | len == 0 = I.empty
+    | len == 0  = I.empty
     | otherwise = I.textP (P.fst a) 0 (P.snd a)
     where
-      a = runST (A.unsafeNew len >>= (\arr -> loop arr len s0 0))
+      a = A.run2 (A.unsafeNew len >>= (\arr -> loop arr len s0 0))
       loop arr !top !s !i
           | i + 1 >= top = case next0 s of
-                            Done -> liftM2 (,) (A.unsafeFreeze arr) (return i)
+                            Done -> return (arr, i)
                             _    -> do
                               arr' <- A.unsafeNew (top*2)
                               A.copy arr arr' >> loop arr' (top*2) s i
           | otherwise = case next0 s of
-               Done       -> liftM2 (,) (A.unsafeFreeze arr) (return i)
+               Done       -> return (arr, i)
                Skip s'    -> loop arr top s' i
                Yield x s' -> unsafeWrite arr i x >>= loop arr top s'
 {-# INLINE [0] unstream #-}
@@ -377,14 +375,14 @@ reverse (Stream next s len0)
                   m = n - 0x10000
                   lo = fromIntegral $ (m `shiftR` 10) + 0xD800
                   hi = fromIntegral $ (m .&. 0x3FF) + 0xDC00
-                  write s i len marr
+                  write t j l mar
                       | n < 0x10000 = do
-                          A.unsafeWrite marr i (fromIntegral n)
-                          loop s (i-1) len marr
+                          A.unsafeWrite mar j (fromIntegral n)
+                          loop t (j-1) l mar
                       | otherwise = do
-                          A.unsafeWrite marr (i-1) lo
-                          A.unsafeWrite marr i hi
-                          loop s (i-2) len marr
+                          A.unsafeWrite mar (j-1) lo
+                          A.unsafeWrite mar j hi
+                          loop t (j-2) l mar
 {-# INLINE [0] reverse #-}
 
 -- ----------------------------------------------------------------------------

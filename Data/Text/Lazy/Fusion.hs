@@ -21,8 +21,7 @@ import Data.Text.Fusion.Internal
 import Data.Text.Lazy.Internal
 import qualified Data.Text.Internal as I
 import qualified Data.Text.Array as A
-import qualified Data.Text.Encoding.Utf16 as U16
-import Data.Text.UnsafeChar (unsafeChr, unsafeWrite)
+import Data.Text.UnsafeChar (unsafeWrite)
 import Data.Text.Unsafe (iter)
 
 default(Int)
@@ -50,8 +49,8 @@ unstreamChunks chunkSize (Stream next s0 len0)
                 Skip s'    -> outer s'
                 Yield x s' -> I.Text arr 0 len `chunk` outer s''
                   where (arr,(s'',len)) = A.run2 fill
-                        fill = do arr <- A.unsafeNew unknownLength
-                                  inner arr unknownLength x s' 0
+                        fill = do a <- A.unsafeNew unknownLength
+                                  inner a unknownLength x s' 0
                         unknownLength = 4
     inner marr len x s i
         | i + 1 >= chunkSize = return (marr, (s,i))
@@ -64,7 +63,7 @@ unstreamChunks chunkSize (Stream next s0 len0)
             case next s of
               Done        -> do i' <- unsafeWrite marr i x
                                 return (marr,(s,i'))
-              Skip s'     -> inner marr len x s i
+              Skip s'     -> inner marr len x s' i
               Yield x' s' -> unsafeWrite marr i x >>= inner marr len x' s' 
 {-# INLINE [0] unstreamChunks #-}
 
