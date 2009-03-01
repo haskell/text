@@ -179,13 +179,13 @@ instance IsString Text where
 --
 -- This function is subject to array fusion.
 pack :: String -> Text
-pack = unstream . S.streamList
+pack s = unstream (S.streamList s)
 {-# INLINE [1] pack #-}
 
 -- | /O(n)/ Convert a 'Text' into a 'String'.
 -- Subject to array fusion.
 unpack :: Text -> String
-unpack = S.unstreamList . stream
+unpack t = S.unstreamList (stream t)
 {-# INLINE [1] unpack #-}
 
 singleton :: Char -> Text
@@ -193,9 +193,9 @@ singleton c = Chunk (T.singleton c) Empty
 {-# INLINE [1] singleton #-}
 
 {-# RULES
-"TEXT singleton -> fused" [~1] forall c.
+"LAZY TEXT singleton -> fused" [~1] forall c.
     singleton c = unstream (S.singleton c)
-"TEXT singleton -> unfused" [1] forall c.
+"LAZY TEXT singleton -> unfused" [1] forall c.
     unstream (S.singleton c) = singleton c
   #-}
 
@@ -216,9 +216,9 @@ append xs ys = foldrChunks Chunk ys xs
 {-# INLINE append #-}
 
 {-# RULES
-"TEXT append -> fused" [~1] forall t1 t2.
+"LAZY TEXT append -> fused" [~1] forall t1 t2.
     append t1 t2 = unstream (S.append (stream t1) (stream t2))
-"TEXT append -> unfused" [1] forall t1 t2.
+"LAZY TEXT append -> unfused" [1] forall t1 t2.
     unstream (S.append (stream t1) (stream t2)) = append t1 t2
  #-}
 

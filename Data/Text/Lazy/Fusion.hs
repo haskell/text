@@ -73,4 +73,5 @@ unstream :: Stream Char -> Text
 unstream = unstreamChunks defaultChunkSize
 {-# INLINE [0] unstream #-}
 
-{-# RULES "STREAM stream/unstream fusion" forall s. stream (unstream s) = s #-}
+{-# RULES "LAZY STREAM stream/unstream fusion" forall s.
+    stream (unstream s) = s #-}
