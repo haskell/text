@@ -43,7 +43,7 @@ module Data.Text.Lazy
     , cons
     , snoc
     , append
-    -- , uncons
+    , uncons
     -- , head
     -- , last
     -- , tail
@@ -155,6 +155,7 @@ import Data.String (IsString(..))
 import qualified Data.Text as T
 import qualified Data.Text.Fusion as S
 import qualified Data.Text.Fusion.Internal as S
+import qualified Data.Text.Unsafe as T
 import Data.Text.Lazy.Fusion
 import Data.Text.Lazy.Internal
 
@@ -232,6 +233,15 @@ append xs ys = foldrChunks Chunk ys xs
 "LAZY TEXT append -> unfused" [1] forall t1 t2.
     unstream (S.append (stream t1) (stream t2)) = append t1 t2
  #-}
+
+-- | /O(1)/ Returns the first character and rest of a 'Text', or
+-- 'Nothing' if empty. Subject to array fusion.
+uncons :: Text -> Maybe (Char, Text)
+uncons Empty = Nothing
+uncons (Chunk t ts) =
+    Just (T.unsafeHead t,
+          if T.length t == 1 then ts else Chunk (T.unsafeTail t) ts)
+{-# INLINE uncons #-}
 
 -- | /O(n)/ 'splitAt' @n t@ returns a pair whose first element is a
 -- prefix of @t@ of length @n@, and whose second is the remainder of

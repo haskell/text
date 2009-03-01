@@ -113,10 +113,14 @@ prop_T_snoc x          = (++ [x]) `eqP` (unpackT . (flip T.snoc) x)
 prop_TL_snoc x         = (++ [x]) `eqP` (unpackT . (flip TL.snoc) x)
 prop_T_append s        = (s++)    `eqP` (unpackT . T.append (T.pack s))
 prop_T_appendS s       = (s++)    `eqP` (unpackT . S.unstream . S.append (S.stream (T.pack s)) . S.stream)
+
+uncons (x:xs) = Just (x,xs)
+uncons _      = Nothing
+
 prop_T_uncons s        = uncons   `eqP` (fmap (second unpackT) . T.uncons)
-    where uncons (x:xs) = Just (x,xs)
-          uncons _      = Nothing
-          types         = s :: String
+    where types = s :: String
+prop_TL_uncons s       = uncons   `eqP` (fmap (second unpackT) . TL.uncons)
+    where types = s :: String
 prop_T_head            = head   `eqEP` T.head
 prop_T_last            = last   `eqEP` T.last
 prop_T_lastS           = last   `eqEP` (S.last . S.stream)
@@ -290,6 +294,7 @@ tests = [
   ("prop_T_append", mytest prop_T_append),
   ("prop_T_appendS", mytest prop_T_appendS),
   ("prop_T_uncons", mytest prop_T_uncons),
+  ("prop_TL_uncons", mytest prop_TL_uncons),
   ("prop_T_head", mytest prop_T_head),
   ("prop_T_last", mytest prop_T_last),
   ("prop_T_lastS", mytest prop_T_lastS),
