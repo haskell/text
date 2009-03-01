@@ -24,6 +24,7 @@ module Data.Text.Fusion
     , stream
     , streamList
     , unstream
+    , unstreamList
     , reverseStream
     , empty
 
