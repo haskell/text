@@ -44,7 +44,7 @@ module Data.Text.Lazy
     , snoc
     , append
     , uncons
-    -- , head
+    , head
     -- , last
     -- , tail
     -- , init
@@ -243,6 +243,12 @@ uncons (Chunk t ts) =
     Just (T.unsafeHead t,
           if T.length t == 1 then ts else Chunk (T.unsafeTail t) ts)
 {-# INLINE uncons #-}
+
+-- | /O(1)/ Returns the first character of a 'Text', which must be
+-- non-empty.  Subject to array fusion.
+head :: Text -> Char
+head t = S.head (stream t)
+{-# INLINE head #-}
 
 -- | /O(n)/ 'splitAt' @n t@ returns a pair whose first element is a
 -- prefix of @t@ of length @n@, and whose second is the remainder of

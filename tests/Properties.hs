@@ -121,7 +121,9 @@ prop_T_uncons s        = uncons   `eqP` (fmap (second unpackT) . T.uncons)
     where types = s :: String
 prop_TL_uncons s       = uncons   `eqP` (fmap (second unpackT) . TL.uncons)
     where types = s :: String
+prop_S_head            = head   `eqEP` S.head
 prop_T_head            = head   `eqEP` T.head
+prop_TL_head           = head   `eqEP` TL.head
 prop_T_last            = last   `eqEP` T.last
 prop_T_lastS           = last   `eqEP` (S.last . S.stream)
 prop_T_tail            = tail   `eqEP` (unpackT . T.tail)
@@ -295,7 +297,9 @@ tests = [
   ("prop_T_appendS", mytest prop_T_appendS),
   ("prop_T_uncons", mytest prop_T_uncons),
   ("prop_TL_uncons", mytest prop_TL_uncons),
+  ("prop_S_head", mytest prop_S_head),
   ("prop_T_head", mytest prop_T_head),
+  ("prop_TL_head", mytest prop_TL_head),
   ("prop_T_last", mytest prop_T_last),
   ("prop_T_lastS", mytest prop_T_lastS),
   ("prop_T_tail", mytest prop_T_tail),
