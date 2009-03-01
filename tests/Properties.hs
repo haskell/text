@@ -124,8 +124,9 @@ prop_TL_uncons s       = uncons   `eqP` (fmap (second unpackT) . TL.uncons)
 prop_S_head            = head   `eqEP` S.head
 prop_T_head            = head   `eqEP` T.head
 prop_TL_head           = head   `eqEP` TL.head
+prop_S_last            = last   `eqEP` S.last
 prop_T_last            = last   `eqEP` T.last
-prop_T_lastS           = last   `eqEP` (S.last . S.stream)
+prop_TL_last           = last   `eqEP` TL.last
 prop_T_tail            = tail   `eqEP` (unpackT . T.tail)
 prop_T_tailS           = tail   `eqEP` (unpackT . S.unstream . S.tail . S.stream)
 prop_T_init            = init   `eqEP` (unpackT . T.init)
@@ -300,8 +301,9 @@ tests = [
   ("prop_S_head", mytest prop_S_head),
   ("prop_T_head", mytest prop_T_head),
   ("prop_TL_head", mytest prop_TL_head),
+  ("prop_S_last", mytest prop_S_last),
   ("prop_T_last", mytest prop_T_last),
-  ("prop_T_lastS", mytest prop_T_lastS),
+  ("prop_TL_last", mytest prop_TL_last),
   ("prop_T_tail", mytest prop_T_tail),
   ("prop_T_tailS", mytest prop_T_tailS),
   ("prop_T_init", mytest prop_T_init),

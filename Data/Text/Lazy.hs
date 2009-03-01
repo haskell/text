@@ -45,7 +45,7 @@ module Data.Text.Lazy
     , append
     , uncons
     , head
-    -- , last
+    , last
     -- , tail
     -- , init
     -- , null
@@ -151,6 +151,7 @@ import Prelude (Char, Bool(..), Functor(..), Int, Maybe(..), String,
                 Read(..), Show(..),
                 (&&), (||), (+), (-), (.), ($),
                 not, return, otherwise)
+import qualified Prelude as P
 import Data.String (IsString(..))
 import qualified Data.Text as T
 import qualified Data.Text.Fusion as S
@@ -250,6 +251,22 @@ head :: Text -> Char
 head t = S.head (stream t)
 {-# INLINE head #-}
 
+-- | /O(1)/ Returns the last character of a 'Text', which must be
+-- non-empty.  Subject to array fusion.
+last :: Text -> Char
+last Empty        = emptyError "last"
+last (Chunk t ts) = go t ts
+    where go _ (Chunk t' ts') = go t' ts'
+          go t Empty          = T.last t
+{-# INLINE [1] last #-}
+
+{-# RULES
+"LAZY TEXT last -> fused" [~1] forall t.
+    last t = S.last (stream t)
+"LAZY TEXT last -> unfused" [1] forall t.
+    S.last (stream t) = last t
+  #-}
+
 -- | /O(n)/ 'splitAt' @n t@ returns a pair whose first element is a
 -- prefix of @t@ of length @n@, and whose second is the remainder of
 -- the string. It is equivalent to @('take' n t, 'drop' n t)@.
@@ -263,3 +280,6 @@ splitAt = loop
              | otherwise = let (ts',ts'') = loop (n - len) ts
                            in (Chunk t ts', ts'')
              where len = T.length t
+
+emptyError :: String -> a
+emptyError fun = P.error ("Data.Text.Lazy." ++ fun ++ ": empty input")
