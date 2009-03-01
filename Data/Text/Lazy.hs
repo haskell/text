@@ -157,6 +157,10 @@ instance Eq Text where
     t1 == t2 = stream t1 == stream t2
     {-# INLINE (==) #-}
 
+instance Ord Text where
+    compare t1 t2 = compare (stream t1) (stream t2)
+    {-# INLINE compare #-}
+
 instance Show Text where
     showsPrec p ps r = showsPrec p (unpack ps) r
 

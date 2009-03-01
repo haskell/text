@@ -41,8 +41,11 @@ instance Show a => Show (Step s a)
           show (Skip _)    = "Skip"
           show (Yield x _) = "Yield " ++ show x
 
-instance Eq a => Eq (Stream a) where
+instance (Eq a) => Eq (Stream a) where
     (==) = eq
+
+instance (Ord a) => Ord (Stream a) where
+    compare = cmp
 
 -- The length hint in a Stream has two roles.  If its value is zero,
 -- we trust it, and treat the stream as empty.  Otherwise, we treat it
@@ -76,18 +79,34 @@ empty = Stream next () 0
 
 -- | /O(n)/ Determines if two streams are equal.
 eq :: (Eq a) => Stream a -> Stream a -> Bool
-eq (Stream next1 s1 _) (Stream next2 s2 _) = cmp (next1 s1) (next2 s2)
+eq (Stream next1 s1 _) (Stream next2 s2 _) = loop (next1 s1) (next2 s2)
     where
-      cmp Done Done                     = True
-      cmp (Skip s1')     (Skip s2')     = cmp (next1 s1') (next2 s2')
-      cmp (Skip s1')     x2             = cmp (next1 s1') x2
-      cmp x1             (Skip s2')     = cmp x1          (next2 s2')
-      cmp Done _                        = False
-      cmp _    Done                     = False
-      cmp (Yield x1 s1') (Yield x2 s2') = x1 == x2 &&
-                                          cmp (next1 s1') (next2 s2')
+      loop Done Done                     = True
+      loop (Skip s1')     (Skip s2')     = loop (next1 s1') (next2 s2')
+      loop (Skip s1')     x2             = loop (next1 s1') x2
+      loop x1             (Skip s2')     = loop x1          (next2 s2')
+      loop Done _                        = False
+      loop _    Done                     = False
+      loop (Yield x1 s1') (Yield x2 s2') = x1 == x2 &&
+                                           loop (next1 s1') (next2 s2')
 {-# INLINE [0] eq #-}
 {-# SPECIALISE eq :: Stream Char -> Stream Char -> Bool #-}
+
+cmp :: (Ord a) => Stream a -> Stream a -> Ordering
+cmp (Stream next1 s1 _) (Stream next2 s2 _) = loop (next1 s1) (next2 s2)
+    where
+      loop Done Done                     = EQ
+      loop (Skip s1')     (Skip s2')     = loop (next1 s1') (next2 s2')
+      loop (Skip s1')     x2             = loop (next1 s1') x2
+      loop x1             (Skip s2')     = loop x1          (next2 s2')
+      loop Done _                        = LT
+      loop _    Done                     = GT
+      loop (Yield x1 s1') (Yield x2 s2') =
+          case compare x1 x2 of
+            EQ    -> loop (next1 s1') (next2 s2')
+            other -> other
+{-# INLINE [0] cmp #-}
+{-# SPECIALISE cmp :: Stream Char -> Stream Char -> Ordering #-}
 
 streamList :: [a] -> Stream a
 {-# INLINE streamList #-}

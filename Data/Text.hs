@@ -144,7 +144,7 @@ module Data.Text
     ) where
 
 import Prelude (Char, Bool(..), Functor(..), Int, Maybe(..), String,
-                Eq(..), (++),
+                Eq(..), Ord(..), (++),
                 Read(..), Show(..),
                 (&&), (||), (+), (-), (<), (>), (<=), (>=), (.), ($),
                 not, return, otherwise)
@@ -176,6 +176,10 @@ import qualified Data.Text.Encoding.Utf16 as U16
 instance Eq Text where
     t1 == t2 = stream t1 == stream t2
     {-# INLINE (==) #-}
+
+instance Ord Text where
+    compare t1 t2 = compare (stream t1) (stream t2)
+    {-# INLINE compare #-}
 
 instance Show Text where
     showsPrec p ps r = showsPrec p (unpack ps) r
