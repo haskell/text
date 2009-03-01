@@ -222,10 +222,11 @@ snoc t c = foldrChunks Chunk (singleton c) t
     unstream (S.snoc (stream t) c) = snoc t c
  #-}
 
--- | /O(n\/c)/ Append two 'Text's
+-- | /O(n\/c)/ Appends one 'Text' to another.  Subject to array
+-- fusion.
 append :: Text -> Text -> Text
 append xs ys = foldrChunks Chunk ys xs
-{-# INLINE append #-}
+{-# INLINE [1] append #-}
 
 {-# RULES
 "LAZY TEXT append -> fused" [~1] forall t1 t2.
