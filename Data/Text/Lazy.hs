@@ -41,7 +41,7 @@ module Data.Text.Lazy
 
     -- * Basic interface
     , cons
-    -- , snoc
+    , snoc
     , append
     -- , uncons
     -- , head
@@ -208,6 +208,17 @@ cons c t = Chunk (T.singleton c) t
     cons c t = unstream (S.cons c (stream t))
 "LAZY TEXT cons -> unfused" [1] forall c t.
     unstream (S.cons c (stream t)) = cons c t
+ #-}
+
+snoc :: Text -> Char -> Text
+snoc t c = foldrChunks Chunk (singleton c) t
+{-# INLINE [1] snoc #-}
+
+{-# RULES
+"LAZY TEXT snoc -> fused" [~1] forall t c.
+    snoc t c = unstream (S.snoc (stream t) c)
+"LAZY TEXT snoc -> unfused" [1] forall t c.
+    unstream (S.snoc (stream t) c) = snoc t c
  #-}
 
 -- | /O(n\/c)/ Append two 'Text's
