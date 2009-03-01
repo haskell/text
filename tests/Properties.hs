@@ -102,6 +102,7 @@ eqEP a b e w  = a s == b t &&
           s             = notEmpty e
 
 prop_T_cons x          = (x:)     `eqP` (T.unpack . T.cons x)
+prop_TL_cons x         = ((x:)     `eqP` (TL.unpack . TL.cons x))
 prop_T_snoc x          = (++ [x]) `eqP` (T.unpack . (flip T.snoc) x)
 prop_T_append s        = (s++)    `eqP` (T.unpack . T.append (T.pack s))
 prop_T_appendS s       = (s++)    `eqP` (T.unpack . S.unstream . S.append (S.stream (T.pack s)) . S.stream)
@@ -272,6 +273,7 @@ tests = [
   ("prop_T_utf32BE", mytest prop_T_utf32BE),
 
   ("prop_T_cons", mytest prop_T_cons),
+  ("prop_TL_cons", mytest prop_TL_cons),
   ("prop_T_snoc", mytest prop_T_snoc),
   ("prop_T_append", mytest prop_T_append),
   ("prop_T_appendS", mytest prop_T_appendS),
