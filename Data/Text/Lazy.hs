@@ -98,7 +98,7 @@ module Data.Text.Lazy
     -- , drop
     -- , takeWhile
     -- , dropWhile
-    -- , splitAt
+    , splitAt
     -- , span
     -- , break
     -- , group
@@ -146,6 +146,11 @@ module Data.Text.Lazy
     -- , sort
     ) where
 
+import Prelude (Char, Bool(..), Functor(..), Int, Maybe(..), String,
+                Eq(..), Ord(..), (++),
+                Read(..), Show(..),
+                (&&), (||), (+), (-), (.), ($),
+                not, return, otherwise)
 import Data.String (IsString(..))
 import qualified Data.Text as T
 import qualified Data.Text.Fusion as S
@@ -216,3 +221,17 @@ append xs ys = foldrChunks Chunk ys xs
 "TEXT append -> unfused" [1] forall t1 t2.
     unstream (S.append (stream t1) (stream t2)) = append t1 t2
  #-}
+
+-- | /O(n)/ 'splitAt' @n t@ returns a pair whose first element is a
+-- prefix of @t@ of length @n@, and whose second is the remainder of
+-- the string. It is equivalent to @('take' n t, 'drop' n t)@.
+splitAt :: Int -> Text -> (Text, Text)
+splitAt = loop
+  where loop _ Empty      = (empty, empty)
+        loop n t | n <= 0 = (empty, t)
+        loop n (Chunk t ts)
+             | n < len   = let (ts',ts'') = T.splitAt n t
+                           in (Chunk ts' Empty, Chunk ts'' Empty)
+             | otherwise = let (ts',ts'') = loop (n - len) ts
+                           in (Chunk t ts', ts'')
+             where len = T.length t
