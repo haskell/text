@@ -198,14 +198,19 @@ prop_T_mapAccumR f z   = L.mapAccumR f z `eqP` (second unpackT . T.mapAccumR f z
 prop_TL_mapAccumR f z   = L.mapAccumR f z `eqP` (second unpackT . TL.mapAccumR f z)
     where types = f :: Int -> Char -> (Int,Char)
 
-prop_T_replicate n     = L.replicate n `eq`   (unpackT . T.replicate n)
-prop_T_unfoldr n       = L.unfoldr f   `eq`   (unpackT . T.unfoldr f)
-    where f c | fromEnum c * 100 > n = Nothing
-              | otherwise            = Just (c, succ c)
+prop_T_replicate n     = L.replicate n `eq` (unpackT . T.replicate n)
+prop_TL_replicate n    = L.replicate n `eq` (unpackT . TL.replicate n)
 
-prop_T_unfoldrN n m    = (L.take n . L.unfoldr f) `eq` (unpackT . T.unfoldrN n f)
-    where f c | fromEnum c * 100 > m = Nothing
-              | otherwise            = Just (c, succ c)
+unf :: Int -> Char -> Maybe (Char, Char)
+unf n c | fromEnum c * 100 > n = Nothing
+        | otherwise            = Just (c, succ c)
+
+prop_T_unfoldr n       = L.unfoldr (unf n) `eq` (unpackT . T.unfoldr (unf n))
+prop_TL_unfoldr n      = L.unfoldr (unf n) `eq` (unpackT . TL.unfoldr (unf n))
+prop_T_unfoldrN n m    = (L.take n . L.unfoldr (unf m)) `eq`
+                         (unpackT . T.unfoldrN n (unf m))
+prop_TL_unfoldrN n m   = (L.take n . L.unfoldr (unf m)) `eq`
+                         (unpackT . TL.unfoldrN (fromIntegral n) (unf m))
 
 unpack2 :: (Target t) => (t,t) -> (String,String)
 unpack2 = unpackT *** unpackT
@@ -398,8 +403,11 @@ tests = [
   ("prop_TL_mapAccumR", mytest prop_TL_mapAccumR),
 
   ("prop_T_replicate", mytest prop_T_replicate),
+  ("prop_TL_replicate", mytest prop_TL_replicate),
   ("prop_T_unfoldr", mytest prop_T_unfoldr),
+  ("prop_TL_unfoldr", mytest prop_TL_unfoldr),
   ("prop_T_unfoldrN", mytest prop_T_unfoldrN),
+  ("prop_TL_unfoldrN", mytest prop_TL_unfoldrN),
 
   ("prop_T_take", mytest prop_T_take),
   ("prop_T_drop", mytest prop_T_drop),

@@ -87,9 +87,9 @@ module Data.Text.Lazy
     , mapAccumR
 
     -- ** Generation and unfolding
-    -- , replicate
-    -- , unfoldr
-    -- , unfoldrN
+    , replicate
+    , unfoldr
+    , unfoldrN
 
     -- * Substrings
 
@@ -467,6 +467,31 @@ mapAccumR f s t = case uncons t of
                     Just (x, xs) ->  (s'', cons y ys)
                         where (s'',y ) = f s' x
                               (s', ys) = mapAccumR f s xs
+
+-- | /O(n)/ 'replicate' @n@ @c@ is a 'Text' of length @n@ with @c@ the
+-- value of every element.
+replicate :: Int -> Char -> Text
+replicate n c = unstream (S.replicate n c)
+{-# INLINE replicate #-}
+
+-- | /O(n)/, where @n@ is the length of the result. The 'unfoldr'
+-- function is analogous to the List 'L.unfoldr'. 'unfoldr' builds a
+-- 'Text' from a seed value. The function takes the element and
+-- returns 'Nothing' if it is done producing the 'Text', otherwise
+-- 'Just' @(a,b)@.  In this case, @a@ is the next 'Char' in the
+-- string, and @b@ is the seed value for further production.
+unfoldr     :: (a -> Maybe (Char,a)) -> a -> Text
+unfoldr f s = unstream (S.unfoldr f s)
+{-# INLINE unfoldr #-}
+
+-- | /O(n)/ Like 'unfoldr', 'unfoldrN' builds a 'Text' from a seed
+-- value. However, the length of the result should be limited by the
+-- first argument to 'unfoldrN'. This function is more efficient than
+-- 'unfoldr' when the maximum length of the result is known and
+-- correct, otherwise its performance is similar to 'unfoldr'.
+unfoldrN     :: Int64 -> (a -> Maybe (Char,a)) -> a -> Text
+unfoldrN n f s = unstream (S.unfoldrN64 n f s)
+{-# INLINE unfoldrN #-}
 
 -- | /O(n)/ 'splitAt' @n t@ returns a pair whose first element is a
 -- prefix of @t@ of length @n@, and whose second is the remainder of

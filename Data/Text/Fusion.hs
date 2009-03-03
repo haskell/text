@@ -75,6 +75,7 @@ module Data.Text.Fusion
     , replicate
     , unfoldr
     , unfoldrN
+    , unfoldrN64
 
     -- * Substrings
     -- ** Breaking strings
@@ -104,8 +105,8 @@ module Data.Text.Fusion
     , zipWith
     ) where
 
-import Prelude (Bool(..), Char, Either(..), Eq(..), Maybe(..), Monad(..),
-                Num(..), Ord(..), String, ($), (++), (.), (&&),
+import Prelude (Bool(..), Char, Either(..), Eq(..), Integral, Maybe(..),
+                Monad(..), Num(..), Ord(..), String, ($), (++), (.), (&&),
                 fromIntegral, otherwise)
 import qualified Data.List as L
 import GHC.Exts (Int(..), (+#))
@@ -641,15 +642,33 @@ unfoldr f s0 = Stream next s0 1
 -- value. However, the length of the result is limited by the
 -- first argument to 'unfoldrN'. This function is more efficient than
 -- 'unfoldr' when the length of the result is known.
-unfoldrN :: Int -> (a -> Maybe (Char,a)) -> a -> Stream Char
-unfoldrN n f s0 | n <  0    = empty
-                | otherwise = Stream next (0 :!: s0) (n*2)
+unfoldrI :: Integral a => a -> (b -> Maybe (Char,b)) -> b -> Stream Char
+unfoldrI n f s0 | n <  0    = empty
+                | otherwise = Stream next (0 :!: s0) (fromIntegral (n*2))
     where
       {-# INLINE next #-}
       next (z :!: s) = case f s of
           Nothing                  -> Done
           Just (w, s') | z >= n    -> Done
                        | otherwise -> Yield w ((z + 1) :!: s')
+{-# INLINE unfoldrI #-}
+
+-- | /O(n)/ Like 'unfoldr', 'unfoldrN' builds a stream from a seed
+-- value. However, the length of the result is limited by the
+-- first argument to 'unfoldrN'. This function is more efficient than
+-- 'unfoldr' when the length of the result is known.
+unfoldrN :: Int -> (a -> Maybe (Char,a)) -> a -> Stream Char
+unfoldrN n = unfoldrI (fromIntegral n :: Int)
+{-# INLINE [0] unfoldrN #-}
+
+-- | /O(n)/ Like 'unfoldr', 'unfoldrN64' builds a stream from a seed
+-- value. However, the length of the result is limited by the
+-- first argument to 'unfoldrN64'. This function is more efficient than
+-- 'unfoldr' when the length of the result is known.
+unfoldrN64 :: Int64 -> (a -> Maybe (Char,a)) -> a -> Stream Char
+unfoldrN64 n = unfoldrI (fromIntegral n :: Int64)
+{-# INLINE [0] unfoldrN64 #-}
+
 -------------------------------------------------------------------------------
 --  * Substreams
 
