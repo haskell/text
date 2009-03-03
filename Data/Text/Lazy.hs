@@ -257,9 +257,9 @@ tail Empty        = emptyError "tail"
 {-# INLINE [1] tail #-}
 
 {-# RULES
-"TEXT tail -> fused" [~1] forall t.
+"LAZY TEXT tail -> fused" [~1] forall t.
     tail t = unstream (S.tail (stream t))
-"TEXT tail -> unfused" [1] forall t.
+"LAZY TEXT tail -> unfused" [1] forall t.
     unstream (S.tail (stream t)) = tail t
  #-}
 
