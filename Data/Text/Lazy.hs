@@ -49,7 +49,7 @@ module Data.Text.Lazy
     , tail
     , init
     , null
-    -- , length
+    , length
 
     -- * Transformations
     -- , map
@@ -150,8 +150,9 @@ import Prelude (Char, Bool(..), Functor(..), Int, Maybe(..), String,
                 Eq(..), Ord(..), (++),
                 Read(..), Show(..),
                 (&&), (||), (+), (-), (.), ($),
-                not, return, otherwise)
+                fromIntegral, not, return, otherwise)
 import qualified Prelude as P
+import Data.Int (Int64)
 import Data.String (IsString(..))
 import qualified Data.Text as T
 import qualified Data.Text.Fusion as S
@@ -293,6 +294,18 @@ null _     = False
     null t = S.null (stream t)
 "LAZY TEXT null -> unfused" [1] forall t.
     S.null (stream t) = null t
+ #-}
+
+length :: Text -> Int64
+length = foldlChunks go 0
+    where go l t = l + fromIntegral (T.length t)
+{-# INLINE [1] length #-}
+
+{-# RULES
+"LAZY TEXT length -> fused" [~1] forall t.
+    length t = S.length64 (stream t)
+"LAZY TEXT length -> unfused" [1] forall t.
+    S.length64 (stream t) = length t
  #-}
 
 -- | /O(1)/ Returns the last character of a 'Text', which must be

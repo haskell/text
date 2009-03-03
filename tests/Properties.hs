@@ -136,7 +136,10 @@ prop_TL_init           = init   `eqEP` (unpackT . TL.init)
 prop_S_null            = null   `eqP`  S.null
 prop_T_null            = null   `eqP`  T.null
 prop_TL_null           = null   `eqP`  TL.null
+prop_S_length          = length `eqP`  S.length
+prop_S_length64        = length `eqP`  (fromIntegral . S.length64)
 prop_T_length          = length `eqP`  T.length
+prop_TL_length         = length `eqP`  (fromIntegral . TL.length)
 prop_T_map f           = map f  `eqP`  (unpackT . T.map f)
 prop_T_intercalate c   = L.intercalate c `eq` (unpackT . T.intercalate (T.pack c) . map T.pack)
 prop_T_intersperse c   = L.intersperse c `eqP` (unpackT . T.intersperse c)
@@ -317,7 +320,10 @@ tests = [
   ("prop_S_null", mytest prop_S_null),
   ("prop_T_null", mytest prop_T_null),
   ("prop_TL_null", mytest prop_TL_null),
+  ("prop_S_length", mytest prop_S_length),
+  ("prop_S_length64", mytest prop_S_length64),
   ("prop_T_length", mytest prop_T_length),
+  ("prop_TL_length", mytest prop_TL_length),
 
   ("prop_T_map", mytest prop_T_map),
   ("prop_T_intercalate", mytest prop_T_intercalate),

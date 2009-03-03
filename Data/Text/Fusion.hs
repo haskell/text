@@ -39,6 +39,7 @@ module Data.Text.Fusion
     , init
     , null
     , length
+    , length64
 
     -- * Transformations
     , map
@@ -110,6 +111,7 @@ import qualified Data.List as L
 import GHC.Exts (Int(..), (+#))
 import Data.Bits ((.&.), shiftR)
 import Data.Char (ord)
+import Data.Int (Int64)
 import Data.Text.Internal (Text(..))
 import Data.Text.UnsafeChar (unsafeChr, unsafeWrite)
 import qualified Data.Text.Array as A
@@ -312,6 +314,17 @@ length (Stream next s0 _len) = loop_length 0# s0
                             Skip    s' -> loop_length z# s'
                             Yield _ s' -> loop_length (z# +# 1#) s'
 {-# INLINE[0] length #-}
+
+-- | /O(n)/ Returns the number of characters in a text.
+length64 :: Stream Char -> Int64
+length64 (Stream next s0 _len) = loop_length 0 s0
+    where
+      loop_length z s  = case next s of
+                           Done       -> z
+                           Skip    s' -> loop_length z s'
+                           Yield _ s' -> let !z' = z + 1
+                                         in loop_length z' s'
+{-# INLINE[0] length64 #-}
 
 -- ----------------------------------------------------------------------------
 -- * Stream transformations
