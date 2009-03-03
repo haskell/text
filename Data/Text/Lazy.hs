@@ -95,7 +95,7 @@ module Data.Text.Lazy
 
     -- ** Breaking strings
     , take
-    -- , drop
+    , drop
     -- , takeWhile
     -- , dropWhile
     , splitAt
@@ -512,6 +512,28 @@ take i t0         = take' i t0
     take n t = unstream (S.take n (stream t))
 "LAZY TEXT take -> unfused" [1] forall n t.
     unstream (S.take n (stream t)) = take n t
+  #-}
+
+-- | /O(n)/ 'drop' @n@, applied to a 'Text', returns the suffix of the
+-- 'Text' of length @n@, or the empty 'Text' if @n@ is greater than the
+-- length of the 'Text'. Subject to fusion.
+drop :: Int -> Text -> Text
+drop i t0
+    | i <= 0 = t0
+    | otherwise = drop' i t0
+  where drop' 0 ts           = ts
+        drop' _ Empty        = Empty
+        drop' n (Chunk t ts) 
+            | n < len = Chunk (T.drop (fromIntegral n) t) ts
+            | otherwise = drop' (n - len) ts
+            where len = fromIntegral (T.length t)
+{-# INLINE [1] drop #-}
+
+{-# RULES
+"LAZY TEXT drop -> fused" [~1] forall n t.
+    drop n t = unstream (S.drop n (stream t))
+"LAZY TEXT drop -> unfused" [1] forall n t.
+    unstream (S.drop n (stream t)) = drop n t
   #-}
 
 -- | /O(n)/ 'splitAt' @n t@ returns a pair whose first element is a

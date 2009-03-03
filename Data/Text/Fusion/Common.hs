@@ -544,8 +544,9 @@ take n0 (Stream next0 s0 len) = Stream next (n0 :!: s0) len
 -- | /O(n)/ drop n, applied to a stream, returns the suffix of the
 -- stream of length @n@, or the empty stream if @n@ is greater than the
 -- length of the stream.
-drop :: Int -> Stream Char -> Stream Char
-drop n0 (Stream next0 s0 len) = Stream next (Just ((max 0 n0)) :!: s0) (len - n0)
+drop :: Integral a => a -> Stream Char -> Stream Char
+drop n0 (Stream next0 s0 len) =
+    Stream next (Just ((max 0 n0)) :!: s0) (len - fromIntegral n0)
   where
     {-# INLINE next #-}
     next (Just !n :!: s)
