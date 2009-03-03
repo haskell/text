@@ -83,8 +83,8 @@ module Data.Text.Lazy
     -- , scanr1
 
     -- ** Accumulating maps
-    -- , mapAccumL
-    -- , mapAccumR
+    , mapAccumL
+    , mapAccumR
 
     -- ** Generation and unfolding
     -- , replicate
@@ -446,6 +446,27 @@ scanl1 f t0 = case uncons t0 of
                 Nothing -> empty
                 Just (t,ts) -> scanl f t ts
 {-# INLINE scanl1 #-}
+
+-- | /O(n)/ Like a combination of 'map' and 'foldl'. Applies a
+-- function to each element of a 'Text', passing an accumulating
+-- parameter from left to right, and returns a final 'Text'.
+mapAccumL :: (a -> Char -> (a,Char)) -> a -> Text -> (a, Text)
+mapAccumL f s t = case uncons t of
+                    Nothing -> (s, empty)
+                    Just (x, xs) -> (s'', cons y ys)
+                        where (s', y ) = f s x
+                              (s'',ys) = mapAccumL f s' xs
+
+-- | The 'mapAccumR' function behaves like a combination of 'map' and
+-- 'foldr'; it applies a function to each element of a 'Text', passing
+-- an accumulating parameter from right to left, and returning a final
+-- value of this accumulator together with the new 'Text'.
+mapAccumR :: (a -> Char -> (a,Char)) -> a -> Text -> (a, Text)
+mapAccumR f s t = case uncons t of
+                    Nothing -> (s, empty)
+                    Just (x, xs) ->  (s'', cons y ys)
+                        where (s'',y ) = f s' x
+                              (s', ys) = mapAccumR f s xs
 
 -- | /O(n)/ 'splitAt' @n t@ returns a pair whose first element is a
 -- prefix of @t@ of length @n@, and whose second is the remainder of
