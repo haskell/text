@@ -158,7 +158,7 @@ import Data.Word (Word16)
 import Data.String (IsString(..))
 
 import qualified Data.Text.Fusion as S
-import qualified Data.Text.Fusion.Internal as S
+import qualified Data.Text.Fusion.Common as S
 import Data.Text.Fusion (stream, reverseStream, unstream)
 
 import Data.Text.Internal (Text(..), empty, text, textP)

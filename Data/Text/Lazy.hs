@@ -156,10 +156,10 @@ import Data.Int (Int64)
 import qualified Data.List as L
 import Data.String (IsString(..))
 import qualified Data.Text as T
-import qualified Data.Text.Fusion as S
-import qualified Data.Text.Fusion.Internal as S
+import qualified Data.Text.Fusion.Common as S
 import qualified Data.Text.Unsafe as T
-import Data.Text.Lazy.Fusion
+import qualified Data.Text.Lazy.Fusion as S
+import Data.Text.Lazy.Fusion (stream, unstream)
 import Data.Text.Lazy.Internal
 
 instance Eq Text where
@@ -320,9 +320,9 @@ length = foldlChunks go 0
 
 {-# RULES
 "LAZY TEXT length -> fused" [~1] forall t.
-    length t = S.length64 (stream t)
+    length t = S.length (stream t)
 "LAZY TEXT length -> unfused" [1] forall t.
-    S.length64 (stream t) = length t
+    S.length (stream t) = length t
  #-}
 
 -- | /O(n)/ 'map' @f @xs is the 'Text' obtained by applying @f@ to
@@ -490,7 +490,7 @@ unfoldr f s = unstream (S.unfoldr f s)
 -- 'unfoldr' when the maximum length of the result is known and
 -- correct, otherwise its performance is similar to 'unfoldr'.
 unfoldrN     :: Int64 -> (a -> Maybe (Char,a)) -> a -> Text
-unfoldrN n f s = unstream (S.unfoldrN64 n f s)
+unfoldrN n f s = unstream (S.unfoldrN n f s)
 {-# INLINE unfoldrN #-}
 
 -- | /O(n)/ 'splitAt' @n t@ returns a pair whose first element is a

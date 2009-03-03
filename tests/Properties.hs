@@ -18,6 +18,7 @@ import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Encoding as E
 import Control.Exception
 import qualified Data.Text.Fusion as S
+import qualified Data.Text.Fusion.Common as S
 import qualified Data.Text.Lazy.Fusion as SL
 import qualified Data.List as L
 import System.IO.Unsafe
@@ -137,7 +138,6 @@ prop_S_null            = null   `eqP`  S.null
 prop_T_null            = null   `eqP`  T.null
 prop_TL_null           = null   `eqP`  TL.null
 prop_S_length          = length `eqP`  S.length
-prop_S_length64        = length `eqP`  (fromIntegral . S.length64)
 prop_T_length          = length `eqP`  T.length
 prop_TL_length         = length `eqP`  (fromIntegral . TL.length)
 prop_T_map f           = map f  `eqP`  (unpackT . T.map f)
@@ -350,7 +350,6 @@ tests = [
   ("prop_T_null", mytest prop_T_null),
   ("prop_TL_null", mytest prop_TL_null),
   ("prop_S_length", mytest prop_S_length),
-  ("prop_S_length64", mytest prop_S_length64),
   ("prop_T_length", mytest prop_T_length),
   ("prop_TL_length", mytest prop_TL_length),
 

@@ -21,6 +21,7 @@ library
     Data.Text.Encoding.Fusion
     Data.Text.Foreign
     Data.Text.Fusion
+    Data.Text.Fusion.Common
     Data.Text.Lazy
     Data.Text.Lazy.Fusion
   other-modules:

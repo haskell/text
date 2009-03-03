@@ -19,10 +19,7 @@ module Data.Text.Fusion.Internal
     , Switch(..)
     , Step(..)
     , Stream(..)
-    , singleton
     , empty
-    , streamList
-    , unstreamList
     ) where
 
 infixl 2 :!:
@@ -65,18 +62,6 @@ data Stream a =
     !s                          -- current state
     {-# UNPACK #-}!Int          -- length hint
 
-singleton :: Char -> Stream Char
-singleton c = Stream next False 1
-    where next False = Yield c True
-          next True  = Done
-{-# INLINE singleton #-}
-
--- | The empty stream.
-empty :: Stream a
-empty = Stream next () 0
-    where next _ = Done
-{-# INLINE [0] empty #-}
-
 -- | /O(n)/ Determines if two streams are equal.
 eq :: (Eq a) => Stream a -> Stream a -> Bool
 eq (Stream next1 s1 _) (Stream next2 s2 _) = loop (next1 s1) (next2 s2)
@@ -108,18 +93,8 @@ cmp (Stream next1 s1 _) (Stream next2 s2 _) = loop (next1 s1) (next2 s2)
 {-# INLINE [0] cmp #-}
 {-# SPECIALISE cmp :: Stream Char -> Stream Char -> Ordering #-}
 
-streamList :: [a] -> Stream a
-{-# INLINE streamList #-}
-streamList [] = empty
-streamList s  = Stream next s unknownLength
-    where next []       = Done
-          next (x:xs)   = Yield x xs
-          unknownLength = 8
-
-unstreamList :: Stream a -> [a]
-{-# INLINE unstreamList #-}
-unstreamList (Stream next s0 _len) = unfold s0
-    where unfold !s = case next s of
-                        Done       -> []
-                        Skip s'    -> unfold s'
-                        Yield x s' -> x : unfold s'
+-- | The empty stream.
+empty :: Stream a
+empty = Stream next () 0
+    where next _ = Done
+{-# INLINE [0] empty #-}
