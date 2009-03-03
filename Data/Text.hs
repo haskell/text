@@ -537,7 +537,7 @@ mapAccumR f s t = case uncons t of
 -- ** Generating and unfolding 'Text's
 
 -- | /O(n)/ 'replicate' @n@ @c@ is a 'Text' of length @n@ with @c@ the
--- value of every element.
+-- value of every element. Subject to fusion.
 replicate :: Int -> Char -> Text
 replicate n c = unstream (S.replicate n c)
 {-# INLINE replicate #-}
@@ -547,7 +547,8 @@ replicate n c = unstream (S.replicate n c)
 -- 'Text' from a seed value. The function takes the element and
 -- returns 'Nothing' if it is done producing the 'Text', otherwise
 -- 'Just' @(a,b)@.  In this case, @a@ is the next 'Char' in the
--- string, and @b@ is the seed value for further production.
+-- string, and @b@ is the seed value for further production. Subject
+-- to fusion.
 unfoldr     :: (a -> Maybe (Char,a)) -> a -> Text
 unfoldr f s = unstream (S.unfoldr f s)
 {-# INLINE unfoldr #-}
@@ -556,7 +557,8 @@ unfoldr f s = unstream (S.unfoldr f s)
 -- value. However, the length of the result should be limited by the
 -- first argument to 'unfoldrN'. This function is more efficient than
 -- 'unfoldr' when the maximum length of the result is known and
--- correct, otherwise its performance is similar to 'unfoldr'.
+-- correct, otherwise its performance is similar to 'unfoldr'. Subject
+-- to fusion.
 unfoldrN     :: Int -> (a -> Maybe (Char,a)) -> a -> Text
 unfoldrN n f s = unstream (S.unfoldrN n f s)
 {-# INLINE unfoldrN #-}
@@ -566,7 +568,7 @@ unfoldrN n f s = unstream (S.unfoldrN n f s)
 
 -- | /O(n)/ 'take' @n@, applied to a 'Text', returns the prefix of the
 -- 'Text' of length @n@, or the 'Text' itself if @n@ is greater than
--- the length of the Text.
+-- the length of the Text. Subject to fusion.
 take :: Int -> Text -> Text
 take n t@(Text arr off len)
     | n <= 0    = empty
@@ -588,7 +590,7 @@ take n t@(Text arr off len)
 
 -- | /O(n)/ 'drop' @n@, applied to a 'Text', returns the suffix of the
 -- 'Text' of length @n@, or the empty 'Text' if @n@ is greater than the
--- length of the 'Text'.
+-- length of the 'Text'. Subject to fusion.
 drop :: Int -> Text -> Text
 drop n t@(Text arr off len)
     | n <= 0    = t
