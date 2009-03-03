@@ -47,7 +47,7 @@ module Data.Text.Lazy
     , head
     , last
     , tail
-    -- , init
+    , init
     -- , null
     -- , length
 
@@ -251,6 +251,8 @@ head :: Text -> Char
 head t = S.head (stream t)
 {-# INLINE head #-}
 
+-- | /O(1)/ Returns all characters after the head of a 'Text', which
+-- must be non-empty.  Subject to array fusion.
 tail :: Text -> Text
 tail (Chunk t ts) = chunk (T.tail t) ts
 tail Empty        = emptyError "tail"
@@ -261,6 +263,20 @@ tail Empty        = emptyError "tail"
     tail t = unstream (S.tail (stream t))
 "LAZY TEXT tail -> unfused" [1] forall t.
     unstream (S.tail (stream t)) = tail t
+ #-}
+
+init :: Text -> Text
+init (Chunk t0 ts0) = go t0 ts0
+    where go t (Chunk t' ts) = Chunk t (go t' ts)
+          go t Empty         = chunk (T.init t) Empty
+init Empty = emptyError "init"
+{-# INLINE [1] init #-}
+
+{-# RULES
+"LAZY TEXT init -> fused" [~1] forall t.
+    init t = unstream (S.init (stream t))
+"LAZY TEXT init -> unfused" [1] forall t.
+    unstream (S.init (stream t)) = init t
  #-}
 
 -- | /O(1)/ Returns the last character of a 'Text', which must be
