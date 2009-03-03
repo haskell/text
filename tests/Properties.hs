@@ -152,13 +152,22 @@ prop_T_reverse_short n = L.reverse `eqP` (unpackT . S.reverse . shorten n . S.st
 
 prop_T_foldl f z       = L.foldl f z  `eqP`  (T.foldl f z)
     where types      = f :: Char -> Char -> Char
+prop_TL_foldl f z      = L.foldl f z  `eqP`  (TL.foldl f z)
+    where types      = f :: Char -> Char -> Char
 prop_T_foldl' f z      = L.foldl' f z `eqP`  T.foldl' f z
     where types      = f :: Char -> Char -> Char
+prop_TL_foldl' f z     = L.foldl' f z `eqP`  TL.foldl' f z
+    where types      = f :: Char -> Char -> Char
 prop_T_foldl1 f        = L.foldl1 f   `eqEP` T.foldl1 f
+prop_TL_foldl1 f       = L.foldl1 f   `eqEP` TL.foldl1 f
 prop_T_foldl1' f       = L.foldl1' f  `eqEP` T.foldl1' f
+prop_TL_foldl1' f      = L.foldl1' f  `eqEP` TL.foldl1' f
 prop_T_foldr f z       = L.foldr f z  `eqP`  T.foldr f z
     where types      = f :: Char -> Char -> Char
+prop_TL_foldr f z      = L.foldr f z  `eqP`  TL.foldr f z
+    where types      = f :: Char -> Char -> Char
 prop_T_foldr1 f        = L.foldr1 f   `eqEP` T.foldr1 f
+prop_TL_foldr1 f       = L.foldr1 f   `eqEP` TL.foldr1 f
 
 prop_T_concat          = L.concat      `eq`   (unpackT . T.concat . map T.pack)
 prop_T_concatMap f     = L.concatMap f `eqP`  (unpackT . T.concatMap (T.pack . f))
@@ -339,11 +348,17 @@ tests = [
   ("prop_T_reverse_short", mytest prop_T_reverse_short),
 
   ("prop_T_foldl", mytest prop_T_foldl),
+  ("prop_TL_foldl", mytest prop_TL_foldl),
   ("prop_T_foldl'", mytest prop_T_foldl'),
+  ("prop_TL_foldl'", mytest prop_TL_foldl'),
   ("prop_T_foldl1", mytest prop_T_foldl1),
+  ("prop_TL_foldl1", mytest prop_TL_foldl1),
   ("prop_T_foldl1'", mytest prop_T_foldl1'),
+  ("prop_TL_foldl1'", mytest prop_TL_foldl1'),
   ("prop_T_foldr", mytest prop_T_foldr),
+  ("prop_TL_foldr", mytest prop_TL_foldr),
   ("prop_T_foldr1", mytest prop_T_foldr1),
+  ("prop_TL_foldr1", mytest prop_TL_foldr1),
 
   ("prop_T_concat", mytest prop_T_concat),
   ("prop_T_concatMap", mytest prop_T_concatMap),

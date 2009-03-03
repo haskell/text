@@ -59,12 +59,12 @@ module Data.Text.Lazy
     -- , reverse
 
     -- * Folds
-    -- , foldl
-    -- , foldl'
-    -- , foldl1
-    -- , foldl1'
-    -- , foldr
-    -- , foldr1
+    , foldl
+    , foldl'
+    , foldl1
+    , foldl1'
+    , foldr
+    , foldr1
 
     -- ** Special folds
     -- , concat
@@ -343,6 +343,48 @@ intercalate t ts = unstream (S.intercalate (stream t) (L.map stream ts))
 intersperse     :: Char -> Text -> Text
 intersperse c t = unstream (S.intersperse c (stream t))
 {-# INLINE intersperse #-}
+
+-- | /O(n)/ 'foldl', applied to a binary operator, a starting value
+-- (typically the left-identity of the operator), and a 'Text',
+-- reduces the 'Text' using the binary operator, from left to right.
+-- Subject to array fusion.
+foldl :: (b -> Char -> b) -> b -> Text -> b
+foldl f z t = S.foldl f z (stream t)
+{-# INLINE foldl #-}
+
+-- | /O(n)/ A strict version of 'foldl'.
+-- Subject to array fusion.
+foldl' :: (b -> Char -> b) -> b -> Text -> b
+foldl' f z t = S.foldl' f z (stream t)
+{-# INLINE foldl' #-}
+
+-- | /O(n)/ A variant of 'foldl' that has no starting value argument,
+-- and thus must be applied to a non-empty 'Text'.  Subject to array
+-- fusion.
+foldl1 :: (Char -> Char -> Char) -> Text -> Char
+foldl1 f t = S.foldl1 f (stream t)
+{-# INLINE foldl1 #-}
+
+-- | /O(n)/ A strict version of 'foldl1'.
+-- Subject to array fusion.
+foldl1' :: (Char -> Char -> Char) -> Text -> Char
+foldl1' f t = S.foldl1' f (stream t)
+{-# INLINE foldl1' #-}
+
+-- | /O(n)/ 'foldr', applied to a binary operator, a starting value
+-- (typically the right-identity of the operator), and a 'Text',
+-- reduces the 'Text' using the binary operator, from right to left.
+-- Subject to array fusion.
+foldr :: (Char -> b -> b) -> b -> Text -> b
+foldr f z t = S.foldr f z (stream t)
+{-# INLINE foldr #-}
+
+-- | /O(n)/ A variant of 'foldr' that has no starting value argument, and
+-- thust must be applied to a non-empty 'Text'.  Subject to array
+-- fusion.
+foldr1 :: (Char -> Char -> Char) -> Text -> Char
+foldr1 f t = S.foldr1 f (stream t)
+{-# INLINE foldr1 #-}
 
 -- | /O(n)/ 'splitAt' @n t@ returns a pair whose first element is a
 -- prefix of @t@ of length @n@, and whose second is the remainder of
