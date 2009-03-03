@@ -94,7 +94,7 @@ module Data.Text.Lazy
     -- * Substrings
 
     -- ** Breaking strings
-    -- , take
+    , take
     -- , drop
     -- , takeWhile
     -- , dropWhile
@@ -492,6 +492,27 @@ unfoldr f s = unstream (S.unfoldr f s)
 unfoldrN     :: Int64 -> (a -> Maybe (Char,a)) -> a -> Text
 unfoldrN n f s = unstream (S.unfoldrN n f s)
 {-# INLINE unfoldrN #-}
+
+-- | /O(n)/ 'take' @n@, applied to a 'Text', returns the prefix of the
+-- 'Text' of length @n@, or the 'Text' itself if @n@ is greater than
+-- the length of the Text. Subject to fusion.
+take :: Int64 -> Text -> Text
+take i _ | i <= 0 = Empty
+take i t0         = take' i t0
+  where take' 0 _            = Empty
+        take' _ Empty        = Empty
+        take' n (Chunk t ts)
+            | n < len   = Chunk (T.take (fromIntegral n) t) Empty
+            | otherwise = Chunk t (take' (n - len) ts)
+            where len = fromIntegral (T.length t)
+{-# INLINE [1] take #-}
+
+{-# RULES
+"LAZY TEXT take -> fused" [~1] forall n t.
+    take n t = unstream (S.take n (stream t))
+"LAZY TEXT take -> unfused" [1] forall n t.
+    unstream (S.take n (stream t)) = take n t
+  #-}
 
 -- | /O(n)/ 'splitAt' @n t@ returns a pair whose first element is a
 -- prefix of @t@ of length @n@, and whose second is the remainder of

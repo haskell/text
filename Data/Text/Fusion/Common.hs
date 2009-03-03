@@ -530,7 +530,7 @@ unfoldrNI n f s0 | n <  0    = empty
 -- | /O(n)/ take n, applied to a stream, returns the prefix of the
 -- stream of length @n@, or the stream itself if @n@ is greater than the
 -- length of the stream.
-take :: Int -> Stream Char -> Stream Char
+take :: Integral a => a -> Stream Char -> Stream Char
 take n0 (Stream next0 s0 len) = Stream next (n0 :!: s0) len
     where
       {-# INLINE next #-}

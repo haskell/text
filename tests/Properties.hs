@@ -215,7 +215,9 @@ prop_TL_unfoldrN n m   = (L.take n . L.unfoldr (unf m)) `eq`
 unpack2 :: (Target t) => (t,t) -> (String,String)
 unpack2 = unpackT *** unpackT
 
+prop_S_take n          = L.take n      `eqP` (unpackT . S.take n)
 prop_T_take n          = L.take n      `eqP` (unpackT . T.take n)
+prop_TL_take n         = L.take n      `eqP` (unpackT . TL.take (fromIntegral n))
 prop_T_drop n          = L.drop n      `eqP` (unpackT . T.drop n)
 prop_T_takeWhile p     = L.takeWhile p `eqP` (unpackT . T.takeWhile p)
 prop_T_takeWhileS p    = L.takeWhile p `eqP` (unpackT . S.unstream . S.takeWhile p . S.stream)
@@ -408,7 +410,9 @@ tests = [
   ("prop_T_unfoldrN", mytest prop_T_unfoldrN),
   ("prop_TL_unfoldrN", mytest prop_TL_unfoldrN),
 
+  ("prop_S_take", mytest prop_S_take),
   ("prop_T_take", mytest prop_T_take),
+  ("prop_TL_take", mytest prop_TL_take),
   ("prop_T_drop", mytest prop_T_drop),
   ("prop_T_takeWhile", mytest prop_T_takeWhile),
   ("prop_T_takeWhileS", mytest prop_T_takeWhileS),
