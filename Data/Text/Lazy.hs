@@ -269,7 +269,7 @@ last :: Text -> Char
 last Empty        = emptyError "last"
 last (Chunk t ts) = go t ts
     where go _ (Chunk t' ts') = go t' ts'
-          go t Empty          = T.last t
+          go t' Empty         = T.last t'
 {-# INLINE [1] last #-}
 
 {-# RULES
