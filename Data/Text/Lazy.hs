@@ -48,7 +48,7 @@ module Data.Text.Lazy
     , last
     , tail
     , init
-    -- , null
+    , null
     -- , length
 
     -- * Transformations
@@ -277,6 +277,20 @@ init Empty = emptyError "init"
     init t = unstream (S.init (stream t))
 "LAZY TEXT init -> unfused" [1] forall t.
     unstream (S.init (stream t)) = init t
+ #-}
+
+-- | /O(1)/ Tests whether a 'Text' is empty or not.  Subject to array
+-- fusion.
+null :: Text -> Bool
+null Empty = True
+null _     = False
+{-# INLINE [1] null #-}
+
+{-# RULES
+"TEXT null -> fused" [~1] forall t.
+    null t = S.null (stream t)
+"TEXT null -> unfused" [1] forall t.
+    S.null (stream t) = null t
  #-}
 
 -- | /O(1)/ Returns the last character of a 'Text', which must be
