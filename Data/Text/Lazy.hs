@@ -67,12 +67,12 @@ module Data.Text.Lazy
     , foldr1
 
     -- ** Special folds
-    -- , concat
-    -- , concatMap
-    -- , any
-    -- , all
-    -- , maximum
-    -- , minimum
+    , concat
+    , concatMap
+    , any
+    , all
+    , maximum
+    , minimum
 
     -- * Construction
 
@@ -385,6 +385,44 @@ foldr f z t = S.foldr f z (stream t)
 foldr1 :: (Char -> Char -> Char) -> Text -> Char
 foldr1 f t = S.foldr1 f (stream t)
 {-# INLINE foldr1 #-}
+
+-- | /O(n)/ Concatenate a list of 'Text's. Subject to array fusion.
+concat :: [Text] -> Text
+concat ts = unstream (S.concat (L.map stream ts))
+{-# INLINE concat #-}
+
+-- | /O(n)/ Map a function over a 'Text' that results in a 'Text', and
+-- concatenate the results.  This function is subject to array fusion.
+--
+-- Note: if in 'concatMap' @f@ @t@, @f@ is defined in terms of fusible
+-- functions, it will also be fusible.
+concatMap :: (Char -> Text) -> Text -> Text
+concatMap f t = unstream (S.concatMap (stream . f) (stream t))
+{-# INLINE concatMap #-}
+
+-- | /O(n)/ 'any' @p@ @t@ determines whether any character in the
+-- 'Text' @t@ satisifes the predicate @p@. Subject to array fusion.
+any :: (Char -> Bool) -> Text -> Bool
+any p t = S.any p (stream t)
+{-# INLINE any #-}
+
+-- | /O(n)/ 'all' @p@ @t@ determines whether all characters in the
+-- 'Text' @t@ satisify the predicate @p@. Subject to array fusion.
+all :: (Char -> Bool) -> Text -> Bool
+all p t = S.all p (stream t)
+{-# INLINE all #-}
+
+-- | /O(n)/ 'maximum' returns the maximum value from a 'Text', which
+-- must be non-empty. Subject to array fusion.
+maximum :: Text -> Char
+maximum t = S.maximum (stream t)
+{-# INLINE maximum #-}
+
+-- | /O(n)/ 'minimum' returns the minimum value from a 'Text', which
+-- must be non-empty. Subject to array fusion.
+minimum :: Text -> Char
+minimum t = S.minimum (stream t)
+{-# INLINE minimum #-}
 
 -- | /O(n)/ 'splitAt' @n t@ returns a pair whose first element is a
 -- prefix of @t@ of length @n@, and whose second is the remainder of

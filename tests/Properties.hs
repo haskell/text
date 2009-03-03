@@ -170,11 +170,17 @@ prop_T_foldr1 f        = L.foldr1 f   `eqEP` T.foldr1 f
 prop_TL_foldr1 f       = L.foldr1 f   `eqEP` TL.foldr1 f
 
 prop_T_concat          = L.concat      `eq`   (unpackT . T.concat . map T.pack)
+prop_TL_concat         = L.concat      `eq`   (unpackT . TL.concat . map TL.pack)
 prop_T_concatMap f     = L.concatMap f `eqP`  (unpackT . T.concatMap (T.pack . f))
+prop_TL_concatMap f    = L.concatMap f `eqP`  (unpackT . TL.concatMap (TL.pack . f))
 prop_T_any p           = L.any p       `eqP`  T.any p
+prop_TL_any p          = L.any p       `eqP`  TL.any p
 prop_T_all p           = L.all p       `eqP`  T.all p
+prop_TL_all p          = L.all p       `eqP`  TL.all p
 prop_T_maximum         = L.maximum     `eqEP` T.maximum
+prop_TL_maximum        = L.maximum     `eqEP` TL.maximum
 prop_T_minimum         = L.minimum     `eqEP` T.minimum
+prop_TL_minimum        = L.minimum     `eqEP` TL.minimum
 
 prop_T_scanl f z       = L.scanl f z   `eqP`  (unpackT . T.scanl f z)
 prop_T_scanl1 f        = L.scanl1 f    `eqP`  (unpackT . T.scanl1 f)
@@ -361,11 +367,17 @@ tests = [
   ("prop_TL_foldr1", mytest prop_TL_foldr1),
 
   ("prop_T_concat", mytest prop_T_concat),
+  ("prop_TL_concat", mytest prop_TL_concat),
   ("prop_T_concatMap", mytest prop_T_concatMap),
+  ("prop_TL_concatMap", mytest prop_TL_concatMap),
   ("prop_T_any", mytest prop_T_any),
+  ("prop_TL_any", mytest prop_TL_any),
   ("prop_T_all", mytest prop_T_all),
+  ("prop_TL_all", mytest prop_TL_all),
   ("prop_T_maximum", mytest prop_T_maximum),
+  ("prop_TL_maximum", mytest prop_TL_maximum),
   ("prop_T_minimum", mytest prop_T_minimum),
+  ("prop_TL_minimum", mytest prop_TL_minimum),
 
   ("prop_T_scanl", mytest prop_T_scanl),
   ("prop_T_scanl1", mytest prop_T_scanl1),
