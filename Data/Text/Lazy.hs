@@ -46,7 +46,7 @@ module Data.Text.Lazy
     , uncons
     , head
     , last
-    -- , tail
+    , tail
     -- , init
     -- , null
     -- , length
@@ -250,6 +250,18 @@ uncons (Chunk t ts) =
 head :: Text -> Char
 head t = S.head (stream t)
 {-# INLINE head #-}
+
+tail :: Text -> Text
+tail (Chunk t ts) = chunk (T.tail t) ts
+tail Empty        = emptyError "tail"
+{-# INLINE [1] tail #-}
+
+{-# RULES
+"TEXT tail -> fused" [~1] forall t.
+    tail t = unstream (S.tail (stream t))
+"TEXT tail -> unfused" [1] forall t.
+    unstream (S.tail (stream t)) = tail t
+ #-}
 
 -- | /O(1)/ Returns the last character of a 'Text', which must be
 -- non-empty.  Subject to array fusion.

@@ -127,8 +127,9 @@ prop_TL_head           = head   `eqEP` TL.head
 prop_S_last            = last   `eqEP` S.last
 prop_T_last            = last   `eqEP` T.last
 prop_TL_last           = last   `eqEP` TL.last
+prop_S_tail            = tail   `eqEP` (unpackT . S.tail)
 prop_T_tail            = tail   `eqEP` (unpackT . T.tail)
-prop_T_tailS           = tail   `eqEP` (unpackT . S.unstream . S.tail . S.stream)
+prop_TL_tail           = tail   `eqEP` (unpackT . TL.tail)
 prop_T_init            = init   `eqEP` (unpackT . T.init)
 prop_T_initS           = init   `eqEP` (unpackT . S.unstream . S.init . S.stream)
 prop_T_null            = null   `eqP`  T.null
@@ -304,8 +305,9 @@ tests = [
   ("prop_S_last", mytest prop_S_last),
   ("prop_T_last", mytest prop_T_last),
   ("prop_TL_last", mytest prop_TL_last),
+  ("prop_S_tail", mytest prop_S_tail),
   ("prop_T_tail", mytest prop_T_tail),
-  ("prop_T_tailS", mytest prop_T_tailS),
+  ("prop_TL_tail", mytest prop_TL_tail),
   ("prop_T_init", mytest prop_T_init),
   ("prop_T_initS", mytest prop_T_initS),
   ("prop_T_null", mytest prop_T_null),
