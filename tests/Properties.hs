@@ -183,7 +183,9 @@ prop_T_minimum         = L.minimum     `eqEP` T.minimum
 prop_TL_minimum        = L.minimum     `eqEP` TL.minimum
 
 prop_T_scanl f z       = L.scanl f z   `eqP`  (unpackT . T.scanl f z)
+prop_TL_scanl f z      = L.scanl f z   `eqP`  (unpackT . TL.scanl f z)
 prop_T_scanl1 f        = L.scanl1 f    `eqP`  (unpackT . T.scanl1 f)
+prop_TL_scanl1 f       = L.scanl1 f    `eqP`  (unpackT . TL.scanl1 f)
 prop_T_scanr f z       = L.scanr f z   `eqP`  (unpackT . T.scanr f z)
 prop_T_scanr1 f        = L.scanr1 f    `eqP`  (unpackT . T.scanr1 f)
 
@@ -380,7 +382,9 @@ tests = [
   ("prop_TL_minimum", mytest prop_TL_minimum),
 
   ("prop_T_scanl", mytest prop_T_scanl),
+  ("prop_TL_scanl", mytest prop_TL_scanl),
   ("prop_T_scanl1", mytest prop_T_scanl1),
+  ("prop_TL_scanl1", mytest prop_TL_scanl1),
   ("prop_T_scanr", mytest prop_T_scanr),
   ("prop_T_scanr1", mytest prop_T_scanr1),
 

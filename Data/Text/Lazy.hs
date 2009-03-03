@@ -77,8 +77,8 @@ module Data.Text.Lazy
     -- * Construction
 
     -- ** Scans
-    -- , scanl
-    -- , scanl1
+    , scanl
+    , scanl1
     -- , scanr
     -- , scanr1
 
@@ -423,6 +423,29 @@ maximum t = S.maximum (stream t)
 minimum :: Text -> Char
 minimum t = S.minimum (stream t)
 {-# INLINE minimum #-}
+
+-- | /O(n)/ 'scanl' is similar to 'foldl', but returns a list of
+-- successive reduced values from the left. This function is subject
+-- to array fusion.
+--
+-- > scanl f z [x1, x2, ...] == [z, z `f` x1, (z `f` x1) `f` x2, ...]
+--
+-- Note that
+--
+-- > last (scanl f z xs) == foldl f z xs.
+scanl :: (Char -> Char -> Char) -> Char -> Text -> Text
+scanl f z t = unstream (S.scanl f z (stream t))
+{-# INLINE scanl #-}
+
+-- | /O(n)/ 'scanl1' is a variant of 'scanl' that has no starting
+-- value argument.  This function is subject to array fusion.
+--
+-- > scanl1 f [x1, x2, ...] == [x1, x1 `f` x2, ...]
+scanl1 :: (Char -> Char -> Char) -> Text -> Text
+scanl1 f t0 = case uncons t0 of
+                Nothing -> empty
+                Just (t,ts) -> scanl f t ts
+{-# INLINE scanl1 #-}
 
 -- | /O(n)/ 'splitAt' @n t@ returns a pair whose first element is a
 -- prefix of @t@ of length @n@, and whose second is the remainder of
