@@ -52,9 +52,9 @@ module Data.Text.Lazy
     , length
 
     -- * Transformations
-    -- , map
-    -- , intercalate
-    -- , intersperse
+    , map
+    , intercalate
+    , intersperse
     -- , transpose
     -- , reverse
 
@@ -153,6 +153,7 @@ import Prelude (Char, Bool(..), Functor(..), Int, Maybe(..), String,
                 fromIntegral, not, return, otherwise)
 import qualified Prelude as P
 import Data.Int (Int64)
+import qualified Data.List as L
 import Data.String (IsString(..))
 import qualified Data.Text as T
 import qualified Data.Text.Fusion as S
@@ -296,18 +297,6 @@ null _     = False
     S.null (stream t) = null t
  #-}
 
-length :: Text -> Int64
-length = foldlChunks go 0
-    where go l t = l + fromIntegral (T.length t)
-{-# INLINE [1] length #-}
-
-{-# RULES
-"LAZY TEXT length -> fused" [~1] forall t.
-    length t = S.length64 (stream t)
-"LAZY TEXT length -> unfused" [1] forall t.
-    S.length64 (stream t) = length t
- #-}
-
 -- | /O(1)/ Returns the last character of a 'Text', which must be
 -- non-empty.  Subject to array fusion.
 last :: Text -> Char
@@ -323,6 +312,37 @@ last (Chunk t ts) = go t ts
 "LAZY TEXT last -> unfused" [1] forall t.
     S.last (stream t) = last t
   #-}
+
+length :: Text -> Int64
+length = foldlChunks go 0
+    where go l t = l + fromIntegral (T.length t)
+{-# INLINE [1] length #-}
+
+{-# RULES
+"LAZY TEXT length -> fused" [~1] forall t.
+    length t = S.length64 (stream t)
+"LAZY TEXT length -> unfused" [1] forall t.
+    S.length64 (stream t) = length t
+ #-}
+
+-- | /O(n)/ 'map' @f @xs is the 'Text' obtained by applying @f@ to
+-- each element of @xs@.  Subject to array fusion.
+map :: (Char -> Char) -> Text -> Text
+map f t = unstream (S.map f (stream t))
+{-# INLINE [1] map #-}
+
+-- | /O(n)/ The 'intercalate' function takes a 'Text' and a list of
+-- 'Text's and concatenates the list after interspersing the first
+-- argument between each element of the list.
+intercalate :: Text -> [Text] -> Text
+intercalate t ts = unstream (S.intercalate (stream t) (L.map stream ts))
+{-# INLINE intercalate #-}
+
+-- | /O(n)/ The 'intersperse' function takes a character and places it
+-- between the characters of a 'Text'.  Subject to array fusion.
+intersperse     :: Char -> Text -> Text
+intersperse c t = unstream (S.intersperse c (stream t))
+{-# INLINE intersperse #-}
 
 -- | /O(n)/ 'splitAt' @n t@ returns a pair whose first element is a
 -- prefix of @t@ of length @n@, and whose second is the remainder of
