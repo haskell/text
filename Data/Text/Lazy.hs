@@ -289,9 +289,9 @@ null _     = False
 {-# INLINE [1] null #-}
 
 {-# RULES
-"TEXT null -> fused" [~1] forall t.
+"LAZY TEXT null -> fused" [~1] forall t.
     null t = S.null (stream t)
-"TEXT null -> unfused" [1] forall t.
+"LAZY TEXT null -> unfused" [1] forall t.
     S.null (stream t) = null t
  #-}
 
