@@ -265,6 +265,8 @@ tail Empty        = emptyError "tail"
     unstream (S.tail (stream t)) = tail t
  #-}
 
+-- | /O(1)/ Returns all but the last character of a 'Text', which must
+-- be non-empty.  Subject to array fusion.
 init :: Text -> Text
 init (Chunk t0 ts0) = go t0 ts0
     where go t (Chunk t' ts) = Chunk t (go t' ts)
