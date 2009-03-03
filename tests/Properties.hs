@@ -221,10 +221,12 @@ prop_TL_take n         = L.take n      `eqP` (unpackT . TL.take (fromIntegral n)
 prop_S_drop n          = L.drop n      `eqP` (unpackT . S.drop n)
 prop_T_drop n          = L.drop n      `eqP` (unpackT . T.drop n)
 prop_TL_drop n         = L.drop n      `eqP` (unpackT . TL.drop n)
+prop_S_takeWhile p     = L.takeWhile p `eqP` (unpackT . S.takeWhile p)
 prop_T_takeWhile p     = L.takeWhile p `eqP` (unpackT . T.takeWhile p)
-prop_T_takeWhileS p    = L.takeWhile p `eqP` (unpackT . S.unstream . S.takeWhile p . S.stream)
+prop_TL_takeWhile p    = L.takeWhile p `eqP` (unpackT . TL.takeWhile p)
+prop_S_dropWhile p     = L.dropWhile p `eqP` (unpackT . S.dropWhile p)
 prop_T_dropWhile p     = L.dropWhile p `eqP` (unpackT . T.dropWhile p)
-prop_T_dropWhileS p    = L.dropWhile p `eqP` (unpackT . S.unstream . S.dropWhile p . S.stream)
+prop_TL_dropWhile p    = L.dropWhile p `eqP` (unpackT . S.dropWhile p)
 prop_T_splitAt n       = L.splitAt n   `eqP` (unpack2 . T.splitAt n)
 prop_TL_splitAt n      = L.splitAt n   `eqP` (unpack2 . TL.splitAt n)
 prop_T_span p          = L.span p      `eqP` (unpack2 . T.span p)
@@ -418,10 +420,12 @@ tests = [
   ("prop_S_drop", mytest prop_S_drop),
   ("prop_T_drop", mytest prop_T_drop),
   ("prop_TL_drop", mytest prop_TL_drop),
+  ("prop_S_takeWhile", mytest prop_S_takeWhile),
   ("prop_T_takeWhile", mytest prop_T_takeWhile),
-  ("prop_T_takeWhileS", mytest prop_T_takeWhileS),
+  ("prop_TL_takeWhile", mytest prop_TL_takeWhile),
+  ("prop_S_dropWhile", mytest prop_S_dropWhile),
   ("prop_T_dropWhile", mytest prop_T_dropWhile),
-  ("prop_T_dropWhileS", mytest prop_T_dropWhileS),
+  ("prop_TL_dropWhile", mytest prop_TL_dropWhile),
   ("prop_T_splitAt", mytest prop_T_splitAt),
   ("prop_T_span", mytest prop_T_span),
   ("prop_T_break", mytest prop_T_break),

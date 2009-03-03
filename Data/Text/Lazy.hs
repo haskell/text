@@ -96,8 +96,8 @@ module Data.Text.Lazy
     -- ** Breaking strings
     , take
     , drop
-    -- , takeWhile
-    -- , dropWhile
+    , takeWhile
+    , dropWhile
     , splitAt
     -- , span
     -- , break
@@ -534,6 +534,44 @@ drop i t0
     drop n t = unstream (S.drop n (stream t))
 "LAZY TEXT drop -> unfused" [1] forall n t.
     unstream (S.drop n (stream t)) = drop n t
+  #-}
+
+-- | /O(n)/ 'takeWhile', applied to a predicate @p@ and a 'Text', returns
+-- the longest prefix (possibly empty) of elements that satisfy @p@.
+-- This function is subject to array fusion.
+takeWhile :: (Char -> Bool) -> Text -> Text
+takeWhile p t0 = takeWhile' t0
+  where takeWhile' Empty        = Empty
+        takeWhile' (Chunk t ts) =
+          case T.findIndex (not . p) t of
+            Just n | n > 0     -> Chunk (T.take n t) Empty
+                   | otherwise -> Empty
+            Nothing            -> Chunk t (takeWhile' ts)
+{-# INLINE [1] takeWhile #-}
+
+{-# RULES
+"LAZY TEXT takeWhile -> fused" [~1] forall p t.
+    takeWhile p t = unstream (S.takeWhile p (stream t))
+"LAZY TEXT takeWhile -> unfused" [1] forall p t.
+    unstream (S.takeWhile p (stream t)) = takeWhile p t
+  #-}
+
+-- | /O(n)/ 'dropWhile' @p@ @xs@ returns the suffix remaining after
+-- 'takeWhile' @p@ @xs@. This function is subject to array fusion.
+dropWhile :: (Char -> Bool) -> Text -> Text
+dropWhile p t0 = dropWhile' t0
+  where dropWhile' Empty        = Empty
+        dropWhile' (Chunk t ts) =
+          case T.findIndex (not . p) t of
+            Just n  -> Chunk (T.drop n t) ts
+            Nothing -> dropWhile' ts
+{-# INLINE [1] dropWhile #-}
+
+{-# RULES
+"LAZY TEXT dropWhile -> fused" [~1] forall p t.
+    dropWhile p t = unstream (S.dropWhile p (stream t))
+"LAZY TEXT dropWhile -> unfused" [1] forall p t.
+    unstream (S.dropWhile p (stream t)) = dropWhile p t
   #-}
 
 -- | /O(n)/ 'splitAt' @n t@ returns a pair whose first element is a
