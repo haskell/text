@@ -107,8 +107,8 @@ module Data.Text.Lazy
     , tails
 
     -- ** Breaking into many substrings
-    -- , split
-    -- , splitWith
+    , split
+    , splitWith
     -- , breakSubstring
 
     -- ** Breaking into lines and words
@@ -645,6 +645,40 @@ tails Empty         = Empty : []
 tails ts@(Chunk t ts')
   | T.length t == 1 = ts : tails ts'
   | otherwise       = ts : tails (Chunk (T.unsafeTail t) ts')
+
+-- | /O(n)/ Break a 'Text' into pieces separated by the byte
+-- argument, consuming the delimiter. I.e.
+--
+-- > split '\n' "a\nb\nd\ne" == ["a","b","d","e"]
+-- > split 'a'  "aXaXaXa"    == ["","X","X","X",""]
+-- > split 'x'  "x"          == ["",""]
+-- 
+-- and
+--
+-- > intercalate [c] . split c == id
+-- > split == splitWith . (==)
+-- 
+-- As for all splitting functions in this library, this function does
+-- not copy the substrings, it just constructs new 'Text's that are
+-- slices of the original.
+split :: Char -> Text -> [Text]
+split c = splitWith (==c)
+{-# INLINE split #-}
+
+-- | /O(n)/ Splits a 'Text' into components delimited by separators,
+-- where the predicate returns True for a separator element.  The
+-- resulting components do not contain the separators.  Two adjacent
+-- separators result in an empty component in the output.  eg.
+--
+-- > splitWith (=='a') "aabbaca" == ["","","bb","c",""]
+-- > splitWith (=='a') []        == []
+splitWith :: (Char -> Bool) -> Text -> [Text]
+splitWith _ Empty = []
+splitWith p (Chunk t0 ts0) = comb [] (T.splitWith p t0) ts0
+  where comb acc (s:[]) Empty        = revChunks (s:acc) : []
+        comb acc (s:[]) (Chunk t ts) = comb (s:acc) (T.splitWith p t) ts
+        comb acc (s:ss) ts           = revChunks (s:acc) : comb [] ss ts
+{-# INLINE splitWith #-}
 
 revChunks :: [T.Text] -> Text
 revChunks = L.foldl' (flip chunk) Empty

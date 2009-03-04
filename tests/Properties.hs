@@ -243,8 +243,10 @@ prop_T_tails           = L.tails       `eqP` (map unpackT . T.tails)
 prop_TL_tails          = L.tails       `eqP` (map unpackT . TL.tails)
 
 prop_T_split_i c       = id `eq` (T.intercalate (T.singleton c) . T.split c)
+prop_TL_split_i c      = id `eq` (TL.intercalate (TL.singleton c) . TL.split c)
 
 prop_T_splitWith p     = splitWith p `eqP` (map unpackT . T.splitWith p)
+prop_TL_splitWith p    = splitWith p `eqP` (map unpackT . TL.splitWith p)
 
 splitWith _ "" =  []
 splitWith p s  = if null s'
@@ -447,7 +449,9 @@ tests = [
   ("prop_TL_tails", mytest prop_TL_tails),
 
   ("prop_T_split_i", mytest prop_T_split_i),
+  ("prop_TL_split_i", mytest prop_TL_split_i),
   ("prop_T_splitWith", mytest prop_T_splitWith),
+  ("prop_TL_splitWith", mytest prop_TL_splitWith),
   ("prop_T_breakSubstringC", mytest prop_T_breakSubstringC),
   ("prop_T_breakSubstring_isInfixOf", mytest prop_T_breakSubstring_isInfixOf),
 
