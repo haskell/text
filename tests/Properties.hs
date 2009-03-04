@@ -69,7 +69,7 @@ instance Target T.Text where
 instance Target TL.Text where
     packT    = TL.pack
     unpackT  = TL.unpack
-    splitAtT = TL.splitAt
+    splitAtT = TL.splitAt . fromIntegral
 
 -- Do two functions give the same answer?
 eq :: (Eq a) => (t -> a) -> (t -> a) -> t -> Bool
@@ -228,7 +228,7 @@ prop_S_dropWhile p     = L.dropWhile p `eqP` (unpackT . S.dropWhile p)
 prop_T_dropWhile p     = L.dropWhile p `eqP` (unpackT . T.dropWhile p)
 prop_TL_dropWhile p    = L.dropWhile p `eqP` (unpackT . S.dropWhile p)
 prop_T_splitAt n       = L.splitAt n   `eqP` (unpack2 . T.splitAt n)
-prop_TL_splitAt n      = L.splitAt n   `eqP` (unpack2 . TL.splitAt n)
+prop_TL_splitAt n      = L.splitAt n   `eqP` (unpack2 . TL.splitAt (fromIntegral n))
 prop_T_span p          = L.span p      `eqP` (unpack2 . T.span p)
 prop_T_break p         = L.break p     `eqP` (unpack2 . T.break p)
 prop_T_group           = L.group       `eqP` (map unpackT . T.group)
