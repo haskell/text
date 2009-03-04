@@ -103,8 +103,8 @@ module Data.Text.Lazy
     , break
     , group
     , groupBy
-    -- , inits
-    -- , tails
+    , inits
+    , tails
 
     -- ** Breaking into many substrings
     -- , split
@@ -629,6 +629,22 @@ groupBy eq (Chunk t ts) = cons x ys : groupBy eq zs
                           where (ys,zs) = span (eq x) xs
                                 x  = T.unsafeHead t
                                 xs = chunk (T.unsafeTail t) ts
+
+-- | /O(n)/ Return all initial segments of the given 'Text',
+-- shortest first.
+inits :: Text -> [Text]
+inits = (Empty :) . inits'
+  where inits' Empty        = []
+        inits' (Chunk t ts) = L.map (\t' -> Chunk t' Empty) (L.tail (T.inits t))
+                           ++ L.map (Chunk t) (inits' ts)
+
+-- | /O(n)/ Return all final segments of the given 'Text', longest
+-- first.
+tails :: Text -> [Text]
+tails Empty         = Empty : []
+tails ts@(Chunk t ts')
+  | T.length t == 1 = ts : tails ts'
+  | otherwise       = ts : tails (Chunk (T.unsafeTail t) ts')
 
 revChunks :: [T.Text] -> Text
 revChunks = L.foldl' (flip chunk) Empty

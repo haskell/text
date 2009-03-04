@@ -238,7 +238,9 @@ prop_TL_group          = L.group       `eqP` (map unpackT . TL.group)
 prop_T_groupBy p       = L.groupBy p   `eqP` (map unpackT . T.groupBy p)
 prop_TL_groupBy p      = L.groupBy p   `eqP` (map unpackT . TL.groupBy p)
 prop_T_inits           = L.inits       `eqP` (map unpackT . T.inits)
+prop_TL_inits          = L.inits       `eqP` (map unpackT . TL.inits)
 prop_T_tails           = L.tails       `eqP` (map unpackT . T.tails)
+prop_TL_tails          = L.tails       `eqP` (map unpackT . TL.tails)
 
 prop_T_split_i c       = id `eq` (T.intercalate (T.singleton c) . T.split c)
 
@@ -440,7 +442,9 @@ tests = [
   ("prop_T_groupBy", mytest prop_T_groupBy),
   ("prop_TL_groupBy", mytest prop_TL_groupBy),
   ("prop_T_inits", mytest prop_T_inits),
+  ("prop_TL_inits", mytest prop_TL_inits),
   ("prop_T_tails", mytest prop_T_tails),
+  ("prop_TL_tails", mytest prop_TL_tails),
 
   ("prop_T_split_i", mytest prop_T_split_i),
   ("prop_T_splitWith", mytest prop_T_splitWith),
