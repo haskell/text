@@ -230,7 +230,9 @@ prop_TL_dropWhile p    = L.dropWhile p `eqP` (unpackT . S.dropWhile p)
 prop_T_splitAt n       = L.splitAt n   `eqP` (unpack2 . T.splitAt n)
 prop_TL_splitAt n      = L.splitAt n   `eqP` (unpack2 . TL.splitAt (fromIntegral n))
 prop_T_span p          = L.span p      `eqP` (unpack2 . T.span p)
+prop_TL_span p         = L.span p      `eqP` (unpack2 . TL.span p)
 prop_T_break p         = L.break p     `eqP` (unpack2 . T.break p)
+prop_TL_break p        = L.break p     `eqP` (unpack2 . TL.break p)
 prop_T_group           = L.group       `eqP` (map unpackT . T.group)
 prop_T_groupBy p       = L.groupBy p   `eqP` (map unpackT . T.groupBy p)
 prop_T_inits           = L.inits       `eqP` (map unpackT . T.inits)
@@ -428,7 +430,9 @@ tests = [
   ("prop_TL_dropWhile", mytest prop_TL_dropWhile),
   ("prop_T_splitAt", mytest prop_T_splitAt),
   ("prop_T_span", mytest prop_T_span),
+  ("prop_TL_span", mytest prop_TL_span),
   ("prop_T_break", mytest prop_T_break),
+  ("prop_TL_break", mytest prop_TL_break),
   ("prop_T_group", mytest prop_T_group),
   ("prop_T_groupBy", mytest prop_T_groupBy),
   ("prop_T_inits", mytest prop_T_inits),

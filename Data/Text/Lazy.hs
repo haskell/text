@@ -99,8 +99,8 @@ module Data.Text.Lazy
     , takeWhile
     , dropWhile
     , splitAt
-    -- , span
-    -- , break
+    , span
+    , break
     -- , group
     -- , groupBy
     -- , inits
@@ -150,7 +150,7 @@ import Prelude (Char, Bool(..), Functor(..), Int, Maybe(..), String,
                 Eq(..), Ord(..), (++),
                 Read(..), Show(..),
                 (&&), (||), (+), (-), (.), ($),
-                fromIntegral, not, return, otherwise)
+                flip, fromIntegral, not, return, otherwise)
 import qualified Prelude as P
 import Data.Int (Int64)
 import qualified Data.List as L
@@ -586,7 +586,31 @@ splitAt = loop
                            in (Chunk ts' Empty, Chunk ts'' Empty)
              | otherwise = let (ts',ts'') = loop (n - len) ts
                            in (Chunk t ts', ts'')
-             where len = T.length t
+             where len = fromIntegral (T.length t)
+
+-- | /O(n)/ 'break' is like 'span', but the prefix returned is over
+-- elements that fail the predicate @p@.
+break :: (Char -> Bool) -> Text -> (Text, Text)
+break p t0 = break' t0
+  where break' Empty          = (empty, empty)
+        break' c@(Chunk t ts) =
+          case T.findIndex p t of
+            Nothing      -> let (ts', ts'') = break' ts
+                            in (Chunk t ts', ts'')
+            Just n | n == 0    -> (Empty, c)
+                   | otherwise -> let (a,b) = T.splitAt n t
+                                  in (Chunk a Empty, Chunk b ts)
+
+-- | /O(n)/ 'span', applied to a predicate @p@ and text @t@, returns a
+-- pair whose first element is the longest prefix (possibly empty) of
+-- @t@ of elements that satisfy @p@, and whose second is the remainder
+-- of the list.
+span :: (Char -> Bool) -> Text -> (Text, Text)
+span p = break (not . p)
+{-# INLINE span #-}
+
+revChunks :: [T.Text] -> Text
+revChunks = L.foldl' (flip chunk) Empty
 
 emptyError :: String -> a
 emptyError fun = P.error ("Data.Text.Lazy." ++ fun ++ ": empty input")
