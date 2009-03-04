@@ -101,8 +101,8 @@ module Data.Text.Lazy
     , splitAt
     , span
     , break
-    -- , group
-    -- , groupBy
+    , group
+    , groupBy
     -- , inits
     -- , tails
 
@@ -608,6 +608,27 @@ break p t0 = break' t0
 span :: (Char -> Bool) -> Text -> (Text, Text)
 span p = break (not . p)
 {-# INLINE span #-}
+
+-- | The 'group' function takes a 'Text' and returns a list of 'Text's
+-- such that the concatenation of the result is equal to the argument.
+-- Moreover, each sublist in the result contains only equal elements.
+-- For example,
+--
+-- > group "Mississippi" = ["M","i","ss","i","ss","i","pp","i"]
+--
+-- It is a special case of 'groupBy', which allows the programmer to
+-- supply their own equality test.
+group :: Text -> [Text]
+group =  groupBy (==)
+{-# INLINE group #-}
+
+-- | The 'groupBy' function is the non-overloaded version of 'group'.
+groupBy :: (Char -> Char -> Bool) -> Text -> [Text]
+groupBy _  Empty        = []
+groupBy eq (Chunk t ts) = cons x ys : groupBy eq zs
+                          where (ys,zs) = span (eq x) xs
+                                x  = T.unsafeHead t
+                                xs = chunk (T.unsafeTail t) ts
 
 revChunks :: [T.Text] -> Text
 revChunks = L.foldl' (flip chunk) Empty

@@ -234,7 +234,9 @@ prop_TL_span p         = L.span p      `eqP` (unpack2 . TL.span p)
 prop_T_break p         = L.break p     `eqP` (unpack2 . T.break p)
 prop_TL_break p        = L.break p     `eqP` (unpack2 . TL.break p)
 prop_T_group           = L.group       `eqP` (map unpackT . T.group)
+prop_TL_group          = L.group       `eqP` (map unpackT . TL.group)
 prop_T_groupBy p       = L.groupBy p   `eqP` (map unpackT . T.groupBy p)
+prop_TL_groupBy p      = L.groupBy p   `eqP` (map unpackT . TL.groupBy p)
 prop_T_inits           = L.inits       `eqP` (map unpackT . T.inits)
 prop_T_tails           = L.tails       `eqP` (map unpackT . T.tails)
 
@@ -434,7 +436,9 @@ tests = [
   ("prop_T_break", mytest prop_T_break),
   ("prop_TL_break", mytest prop_TL_break),
   ("prop_T_group", mytest prop_T_group),
+  ("prop_TL_group", mytest prop_TL_group),
   ("prop_T_groupBy", mytest prop_T_groupBy),
+  ("prop_TL_groupBy", mytest prop_TL_groupBy),
   ("prop_T_inits", mytest prop_T_inits),
   ("prop_T_tails", mytest prop_T_tails),
 
