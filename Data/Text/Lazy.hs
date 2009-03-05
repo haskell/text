@@ -582,7 +582,7 @@ splitAt = loop
   where loop _ Empty      = (empty, empty)
         loop n t | n <= 0 = (empty, t)
         loop n (Chunk t ts)
-             | n < len   = let (ts',ts'') = T.splitAt (fromIntegral n) t
+             | n < len   = let (ts',ts'') = T.splitAt n t
                            in (Chunk ts' Empty, Chunk ts'' Empty)
              | otherwise = let (ts',ts'') = loop (n - len) ts
                            in (Chunk t ts', ts'')
