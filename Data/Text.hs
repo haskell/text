@@ -598,7 +598,7 @@ drop n t@(Text arr off len)
     | otherwise = loop 0 0
   where end = off + len
         loop !i !cnt
-            | i >= end || cnt >= n   = Text arr (off+i) (len-i)
+            | i >= len || cnt >= n   = Text arr (off+i) (len-i)
             | otherwise              = loop (i+d) (cnt+1)
             where d = iter_ t i
 {-# INLINE [1] drop #-}
