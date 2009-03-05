@@ -121,6 +121,55 @@ length :: Stream Char -> Int
 length = S.lengthI
 {-# INLINE[0] length #-}
 
+-- | /O(n)/ Returns the number of characters in a text.
+length64 :: Stream Char -> Int64
+length64 (Stream next s0 _len) = loop_length 0 s0
+    where
+      loop_length z s  = case next s of
+                           Done       -> z
+                           Skip    s' -> loop_length z s'
+                           Yield _ s' -> let !z' = z + 1
+                                         in loop_length z' s'
+{-# INLINE[0] length64 #-}
+
+-- ----------------------------------------------------------------------------
+-- * Stream transformations
+
+-- | /O(n)/ 'map' @f @xs is the Stream Char obtained by applying @f@ to each element of
+-- @xs@.
+map :: (Char -> Char) -> Stream Char -> Stream Char
+map f (Stream next0 s0 len) = Stream next s0 len
+    where
+      {-# INLINE next #-}
+      next !s = case next0 s of
+                  Done       -> Done
+                  Skip s'    -> Skip s'
+                  Yield x s' -> Yield (f x) s'
+{-# INLINE [0] map #-}
+
+{-#
+  RULES "STREAM map/map fusion" forall f g s.
+     map f (map g s) = map (\x -> f (g x)) s
+ #-}
+
+-- | /O(n)/ Take a character and place it between each of the
+-- characters of a 'Stream Char'.
+intersperse :: Char -> Stream Char -> Stream Char
+intersperse c (Stream next0 s0 len) = Stream next (s0 :!: Nothing :!: S1) len
+    where
+      {-# INLINE next #-}
+      next (s :!: Nothing :!: S1) = case next0 s of
+        Done       -> Done
+        Skip s'    -> Skip (s' :!: Nothing :!: S1)
+        Yield x s' -> Skip (s' :!: Just x :!: S1)
+      next (s :!: Just x :!: S1)  = Yield x (s :!: Nothing :!: S2)
+      next (s :!: Nothing :!: S2) = case next0 s of
+        Done       -> Done
+        Skip s'    -> Skip    (s' :!: Nothing :!: S2)
+        Yield x s' -> Yield c (s' :!: Just x :!: S1)
+      next _ = internalError "intersperse"
+{-# INLINE [0] intersperse #-}
+
 -- | /O(n)/ Reverse the characters of a string.
 reverse :: Stream Char -> Text
 reverse (Stream next s len0)
