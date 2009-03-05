@@ -57,6 +57,8 @@ class Target t where
     packT    :: String -> t
     unpackT  :: t -> String
     splitAtT :: Int -> t -> (t,t)
+    packTChunkSize :: Int -> String -> t
+    packTChunkSize _ = packT
 
 instance Target (S.Stream Char) where
     packT        = S.streamList
@@ -69,6 +71,7 @@ instance Target T.Text where
     splitAtT = T.splitAt
 
 instance Target TL.Text where
+    packTChunkSize k = SL.unstreamChunks k . S.streamList
     packT    = TL.pack
     unpackT  = TL.unpack
     splitAtT = TL.splitAt . fromIntegral
@@ -81,9 +84,11 @@ eq a b s  = crashy False $ a s == b s
 eqP :: (Eq a, Show a, Target t) =>
        (String -> a) -> (t -> a) -> String -> Word8 -> Bool
 eqP a b s w  = eq "orig" (a s) (b t) &&
+               eq "mini" (a s) (b mini) &&
                eq "head" (a sa) (b ta) &&
                eq "tail" (a sb) (b tb)
     where t             = packT s
+          mini          = packTChunkSize 10 s
           (sa,sb)       = splitAt m s
           (ta,tb)       = splitAtT m t
           l             = length s
@@ -97,11 +102,13 @@ eqP a b s w  = eq "orig" (a s) (b t) &&
 eqEP :: (Eq a, Target t) =>
         (String -> a) -> (t -> a) -> NotEmpty String -> Word8 -> Bool
 eqEP a b e w  = a s == b t &&
+                a s == b mini &&
                 (null sa || a sa == b ta) &&
                 (null sb || a sb == b tb)
     where (sa,sb)       = splitAt m s
           (ta,tb)       = splitAtT m t
           t             = packT s
+          mini          = packTChunkSize 10 s
           l             = length s
           m | l == 0    = n
             | otherwise = n `mod` l
