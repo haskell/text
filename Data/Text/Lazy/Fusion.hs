@@ -55,21 +55,21 @@ unstreamChunks chunkSize (Stream next s0 len0)
                 Yield x s' -> I.Text arr 0 len `chunk` outer s''
                   where (arr,(s'',len)) = A.run2 fill
                         fill = do a <- A.unsafeNew unknownLength
-                                  inner a unknownLength x s' 0
+                                  i <- unsafeWrite a 0 x
+                                  inner a unknownLength s' i
                         unknownLength = 4
-    inner marr len x s i
+    inner marr len s i
         | i + 1 >= chunkSize = return (marr, (s,i))
         | i + 1 >= len       = do
             let newLen = min (len * 2) chunkSize
             marr' <- A.unsafeNew newLen
             A.copy marr marr'
-            inner marr' newLen x s i
+            inner marr' newLen s i
         | otherwise =
             case next s of
-              Done        -> do i' <- unsafeWrite marr i x
-                                return (marr,(s,i'))
-              Skip s'     -> inner marr len x s' i
-              Yield x' s' -> unsafeWrite marr i x >>= inner marr len x' s' 
+              Done        -> return (marr,(s,i))
+              Skip s'     -> inner marr len s' i
+              Yield x s'  -> unsafeWrite marr i x >>= inner marr len s'
 {-# INLINE [0] unstreamChunks #-}
 
 -- | /O(n)/ Convert a 'Stream Char' into a 'Text', using
