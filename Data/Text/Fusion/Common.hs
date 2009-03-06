@@ -376,10 +376,7 @@ intercalate s = concat . (L.intersperse s)
 
 -- | /O(n)/ Concatenate a list of streams. Subject to array fusion.
 concat :: [Stream Char] -> Stream Char
-concat = L.foldr append (Stream next Done 0)
-    where
-      next Done = Done
-      next _    = internalError "concat"
+concat = L.foldr append empty
 
 -- | Map a function over a stream that results in a stream and concatenate the
 -- results.
