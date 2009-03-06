@@ -257,11 +257,12 @@ prop_TL_split_i c      = id `eq` (TL.intercalate (TL.singleton c) . TL.split c)
 prop_T_splitWith p     = splitWith p `eqP` (map unpackT . T.splitWith p)
 prop_TL_splitWith p    = splitWith p `eqP` (map unpackT . TL.splitWith p)
 
-splitWith _ "" =  []
-splitWith p s  = if null s'
-                 then [s]
-                 else l : splitWith p (tail s')
-    where (l, s') = break p s
+splitWith :: (a -> Bool) -> [a] -> [[a]]
+splitWith _ [] =  []
+splitWith p xs = loop xs
+    where loop s | null s'   = [l]
+                 | otherwise = l : loop (tail s')
+              where (l, s') = break p s
 
 prop_T_breakSubstring_isInfixOf s l
                      = T.isInfixOf s l ==

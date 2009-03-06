@@ -741,11 +741,10 @@ split c = splitWith (==c)
 -- > splitWith (=='a') "aabbaca" == ["","","bb","c",""]
 -- > splitWith (=='a') []        == []
 splitWith :: (Char -> Bool) -> Text -> [Text]
-splitWith p = loop
-    where loop s | null s    = []
-                 | otherwise = if null s'
-                               then [s]
-                               else l : loop (unsafeTail s')
+splitWith _ (Text _off _arr 0) = []
+splitWith p t = loop t
+    where loop s | null s'   = [l]
+                 | otherwise = l : loop (unsafeTail s')
               where (l, s') = break p s
 {-# INLINE splitWith #-}
 
