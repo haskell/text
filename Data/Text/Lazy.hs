@@ -38,6 +38,8 @@ module Data.Text.Lazy
     , unpack
     , singleton
     , empty
+    , fromChunks
+    , toChunks
 
     -- * Basic interface
     , cons
@@ -202,6 +204,14 @@ singleton c = Chunk (T.singleton c) Empty
 "LAZY TEXT singleton -> unfused" [1] forall c.
     unstream (S.singleton c) = singleton c
   #-}
+
+-- | /O(c)/ Convert a list of strict 'T.Text's into a lazy 'Text'.
+fromChunks :: [T.Text] -> Text
+fromChunks cs = L.foldr chunk Empty cs
+
+-- | /O(n)/ Convert a lazy 'Text' into a list of strict 'T.Text's.
+toChunks :: Text -> [T.Text]
+toChunks cs = foldrChunks (:) [] cs
 
 cons :: Char -> Text -> Text
 cons c t = Chunk (T.singleton c) t
