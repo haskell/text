@@ -33,7 +33,7 @@ default(Int64)
 
 -- | /O(n)/ Convert a 'Text' into a 'Stream Char'.
 stream :: Text -> Stream Char
-stream text = Stream next (text :!: 0) 4
+stream text = Stream next (text :!: 0) 4 -- random HINT
   where
     next (Empty :!: _) = Done
     next (txt@(Chunk t@(I.Text _ _ len) ts) :!: i)
