@@ -175,7 +175,7 @@ reverseScanr f z0 (Stream next0 s0 len) = Stream next (S1 :!: z0 :!: s0) (len+1)
 -- first argument to 'unfoldrN'. This function is more efficient than
 -- 'unfoldr' when the length of the result is known.
 unfoldrN :: Int -> (a -> Maybe (Char,a)) -> a -> Stream Char
-unfoldrN n = S.unfoldrNI (fromIntegral n :: Int)
+unfoldrN n = S.unfoldrNI n
 {-# INLINE [0] unfoldrN #-}
 
 -------------------------------------------------------------------------------

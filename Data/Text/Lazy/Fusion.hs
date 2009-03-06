@@ -91,5 +91,5 @@ length = S.lengthI
 -- first argument to 'unfoldrN64'. This function is more efficient than
 -- 'unfoldr' when the length of the result is known.
 unfoldrN :: Int64 -> (a -> Maybe (Char,a)) -> a -> Stream Char
-unfoldrN n = S.unfoldrNI (fromIntegral n :: Int64)
+unfoldrN n = S.unfoldrNI n
 {-# INLINE [0] unfoldrN #-}
