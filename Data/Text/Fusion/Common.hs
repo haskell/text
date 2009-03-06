@@ -240,11 +240,10 @@ null (Stream next s0 _len) = loop_null s0
 lengthI :: Integral a => Stream Char -> a
 lengthI (Stream next s0 _len) = loop_length 0 s0
     where
-      loop_length z s  = case next s of
+      loop_length !z s  = case next s of
                            Done       -> z
                            Skip    s' -> loop_length z s'
-                           Yield _ s' -> let !z' = z + 1
-                                         in loop_length z' s'
+                           Yield _ s' -> loop_length (z + 1) s'
 {-# INLINE[0] lengthI #-}
 
 -- ----------------------------------------------------------------------------
