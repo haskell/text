@@ -715,6 +715,7 @@ splitWith p (Chunk t0 ts0) = comb [] (T.splitWith p t0) ts0
   where comb acc (s:[]) Empty        = revChunks (s:acc) : []
         comb acc (s:[]) (Chunk t ts) = comb (s:acc) (T.splitWith p t) ts
         comb acc (s:ss) ts           = revChunks (s:acc) : comb [] ss ts
+        comb _   []     _            = impossibleError "splitWith"
 {-# INLINE splitWith #-}
 
 -- | /O(n)/ Breaks a 'Text' up into a list of 'Text's at
@@ -736,3 +737,6 @@ revChunks = L.foldl' (flip chunk) Empty
 
 emptyError :: String -> a
 emptyError fun = P.error ("Data.Text.Lazy." ++ fun ++ ": empty input")
+
+impossibleError :: String -> a
+impossibleError fun = P.error ("Data.Text.Lazy." ++ fun ++ ": impossible case")
