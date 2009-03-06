@@ -57,7 +57,7 @@ module Data.Text.Lazy
     , map
     , intercalate
     , intersperse
-    -- , transpose
+    , transpose
     -- , reverse
 
     -- * Folds
@@ -353,6 +353,15 @@ intercalate t ts = unstream (S.intercalate (stream t) (L.map stream ts))
 intersperse     :: Char -> Text -> Text
 intersperse c t = unstream (S.intersperse c (stream t))
 {-# INLINE intersperse #-}
+
+-- | /O(n)/ The 'transpose' function transposes the rows and columns
+-- of its 'Text' argument.  Note that this function uses 'pack',
+-- 'unpack', and the list version of transpose, and is thus not very
+-- efficient.
+transpose :: [Text] -> [Text]
+transpose ts = L.map (\ss -> Chunk (T.pack ss) Empty)
+                     (L.transpose (L.map unpack ts))
+-- TODO: make this fast
 
 -- | /O(n)/ 'foldl', applied to a binary operator, a starting value
 -- (typically the left-identity of the operator), and a 'Text',

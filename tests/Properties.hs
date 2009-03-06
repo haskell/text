@@ -156,6 +156,7 @@ prop_TL_intercalate c  = L.intercalate c `eq` (unpackT . TL.intercalate (TL.pack
 prop_T_intersperse c   = L.intersperse c `eqP` (unpackT . T.intersperse c)
 prop_TL_intersperse c  = L.intersperse c `eqP` (unpackT . TL.intersperse c)
 prop_T_transpose       = L.transpose `eq` (map unpackT . T.transpose . map T.pack)
+prop_TL_transpose      = L.transpose `eq` (map unpackT . TL.transpose . map TL.pack)
 prop_T_reverse         = L.reverse `eqP` (unpackT . T.reverse)
 prop_T_reverse_short n = L.reverse `eqP` (unpackT . S.reverse . shorten n . S.stream)
 
@@ -385,6 +386,7 @@ tests = [
   ("prop_T_intersperse", mytest prop_T_intersperse),
   ("prop_TL_intersperse", mytest prop_TL_intersperse),
   ("prop_T_transpose", mytest prop_T_transpose),
+  ("prop_TL_transpose", mytest prop_TL_transpose),
   ("prop_T_reverse", mytest prop_T_reverse),
   ("prop_T_reverse_short", mytest prop_T_reverse_short),
 
