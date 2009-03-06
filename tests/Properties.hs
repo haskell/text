@@ -44,6 +44,7 @@ prop_T_singleton c       = [c] == (T.unpack . T.singleton) c
 prop_TL_singleton c      = [c] == (TL.unpack . TL.singleton) c
 prop_TL_unstreamChunks x = f 11 x == f 1000 x
     where f n = SL.unstreamChunks n . S.streamList
+prop_TL_chunk_unchunk    = (TL.fromChunks . TL.toChunks) `eq` id
 
 prop_T_ascii t           = E.decodeASCII (E.encodeUtf8 a) == a
     where a            = T.map (\c -> chr (ord c `mod` 128)) t
@@ -342,6 +343,7 @@ tests = [
   ("prop_T_singleton", mytest prop_T_singleton),
   ("prop_TL_singleton", mytest prop_TL_singleton),
   ("prop_TL_unstreamChunks", mytest prop_TL_unstreamChunks),
+  ("prop_TL_chunk_unchunk", mytest prop_TL_chunk_unchunk),
 
   ("prop_T_ascii", mytest prop_T_ascii),
   ("prop_T_utf8", mytest prop_T_utf8),
