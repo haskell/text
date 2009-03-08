@@ -115,8 +115,7 @@ module Data.Text.Lazy
 
     -- ** Breaking into lines and words
     , lines
-    --, lines'
-    -- , words
+    , words
     -- , unlines
     -- , unwords
 
@@ -156,6 +155,7 @@ import Prelude (Char, Bool(..), Functor(..), Int, Maybe(..), String,
 import qualified Prelude as P
 import Data.Int (Int64)
 import qualified Data.List as L
+import Data.Char (isSpace)
 import Data.String (IsString(..))
 import qualified Data.Text as T
 import qualified Data.Text.Fusion.Common as S
@@ -724,6 +724,12 @@ lines Empty = []
 lines t = let (l,t') = break ((==) '\n') t
           in l : if null t' then []
                  else lines (tail t')
+
+-- | /O(n)/ Breaks a 'Text' up into a list of words, delimited by 'Char's
+-- representing white space.
+words :: Text -> [Text]
+words = L.filter (not . null) . splitWith isSpace
+{-# INLINE words #-}
 
 revChunks :: [T.Text] -> Text
 revChunks = L.foldl' (flip chunk) Empty

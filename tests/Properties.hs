@@ -294,6 +294,7 @@ prop_T_lines'          = lines'        `eqP` (map unpackT . T.lines')
           eol c = c == '\r' || c == '\n'
 -}
 prop_T_words           = L.words       `eqP` (map unpackT . T.words)
+prop_TL_words          = L.words       `eqP` (map unpackT . TL.words)
 prop_T_unlines         = L.unlines     `eq`  (unpackT . T.unlines . map T.pack)
 prop_T_unwords         = L.unwords     `eq`  (unpackT . T.unwords . map T.pack)
 
@@ -488,6 +489,7 @@ tests = [
   ("prop_TL_lines", mytest prop_TL_lines),
 --("prop_T_lines'", mytest prop_T_lines'),
   ("prop_T_words", mytest prop_T_words),
+  ("prop_TL_words", mytest prop_TL_words),
   ("prop_T_unlines", mytest prop_T_unlines),
   ("prop_T_unwords", mytest prop_T_unwords),
 
