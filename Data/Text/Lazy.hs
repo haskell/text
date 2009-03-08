@@ -82,7 +82,7 @@ module Data.Text.Lazy
     , scanl
     , scanl1
     , scanr
-    -- , scanr1
+    , scanr1
 
     -- ** Accumulating maps
     , mapAccumL
@@ -477,6 +477,12 @@ scanl1 f t0 = case uncons t0 of
 -- > scanr f v == reverse . scanl (flip f) v . reverse
 scanr :: (Char -> Char -> Char) -> Char -> Text -> Text
 scanr f v = reverse . scanl (flip f) v . reverse
+
+-- | /O(n)/ 'scanr1' is a variant of 'scanr' that has no starting
+-- value argument.
+scanr1 :: (Char -> Char -> Char) -> Text -> Text
+scanr1 f t | null t    = empty
+           | otherwise = scanr f (last t) (init t)
 
 -- | /O(n)/ Like a combination of 'map' and 'foldl'. Applies a
 -- function to each element of a 'Text', passing an accumulating

@@ -206,6 +206,7 @@ prop_TL_scanl1 f       = L.scanl1 f    `eqP`  (unpackT . TL.scanl1 f)
 prop_T_scanr f z       = L.scanr f z   `eqP`  (unpackT . T.scanr f z)
 prop_TL_scanr f z      = L.scanr f z   `eqP`  (unpackT . TL.scanr f z)
 prop_T_scanr1 f        = L.scanr1 f    `eqP`  (unpackT . T.scanr1 f)
+prop_TL_scanr1 f       = L.scanr1 f    `eqP`  (unpackT . TL.scanr1 f)
 
 prop_T_mapAccumL f z   = L.mapAccumL f z `eqP` (second unpackT . T.mapAccumL f z)
     where types = f :: Int -> Char -> (Int,Char)
@@ -435,6 +436,7 @@ tests = [
   ("prop_T_scanr", mytest prop_T_scanr),
   ("prop_TL_scanr", mytest prop_TL_scanr),
   ("prop_T_scanr1", mytest prop_T_scanr1),
+  ("prop_TL_scanr1", mytest prop_TL_scanr1),
 
   ("prop_T_mapAccumL", mytest prop_T_mapAccumL),
   ("prop_TL_mapAccumL", mytest prop_TL_mapAccumL),
