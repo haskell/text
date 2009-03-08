@@ -120,7 +120,7 @@ module Data.Text.Lazy
     , unwords
 
     -- * Predicates
-    -- , isPrefixOf
+    , isPrefixOf
     -- , isSuffixOf
     -- , isInfixOf
 
@@ -742,6 +742,29 @@ unlines = concat . L.map (`snoc` '\n')
 unwords :: [Text] -> Text
 unwords = intercalate (singleton ' ')
 {-# INLINE unwords #-}
+
+-- | /O(n)/ The 'isPrefixOf' function takes two 'Text's and returns
+-- 'True' iff the first is a prefix of the second.  This function is
+-- subject to fusion.
+isPrefixOf :: Text -> Text -> Bool
+isPrefixOf Empty _  = True
+isPrefixOf _ Empty  = False
+isPrefixOf (Chunk x xs) (Chunk y ys)
+    | lx == ly  = x == y  && isPrefixOf xs ys
+    | lx <  ly  = x == yh && isPrefixOf xs (Chunk yt ys)
+    | otherwise = xh == y && isPrefixOf (Chunk xt xs) ys
+  where (xh,xt) = T.splitAt ly x
+        (yh,yt) = T.splitAt lx y
+        lx = T.length x
+        ly = T.length y
+{-# INLINE [1] isPrefixOf #-}
+
+{-# RULES
+"LAZY TEXT isPrefixOf -> fused" [~1] forall s t.
+    isPrefixOf s t = S.isPrefixOf (stream s) (stream t)
+"LAZY TEXT isPrefixOf -> unfused" [1] forall s t.
+    S.isPrefixOf (stream s) (stream t) = isPrefixOf s t
+  #-}
 
 revChunks :: [T.Text] -> Text
 revChunks = L.foldl' (flip chunk) Empty

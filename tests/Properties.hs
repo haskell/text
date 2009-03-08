@@ -300,8 +300,9 @@ prop_TL_unlines        = L.unlines     `eq`  (unpackT . TL.unlines . map packT)
 prop_T_unwords         = L.unwords     `eq`  (unpackT . T.unwords . map packT)
 prop_TL_unwords        = L.unwords     `eq`  (unpackT . TL.unwords . map packT)
 
+prop_S_isPrefixOf s    = L.isPrefixOf s`eqP` (S.isPrefixOf (S.stream $ packT s) . S.stream)
 prop_T_isPrefixOf s    = L.isPrefixOf s`eqP` T.isPrefixOf (packT s)
-prop_T_isPrefixOfS s   = L.isPrefixOf s`eqP` (S.isPrefixOf (S.stream $ packT s) . S.stream)
+prop_TL_isPrefixOf s   = L.isPrefixOf s`eqP` TL.isPrefixOf (packT s)
 prop_T_isSuffixOf s    = L.isSuffixOf s`eqP` T.isSuffixOf (packT s)
 prop_T_isInfixOf s     = L.isInfixOf s `eqP` T.isInfixOf (packT s)
 
@@ -496,8 +497,9 @@ tests = [
   ("prop_TL_unlines", mytest prop_TL_unlines),
   ("prop_TL_unwords", mytest prop_TL_unwords),
 
+  ("prop_S_isPrefixOf", mytest prop_S_isPrefixOf),
   ("prop_T_isPrefixOf", mytest prop_T_isPrefixOf),
-  ("prop_T_isPrefixOfS", mytest prop_T_isPrefixOfS),
+  ("prop_TL_isPrefixOf", mytest prop_TL_isPrefixOf),
   ("prop_T_isSuffixOf", mytest prop_T_isSuffixOf),
   ("prop_T_isInfixOf", mytest prop_T_isInfixOf),
 
