@@ -134,8 +134,8 @@ module Data.Text.Lazy
     
     -- * Indexing
     , index
-    -- , findIndex
-    -- , findIndices
+    , findIndex
+    , findIndices
     -- , elemIndex
     -- , elemIndices
     -- , count
@@ -813,6 +813,20 @@ partition p t = (filter p t, filter (not . p) t)
 index :: Text -> Int64 -> Char
 index t n = S.index (stream t) n
 {-# INLINE index #-}
+
+-- | /O(n)/ The 'findIndex' function takes a predicate and a 'Text'
+-- and returns the index of the first element in the 'Text' satisfying
+-- the predicate. This function is subject to fusion.
+findIndex :: (Char -> Bool) -> Text -> Maybe Int64
+findIndex p t = S.findIndex p (stream t)
+{-# INLINE findIndex #-}
+
+-- | The 'findIndices' function extends 'findIndex', by returning the
+-- indices of all elements satisfying the predicate, in ascending
+-- order. This function is subject to fusion.
+findIndices :: (Char -> Bool) -> Text -> [Int64]
+findIndices p t = S.findIndices p (stream t)
+{-# INLINE findIndices #-}
 
 -- | /O(n)/ 'zipWith' generalises 'zip' by zipping with the function
 -- given as the first argument, instead of a tupling function.

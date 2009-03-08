@@ -18,6 +18,8 @@ module Data.Text.Lazy.Fusion
     , length
     , unfoldrN
     , index
+    , findIndex
+    , findIndices
     ) where
 
 import Prelude hiding (length)
@@ -99,3 +101,17 @@ unfoldrN n = S.unfoldrNI n
 index :: Stream Char -> Int64 -> Char
 index = S.indexI
 {-# INLINE [0] index #-}
+
+-- | The 'findIndex' function takes a predicate and a stream and
+-- returns the index of the first element in the stream
+-- satisfying the predicate.
+findIndex :: (Char -> Bool) -> Stream Char -> Maybe Int64
+findIndex = S.findIndexI
+{-# INLINE [0] findIndex #-}
+
+-- | The 'findIndices' function takes a predicate and a stream and
+-- returns all indices of the elements in the stream
+-- satisfying the predicate.
+findIndices :: (Char -> Bool) -> Stream Char -> [Int64]
+findIndices = S.findIndicesI
+{-# INLINE [0] findIndices #-}

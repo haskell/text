@@ -80,6 +80,8 @@ module Data.Text.Fusion.Common
     -- * Indexing
     , find
     , indexI
+    , findIndexI
+    , findIndicesI
 
     -- * Zipping and unzipping
     , zipWith
@@ -667,6 +669,28 @@ filter p (Stream next0 s0 len) = Stream next s0 len -- HINT maybe too high
   "Stream filter/filter fusion" forall p q s.
   filter p (filter q s) = filter (\x -> q x && p x) s
   #-}
+
+-- | The 'findIndexI' function takes a predicate and a stream and
+-- returns the index of the first element in the stream satisfying the
+-- predicate.
+findIndexI :: Integral a => (Char -> Bool) -> Stream Char -> Maybe a
+findIndexI p s = case findIndicesI p s of
+                  (i:_) -> Just i
+                  _     -> Nothing
+{-# INLINE [0] findIndexI #-}
+
+-- | The 'findIndicesI' function takes a predicate and a stream and
+-- returns all indices of the elements in the stream satisfying the
+-- predicate.
+findIndicesI :: Integral a => (Char -> Bool) -> Stream Char -> [a]
+findIndicesI p (Stream next s0 _len) = loop_findIndex 0 s0
+  where
+    loop_findIndex !i !s = case next s of
+      Done                   -> []
+      Skip    s'             -> loop_findIndex i     s' -- hmm. not caught by QC
+      Yield x s' | p x       -> i : loop_findIndex (i+1) s'
+                 | otherwise -> loop_findIndex (i+1) s'
+{-# INLINE [0] findIndicesI #-}
 
 -------------------------------------------------------------------------------
 -- * Zipping

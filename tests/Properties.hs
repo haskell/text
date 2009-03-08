@@ -319,8 +319,12 @@ prop_TL_partition p    = L.partition p `eqP` (unpack2 . TL.partition p)
 
 prop_T_index x s       = x < L.length s && x >= 0 ==>
                          (L.!!) s x == T.index (packT s) x
+prop_TL_index x s      = x < L.length s && x >= 0 ==>
+                         (L.!!) s x == TL.index (packT s) (fromIntegral x)
 prop_T_findIndex p     = L.findIndex p `eqP` T.findIndex p
-prop_T_findIndices p   = L.findIndices p`eqP` T.findIndices p
+prop_TL_findIndex p    = (fmap fromIntegral . L.findIndex p) `eqP` TL.findIndex p
+prop_T_findIndices p   = L.findIndices p `eqP` T.findIndices p
+prop_TL_findIndices p  = (fmap fromIntegral . L.findIndices p) `eqP` TL.findIndices p
 prop_T_elemIndex c     = L.elemIndex c `eqP` T.elemIndex c
 prop_T_elemIndices c   = L.elemIndices c`eqP` T.elemIndices c
 prop_T_count c         = (L.length . L.elemIndices c) `eqP` T.count c
@@ -523,7 +527,9 @@ tests = [
 
   ("prop_T_index", mytest prop_T_index),
   ("prop_T_findIndex", mytest prop_T_findIndex),
+  ("prop_TL_findIndex", mytest prop_TL_findIndex),
   ("prop_T_findIndices", mytest prop_T_findIndices),
+  ("prop_TL_findIndices", mytest prop_TL_findIndices),
   ("prop_T_elemIndex", mytest prop_T_elemIndex),
   ("prop_T_elemIndices", mytest prop_T_elemIndices),
   ("prop_T_count", mytest prop_T_count),
