@@ -960,6 +960,7 @@ isSuffixOf a@(Text _aarr _aoff alen) b@(Text barr boff blen) =
 isInfixOf :: Text -> Text -> Bool
 isInfixOf needle haystack = L.any (isPrefixOf needle) (tails haystack)
 {-# INLINE isInfixOf #-}
+-- TODO: a better implementation
 
 emptyError :: String -> a
 emptyError fun = P.error ("Data.Text." ++ fun ++ ": empty input")

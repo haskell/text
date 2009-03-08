@@ -306,6 +306,7 @@ prop_TL_isPrefixOf s   = L.isPrefixOf s`eqP` TL.isPrefixOf (packT s)
 prop_T_isSuffixOf s    = L.isSuffixOf s`eqP` T.isSuffixOf (packT s)
 prop_TL_isSuffixOf s   = L.isSuffixOf s`eqP` TL.isSuffixOf (packT s)
 prop_T_isInfixOf s     = L.isInfixOf s `eqP` T.isInfixOf (packT s)
+prop_TL_isInfixOf s    = L.isInfixOf s `eqP` TL.isInfixOf (packT s)
 
 prop_T_elem c          = L.elem c      `eqP` T.elem c
 prop_T_filter p        = L.filter p    `eqP` (unpackT . T.filter p)
@@ -504,6 +505,7 @@ tests = [
   ("prop_T_isSuffixOf", mytest prop_T_isSuffixOf),
   ("prop_TL_isSuffixOf", mytest prop_TL_isSuffixOf),
   ("prop_T_isInfixOf", mytest prop_T_isInfixOf),
+  ("prop_TL_isInfixOf", mytest prop_TL_isInfixOf),
 
   ("prop_T_elem", mytest prop_T_elem),
   ("prop_T_filter", mytest prop_T_filter),

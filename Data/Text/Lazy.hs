@@ -122,7 +122,7 @@ module Data.Text.Lazy
     -- * Predicates
     , isPrefixOf
     , isSuffixOf
-    -- , isInfixOf
+    , isInfixOf
 
     -- * Searching
     -- , elem
@@ -771,6 +771,14 @@ isPrefixOf (Chunk x xs) (Chunk y ys)
 isSuffixOf :: Text -> Text -> Bool
 isSuffixOf x y = reverse x `isPrefixOf` reverse y
 {-# INLINE isSuffixOf #-}
+-- TODO: a better implementation
+
+-- | /O(n)/ The 'isInfixOf' function takes two 'Text's and returns
+-- 'True' iff the first is contained, wholly and intact, anywhere
+-- within the second.
+isInfixOf :: Text -> Text -> Bool
+isInfixOf needle haystack = L.any (isPrefixOf needle) (tails haystack)
+{-# INLINE isInfixOf #-}
 -- TODO: a better implementation
 
 revChunks :: [T.Text] -> Text
