@@ -136,9 +136,9 @@ module Data.Text.Lazy
     , index
     , findIndex
     , findIndices
-    -- , elemIndex
-    -- , elemIndices
-    -- , count
+    , elemIndex
+    , elemIndices
+    , count
 
     -- * Zipping and unzipping
     , zipWith
@@ -827,6 +827,28 @@ findIndex p t = S.findIndex p (stream t)
 findIndices :: (Char -> Bool) -> Text -> [Int64]
 findIndices p t = S.findIndices p (stream t)
 {-# INLINE findIndices #-}
+
+-- | /O(n)/ The 'elemIndex' function returns the index of the first
+-- element in the given 'Text' which is equal to the query element, or
+-- 'Nothing' if there is no such element. This function is subject to
+-- fusion.
+elemIndex :: Char -> Text -> Maybe Int64
+elemIndex c t = S.elemIndex c (stream t)
+{-# INLINE elemIndex #-}
+
+-- | /O(n)/ The 'elemIndices' function returns the index of every
+-- element in the given 'Text' which is equal to the query
+-- element. This function is subject to fusion.
+elemIndices :: Char -> Text -> [Int64]
+elemIndices c t = S.elemIndices c (stream t)
+{-# INLINE elemIndices #-}
+
+-- | /O(n)/ The 'count' function returns the number of times the query
+-- element appears in the given 'Text'. This function is subject to
+-- fusion.
+count :: Char -> Text -> Int64
+count c t = S.count c (stream t)
+{-# INLINE count #-}
 
 -- | /O(n)/ 'zipWith' generalises 'zip' by zipping with the function
 -- given as the first argument, instead of a tupling function.

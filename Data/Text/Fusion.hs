@@ -217,31 +217,17 @@ findIndexOrEnd p (Stream next s0 _len) = loop_findIndex 0 s0
 -- element in the given stream which is equal to the query
 -- element, or 'Nothing' if there is no such element.
 elemIndex :: Char -> Stream Char -> Maybe Int
-elemIndex a s = case elemIndices a s of
-                  (i:_) -> Just i
-                  _     -> Nothing
+elemIndex = S.elemIndexI
 {-# INLINE [0] elemIndex #-}
 
 -- | /O(n)/ The 'elemIndices' function returns the index of every
 -- element in the given stream which is equal to the query element.
 elemIndices :: Char -> Stream Char -> [Int]
-elemIndices a (Stream next s0 _len) = loop 0 s0
-  where
-    loop !i !s = case next s of
-      Done                   -> []
-      Skip    s'             -> loop i s'
-      Yield x s' | a == x    -> i : loop (i+1) s'
-                 | otherwise -> loop (i+1) s'
+elemIndices = S.elemIndicesI
 {-# INLINE [0] elemIndices #-}
 
 -- | /O(n)/ The 'count' function returns the number of times the query
 -- element appears in the given stream.
 count :: Char -> Stream Char -> Int
-count a (Stream next s0 _len) = loop 0 s0
-  where
-    loop !i !s = case next s of
-      Done                   -> i
-      Skip    s'             -> loop i s'
-      Yield x s' | a == x    -> loop (i+1) s'
-                 | otherwise -> loop i s'
+count = S.countI
 {-# INLINE [0] count #-}

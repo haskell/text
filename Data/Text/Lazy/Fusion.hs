@@ -20,6 +20,9 @@ module Data.Text.Lazy.Fusion
     , index
     , findIndex
     , findIndices
+    , elemIndex
+    , elemIndices
+    , count
     ) where
 
 import Prelude hiding (length)
@@ -115,3 +118,22 @@ findIndex = S.findIndexI
 findIndices :: (Char -> Bool) -> Stream Char -> [Int64]
 findIndices = S.findIndicesI
 {-# INLINE [0] findIndices #-}
+
+-- | /O(n)/ The 'elemIndex' function returns the index of the first
+-- element in the given stream which is equal to the query
+-- element, or 'Nothing' if there is no such element.
+elemIndex :: Char -> Stream Char -> Maybe Int64
+elemIndex = S.elemIndexI
+{-# INLINE [0] elemIndex #-}
+
+-- | /O(n)/ The 'elemIndices' function returns the index of every
+-- element in the given stream which is equal to the query element.
+elemIndices :: Char -> Stream Char -> [Int64]
+elemIndices = S.elemIndicesI
+{-# INLINE [0] elemIndices #-}
+
+-- | /O(n)/ The 'count' function returns the number of times the query
+-- element appears in the given stream.
+count :: Char -> Stream Char -> Int64
+count = S.countI
+{-# INLINE [0] count #-}

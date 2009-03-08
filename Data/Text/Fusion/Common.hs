@@ -82,6 +82,9 @@ module Data.Text.Fusion.Common
     , indexI
     , findIndexI
     , findIndicesI
+    , elemIndexI
+    , elemIndicesI
+    , countI
 
     -- * Zipping and unzipping
     , zipWith
@@ -711,6 +714,39 @@ zipWith f (Stream next0 sa0 len1) (Stream next1 sb0 len2) = Stream next (sa0 :!:
                                        Skip sb' -> Skip (sa' :!: sb' :!: Just a)
                                        Yield b sb' -> Yield (f a b) (sa' :!: sb' :!: Nothing)
 {-# INLINE [0] zipWith #-}
+
+-- | /O(n)/ The 'elemIndexI' function returns the index of the first
+-- element in the given stream which is equal to the query
+-- element, or 'Nothing' if there is no such element.
+elemIndexI :: Integral a => Char -> Stream Char -> Maybe a
+elemIndexI a s = case elemIndicesI a s of
+                  (i:_) -> Just i
+                  _     -> Nothing
+{-# INLINE [0] elemIndexI #-}
+
+-- | /O(n)/ The 'elemIndicesI' function returns the index of every
+-- element in the given stream which is equal to the query element.
+elemIndicesI :: Integral a => Char -> Stream Char -> [a]
+elemIndicesI a (Stream next s0 _len) = loop 0 s0
+  where
+    loop !i !s = case next s of
+      Done                   -> []
+      Skip    s'             -> loop i s'
+      Yield x s' | a == x    -> i : loop (i+1) s'
+                 | otherwise -> loop (i+1) s'
+{-# INLINE [0] elemIndicesI #-}
+
+-- | /O(n)/ The 'count' function returns the number of times the query
+-- element appears in the given stream.
+countI :: Integral a => Char -> Stream Char -> a
+countI a (Stream next s0 _len) = loop 0 s0
+  where
+    loop !i !s = case next s of
+      Done                   -> i
+      Skip    s'             -> loop i s'
+      Yield x s' | a == x    -> loop (i+1) s'
+                 | otherwise -> loop i s'
+{-# INLINE [0] countI #-}
 
 streamError :: String -> String -> a
 streamError func msg = P.error $ "Data.Text.Fusion.Common." ++ func ++ ": " ++ msg

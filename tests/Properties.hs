@@ -326,8 +326,11 @@ prop_TL_findIndex p    = (fmap fromIntegral . L.findIndex p) `eqP` TL.findIndex 
 prop_T_findIndices p   = L.findIndices p `eqP` T.findIndices p
 prop_TL_findIndices p  = (fmap fromIntegral . L.findIndices p) `eqP` TL.findIndices p
 prop_T_elemIndex c     = L.elemIndex c `eqP` T.elemIndex c
+prop_TL_elemIndex c    = (fmap fromIntegral . L.elemIndex c) `eqP` TL.elemIndex c
 prop_T_elemIndices c   = L.elemIndices c`eqP` T.elemIndices c
+prop_TL_elemIndices c  = (fmap fromIntegral . L.elemIndices c) `eqP` TL.elemIndices c
 prop_T_count c         = (L.length . L.elemIndices c) `eqP` T.count c
+prop_TL_count c        = (fromIntegral . L.length . L.elemIndices c) `eqP` TL.count c
 prop_T_zipWith c s     = L.zipWith c s `eqP` (unpackT . T.zipWith c (packT s))
 prop_TL_zipWith c s    = L.zipWith c s `eqP` (unpackT . TL.zipWith c (packT s))
 
@@ -531,8 +534,11 @@ tests = [
   ("prop_T_findIndices", mytest prop_T_findIndices),
   ("prop_TL_findIndices", mytest prop_TL_findIndices),
   ("prop_T_elemIndex", mytest prop_T_elemIndex),
+  ("prop_TL_elemIndex", mytest prop_TL_elemIndex),
   ("prop_T_elemIndices", mytest prop_T_elemIndices),
+  ("prop_TL_elemIndices", mytest prop_TL_elemIndices),
   ("prop_T_count", mytest prop_T_count),
+  ("prop_TL_count", mytest prop_TL_count),
   ("prop_T_zipWith", mytest prop_T_zipWith),
   ("prop_TL_zipWith", mytest prop_TL_zipWith),
 
