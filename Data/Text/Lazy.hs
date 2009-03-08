@@ -121,7 +121,7 @@ module Data.Text.Lazy
 
     -- * Predicates
     , isPrefixOf
-    -- , isSuffixOf
+    , isSuffixOf
     -- , isInfixOf
 
     -- * Searching
@@ -765,6 +765,13 @@ isPrefixOf (Chunk x xs) (Chunk y ys)
 "LAZY TEXT isPrefixOf -> unfused" [1] forall s t.
     S.isPrefixOf (stream s) (stream t) = isPrefixOf s t
   #-}
+
+-- | /O(n)/ The 'isSuffixOf' function takes two 'Text's and returns
+-- 'True' iff the first is a suffix of the second.
+isSuffixOf :: Text -> Text -> Bool
+isSuffixOf x y = reverse x `isPrefixOf` reverse y
+{-# INLINE isSuffixOf #-}
+-- TODO: a better implementation
 
 revChunks :: [T.Text] -> Text
 revChunks = L.foldl' (flip chunk) Empty
