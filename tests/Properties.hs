@@ -159,6 +159,7 @@ prop_TL_intersperse c  = L.intersperse c `eqP` (unpackT . TL.intersperse c)
 prop_T_transpose       = L.transpose `eq` (map unpackT . T.transpose . map T.pack)
 prop_TL_transpose      = L.transpose `eq` (map unpackT . TL.transpose . map TL.pack)
 prop_T_reverse         = L.reverse `eqP` (unpackT . T.reverse)
+prop_TL_reverse        = L.reverse `eqP` (unpackT . TL.reverse)
 prop_T_reverse_short n = L.reverse `eqP` (unpackT . S.reverse . shorten n . S.stream)
 
 prop_T_foldl f z       = L.foldl f z  `eqP`  (T.foldl f z)
@@ -198,6 +199,7 @@ prop_TL_scanl f z      = L.scanl f z   `eqP`  (unpackT . TL.scanl f z)
 prop_T_scanl1 f        = L.scanl1 f    `eqP`  (unpackT . T.scanl1 f)
 prop_TL_scanl1 f       = L.scanl1 f    `eqP`  (unpackT . TL.scanl1 f)
 prop_T_scanr f z       = L.scanr f z   `eqP`  (unpackT . T.scanr f z)
+prop_TL_scanr f z      = L.scanr f z   `eqP`  (unpackT . TL.scanr f z)
 prop_T_scanr1 f        = L.scanr1 f    `eqP`  (unpackT . T.scanr1 f)
 
 prop_T_mapAccumL f z   = L.mapAccumL f z `eqP` (second unpackT . T.mapAccumL f z)
@@ -392,6 +394,7 @@ tests = [
   ("prop_T_transpose", mytest prop_T_transpose),
   ("prop_TL_transpose", mytest prop_TL_transpose),
   ("prop_T_reverse", mytest prop_T_reverse),
+  ("prop_TL_reverse", mytest prop_TL_reverse),
   ("prop_T_reverse_short", mytest prop_T_reverse_short),
 
   ("prop_T_foldl", mytest prop_T_foldl),
@@ -425,6 +428,7 @@ tests = [
   ("prop_T_scanl1", mytest prop_T_scanl1),
   ("prop_TL_scanl1", mytest prop_TL_scanl1),
   ("prop_T_scanr", mytest prop_T_scanr),
+  ("prop_TL_scanr", mytest prop_TL_scanr),
   ("prop_T_scanr1", mytest prop_T_scanr1),
 
   ("prop_T_mapAccumL", mytest prop_T_mapAccumL),

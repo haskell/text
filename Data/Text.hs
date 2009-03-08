@@ -500,7 +500,7 @@ scanl1 f t | null t    = empty
 
 -- | /O(n)/ 'scanr' is the right-to-left dual of 'scanl'.
 --
--- > scanr f v t == reverse (scanl (flip f) v t)
+-- > scanr f v == reverse . scanl (flip f) v . reverse
 scanr :: (Char -> Char -> Char) -> Char -> Text -> Text
 scanr f z = S.reverse . S.reverseScanr f z . reverseStream
 {-# INLINE scanr #-}

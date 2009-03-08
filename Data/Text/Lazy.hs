@@ -58,7 +58,7 @@ module Data.Text.Lazy
     , intercalate
     , intersperse
     , transpose
-    -- , reverse
+    , reverse
 
     -- * Folds
     , foldl
@@ -81,7 +81,7 @@ module Data.Text.Lazy
     -- ** Scans
     , scanl
     , scanl1
-    -- , scanr
+    , scanr
     -- , scanr1
 
     -- ** Accumulating maps
@@ -363,6 +363,12 @@ transpose ts = L.map (\ss -> Chunk (T.pack ss) Empty)
                      (L.transpose (L.map unpack ts))
 -- TODO: make this fast
 
+-- | /O(n)/ 'reverse' @t@ returns the elements of @t@ in reverse order.
+reverse :: Text -> Text
+reverse = rev Empty
+  where rev a Empty        = a
+        rev a (Chunk t ts) = rev (Chunk (T.reverse t) a) ts
+
 -- | /O(n)/ 'foldl', applied to a binary operator, a starting value
 -- (typically the left-identity of the operator), and a 'Text',
 -- reduces the 'Text' using the binary operator, from left to right.
@@ -465,6 +471,12 @@ scanl1 f t0 = case uncons t0 of
                 Nothing -> empty
                 Just (t,ts) -> scanl f t ts
 {-# INLINE scanl1 #-}
+
+-- | /O(n)/ 'scanr' is the right-to-left dual of 'scanl'.
+--
+-- > scanr f v == reverse . scanl (flip f) v . reverse
+scanr :: (Char -> Char -> Char) -> Char -> Text -> Text
+scanr f v = reverse . scanl (flip f) v . reverse
 
 -- | /O(n)/ Like a combination of 'map' and 'foldl'. Applies a
 -- function to each element of a 'Text', passing an accumulating
