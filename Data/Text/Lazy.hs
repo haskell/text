@@ -147,11 +147,11 @@ module Data.Text.Lazy
     -- , sort
     ) where
 
-import Prelude (Char, Bool(..), Functor(..), Int, Maybe(..), String,
+import Prelude (Char, Bool(..), Int, Maybe(..), String,
                 Eq(..), Ord(..), (++),
                 Read(..), Show(..),
-                (&&), (||), (+), (-), (.), ($),
-                flip, fromIntegral, not, return, otherwise)
+                (&&), (+), (-), (.),
+                flip, fromIntegral, not, otherwise)
 import qualified Prelude as P
 import Data.Int (Int64)
 import qualified Data.List as L

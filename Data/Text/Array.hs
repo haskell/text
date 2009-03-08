@@ -1,5 +1,6 @@
 {-# LANGUAGE BangPatterns, CPP, ExistentialQuantification, MagicHash,
              Rank2Types, ScopedTypeVariables, UnboxedTuples #-}
+{-# OPTIONS_GHC -fno-warn-unused-matches #-}
 -- |
 -- Module      : Data.Text.Array
 -- Copyright   : (c) Bryan O'Sullivan 2009
