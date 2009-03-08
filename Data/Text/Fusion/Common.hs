@@ -104,7 +104,7 @@ singleton c = Stream next False 1 -- HINT maybe too low
 {-# INLINE singleton #-}
 
 streamList :: [a] -> Stream a
-{-# INLINE streamList #-}
+{-# INLINE [0] streamList #-}
 streamList [] = empty
 streamList s  = Stream next s unknownLength
     where next []       = Done
@@ -112,12 +112,14 @@ streamList s  = Stream next s unknownLength
           unknownLength = 8 -- random HINT
 
 unstreamList :: Stream a -> [a]
-{-# INLINE unstreamList #-}
+{-# INLINE [0] unstreamList #-}
 unstreamList (Stream next s0 _len) = unfold s0
     where unfold !s = case next s of
                         Done       -> []
                         Skip s'    -> unfold s'
                         Yield x s' -> x : unfold s'
+
+{-# RULES "STREAM streamList/unstreamList fusion" forall s. streamList (unstreamList s) = s #-}
 
 -- ----------------------------------------------------------------------------
 -- * Basic stream functions
