@@ -15,12 +15,18 @@
 
 module Data.Text.Fusion.Internal
     (
-      PairS(..)
+      M(..)
+    , PairS(..)
     , Switch(..)
     , Step(..)
     , Stream(..)
     , empty
     ) where
+
+-- | Specialised, strict Maybe-like type.
+data M a = N
+         | J {-# UNPACK #-} !a
+           deriving (Eq, Ord, Show)
 
 infixl 2 :!:
 data PairS a b = !a :!: !b

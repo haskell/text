@@ -44,6 +44,7 @@ import Data.ByteString as B
 import Data.ByteString.Internal (ByteString(..), mallocByteString, memcpy)
 import Data.Char (ord)
 import Data.Text.Fusion (Step(..), Stream(..))
+import Data.Text.Fusion.Internal (M(..))
 import Data.Text.UnsafeChar (unsafeChr, unsafeChr8, unsafeChr32)
 import Data.Word (Word8, Word16, Word32)
 import Foreign.ForeignPtr (withForeignPtr, ForeignPtr)
@@ -55,14 +56,11 @@ import qualified Data.Text.Encoding.Utf8 as U8
 import qualified Data.Text.Encoding.Utf16 as U16
 import qualified Data.Text.Encoding.Utf32 as U32
 
--- Specialised, strict Maybe-like type.
-data M = N
-       | J {-# UNPACK #-} !Word8
-       deriving (Eq, Ord, Show)
+type M8 = M Word8
 
 -- Restreaming state.
 data S s = S {-# UNPACK #-} !s
-    {-# UNPACK #-} !M {-# UNPACK #-} !M {-# UNPACK #-} !M
+    {-# UNPACK #-} !M8 {-# UNPACK #-} !M8 {-# UNPACK #-} !M8
 
 streamASCII :: ByteString -> Stream Char
 streamASCII bs = Stream next 0 l

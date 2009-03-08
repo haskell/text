@@ -138,14 +138,14 @@ cons w (Stream next0 s0 len) = Stream next (S2 :!: s0) (len+2) -- HINT maybe too
 
 -- | /O(n)/ Adds a character to the end of a stream.
 snoc :: Stream Char -> Char -> Stream Char
-snoc (Stream next0 xs0 len) w = Stream next (Just xs0) (len+2) -- HINT maybe too high
+snoc (Stream next0 xs0 len) w = Stream next (J xs0) (len+2) -- HINT maybe too high
   where
     {-# INLINE next #-}
-    next (Just xs) = case next0 xs of
-      Done        -> Yield w Nothing
-      Skip xs'    -> Skip    (Just xs')
-      Yield x xs' -> Yield x (Just xs')
-    next Nothing = Done
+    next (J xs) = case next0 xs of
+      Done        -> Yield w N
+      Skip xs'    -> Skip    (J xs')
+      Yield x xs' -> Yield x (J xs')
+    next N = Done
 {-# INLINE [0] snoc #-}
 
 -- | /O(n)/ Appends one Stream to the other.
@@ -221,17 +221,17 @@ tail (Stream next0 s0 len) = Stream next (False :!: s0) (len-1) -- HINT maybe to
 -- | /O(1)/ Returns all but the last character of a Stream Char, which
 -- must be non-empty.
 init :: Stream Char -> Stream Char
-init (Stream next0 s0 len) = Stream next (Nothing :!: s0) (len-1) -- HINT maybe too high
+init (Stream next0 s0 len) = Stream next (N :!: s0) (len-1) -- HINT maybe too high
     where
       {-# INLINE next #-}
-      next (Nothing :!: s) = case next0 s of
-                               Done       -> emptyError "init"
-                               Skip s'    -> Skip (Nothing :!: s')
-                               Yield x s' -> Skip (Just x  :!: s')
-      next (Just x :!: s)  = case next0 s of
-                               Done        -> Done
-                               Skip s'     -> Skip    (Just x  :!: s')
-                               Yield x' s' -> Yield x (Just x' :!: s')
+      next (N :!: s) = case next0 s of
+                         Done       -> emptyError "init"
+                         Skip s'    -> Skip (N :!: s')
+                         Yield x s' -> Skip (J x  :!: s')
+      next (J x :!: s)  = case next0 s of
+                            Done        -> Done
+                            Skip s'     -> Skip    (J x  :!: s')
+                            Yield x' s' -> Yield x (J x' :!: s')
 {-# INLINE [0] init #-}
 
 -- | /O(1)/ Tests whether a Stream Char is empty or not.
@@ -277,18 +277,18 @@ map f (Stream next0 s0 len) = Stream next s0 len -- HINT depends on f
 -- | /O(n)/ Take a character and place it between each of the
 -- characters of a 'Stream Char'.
 intersperse :: Char -> Stream Char -> Stream Char
-intersperse c (Stream next0 s0 len) = Stream next (s0 :!: Nothing :!: S1) len -- HINT maybe too low
+intersperse c (Stream next0 s0 len) = Stream next (s0 :!: N :!: S1) len -- HINT maybe too low
     where
       {-# INLINE next #-}
-      next (s :!: Nothing :!: S1) = case next0 s of
+      next (s :!: N :!: S1) = case next0 s of
         Done       -> Done
-        Skip s'    -> Skip (s' :!: Nothing :!: S1)
-        Yield x s' -> Skip (s' :!: Just x :!: S1)
-      next (s :!: Just x :!: S1)  = Yield x (s :!: Nothing :!: S2)
-      next (s :!: Nothing :!: S2) = case next0 s of
+        Skip s'    -> Skip (s' :!: N :!: S1)
+        Yield x s' -> Skip (s' :!: J x :!: S1)
+      next (s :!: J x :!: S1)  = Yield x (s :!: N :!: S2)
+      next (s :!: N :!: S2) = case next0 s of
         Done       -> Done
-        Skip s'    -> Skip    (s' :!: Nothing :!: S2)
-        Yield x s' -> Yield c (s' :!: Just x :!: S1)
+        Skip s'    -> Skip    (s' :!: N :!: S2)
+        Yield x s' -> Yield c (s' :!: J x :!: S1)
       next _ = internalError "intersperse"
 {-# INLINE [0] intersperse #-}
 
@@ -550,19 +550,19 @@ take n0 (Stream next0 s0 len) = Stream next (n0 :!: s0) (min 0 (len - fromIntegr
 -- length of the stream.
 drop :: Integral a => a -> Stream Char -> Stream Char
 drop n0 (Stream next0 s0 len) =
-    Stream next (Just ((max 0 n0)) :!: s0) (len - fromIntegral n0) -- HINT maybe too high
+    Stream next (J (max 0 n0) :!: s0) (len - fromIntegral n0) -- HINT maybe too high
   where
     {-# INLINE next #-}
-    next (Just !n :!: s)
-      | n == 0    = Skip (Nothing :!: s)
+    next (J n :!: s)
+      | n == 0    = Skip (N :!: s)
       | otherwise = case next0 s of
           Done       -> Done
-          Skip    s' -> Skip (Just n    :!: s')
-          Yield _ s' -> Skip (Just (n-1) :!: s')
-    next (Nothing :!: s) = case next0 s of
+          Skip    s' -> Skip (J n    :!: s')
+          Yield _ s' -> Skip (J (n-1) :!: s')
+    next (N :!: s) = case next0 s of
       Done       -> Done
-      Skip    s' -> Skip    (Nothing :!: s')
-      Yield x s' -> Yield x (Nothing :!: s')
+      Skip    s' -> Skip    (N :!: s')
+      Yield x s' -> Yield x (N :!: s')
 {-# INLINE [0] drop #-}
 
 -- | takeWhile, applied to a predicate @p@ and a stream, returns the
@@ -703,18 +703,18 @@ findIndicesI p (Stream next s0 _len) = loop_findIndex 0 s0
 -- | zipWith generalises 'zip' by zipping with the function given as
 -- the first argument, instead of a tupling function.
 zipWith :: (a -> a -> b) -> Stream a -> Stream a -> Stream b
-zipWith f (Stream next0 sa0 len1) (Stream next1 sb0 len2) = Stream next (sa0 :!: sb0 :!: Nothing) (min len1 len2)
+zipWith f (Stream next0 sa0 len1) (Stream next1 sb0 len2) = Stream next (sa0 :!: sb0 :!: N) (min len1 len2)
     where
       {-# INLINE next #-}
-      next (sa :!: sb :!: Nothing) = case next0 sa of
-                                       Done -> Done
-                                       Skip sa' -> Skip (sa' :!: sb :!: Nothing)
-                                       Yield a sa' -> Skip (sa' :!: sb :!: Just a)
+      next (sa :!: sb :!: N) = case next0 sa of
+                                 Done -> Done
+                                 Skip sa' -> Skip (sa' :!: sb :!: N)
+                                 Yield a sa' -> Skip (sa' :!: sb :!: J a)
 
-      next (sa' :!: sb :!: Just a) = case next1 sb of
-                                       Done -> Done
-                                       Skip sb' -> Skip (sa' :!: sb' :!: Just a)
-                                       Yield b sb' -> Yield (f a b) (sa' :!: sb' :!: Nothing)
+      next (sa' :!: sb :!: J a) = case next1 sb of
+                                    Done -> Done
+                                    Skip sb' -> Skip (sa' :!: sb' :!: J a)
+                                    Yield b sb' -> Yield (f a b) (sa' :!: sb' :!: N)
 {-# INLINE [0] zipWith #-}
 
 -- | /O(n)/ The 'elemIndexI' function returns the index of the first
