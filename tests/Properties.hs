@@ -324,11 +324,13 @@ main = run tests =<< getArgs
 
 run :: [(String, Int -> IO (Bool,Int))] -> [String] -> IO ()
 run tests args = do
-  let n = case args of
-            [s] -> read s
-            []  -> 100
-            _   -> error "too many arguments"
-  (results,passed) <- unzip <$> mapM (\(s,a) -> printf "%-40s: " s >> a n) tests
+  let (n,names) = case args of
+                    (k:ts) -> (read k,ts)
+                    []  -> (100,[])
+  (results,passed) <- fmap unzip . forM tests $ \(s,a) ->
+                      if null names || s `elem` names
+                      then printf "%-40s: " s >> a n
+                      else return (True,0)
   printf "Passed %d tests!\n" (sum passed)
   when (not . and $ results) $
       fail "Not all tests passed!"
