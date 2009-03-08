@@ -820,7 +820,7 @@ filter p t = unstream (S.filter p (stream t))
 -------------------------------------------------------------------------------
 -- ** Indexing 'Text's
 
--- | /O(1)/ 'Text' index (subscript) operator, starting from 0.
+-- | /O(n)/ 'Text' index (subscript) operator, starting from 0.
 index :: Text -> Int -> Char
 index t n = S.index (stream t) n
 {-# INLINE index #-}
@@ -868,6 +868,7 @@ count c t = S.count c (stream t)
 -- given as the first argument, instead of a tupling function.
 zipWith :: (Char -> Char -> Char) -> Text -> Text -> Text
 zipWith f t1 t2 = unstream (S.zipWith f (stream t1) (stream t2))
+{-# INLINE [0] zipWith #-}
 
 -- | /O(n)/ Breaks a 'Text' up into a list of words, delimited by 'Char's
 -- representing white space.

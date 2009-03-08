@@ -48,7 +48,7 @@ module Data.Text.Fusion
     ) where
 
 import Prelude (Bool(..), Char, Eq(..), Maybe(..), Monad(..), Int,
-                Num(..), Ord(..), String, ($), (++), (&&),
+                Num(..), Ord(..), ($), (&&),
                 fromIntegral, otherwise)
 import Data.Bits ((.&.), shiftR)
 import Data.Char (ord)
@@ -181,17 +181,9 @@ unfoldrN n = S.unfoldrNI n
 -------------------------------------------------------------------------------
 -- ** Indexing streams
 
--- | /O(1)/ stream index (subscript) operator, starting from 0.
+-- | /O(n)/ stream index (subscript) operator, starting from 0.
 index :: Stream Char -> Int -> Char
-index (Stream next s0 _len) n0
-  | n0 < 0    = streamError "index" "Negative index"
-  | otherwise = loop_index n0 s0
-  where
-    loop_index !n !s = case next s of
-      Done                   -> streamError "index" "Index too large"
-      Skip    s'             -> loop_index  n    s'
-      Yield x s' | n == 0    -> x
-                 | otherwise -> loop_index (n-1) s'
+index = S.indexI
 {-# INLINE [0] index #-}
 
 -- | The 'findIndex' function takes a predicate and a stream and
@@ -261,6 +253,3 @@ count a (Stream next s0 _len) = loop 0 s0
       Yield x s' | a == x    -> loop (i+1) s'
                  | otherwise -> loop i s'
 {-# INLINE [0] count #-}
-
-streamError :: String -> String -> a
-streamError func msg = P.error $ "Data.Text.Fusion." ++ func ++ ": " ++ msg

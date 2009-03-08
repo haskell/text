@@ -17,6 +17,7 @@ module Data.Text.Lazy.Fusion
     , unstreamChunks
     , length
     , unfoldrN
+    , index
     ) where
 
 import Prelude hiding (length)
@@ -93,3 +94,8 @@ length = S.lengthI
 unfoldrN :: Int64 -> (a -> Maybe (Char,a)) -> a -> Stream Char
 unfoldrN n = S.unfoldrNI n
 {-# INLINE [0] unfoldrN #-}
+
+-- | /O(n)/ stream index (subscript) operator, starting from 0.
+index :: Stream Char -> Int64 -> Char
+index = S.indexI
+{-# INLINE [0] index #-}

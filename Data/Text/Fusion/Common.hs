@@ -79,6 +79,7 @@ module Data.Text.Fusion.Common
 
     -- * Indexing
     , find
+    , indexI
 
     -- * Zipping and unzipping
     , zipWith
@@ -634,6 +635,19 @@ find p (Stream next s0 _len) = loop_find s0
                        Yield x s' | p x -> Just x
                                   | otherwise -> loop_find s'
 {-# INLINE [0] find #-}
+
+-- | /O(n)/ Stream index (subscript) operator, starting from 0.
+indexI :: Integral a => Stream Char -> a -> Char
+indexI (Stream next s0 _len) n0
+  | n0 < 0    = streamError "index" "Negative index"
+  | otherwise = loop_index n0 s0
+  where
+    loop_index !n !s = case next s of
+      Done                   -> streamError "index" "Index too large"
+      Skip    s'             -> loop_index  n    s'
+      Yield x s' | n == 0    -> x
+                 | otherwise -> loop_index (n-1) s'
+{-# INLINE [0] indexI #-}
 
 -- | /O(n)/ 'filter', applied to a predicate and a stream,
 -- returns a stream containing those characters that satisfy the

@@ -133,7 +133,7 @@ module Data.Text.Lazy
     -- , findSubstring
     
     -- * Indexing
-    -- , index
+    , index
     -- , findIndex
     -- , findIndices
     -- , elemIndex
@@ -141,7 +141,7 @@ module Data.Text.Lazy
     -- , count
 
     -- * Zipping and unzipping
-    -- , zipWith
+    , zipWith
 
     -- -* Ordered text
     -- , sort
@@ -808,6 +808,17 @@ find p t = S.find p (stream t)
 partition :: (Char -> Bool) -> Text -> (Text, Text)
 partition p t = (filter p t, filter (not . p) t)
 {-# INLINE partition #-}
+
+-- | /O(n)/ 'Text' index (subscript) operator, starting from 0.
+index :: Text -> Int64 -> Char
+index t n = S.index (stream t) n
+{-# INLINE index #-}
+
+-- | /O(n)/ 'zipWith' generalises 'zip' by zipping with the function
+-- given as the first argument, instead of a tupling function.
+zipWith :: (Char -> Char -> Char) -> Text -> Text -> Text
+zipWith f t1 t2 = unstream (S.zipWith f (stream t1) (stream t2))
+{-# INLINE [0] zipWith #-}
 
 revChunks :: [T.Text] -> Text
 revChunks = L.foldl' (flip chunk) Empty

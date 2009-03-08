@@ -318,13 +318,14 @@ prop_T_partition p     = L.partition p `eqP` (unpack2 . T.partition p)
 prop_TL_partition p    = L.partition p `eqP` (unpack2 . TL.partition p)
 
 prop_T_index x s       = x < L.length s && x >= 0 ==>
-                       (L.!!) s x == T.index (packT s) x
+                         (L.!!) s x == T.index (packT s) x
 prop_T_findIndex p     = L.findIndex p `eqP` T.findIndex p
 prop_T_findIndices p   = L.findIndices p`eqP` T.findIndices p
 prop_T_elemIndex c     = L.elemIndex c `eqP` T.elemIndex c
 prop_T_elemIndices c   = L.elemIndices c`eqP` T.elemIndices c
 prop_T_count c         = (L.length . L.elemIndices c) `eqP` T.count c
 prop_T_zipWith c s     = L.zipWith c s `eqP` (unpackT . T.zipWith c (packT s))
+prop_TL_zipWith c s    = L.zipWith c s `eqP` (unpackT . TL.zipWith c (packT s))
 
 -- Regression tests.
 prop_S_filter_eq s = S.filter p t == S.streamList (filter p s)
@@ -527,6 +528,7 @@ tests = [
   ("prop_T_elemIndices", mytest prop_T_elemIndices),
   ("prop_T_count", mytest prop_T_count),
   ("prop_T_zipWith", mytest prop_T_zipWith),
+  ("prop_TL_zipWith", mytest prop_TL_zipWith),
 
   ("prop_S_filter_eq", mytest prop_S_filter_eq)
   ]
