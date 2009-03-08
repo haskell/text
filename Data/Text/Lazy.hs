@@ -114,7 +114,7 @@ module Data.Text.Lazy
     -- , breakSubstring
 
     -- ** Breaking into lines and words
-    -- , lines
+    , lines
     --, lines'
     -- , words
     -- , unlines
@@ -716,6 +716,14 @@ splitWith p (Chunk t0 ts0) = comb [] (T.splitWith p t0) ts0
         comb acc (s:[]) (Chunk t ts) = comb (s:acc) (T.splitWith p t) ts
         comb acc (s:ss) ts           = revChunks (s:acc) : comb [] ss ts
 {-# INLINE splitWith #-}
+
+-- | /O(n)/ Breaks a 'Text' up into a list of 'Text's at
+-- newline 'Char's. The resulting strings do not contain newlines.
+lines :: Text -> [Text]
+lines Empty = []
+lines t = let (l,t') = break ((==) '\n') t
+          in l : if null t' then []
+                 else lines (tail t')
 
 revChunks :: [T.Text] -> Text
 revChunks = L.foldl' (flip chunk) Empty

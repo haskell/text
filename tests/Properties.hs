@@ -282,6 +282,7 @@ prop_T_breakSubstringC c
                        (unpack2 . T.breakSubstring (T.singleton c))
 
 prop_T_lines           = L.lines       `eqP` (map unpackT . T.lines)
+prop_TL_lines          = L.lines       `eqP` (map unpackT . TL.lines)
 {-
 prop_T_lines'          = lines'        `eqP` (map unpackT . T.lines')
     where lines' "" =  []
@@ -484,6 +485,7 @@ tests = [
   ("prop_T_breakSubstring_isInfixOf", mytest prop_T_breakSubstring_isInfixOf),
 
   ("prop_T_lines", mytest prop_T_lines),
+  ("prop_TL_lines", mytest prop_TL_lines),
 --("prop_T_lines'", mytest prop_T_lines'),
   ("prop_T_words", mytest prop_T_words),
   ("prop_T_unlines", mytest prop_T_unlines),
