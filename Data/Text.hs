@@ -137,6 +137,7 @@ module Data.Text
     , count
 
     -- * Zipping and unzipping
+    , zip
     , zipWith
 
     -- -* Ordered text
@@ -863,6 +864,14 @@ count c t = S.count c (stream t)
 
 -------------------------------------------------------------------------------
 -- * Zipping
+
+-- | /O(n)/ 'zip' takes two 'Text's and returns a list of
+-- corresponding pairs of bytes. If one input 'Text' is short,
+-- excess elements of the longer 'Text' are discarded. This is
+-- equivalent to a pair of 'unpack' operations.
+zip :: Text -> Text -> [(Char,Char)]
+zip a b = S.unstreamList $ S.zipWith (,) (stream a) (stream b)
+{-# INLINE [0] zip #-}
 
 -- | /O(n)/ 'zipWith' generalises 'zip' by zipping with the function
 -- given as the first argument, instead of a tupling function.

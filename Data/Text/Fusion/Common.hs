@@ -700,7 +700,7 @@ findIndicesI p (Stream next s0 _len) = loop_findIndex 0 s0
 
 -- | zipWith generalises 'zip' by zipping with the function given as
 -- the first argument, instead of a tupling function.
-zipWith :: (Char -> Char -> Char) -> Stream Char -> Stream Char -> Stream Char
+zipWith :: (a -> a -> b) -> Stream a -> Stream a -> Stream b
 zipWith f (Stream next0 sa0 len1) (Stream next1 sb0 len2) = Stream next (sa0 :!: sb0 :!: Nothing) (min len1 len2)
     where
       {-# INLINE next #-}

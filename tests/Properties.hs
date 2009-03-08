@@ -331,6 +331,8 @@ prop_T_elemIndices c   = L.elemIndices c`eqP` T.elemIndices c
 prop_TL_elemIndices c  = (fmap fromIntegral . L.elemIndices c) `eqP` TL.elemIndices c
 prop_T_count c         = (L.length . L.elemIndices c) `eqP` T.count c
 prop_TL_count c        = (fromIntegral . L.length . L.elemIndices c) `eqP` TL.count c
+prop_T_zip s           = L.zip s `eqP` T.zip (packS s)
+prop_TL_zip s          = L.zip s `eqP` TL.zip (packS s)
 prop_T_zipWith c s     = L.zipWith c s `eqP` (unpackS . T.zipWith c (packS s))
 prop_TL_zipWith c s    = L.zipWith c s `eqP` (unpackS . TL.zipWith c (packS s))
 
@@ -539,6 +541,8 @@ tests = [
   ("prop_TL_elemIndices", mytest prop_TL_elemIndices),
   ("prop_T_count", mytest prop_T_count),
   ("prop_TL_count", mytest prop_TL_count),
+  ("prop_T_zip", mytest prop_T_zip),
+  ("prop_TL_zip", mytest prop_TL_zip),
   ("prop_T_zipWith", mytest prop_T_zipWith),
   ("prop_TL_zipWith", mytest prop_TL_zipWith),
 
