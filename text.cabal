@@ -19,6 +19,7 @@ library
     Data.Text
     Data.Text.Encoding
     Data.Text.Encoding.Fusion
+    Data.Text.Encoding.Fusion.Common
     Data.Text.Foreign
     Data.Text.Fusion
     Data.Text.Fusion.Common
