@@ -127,8 +127,8 @@ prop_TL_cons x         = ((x:)     `eqP` (TL.unpack . TL.cons x))
 prop_S_snoc x          = (++ [x]) `eqP` (unpackT . (flip S.snoc) x)
 prop_T_snoc x          = (++ [x]) `eqP` (unpackT . (flip T.snoc) x)
 prop_TL_snoc x         = (++ [x]) `eqP` (unpackT . (flip TL.snoc) x)
-prop_T_append s        = (s++)    `eqP` (unpackT . T.append (T.pack s))
-prop_T_appendS s       = (s++)    `eqP` (unpackT . S.unstream . S.append (S.stream (T.pack s)) . S.stream)
+prop_T_append s        = (s++)    `eqP` (unpackT . T.append (packT s))
+prop_T_appendS s       = (s++)    `eqP` (unpackT . S.unstream . S.append (S.stream (packT s)) . S.stream)
 
 uncons (x:xs) = Just (x,xs)
 uncons _      = Nothing
@@ -157,11 +157,11 @@ prop_T_length          = length `eqP`  T.length
 prop_TL_length         = length `eqP`  (fromIntegral . TL.length)
 prop_T_map f           = map f  `eqP`  (unpackT . T.map f)
 prop_TL_map f          = map f  `eqP`  (unpackT . TL.map f)
-prop_T_intercalate c   = L.intercalate c `eq` (unpackT . T.intercalate (T.pack c) . map T.pack)
+prop_T_intercalate c   = L.intercalate c `eq` (unpackT . T.intercalate (packT c) . map packT)
 prop_TL_intercalate c  = L.intercalate c `eq` (unpackT . TL.intercalate (TL.pack c) . map TL.pack)
 prop_T_intersperse c   = L.intersperse c `eqP` (unpackT . T.intersperse c)
 prop_TL_intersperse c  = L.intersperse c `eqP` (unpackT . TL.intersperse c)
-prop_T_transpose       = L.transpose `eq` (map unpackT . T.transpose . map T.pack)
+prop_T_transpose       = L.transpose `eq` (map unpackT . T.transpose . map packT)
 prop_TL_transpose      = L.transpose `eq` (map unpackT . TL.transpose . map TL.pack)
 prop_T_reverse         = L.reverse `eqP` (unpackT . T.reverse)
 prop_TL_reverse        = L.reverse `eqP` (unpackT . TL.reverse)
@@ -186,9 +186,9 @@ prop_TL_foldr f z      = L.foldr f z  `eqP`  TL.foldr f z
 prop_T_foldr1 f        = L.foldr1 f   `eqEP` T.foldr1 f
 prop_TL_foldr1 f       = L.foldr1 f   `eqEP` TL.foldr1 f
 
-prop_T_concat          = L.concat      `eq`   (unpackT . T.concat . map T.pack)
+prop_T_concat          = L.concat      `eq`   (unpackT . T.concat . map packT)
 prop_TL_concat         = L.concat      `eq`   (unpackT . TL.concat . map TL.pack)
-prop_T_concatMap f     = L.concatMap f `eqP`  (unpackT . T.concatMap (T.pack . f))
+prop_T_concatMap f     = L.concatMap f `eqP`  (unpackT . T.concatMap (packT . f))
 prop_TL_concatMap f    = L.concatMap f `eqP`  (unpackT . TL.concatMap (TL.pack . f))
 prop_T_any p           = L.any p       `eqP`  T.any p
 prop_TL_any p          = L.any p       `eqP`  TL.any p
@@ -295,13 +295,15 @@ prop_T_lines'          = lines'        `eqP` (map unpackT . T.lines')
 -}
 prop_T_words           = L.words       `eqP` (map unpackT . T.words)
 prop_TL_words          = L.words       `eqP` (map unpackT . TL.words)
-prop_T_unlines         = L.unlines     `eq`  (unpackT . T.unlines . map T.pack)
-prop_T_unwords         = L.unwords     `eq`  (unpackT . T.unwords . map T.pack)
+prop_T_unlines         = L.unlines     `eq`  (unpackT . T.unlines . map packT)
+prop_TL_unlines        = L.unlines     `eq`  (unpackT . TL.unlines . map packT)
+prop_T_unwords         = L.unwords     `eq`  (unpackT . T.unwords . map packT)
+prop_TL_unwords        = L.unwords     `eq`  (unpackT . TL.unwords . map packT)
 
-prop_T_isPrefixOf s    = L.isPrefixOf s`eqP` T.isPrefixOf (T.pack s)
-prop_T_isPrefixOfS s   = L.isPrefixOf s`eqP` (S.isPrefixOf (S.stream $ T.pack s) . S.stream)
-prop_T_isSuffixOf s    = L.isSuffixOf s`eqP` T.isSuffixOf (T.pack s)
-prop_T_isInfixOf s     = L.isInfixOf s `eqP` T.isInfixOf (T.pack s)
+prop_T_isPrefixOf s    = L.isPrefixOf s`eqP` T.isPrefixOf (packT s)
+prop_T_isPrefixOfS s   = L.isPrefixOf s`eqP` (S.isPrefixOf (S.stream $ packT s) . S.stream)
+prop_T_isSuffixOf s    = L.isSuffixOf s`eqP` T.isSuffixOf (packT s)
+prop_T_isInfixOf s     = L.isInfixOf s `eqP` T.isInfixOf (packT s)
 
 prop_T_elem c          = L.elem c      `eqP` T.elem c
 prop_T_filter p        = L.filter p    `eqP` (unpackT . T.filter p)
@@ -309,13 +311,13 @@ prop_T_find p          = L.find p      `eqP` T.find p
 prop_T_partition p     = L.partition p `eqP` (unpack2 . T.partition p)
 
 prop_T_index x s       = x < L.length s && x >= 0 ==>
-                       (L.!!) s x == T.index (T.pack s) x
+                       (L.!!) s x == T.index (packT s) x
 prop_T_findIndex p     = L.findIndex p `eqP` T.findIndex p
 prop_T_findIndices p   = L.findIndices p`eqP` T.findIndices p
 prop_T_elemIndex c     = L.elemIndex c `eqP` T.elemIndex c
 prop_T_elemIndices c   = L.elemIndices c`eqP` T.elemIndices c
 prop_T_count c         = (L.length . L.elemIndices c) `eqP` T.count c
-prop_T_zipWith c s     = L.zipWith c s `eqP` (unpackT . T.zipWith c (T.pack s))
+prop_T_zipWith c s     = L.zipWith c s `eqP` (unpackT . T.zipWith c (packT s))
 
 -- Regression tests.
 prop_S_filter_eq s = S.filter p t == S.streamList (filter p s)
@@ -491,7 +493,8 @@ tests = [
   ("prop_T_words", mytest prop_T_words),
   ("prop_TL_words", mytest prop_TL_words),
   ("prop_T_unlines", mytest prop_T_unlines),
-  ("prop_T_unwords", mytest prop_T_unwords),
+  ("prop_TL_unlines", mytest prop_TL_unlines),
+  ("prop_TL_unwords", mytest prop_TL_unwords),
 
   ("prop_T_isPrefixOf", mytest prop_T_isPrefixOf),
   ("prop_T_isPrefixOfS", mytest prop_T_isPrefixOfS),

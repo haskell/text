@@ -116,8 +116,8 @@ module Data.Text.Lazy
     -- ** Breaking into lines and words
     , lines
     , words
-    -- , unlines
-    -- , unwords
+    , unlines
+    , unwords
 
     -- * Predicates
     -- , isPrefixOf
@@ -731,6 +731,17 @@ lines t = let (l,t') = break ((==) '\n') t
 words :: Text -> [Text]
 words = L.filter (not . null) . splitWith isSpace
 {-# INLINE words #-}
+
+-- | /O(n)/ Joins lines, after appending a terminating newline to
+-- each.
+unlines :: [Text] -> Text
+unlines = concat . L.map (`snoc` '\n')
+{-# INLINE unlines #-}
+
+-- | /O(n)/ Joins words using single space characters.
+unwords :: [Text] -> Text
+unwords = intercalate (singleton ' ')
+{-# INLINE unwords #-}
 
 revChunks :: [T.Text] -> Text
 revChunks = L.foldl' (flip chunk) Empty
