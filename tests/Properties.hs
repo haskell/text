@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FlexibleInstances, TypeSynonymInstances #-}
 {-# OPTIONS_GHC -fno-enable-rewrite-rules #-}
 
 import Test.QuickCheck
@@ -60,6 +60,11 @@ class Target t where
     splitAtT :: Int -> t -> (t,t)
     packTChunkSize :: Int -> String -> t
     packTChunkSize _ = packT
+
+instance Target String where
+    packT    = id
+    unpackT  = id
+    splitAtT = splitAt
 
 instance Target (S.Stream Char) where
     packT        = S.streamList
