@@ -309,9 +309,13 @@ prop_T_isInfixOf s     = L.isInfixOf s `eqP` T.isInfixOf (packT s)
 prop_TL_isInfixOf s    = L.isInfixOf s `eqP` TL.isInfixOf (packT s)
 
 prop_T_elem c          = L.elem c      `eqP` T.elem c
+prop_TL_elem c         = L.elem c      `eqP` TL.elem c
 prop_T_filter p        = L.filter p    `eqP` (unpackT . T.filter p)
+prop_TL_filter p       = L.filter p    `eqP` (unpackT . TL.filter p)
 prop_T_find p          = L.find p      `eqP` T.find p
+prop_TL_find p         = L.find p      `eqP` TL.find p
 prop_T_partition p     = L.partition p `eqP` (unpack2 . T.partition p)
+prop_TL_partition p    = L.partition p `eqP` (unpack2 . TL.partition p)
 
 prop_T_index x s       = x < L.length s && x >= 0 ==>
                        (L.!!) s x == T.index (packT s) x
@@ -508,9 +512,13 @@ tests = [
   ("prop_TL_isInfixOf", mytest prop_TL_isInfixOf),
 
   ("prop_T_elem", mytest prop_T_elem),
+  ("prop_TL_elem", mytest prop_TL_elem),
   ("prop_T_filter", mytest prop_T_filter),
+  ("prop_TL_filter", mytest prop_TL_filter),
   ("prop_T_find", mytest prop_T_find),
+  ("prop_TL_find", mytest prop_TL_find),
   ("prop_T_partition", mytest prop_T_partition),
+  ("prop_TL_partition", mytest prop_TL_partition),
 
   ("prop_T_index", mytest prop_T_index),
   ("prop_T_findIndex", mytest prop_T_findIndex),

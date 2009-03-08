@@ -125,10 +125,10 @@ module Data.Text.Lazy
     , isInfixOf
 
     -- * Searching
-    -- , elem
-    -- , filter
-    -- , find
-    -- , partition
+    , elem
+    , filter
+    , find
+    , partition
 
     -- , findSubstring
     
@@ -780,6 +780,34 @@ isInfixOf :: Text -> Text -> Bool
 isInfixOf needle haystack = L.any (isPrefixOf needle) (tails haystack)
 {-# INLINE isInfixOf #-}
 -- TODO: a better implementation
+
+-- | /O(n)/ 'elem' is the 'Text' membership predicate.
+elem :: Char -> Text -> Bool
+elem c t = S.elem c (stream t)
+{-# INLINE elem #-}
+
+-- | /O(n)/ 'filter', applied to a predicate and a 'Text',
+-- returns a 'Text' containing those characters that satisfy the
+-- predicate.
+filter :: (Char -> Bool) -> Text -> Text
+filter p t = unstream (S.filter p (stream t))
+{-# INLINE filter #-}
+
+-- | /O(n)/ The 'find' function takes a predicate and a 'Text',
+-- and returns the first element in matching the predicate, or 'Nothing'
+-- if there is no such element.
+find :: (Char -> Bool) -> Text -> Maybe Char
+find p t = S.find p (stream t)
+{-# INLINE find #-}
+
+-- | /O(n)/ The 'partition' function takes a predicate and a 'Text',
+-- and returns the pair of 'Text's with elements which do and do not
+-- satisfy the predicate, respectively; i.e.
+--
+-- > partition p t == (filter p t, filter (not . p) t)
+partition :: (Char -> Bool) -> Text -> (Text, Text)
+partition p t = (filter p t, filter (not . p) t)
+{-# INLINE partition #-}
 
 revChunks :: [T.Text] -> Text
 revChunks = L.foldl' (flip chunk) Empty
