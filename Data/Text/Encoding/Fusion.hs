@@ -168,7 +168,7 @@ unstream (Stream next s0 len) = unsafePerformIO $ do
           Done -> trimUp fp n off
           Skip s' -> loop fp n off s'
           Yield x s'
-              | n == off -> realloc fp n off s' x
+              | off == n -> realloc fp n off s' x
               | otherwise -> do
             withForeignPtr fp $ \p -> pokeByteOff p off x
             loop fp n (off+1) s'
