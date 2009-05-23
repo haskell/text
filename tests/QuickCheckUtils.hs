@@ -37,7 +37,7 @@ instance Arbitrary Word16 where
     coarbitrary c = variant (fromEnum c `rem` 4)
 
 instance Arbitrary Char where
-    arbitrary     = oneof [choose ('\0','\55295'), choose ('\57334','\1114111')]
+    arbitrary     = oneof [choose ('\0','\55295'), choose ('\57344','\1114111')]
     coarbitrary c = variant (fromEnum c `rem` 4)
 
 instance Arbitrary T.Text where
