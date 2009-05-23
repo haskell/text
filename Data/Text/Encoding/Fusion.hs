@@ -185,7 +185,7 @@ unstream (Stream next s0 len) = unsafePerformIO $ do
           dest <- mallocByteString destLen
           withForeignPtr src  $ \src'  ->
               withForeignPtr dest $ \dest' ->
-                  memcpy dest' src' (fromIntegral destLen)
+                  memcpy dest' src' (fromIntegral srcLen)
           return dest
 
 encodingError :: String -> a
