@@ -35,7 +35,7 @@ import qualified Data.ByteString.Unsafe as B
 import Data.Text.Encoding.Fusion.Common
 import Data.Text.Fusion (Step(..), Stream(..))
 import Data.Text.Fusion.Internal (M(..), PairS(..), S(..))
-import Data.Text.UnsafeChar (unsafeChr, unsafeChr8, unsafeChr32)
+import Data.Text.UnsafeChar (unsafeChr8)
 import Data.Word (Word8)
 import qualified Data.Text.Encoding.Utf8 as U8
 import System.IO.Unsafe (unsafePerformIO)
@@ -67,49 +67,48 @@ streamUtf8 bs0 = Stream next (bs0 :!: S N N N N :!: 0) unknownLength
           _ -> consume st
          where es = bs :!: S N N N N :!: i
       {-# INLINE consume #-}
-      consume (c@(Chunk bs rest) :!: s :!: i)
+      consume (bs@(Chunk ps rest) :!: s :!: i)
           | i >= len    = consume (rest :!: s  :!: 0)
-          | otherwise   = next    (c    :!: s' :!: i+1)
+          | otherwise   = next    (bs   :!: s' :!: i+1)
           where s' = case s of
                        S N _ _ _ -> S x N N N
                        S a N _ _ -> S a x N N
                        S a b N _ -> S a b x N
                        S a b c N -> S a b c x
                        _         -> encodingError "streamUtf8" "UTF-8"
-                x   = J (B.unsafeIndex bs i)
-                len = B.length bs
+                x   = J (B.unsafeIndex ps i)
+                len = B.length ps
       consume (Empty :!: S N _ _ _ :!: _) = Done
       consume _ = encodingError "streamUtf8" "UTF-8"
 {-# INLINE [0] streamUtf8 #-}
 
 -- | /O(n)/ Convert a 'Stream' 'Word8' to a lazy 'ByteString'.
 unstreamChunks :: Int -> Stream Word8 -> ByteString
-unstreamChunks chunkSize (Stream next s0 len) = chunk s0 len
-  where chunk s0 len = unsafePerformIO $ do
-          let safeLen = min (max len unknownLength) chunkSize
-          fp0 <- mallocByteString safeLen
-          loop fp0 safeLen 0 s0
+unstreamChunks chunkSize (Stream next s0 len0) = chunk s0 len0
+  where chunk s1 len1 = unsafePerformIO $ do
+          let len = min (max len1 unknownLength) chunkSize
+          mallocByteString len >>= loop len 0 s1
           where
-            loop !fp !n !off !s = case next s of
+            loop !n !off !s fp = case next s of
                 Done | off == 0 -> return Empty
                      | otherwise -> do
                       bs <- trimUp fp off
                       return $! Chunk bs Empty
-                Skip s' -> loop fp n off s'
+                Skip s' -> loop n off s' fp
                 Yield x s'
                     | off == chunkSize -> do
                       bs <- trimUp fp off
-                      return (Chunk bs (chunk s (len - B.length bs)))
+                      return (Chunk bs (chunk s (n - B.length bs)))
                     | off == n -> realloc fp n off s' x
                     | otherwise -> do
                       withForeignPtr fp $ \p -> pokeByteOff p off x
-                      loop fp n (off+1) s'
+                      loop n (off+1) s' fp
             {-# NOINLINE realloc #-}
             realloc fp n off s x = do
               let n' = min (n+n) chunkSize
               fp' <- copy0 fp n n'
               withForeignPtr fp' $ \p -> pokeByteOff p off x
-              loop fp' n' (off+1) s
+              loop n' (off+1) s fp'
             {-# NOINLINE trimUp #-}
             trimUp fp off = return $! B.PS fp 0 off
             copy0 :: ForeignPtr Word8 -> Int -> Int -> IO (ForeignPtr Word8)

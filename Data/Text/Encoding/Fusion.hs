@@ -161,23 +161,22 @@ streamUtf32LE bs = Stream next 0 l
 -- | /O(n)/ Convert a 'Stream' 'Word8' to a 'ByteString'.
 unstream :: Stream Word8 -> ByteString
 unstream (Stream next s0 len) = unsafePerformIO $ do
-    fp0 <- mallocByteString len
-    loop fp0 len 0 s0
+    mallocByteString len >>= loop len 0 s0
     where
-      loop !fp !n !off !s = case next s of
+      loop !n !off !s fp = case next s of
           Done -> trimUp fp n off
-          Skip s' -> loop fp n off s'
+          Skip s' -> loop n off s' fp
           Yield x s'
               | off == n -> realloc fp n off s' x
               | otherwise -> do
             withForeignPtr fp $ \p -> pokeByteOff p off x
-            loop fp n (off+1) s'
+            loop n (off+1) s' fp
       {-# NOINLINE realloc #-}
       realloc fp n off s x = do
         let n' = n+n
         fp' <- copy0 fp n n'
         withForeignPtr fp' $ \p -> pokeByteOff p off x
-        loop fp' n' (off+1) s
+        loop n' (off+1) s fp'
       {-# NOINLINE trimUp #-}
       trimUp fp _ off = return $! PS fp 0 off
       copy0 :: ForeignPtr Word8 -> Int -> Int -> IO (ForeignPtr Word8)

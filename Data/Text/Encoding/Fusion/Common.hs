@@ -27,7 +27,7 @@ module Data.Text.Encoding.Fusion.Common
     , restreamUtf32BE
     ) where
 
-import Data.Bits (shiftL, shiftR, (.&.))
+import Data.Bits (shiftR, (.&.))
 import Data.Char (ord)
 import Data.Text.Fusion (Step(..), Stream(..))
 import Data.Text.Fusion.Internal (M(..), S(..))
