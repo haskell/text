@@ -56,9 +56,9 @@ streamUtf8 bs0 = Stream next (bs0 :!: S N N N N :!: 0) unknownLength
       {-# INLINE next #-}
       next st@(bs :!: s :!: i) =
         case s of
-          S (J a) N N N             | U8.validate1 a ->
+          S (J a) N _ _             | U8.validate1 a ->
             Yield (unsafeChr8 a) es
-          S (J a) (J b) N N         | U8.validate2 a b ->
+          S (J a) (J b) N _         | U8.validate2 a b ->
             Yield (U8.chr2 a b) es
           S (J a) (J b) (J c) N     | U8.validate3 a b c ->
             Yield (U8.chr3 a b c) es
