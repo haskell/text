@@ -1,11 +1,9 @@
 -- |
 -- Module      : Data.Text.Lazy.Encoding
--- Copyright   : (c) Tom Harper 2008-2009,
---               (c) Bryan O'Sullivan 2009,
---               (c) Duncan Coutts 2009
+-- Copyright   : (c) Bryan O'Sullivan 2009
 --
 -- License     : BSD-style
--- Maintainer  : rtharper@aftereternity.co.uk, bos@serpentine.com,
+-- Maintainer  : bos@serpentine.com, rtharper@aftereternity.co.uk,
 --               duncan@haskell.org
 -- Stability   : experimental
 -- Portability : portable

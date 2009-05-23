@@ -4,7 +4,7 @@
 -- Copyright   : (c) Bryan O'Sullivan 2009
 --
 -- License     : BSD-style
--- Maintainer  : rtharper@aftereternity.co.uk, bos@serpentine.com,
+-- Maintainer  : bos@serpentine.com, rtharper@aftereternity.co.uk,
 --               duncan@haskell.org
 -- Stability   : experimental
 -- Portability : GHC
