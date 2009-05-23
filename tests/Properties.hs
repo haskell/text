@@ -19,6 +19,7 @@ import qualified Data.Text.Encoding as E
 import Control.Exception
 import qualified Data.Text.Fusion as S
 import qualified Data.Text.Fusion.Common as S
+import qualified Data.Text.Lazy.Encoding as EL
 import qualified Data.Text.Lazy.Fusion as SL
 import qualified Data.List as L
 import System.IO.Unsafe
@@ -47,8 +48,9 @@ prop_TL_unstreamChunks x = f 11 x == f 1000 x
 prop_TL_chunk_unchunk    = (TL.fromChunks . TL.toChunks) `eq` id
 
 prop_T_ascii t           = E.decodeASCII (E.encodeUtf8 a) == a
-    where a            = T.map (\c -> chr (ord c `mod` 128)) t
+    where a              = T.map (\c -> chr (ord c `mod` 128)) t
 prop_T_utf8              = (E.decodeUtf8 . E.encodeUtf8) `eq` id
+prop_TL_utf8             = (EL.decodeUtf8 . EL.encodeUtf8) `eq` id
 prop_T_utf16LE           = (E.decodeUtf16LE . E.encodeUtf16LE) `eq` id
 prop_T_utf16BE           = (E.decodeUtf16BE . E.encodeUtf16BE) `eq` id
 prop_T_utf32LE           = (E.decodeUtf32LE . E.encodeUtf32LE) `eq` id
@@ -378,6 +380,7 @@ tests = [
 
   ("prop_T_ascii", mytest prop_T_ascii),
   ("prop_T_utf8", mytest prop_T_utf8),
+  ("prop_TL_utf8", mytest prop_TL_utf8),
   ("prop_T_utf16LE", mytest prop_T_utf16LE),
   ("prop_T_utf16BE", mytest prop_T_utf16BE),
   ("prop_T_utf32LE", mytest prop_T_utf32LE),

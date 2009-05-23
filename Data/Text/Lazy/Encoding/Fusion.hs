@@ -1,3 +1,5 @@
+{-# LANGUAGE BangPatterns #-}
+
 -- |
 -- Module      : Data.Text.Lazy.Encoding.Fusion
 -- Copyright   : (c) Bryan O'Sullivan 2009
@@ -22,46 +24,107 @@ module Data.Text.Lazy.Encoding.Fusion
     --, streamUtf32BE
 
     -- * Unstreaming
-    --, unstream
+    , unstream
 
     , module Data.Text.Encoding.Fusion.Common
     ) where
 
-import Data.ByteString.Lazy.Internal (ByteString(..))
+import Data.ByteString.Lazy.Internal (ByteString(..), defaultChunkSize)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Unsafe as B
 import Data.Text.Encoding.Fusion.Common
 import Data.Text.Fusion (Step(..), Stream(..))
-import Data.Text.Fusion.Internal (PairS(..))
+import Data.Text.Fusion.Internal (M(..), PairS(..), S(..))
 import Data.Text.UnsafeChar (unsafeChr, unsafeChr8, unsafeChr32)
+import Data.Word (Word8)
 import qualified Data.Text.Encoding.Utf8 as U8
+import System.IO.Unsafe (unsafePerformIO)
+import Foreign.ForeignPtr (withForeignPtr, ForeignPtr)
+import Foreign.Storable (pokeByteOff)
+import Data.ByteString.Internal (mallocByteString, memcpy)
+import Control.Exception (assert)
+import qualified Data.ByteString.Internal as B
 
 unknownLength :: Int
 unknownLength = 4
 
--- | /O(n)/ Convert a 'ByteString' into a 'Stream Char', using UTF-8
--- encoding.
+-- | /O(n)/ Convert a lazy 'ByteString' into a 'Stream Char', using
+-- UTF-8 encoding.
 streamUtf8 :: ByteString -> Stream Char
-streamUtf8 bs0 = Stream next (bs0 :!: 0) unknownLength
+streamUtf8 bs0 = Stream next (bs0 :!: S N N N N :!: 0) unknownLength
     where
       {-# INLINE next #-}
-      next (c@(Chunk bs rest) :!: i)
-          | i >= l = next (rest :!: 0)
-          | U8.validate1 x1 = Yield (unsafeChr8 x1) (c :!: i+1)
-          | i+1 < l && U8.validate2 x1 x2 = Yield (U8.chr2 x1 x2) (c :!: i+2)
-          | i+2 < l && U8.validate3 x1 x2 x3 = Yield (U8.chr3 x1 x2 x3) (c :!: i+3)
-          | i+3 < l && U8.validate4 x1 x2 x3 x4 = Yield (U8.chr4 x1 x2 x3 x4) (c :!: i+4)
-          | otherwise = encodingError "UTF-8"
-          where
-            x1 = idx i
-            x2 = idx (i + 1)
-            x3 = idx (i + 2)
-            x4 = idx (i + 3)
-            idx = B.unsafeIndex bs
-            l = B.length bs
-      next (Empty :!: _) = Done
+      next st@(bs :!: s :!: i) =
+        case s of
+          S (J a) N N N             | U8.validate1 a ->
+            Yield (unsafeChr8 a) es
+          S (J a) (J b) N N         | U8.validate2 a b ->
+            Yield (U8.chr2 a b) es
+          S (J a) (J b) (J c) N     | U8.validate3 a b c ->
+            Yield (U8.chr3 a b c) es
+          S (J a) (J b) (J c) (J d) | U8.validate4 a b c d ->
+            Yield (U8.chr4 a b c d) es
+          _ -> consume st
+         where es = bs :!: S N N N N :!: i
+      {-# INLINE consume #-}
+      consume (c@(Chunk bs rest) :!: s :!: i)
+          | i >= len    = consume (rest :!: s  :!: 0)
+          | otherwise   = next    (c    :!: s' :!: i+1)
+          where s' = case s of
+                       S N _ _ _ -> S x N N N
+                       S a N _ _ -> S a x N N
+                       S a b N _ -> S a b x N
+                       S a b c N -> S a b c x
+                       _         -> encodingError "streamUtf8" "UTF-8"
+                x   = J (B.unsafeIndex bs i)
+                len = B.length bs
+      consume (Empty :!: S N _ _ _ :!: _) = Done
+      consume _ = encodingError "streamUtf8" "UTF-8"
 {-# INLINE [0] streamUtf8 #-}
 
-encodingError :: String -> a
-encodingError encoding =
-    error $ "Data.Text.Lazy.Encoding.Fusion: Bad " ++ encoding ++ " stream"
+-- | /O(n)/ Convert a 'Stream' 'Word8' to a lazy 'ByteString'.
+unstreamChunks :: Int -> Stream Word8 -> ByteString
+unstreamChunks chunkSize (Stream next s0 len) = chunk s0 len
+  where chunk s0 len = unsafePerformIO $ do
+          let safeLen = min (max len unknownLength) chunkSize
+          fp0 <- mallocByteString safeLen
+          loop fp0 safeLen 0 s0
+          where
+            loop !fp !n !off !s = case next s of
+                Done | off == 0 -> return Empty
+                     | otherwise -> do
+                      bs <- trimUp fp off
+                      return $! Chunk bs Empty
+                Skip s' -> loop fp n off s'
+                Yield x s'
+                    | off == chunkSize -> do
+                      bs <- trimUp fp off
+                      return (Chunk bs (chunk s (len - B.length bs)))
+                    | off == n -> realloc fp n off s' x
+                    | otherwise -> do
+                      withForeignPtr fp $ \p -> pokeByteOff p off x
+                      loop fp n (off+1) s'
+            {-# NOINLINE realloc #-}
+            realloc fp n off s x = do
+              let n' = min (n+n) chunkSize
+              fp' <- copy0 fp n n'
+              withForeignPtr fp' $ \p -> pokeByteOff p off x
+              loop fp' n' (off+1) s
+            {-# NOINLINE trimUp #-}
+            trimUp fp off = return $! B.PS fp 0 off
+            copy0 :: ForeignPtr Word8 -> Int -> Int -> IO (ForeignPtr Word8)
+            copy0 !src !srcLen !destLen = assert (srcLen <= destLen) $ do
+                dest <- mallocByteString destLen
+                withForeignPtr src  $ \src'  ->
+                    withForeignPtr dest $ \dest' ->
+                        memcpy dest' src' (fromIntegral srcLen)
+                return dest
+
+-- | /O(n)/ Convert a 'Stream' 'Word8' to a lazy 'ByteString'.
+unstream :: Stream Word8 -> ByteString
+unstream = unstreamChunks 64
+
+encodingError :: String -> String -> a
+encodingError func encoding =
+    error $ "Data.Text.Lazy.Encoding.Fusion." ++ func ++ ": Bad " ++
+            encoding ++ " stream"
