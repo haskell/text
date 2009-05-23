@@ -30,15 +30,9 @@ module Data.Text.Encoding.Fusion.Common
 import Data.Bits (shiftL, shiftR, (.&.))
 import Data.Char (ord)
 import Data.Text.Fusion (Step(..), Stream(..))
-import Data.Text.Fusion.Internal (M(..))
+import Data.Text.Fusion.Internal (M(..), S(..))
 import Data.Word (Word8)
 import qualified Data.Text.Encoding.Utf8 as U8
-
-type M8 = M Word8
-
--- Restreaming state.
-data S s = S {-# UNPACK #-} !s
-    {-# UNPACK #-} !M8 {-# UNPACK #-} !M8 {-# UNPACK #-} !M8
 
 -- | /O(n)/ Convert a Stream Char into a UTF-8 encoded Stream Word8.
 restreamUtf8 :: Stream Char -> Stream Word8

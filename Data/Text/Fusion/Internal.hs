@@ -16,16 +16,27 @@
 module Data.Text.Fusion.Internal
     (
       M(..)
+    , M8
     , PairS(..)
-    , Switch(..)
+    , S(..)
     , Step(..)
     , Stream(..)
+    , Switch(..)
     , empty
     ) where
+
+import Data.Word (Word8)
 
 -- | Specialised, strict Maybe-like type.
 data M a = N
          | J {-# UNPACK #-} !a
+           deriving (Eq, Ord, Show)
+
+type M8 = M Word8
+
+-- Restreaming state.
+data S s = S {-# UNPACK #-} !s
+    {-# UNPACK #-} !M8 {-# UNPACK #-} !M8 {-# UNPACK #-} !M8
            deriving (Eq, Ord, Show)
 
 infixl 2 :!:
@@ -34,6 +45,7 @@ data PairS a b = !a :!: !b
 
 -- | Allow a function over a stream to switch between two states.
 data Switch = S1 | S2
+            deriving (Eq, Ord, Show)
 
 data Step s a = Done
               | Skip !s
