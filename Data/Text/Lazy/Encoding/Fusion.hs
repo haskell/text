@@ -122,7 +122,7 @@ unstreamChunks chunkSize (Stream next s0 len) = chunk s0 len
 
 -- | /O(n)/ Convert a 'Stream' 'Word8' to a lazy 'ByteString'.
 unstream :: Stream Word8 -> ByteString
-unstream = unstreamChunks 64
+unstream = unstreamChunks defaultChunkSize
 
 encodingError :: String -> String -> a
 encodingError func encoding =
