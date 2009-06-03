@@ -51,9 +51,24 @@ unknownLength = 4
 -- | /O(n)/ Convert a lazy 'ByteString' into a 'Stream Char', using
 -- UTF-8 encoding.
 streamUtf8 :: ByteString -> Stream Char
-streamUtf8 bs0 = Stream next (bs0 :!: S N N N N :!: 0) unknownLength
+streamUtf8 bs0 = Stream next (bs0 :!: empty :!: 0) unknownLength
     where
+      empty = S N N N N
       {-# INLINE next #-}
+      next (bs@(Chunk ps _) :!: S N _ _ _ :!: i)
+          | i < len && U8.validate1 a =
+              Yield (unsafeChr8 a) (bs :!: empty :!: i+1)
+          | i + 1 < len && U8.validate2 a b =
+              Yield (U8.chr2 a b) (bs :!: empty :!: i+2)
+          | i + 2 < len && U8.validate3 a b c =
+              Yield (U8.chr3 a b c) (bs :!: empty :!: i+3)
+          | i + 4 < len && U8.validate4 a b c d =
+              Yield (U8.chr4 a b c d) (bs :!: empty :!: i+4)
+          where len = B.length ps
+                a = B.unsafeIndex ps i
+                b = B.unsafeIndex ps (i+1)
+                c = B.unsafeIndex ps (i+2)
+                d = B.unsafeIndex ps (i+3)
       next st@(bs :!: s :!: i) =
         case s of
           S (J a) N _ _             | U8.validate1 a ->
@@ -65,7 +80,7 @@ streamUtf8 bs0 = Stream next (bs0 :!: S N N N N :!: 0) unknownLength
           S (J a) (J b) (J c) (J d) | U8.validate4 a b c d ->
             Yield (U8.chr4 a b c d) es
           _ -> consume st
-         where es = bs :!: S N N N N :!: i
+         where es = bs :!: empty :!: i
       {-# INLINE consume #-}
       consume (bs@(Chunk ps rest) :!: s :!: i)
           | i >= len    = consume (rest :!: s  :!: 0)
