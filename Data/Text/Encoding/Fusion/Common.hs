@@ -27,10 +27,11 @@ module Data.Text.Encoding.Fusion.Common
     , restreamUtf32BE
     ) where
 
-import Data.Bits (shiftR, (.&.))
+import Data.Bits ((.&.))
 import Data.Char (ord)
 import Data.Text.Fusion (Step(..), Stream(..))
 import Data.Text.Fusion.Internal (M(..), S(..))
+import Data.Text.UnsafeShift (shiftR)
 import Data.Word (Word8)
 import qualified Data.Text.Encoding.Utf8 as U8
 

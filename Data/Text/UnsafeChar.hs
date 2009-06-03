@@ -24,8 +24,9 @@ module Data.Text.UnsafeChar
 
 import Control.Exception (assert)
 import Control.Monad.ST (ST)
-import Data.Bits ((.&.), shiftR)
+import Data.Bits ((.&.))
 import Data.Char (ord)
+import Data.Text.UnsafeShift (shiftR)
 import GHC.Exts (Char(..), chr#, word2Int#)
 import GHC.Word (Word8(..), Word16(..), Word32(..))
 import qualified Data.Text.Array as A

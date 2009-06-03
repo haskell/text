@@ -34,6 +34,7 @@ library
     Data.Text.Lazy.Internal
     Data.Text.Unsafe
     Data.Text.UnsafeChar
+    Data.Text.UnsafeShift
     Data.Text.Encoding.Utf8
     Data.Text.Encoding.Utf16
     Data.Text.Encoding.Utf32

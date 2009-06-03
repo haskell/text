@@ -32,7 +32,8 @@ module Data.Text.Encoding.Utf8
 
 import Control.Exception (assert)
 import Data.Char (ord)
-import Data.Bits (shiftR, (.&.))
+import Data.Bits ((.&.))
+import Data.Text.UnsafeShift (shiftR)
 import GHC.Exts
 import GHC.Word (Word8(..))
 

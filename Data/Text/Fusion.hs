@@ -50,10 +50,11 @@ module Data.Text.Fusion
 import Prelude (Bool(..), Char, Eq(..), Maybe(..), Monad(..), Int,
                 Num(..), Ord(..), ($), (&&),
                 fromIntegral, otherwise)
-import Data.Bits ((.&.), shiftR)
+import Data.Bits ((.&.))
 import Data.Char (ord)
 import Data.Text.Internal (Text(..))
 import Data.Text.UnsafeChar (unsafeChr, unsafeWrite)
+import Data.Text.UnsafeShift (shiftR)
 import qualified Data.Text.Array as A
 import qualified Data.Text.Fusion.Common as S
 import Data.Text.Fusion.Internal
