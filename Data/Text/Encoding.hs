@@ -25,6 +25,12 @@ module Data.Text.Encoding
     , decodeUtf16BE
     , decodeUtf32LE
     , decodeUtf32BE
+    -- ** Controllable error handling
+    , decodeUtf8With
+    , decodeUtf16LEWith
+    , decodeUtf16BEWith
+    , decodeUtf32LEWith
+    , decodeUtf32BEWith
 
     -- * Encoding Text to ByteStrings
     , encodeUtf8
@@ -36,6 +42,7 @@ module Data.Text.Encoding
     
 import Data.ByteString (ByteString)
 import qualified Data.Text.Fusion as F
+import Data.Text.Encoding.Error (OnDecodeError, strictDecode)
 import qualified Data.Text.Encoding.Fusion as E
 import Data.Text.Internal (Text)
 
@@ -45,8 +52,13 @@ decodeASCII bs = F.unstream (E.streamASCII bs)
 {-# INLINE decodeASCII #-}
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text.
+decodeUtf8With :: OnDecodeError -> ByteString -> Text
+decodeUtf8With onErr bs = F.unstream (E.streamUtf8 onErr bs)
+{-# INLINE decodeUtf8With #-}
+
+-- | Decode a 'ByteString' containing UTF-8 encoded text.
 decodeUtf8 :: ByteString -> Text
-decodeUtf8 bs = F.unstream (E.streamUtf8 bs)
+decodeUtf8 = decodeUtf8With strictDecode
 {-# INLINE decodeUtf8 #-}
 
 -- | Encode text using UTF-8 encoding.
@@ -55,13 +67,23 @@ encodeUtf8 txt = E.unstream (E.restreamUtf8 (F.stream txt))
 {-# INLINE encodeUtf8 #-}
 
 -- | Decode text from little endian UTF-16 encoding.
+decodeUtf16LEWith :: OnDecodeError -> ByteString -> Text
+decodeUtf16LEWith onErr bs = F.unstream (E.streamUtf16LE onErr bs)
+{-# INLINE decodeUtf16LEWith #-}
+
+-- | Decode text from little endian UTF-16 encoding.
 decodeUtf16LE :: ByteString -> Text
-decodeUtf16LE bs = F.unstream (E.streamUtf16LE bs)
+decodeUtf16LE = decodeUtf16LEWith strictDecode
 {-# INLINE decodeUtf16LE #-}
 
 -- | Decode text from big endian UTF-16 encoding.
+decodeUtf16BEWith :: OnDecodeError -> ByteString -> Text
+decodeUtf16BEWith onErr bs = F.unstream (E.streamUtf16BE onErr bs)
+{-# INLINE decodeUtf16BEWith #-}
+
+-- | Decode text from big endian UTF-16 encoding.
 decodeUtf16BE :: ByteString -> Text
-decodeUtf16BE bs = F.unstream (E.streamUtf16BE bs)
+decodeUtf16BE = decodeUtf16BEWith strictDecode
 {-# INLINE decodeUtf16BE #-}
 
 -- | Encode text using little endian UTF-16 encoding.
@@ -75,13 +97,23 @@ encodeUtf16BE txt = E.unstream (E.restreamUtf16BE (F.stream txt))
 {-# INLINE encodeUtf16BE #-}
 
 -- | Decode text from little endian UTF-32 encoding.
+decodeUtf32LEWith :: OnDecodeError -> ByteString -> Text
+decodeUtf32LEWith onErr bs = F.unstream (E.streamUtf32LE onErr bs)
+{-# INLINE decodeUtf32LEWith #-}
+
+-- | Decode text from little endian UTF-32 encoding.
 decodeUtf32LE :: ByteString -> Text
-decodeUtf32LE bs = F.unstream (E.streamUtf32LE bs)
+decodeUtf32LE = decodeUtf32LEWith strictDecode
 {-# INLINE decodeUtf32LE #-}
 
 -- | Decode text from big endian UTF-32 encoding.
+decodeUtf32BEWith :: OnDecodeError -> ByteString -> Text
+decodeUtf32BEWith onErr bs = F.unstream (E.streamUtf32BE onErr bs)
+{-# INLINE decodeUtf32BEWith #-}
+
+-- | Decode text from big endian UTF-32 encoding.
 decodeUtf32BE :: ByteString -> Text
-decodeUtf32BE bs = F.unstream (E.streamUtf32BE bs)
+decodeUtf32BE = decodeUtf32BEWith strictDecode
 {-# INLINE decodeUtf32BE #-}
 
 -- | Encode text using little endian UTF-32 encoding.

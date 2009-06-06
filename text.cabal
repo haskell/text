@@ -18,6 +18,7 @@ library
   exposed-modules:
     Data.Text
     Data.Text.Encoding
+    Data.Text.Encoding.Error
     Data.Text.Encoding.Fusion
     Data.Text.Foreign
     Data.Text.Fusion

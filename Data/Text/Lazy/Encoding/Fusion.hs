@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns, Rank2Types #-}
 
 -- |
 -- Module      : Data.Text.Lazy.Encoding.Fusion
@@ -33,6 +33,7 @@ import Data.ByteString.Lazy.Internal (ByteString(..), defaultChunkSize)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Unsafe as B
 import Data.Text.Encoding.Fusion.Common
+import Data.Text.Encoding.Error
 import Data.Text.Fusion (Step(..), Stream(..))
 import Data.Text.Fusion.Internal (M(..), PairS(..), S(..))
 import Data.Text.UnsafeChar (unsafeChr8)
@@ -50,8 +51,8 @@ unknownLength = 4
 
 -- | /O(n)/ Convert a lazy 'ByteString' into a 'Stream Char', using
 -- UTF-8 encoding.
-streamUtf8 :: ByteString -> Stream Char
-streamUtf8 bs0 = Stream next (bs0 :!: empty :!: 0) unknownLength
+streamUtf8 :: OnDecodeError -> ByteString -> Stream Char
+streamUtf8 onErr bs0 = Stream next (bs0 :!: empty :!: 0) unknownLength
     where
       empty = S N N N N
       {-# INLINE next #-}
@@ -83,18 +84,18 @@ streamUtf8 bs0 = Stream next (bs0 :!: empty :!: 0) unknownLength
          where es = bs :!: empty :!: i
       {-# INLINE consume #-}
       consume (bs@(Chunk ps rest) :!: s :!: i)
-          | i >= len    = consume (rest :!: s  :!: 0)
-          | otherwise   = next    (bs   :!: s' :!: i+1)
-          where s' = case s of
-                       S N _ _ _ -> S x N N N
-                       S a N _ _ -> S a x N N
-                       S a b N _ -> S a b x N
-                       S a b c N -> S a b c x
-                       _         -> encodingError "streamUtf8" "UTF-8"
-                x   = J (B.unsafeIndex ps i)
-                len = B.length ps
+          | i >= B.length ps = consume (rest :!: s  :!: 0)
+          | otherwise =
+        case s of
+          S N _ _ _ -> next (bs :!: S x N N N :!: i+1)
+          S a N _ _ -> next (bs :!: S a x N N :!: i+1)
+          S a b N _ -> next (bs :!: S a b x N :!: i+1)
+          S a b c N -> next (bs :!: S a b c x :!: i+1)
+          S (J a) b c d -> decodeError "streamUtf8" "UTF-8" onErr (Just a)
+                           (bs :!: S b c d N :!: i+1)
+          where x = J (B.unsafeIndex ps i)
       consume (Empty :!: S N _ _ _ :!: _) = Done
-      consume _ = encodingError "streamUtf8" "UTF-8"
+      consume st = decodeError "streamUtf8" "UTF-8" onErr Nothing st
 {-# INLINE [0] streamUtf8 #-}
 
 -- | /O(n)/ Convert a 'Stream' 'Word8' to a lazy 'ByteString'.
@@ -138,7 +139,11 @@ unstreamChunks chunkSize (Stream next s0 len0) = chunk s0 len0
 unstream :: Stream Word8 -> ByteString
 unstream = unstreamChunks defaultChunkSize
 
-encodingError :: String -> String -> a
-encodingError func encoding =
-    error $ "Data.Text.Lazy.Encoding.Fusion." ++ func ++ ": Bad " ++
-            encoding ++ " stream"
+decodeError :: forall s. String -> String -> OnDecodeError -> Maybe Word8
+            -> s -> Step s Char
+decodeError func kind onErr mb i =
+    case onErr desc mb of
+      Nothing -> Skip i
+      Just c  -> Yield c i
+    where desc = "Data.Text.Lazy.Encoding.Fusion." ++ func ++ ": Invalid " ++
+                 kind ++ " stream"

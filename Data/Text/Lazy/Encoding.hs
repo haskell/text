@@ -19,6 +19,7 @@ module Data.Text.Lazy.Encoding
     -- * Decoding ByteStrings to Text
     --  decodeASCII
       decodeUtf8
+    , decodeUtf8With
     --, decodeUtf16LE
     --, decodeUtf16BE
     --, decodeUtf32LE
@@ -33,13 +34,19 @@ module Data.Text.Lazy.Encoding
     ) where
 
 import Data.ByteString.Lazy (ByteString)
+import Data.Text.Encoding.Error (OnDecodeError, strictDecode)
 import Data.Text.Lazy (Text)
 import qualified Data.Text.Lazy.Fusion as F
 import qualified Data.Text.Lazy.Encoding.Fusion as E
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text.
+decodeUtf8With :: OnDecodeError -> ByteString -> Text
+decodeUtf8With onErr bs = F.unstream (E.streamUtf8 onErr bs)
+{-# INLINE decodeUtf8With #-}
+
+-- | Decode a 'ByteString' containing UTF-8 encoded text.
 decodeUtf8 :: ByteString -> Text
-decodeUtf8 bs = F.unstream (E.streamUtf8 bs)
+decodeUtf8 = decodeUtf8With strictDecode
 {-# INLINE decodeUtf8 #-}
 
 -- | Encode text using UTF-8 encoding.
