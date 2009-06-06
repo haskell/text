@@ -55,6 +55,9 @@ module Data.Text
     , transpose
     , reverse
 
+    -- * Case conversion
+    , toUpper
+
     -- * Folds
     , foldl
     , foldl'
@@ -380,6 +383,14 @@ intersperse c t = unstream (S.intersperse c (stream t))
 reverse :: Text -> Text
 reverse t = S.reverse (stream t)
 {-# INLINE reverse #-}
+
+-- | /O(n)/ Convert a string to upper case, using simple case
+-- conversion.  The result string may be longer than the input string.
+-- For instance, the German eszett (U+00DF) maps to the two-letter
+-- sequence SS.
+toUpper :: Text -> Text
+toUpper t = unstream (S.toUpper (stream t))
+{-# INLINE toUpper #-}
 
 -- | /O(n)/ The 'transpose' function transposes the rows and columns
 -- of its 'Text' argument.  Note that this function uses 'pack',

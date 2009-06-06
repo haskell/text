@@ -58,6 +58,9 @@ module Data.Text.Lazy
     , transpose
     , reverse
 
+    -- ** Case conversion
+    , toUpper
+
     -- * Folds
     , foldl
     , foldl'
@@ -366,6 +369,14 @@ reverse :: Text -> Text
 reverse = rev Empty
   where rev a Empty        = a
         rev a (Chunk t ts) = rev (Chunk (T.reverse t) a) ts
+
+-- | /O(n)/ Convert a string to upper case, using simple case
+-- conversion.  The result string may be longer than the input string.
+-- For instance, the German eszett (U+00DF) maps to the two-letter
+-- sequence SS.
+toUpper :: Text -> Text
+toUpper t = unstream (S.toUpper (stream t))
+{-# INLINE toUpper #-}
 
 -- | /O(n)/ 'foldl', applied to a binary operator, a starting value
 -- (typically the left-identity of the operator), and a 'Text',

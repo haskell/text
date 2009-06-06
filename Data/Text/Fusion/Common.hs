@@ -35,6 +35,9 @@ module Data.Text.Fusion.Common
     , intercalate
     , intersperse
 
+    -- ** Case conversion
+    , toUpper
+
     -- * Folds
     , foldl
     , foldl'
@@ -96,6 +99,7 @@ import Prelude (Bool(..), Char, Either(..), Eq(..), Int, Integral, Maybe(..),
 import qualified Data.List as L
 import qualified Prelude as P
 import Data.Text.Fusion.Internal
+import Data.Text.Fusion.CaseMapping (upperMapping)
 
 singleton :: Char -> Stream Char
 singleton c = Stream next False 1 -- HINT maybe too low
@@ -291,6 +295,25 @@ intersperse c (Stream next0 s0 len) = Stream next (s0 :!: N :!: S1) len -- HINT 
         Yield x s' -> Yield c (s' :!: J x :!: S1)
       next _ = internalError "intersperse"
 {-# INLINE [0] intersperse #-}
+
+-- ----------------------------------------------------------------------------
+-- ** Case conversions (folds)
+
+-- | /O(n)/ Convert a string to upper case, using simple case
+-- conversion.  The result string may be longer than the input string.
+-- For instance, the German eszett (U+00DF) maps to the two-letter
+-- sequence SS.
+toUpper :: Stream Char -> Stream Char
+toUpper (Stream next0 s0 len) = Stream next (s0 :!: '\0' :!: '\0') len
+  where
+    {-# INLINE next #-}
+    next (s :!: '\0' :!: _) =
+        case next0 s of
+          Done       -> Done
+          Skip s'    -> Skip (s' :!: '\0' :!: '\0')
+          Yield c s' -> upperMapping c s'
+    next (s :!: a :!: b) = Yield a (s :!: b :!: '\0')
+{-# INLINE [0] toUpper #-}
 
 -- ----------------------------------------------------------------------------
 -- * Reducing Streams (folds)
