@@ -420,7 +420,7 @@ toCaseFold t = unstream (S.toCaseFold (stream t))
 -- | /O(n)/ Convert a string to lower case, using simple case
 -- conversion.  The result string may be longer than the input string.
 -- For instance, the Latin capital letter I with dot above (U+0130)
--- maps to the sequence Latin small letter i (U+0069) followed by
+-- maps to the bigram Latin small letter i (U+0069) followed by
 -- combining dot above (U+0307).
 toLower :: Text -> Text
 toLower t = unstream (S.toLower (stream t))
