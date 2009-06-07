@@ -322,8 +322,9 @@ toUpper = caseConvert upperMapping
 
 -- | /O(n)/ Convert a string to lower case, using simple case
 -- conversion.  The result string may be longer than the input string.
--- For instance, the German eszett (U+00DF) maps to the two-letter
--- sequence SS.
+-- For instance, the Latin capital letter I with dot above (U+0130)
+-- maps to the sequence Latin small letter i (U+0069) followed by
+-- combining dot above (U+0307).
 toLower :: Stream Char -> Stream Char
 toLower = caseConvert lowerMapping
 {-# INLINE [0] toLower #-}
