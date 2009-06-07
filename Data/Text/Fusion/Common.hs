@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns, Rank2Types #-}
 -- |
 -- Module      : Data.Text.Fusion.Common
 -- Copyright   : (c) Bryan O'Sullivan 2009
@@ -37,6 +37,7 @@ module Data.Text.Fusion.Common
 
     -- ** Case conversion
     , toUpper
+    , toLower
 
     -- * Folds
     , foldl
@@ -99,7 +100,7 @@ import Prelude (Bool(..), Char, Either(..), Eq(..), Int, Integral, Maybe(..),
 import qualified Data.List as L
 import qualified Prelude as P
 import Data.Text.Fusion.Internal
-import Data.Text.Fusion.CaseMapping (upperMapping)
+import Data.Text.Fusion.CaseMapping (lowerMapping, upperMapping)
 
 singleton :: Char -> Stream Char
 singleton c = Stream next False 1 -- HINT maybe too low
@@ -299,21 +300,33 @@ intersperse c (Stream next0 s0 len) = Stream next (s0 :!: N :!: S1) len -- HINT 
 -- ----------------------------------------------------------------------------
 -- ** Case conversions (folds)
 
--- | /O(n)/ Convert a string to upper case, using simple case
--- conversion.  The result string may be longer than the input string.
--- For instance, the German eszett (U+00DF) maps to the two-letter
--- sequence SS.
-toUpper :: Stream Char -> Stream Char
-toUpper (Stream next0 s0 len) = Stream next (s0 :!: '\0' :!: '\0') len
+caseConvert :: (forall s. Char -> s -> Step (PairS (PairS s Char) Char) Char)
+            -> Stream Char -> Stream Char
+caseConvert remap (Stream next0 s0 len) = Stream next (s0 :!: '\0' :!: '\0') len
   where
     {-# INLINE next #-}
     next (s :!: '\0' :!: _) =
         case next0 s of
           Done       -> Done
           Skip s'    -> Skip (s' :!: '\0' :!: '\0')
-          Yield c s' -> upperMapping c s'
+          Yield c s' -> remap c s'
     next (s :!: a :!: b) = Yield a (s :!: b :!: '\0')
+
+-- | /O(n)/ Convert a string to upper case, using simple case
+-- conversion.  The result string may be longer than the input string.
+-- For instance, the German eszett (U+00DF) maps to the two-letter
+-- sequence SS.
+toUpper :: Stream Char -> Stream Char
+toUpper = caseConvert upperMapping
 {-# INLINE [0] toUpper #-}
+
+-- | /O(n)/ Convert a string to lower case, using simple case
+-- conversion.  The result string may be longer than the input string.
+-- For instance, the German eszett (U+00DF) maps to the two-letter
+-- sequence SS.
+toLower :: Stream Char -> Stream Char
+toLower = caseConvert lowerMapping
+{-# INLINE [0] toLower #-}
 
 -- ----------------------------------------------------------------------------
 -- * Reducing Streams (folds)

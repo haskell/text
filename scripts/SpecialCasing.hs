@@ -4,7 +4,7 @@ import Data.Char
 import Numeric
 import System.Environment
 import System.IO
-import Text.ParserCombinators.Parsec hiding (many, optional, upper, (<|>))
+import Text.ParserCombinators.Parsec hiding (many, optional, upper, lower, (<|>))
 import Text.ParserCombinators.Parsec.Combinator
 
 instance Applicative (GenParser s a) where
@@ -41,17 +41,23 @@ entries = many comment *> many (entry <* many comment)
 parseFile :: FilePath -> IO (Either ParseError [Case])
 parseFile name = parse entries name <$> readFile name
 
-upperFunc ms = typ ++ (map nice . filter p $ ms) ++ [last]
+mapFunc which access twiddle ms = typ ++ (map nice . filter p $ ms) ++ [last]
   where
-    typ = ["upperMapping :: forall s. Char -> s -> Step (PairS (PairS s Char) Char) Char"
-           ,"{-# INLINE upperMapping #-}"]
-    last = "upperMapping c s = Yield (toUpper c) (s :!: '\\0' :!: '\\0')"
-    nice c = "-- " ++ name c ++ "\nupperMapping " ++ showC (code c) ++ " s = Yield " ++ x ++ " (s :!: " ++ y ++ " :!: " ++ z ++ ")"
-       where [x,y,z] = (map showC . take 3) (upper c ++ repeat '\0')
-    p c = [code c] /= upper c && null (conditions c)
+    typ = [which ++ "Mapping :: forall s. Char -> s -> Step (PairS (PairS s Char) Char) Char"
+           ,"{-# INLINE " ++ which ++ "Mapping #-}"]
+    last = which ++ "Mapping c s = Yield (to" ++ ucFirst which ++ " c) (s :!: '\\0' :!: '\\0')"
+    nice c = "-- " ++ name c ++ "\n" ++
+             which ++ "Mapping " ++ showC (code c) ++ " s = Yield " ++ x ++ " (s :!: " ++ y ++ " :!: " ++ z ++ ")"
+       where [x,y,z] = (map showC . take 3) (access c ++ repeat '\0')
+    p c = [k] /= a && a /= [twiddle k] && null (conditions c)
+        where a = access c
+              k = code c
     showC c = "'\\x" ++ d ++ "'"
         where h = showHex (ord c) ""
               d = replicate (4 - length h) '0' ++ h
+
+ucFirst (c:cs) = toUpper c : cs
+ucFirst [] = []
 
 main = do
   args <- getArgs
@@ -71,5 +77,6 @@ main = do
                       ,"import Data.Char"
                       ,"import Data.Text.Fusion.Internal"
                       ,""]
-  mapM_ (hPutStrLn h) (upperFunc ms)
+  mapM_ (hPutStrLn h) (mapFunc "upper" upper toUpper ms)
+  mapM_ (hPutStrLn h) (mapFunc "lower" lower toLower ms)
   hClose h

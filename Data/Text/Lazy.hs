@@ -60,6 +60,7 @@ module Data.Text.Lazy
 
     -- ** Case conversion
     , toUpper
+    , toLower
 
     -- * Folds
     , foldl
@@ -377,6 +378,14 @@ reverse = rev Empty
 toUpper :: Text -> Text
 toUpper t = unstream (S.toUpper (stream t))
 {-# INLINE toUpper #-}
+
+-- | /O(n)/ Convert a string to lower case, using simple case
+-- conversion.  The result string may be longer than the input string.
+-- For instance, the German eszett (U+00DF) maps to the two-letter
+-- sequence SS.
+toLower :: Text -> Text
+toLower t = unstream (S.toLower (stream t))
+{-# INLINE toLower #-}
 
 -- | /O(n)/ 'foldl', applied to a binary operator, a starting value
 -- (typically the left-identity of the operator), and a 'Text',
