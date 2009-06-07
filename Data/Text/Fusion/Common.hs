@@ -36,8 +36,10 @@ module Data.Text.Fusion.Common
     , intersperse
 
     -- ** Case conversion
-    , toUpper
+    -- $case
+    , toCaseFold
     , toLower
+    , toUpper
 
     -- * Folds
     , foldl
@@ -100,7 +102,7 @@ import Prelude (Bool(..), Char, Either(..), Eq(..), Int, Integral, Maybe(..),
 import qualified Data.List as L
 import qualified Prelude as P
 import Data.Text.Fusion.Internal
-import Data.Text.Fusion.CaseMapping (lowerMapping, upperMapping)
+import Data.Text.Fusion.CaseMapping (foldMapping, lowerMapping, upperMapping)
 
 singleton :: Char -> Stream Char
 singleton c = Stream next False 1 -- HINT maybe too low
@@ -300,6 +302,15 @@ intersperse c (Stream next0 s0 len) = Stream next (s0 :!: N :!: S1) len -- HINT 
 -- ----------------------------------------------------------------------------
 -- ** Case conversions (folds)
 
+-- $case
+--
+-- With Unicode text, it is incorrect to use combinators like @map
+-- toUpper@ to case convert each character of a string individually.
+-- Instead, use the whole-string case conversion functions from this
+-- module.  For correctness in different writing systems, these
+-- functions may map one input character to two or three output
+-- characters.
+
 caseConvert :: (forall s. Char -> s -> Step (PairS (PairS s Char) Char) Char)
             -> Stream Char -> Stream Char
 caseConvert remap (Stream next0 s0 len) = Stream next (s0 :!: '\0' :!: '\0') len
@@ -311,6 +322,24 @@ caseConvert remap (Stream next0 s0 len) = Stream next (s0 :!: '\0' :!: '\0') len
           Skip s'    -> Skip (s' :!: '\0' :!: '\0')
           Yield c s' -> remap c s'
     next (s :!: a :!: b) = Yield a (s :!: b :!: '\0')
+
+-- | /O(n)/ Convert a string to folded case.  This function is mainly
+-- useful for performing caseless (or case insensitive) string
+-- comparisons.
+--
+-- A string @x@ is a caseless match for a string @y@ if and only if:
+--
+-- @toCaseFold x == toCaseFold y@
+--
+-- The result string may be longer than the input string, and may
+-- differ from applying 'toLower' to the input string.  For instance,
+-- the Armenian small ligature men now (U+FB13) is case folded to the
+-- bigram men now (U+0574 U+0576), while the micro sign (U+00B5) is
+-- case folded to the Greek small letter letter mu (U+03BC) instead of
+-- itself.
+toCaseFold :: Stream Char -> Stream Char
+toCaseFold = caseConvert foldMapping
+{-# INLINE [0] toCaseFold #-}
 
 -- | /O(n)/ Convert a string to upper case, using simple case
 -- conversion.  The result string may be longer than the input string.

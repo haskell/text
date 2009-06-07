@@ -217,3 +217,240 @@ lowerMapping :: forall s. Char -> s -> Step (PairS (PairS s Char) Char) Char
 -- LATIN CAPITAL LETTER I WITH DOT ABOVE
 lowerMapping '\x0130' s = Yield '\x0069' (s :!: '\x0307' :!: '\x0000')
 lowerMapping c s = Yield (toLower c) (s :!: '\0' :!: '\0')
+foldMapping :: forall s. Char -> s -> Step (PairS (PairS s Char) Char) Char
+{-# INLINE foldMapping #-}
+-- MICRO SIGN
+foldMapping '\x00b5' s = Yield '\x03bc' (s :!: '\x0000' :!: '\x0000')
+-- LATIN SMALL LETTER SHARP S
+foldMapping '\x00df' s = Yield '\x0073' (s :!: '\x0073' :!: '\x0000')
+-- LATIN CAPITAL LETTER I WITH DOT ABOVE
+foldMapping '\x0130' s = Yield '\x0069' (s :!: '\x0307' :!: '\x0000')
+-- LATIN SMALL LETTER N PRECEDED BY APOSTROPHE
+foldMapping '\x0149' s = Yield '\x02bc' (s :!: '\x006e' :!: '\x0000')
+-- LATIN SMALL LETTER LONG S
+foldMapping '\x017f' s = Yield '\x0073' (s :!: '\x0000' :!: '\x0000')
+-- LATIN SMALL LETTER J WITH CARON
+foldMapping '\x01f0' s = Yield '\x006a' (s :!: '\x030c' :!: '\x0000')
+-- COMBINING GREEK YPOGEGRAMMENI
+foldMapping '\x0345' s = Yield '\x03b9' (s :!: '\x0000' :!: '\x0000')
+-- GREEK SMALL LETTER IOTA WITH DIALYTIKA AND TONOS
+foldMapping '\x0390' s = Yield '\x03b9' (s :!: '\x0308' :!: '\x0301')
+-- GREEK SMALL LETTER UPSILON WITH DIALYTIKA AND TONOS
+foldMapping '\x03b0' s = Yield '\x03c5' (s :!: '\x0308' :!: '\x0301')
+-- GREEK SMALL LETTER FINAL SIGMA
+foldMapping '\x03c2' s = Yield '\x03c3' (s :!: '\x0000' :!: '\x0000')
+-- GREEK BETA SYMBOL
+foldMapping '\x03d0' s = Yield '\x03b2' (s :!: '\x0000' :!: '\x0000')
+-- GREEK THETA SYMBOL
+foldMapping '\x03d1' s = Yield '\x03b8' (s :!: '\x0000' :!: '\x0000')
+-- GREEK PHI SYMBOL
+foldMapping '\x03d5' s = Yield '\x03c6' (s :!: '\x0000' :!: '\x0000')
+-- GREEK PI SYMBOL
+foldMapping '\x03d6' s = Yield '\x03c0' (s :!: '\x0000' :!: '\x0000')
+-- GREEK KAPPA SYMBOL
+foldMapping '\x03f0' s = Yield '\x03ba' (s :!: '\x0000' :!: '\x0000')
+-- GREEK RHO SYMBOL
+foldMapping '\x03f1' s = Yield '\x03c1' (s :!: '\x0000' :!: '\x0000')
+-- GREEK LUNATE EPSILON SYMBOL
+foldMapping '\x03f5' s = Yield '\x03b5' (s :!: '\x0000' :!: '\x0000')
+-- ARMENIAN SMALL LIGATURE ECH YIWN
+foldMapping '\x0587' s = Yield '\x0565' (s :!: '\x0582' :!: '\x0000')
+-- LATIN SMALL LETTER H WITH LINE BELOW
+foldMapping '\x1e96' s = Yield '\x0068' (s :!: '\x0331' :!: '\x0000')
+-- LATIN SMALL LETTER T WITH DIAERESIS
+foldMapping '\x1e97' s = Yield '\x0074' (s :!: '\x0308' :!: '\x0000')
+-- LATIN SMALL LETTER W WITH RING ABOVE
+foldMapping '\x1e98' s = Yield '\x0077' (s :!: '\x030a' :!: '\x0000')
+-- LATIN SMALL LETTER Y WITH RING ABOVE
+foldMapping '\x1e99' s = Yield '\x0079' (s :!: '\x030a' :!: '\x0000')
+-- LATIN SMALL LETTER A WITH RIGHT HALF RING
+foldMapping '\x1e9a' s = Yield '\x0061' (s :!: '\x02be' :!: '\x0000')
+-- LATIN SMALL LETTER LONG S WITH DOT ABOVE
+foldMapping '\x1e9b' s = Yield '\x1e61' (s :!: '\x0000' :!: '\x0000')
+-- LATIN CAPITAL LETTER SHARP S
+foldMapping '\x1e9e' s = Yield '\x0073' (s :!: '\x0073' :!: '\x0000')
+-- GREEK SMALL LETTER UPSILON WITH PSILI
+foldMapping '\x1f50' s = Yield '\x03c5' (s :!: '\x0313' :!: '\x0000')
+-- GREEK SMALL LETTER UPSILON WITH PSILI AND VARIA
+foldMapping '\x1f52' s = Yield '\x03c5' (s :!: '\x0313' :!: '\x0300')
+-- GREEK SMALL LETTER UPSILON WITH PSILI AND OXIA
+foldMapping '\x1f54' s = Yield '\x03c5' (s :!: '\x0313' :!: '\x0301')
+-- GREEK SMALL LETTER UPSILON WITH PSILI AND PERISPOMENI
+foldMapping '\x1f56' s = Yield '\x03c5' (s :!: '\x0313' :!: '\x0342')
+-- GREEK SMALL LETTER ALPHA WITH PSILI AND YPOGEGRAMMENI
+foldMapping '\x1f80' s = Yield '\x1f00' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK SMALL LETTER ALPHA WITH DASIA AND YPOGEGRAMMENI
+foldMapping '\x1f81' s = Yield '\x1f01' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK SMALL LETTER ALPHA WITH PSILI AND VARIA AND YPOGEGRAMMENI
+foldMapping '\x1f82' s = Yield '\x1f02' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK SMALL LETTER ALPHA WITH DASIA AND VARIA AND YPOGEGRAMMENI
+foldMapping '\x1f83' s = Yield '\x1f03' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK SMALL LETTER ALPHA WITH PSILI AND OXIA AND YPOGEGRAMMENI
+foldMapping '\x1f84' s = Yield '\x1f04' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK SMALL LETTER ALPHA WITH DASIA AND OXIA AND YPOGEGRAMMENI
+foldMapping '\x1f85' s = Yield '\x1f05' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK SMALL LETTER ALPHA WITH PSILI AND PERISPOMENI AND YPOGEGRAMMENI
+foldMapping '\x1f86' s = Yield '\x1f06' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK SMALL LETTER ALPHA WITH DASIA AND PERISPOMENI AND YPOGEGRAMMENI
+foldMapping '\x1f87' s = Yield '\x1f07' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK CAPITAL LETTER ALPHA WITH PSILI AND PROSGEGRAMMENI
+foldMapping '\x1f88' s = Yield '\x1f00' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK CAPITAL LETTER ALPHA WITH DASIA AND PROSGEGRAMMENI
+foldMapping '\x1f89' s = Yield '\x1f01' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK CAPITAL LETTER ALPHA WITH PSILI AND VARIA AND PROSGEGRAMMENI
+foldMapping '\x1f8a' s = Yield '\x1f02' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK CAPITAL LETTER ALPHA WITH DASIA AND VARIA AND PROSGEGRAMMENI
+foldMapping '\x1f8b' s = Yield '\x1f03' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK CAPITAL LETTER ALPHA WITH PSILI AND OXIA AND PROSGEGRAMMENI
+foldMapping '\x1f8c' s = Yield '\x1f04' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK CAPITAL LETTER ALPHA WITH DASIA AND OXIA AND PROSGEGRAMMENI
+foldMapping '\x1f8d' s = Yield '\x1f05' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK CAPITAL LETTER ALPHA WITH PSILI AND PERISPOMENI AND PROSGEGRAMMENI
+foldMapping '\x1f8e' s = Yield '\x1f06' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK CAPITAL LETTER ALPHA WITH DASIA AND PERISPOMENI AND PROSGEGRAMMENI
+foldMapping '\x1f8f' s = Yield '\x1f07' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK SMALL LETTER ETA WITH PSILI AND YPOGEGRAMMENI
+foldMapping '\x1f90' s = Yield '\x1f20' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK SMALL LETTER ETA WITH DASIA AND YPOGEGRAMMENI
+foldMapping '\x1f91' s = Yield '\x1f21' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK SMALL LETTER ETA WITH PSILI AND VARIA AND YPOGEGRAMMENI
+foldMapping '\x1f92' s = Yield '\x1f22' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK SMALL LETTER ETA WITH DASIA AND VARIA AND YPOGEGRAMMENI
+foldMapping '\x1f93' s = Yield '\x1f23' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK SMALL LETTER ETA WITH PSILI AND OXIA AND YPOGEGRAMMENI
+foldMapping '\x1f94' s = Yield '\x1f24' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK SMALL LETTER ETA WITH DASIA AND OXIA AND YPOGEGRAMMENI
+foldMapping '\x1f95' s = Yield '\x1f25' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK SMALL LETTER ETA WITH PSILI AND PERISPOMENI AND YPOGEGRAMMENI
+foldMapping '\x1f96' s = Yield '\x1f26' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK SMALL LETTER ETA WITH DASIA AND PERISPOMENI AND YPOGEGRAMMENI
+foldMapping '\x1f97' s = Yield '\x1f27' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK CAPITAL LETTER ETA WITH PSILI AND PROSGEGRAMMENI
+foldMapping '\x1f98' s = Yield '\x1f20' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK CAPITAL LETTER ETA WITH DASIA AND PROSGEGRAMMENI
+foldMapping '\x1f99' s = Yield '\x1f21' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK CAPITAL LETTER ETA WITH PSILI AND VARIA AND PROSGEGRAMMENI
+foldMapping '\x1f9a' s = Yield '\x1f22' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK CAPITAL LETTER ETA WITH DASIA AND VARIA AND PROSGEGRAMMENI
+foldMapping '\x1f9b' s = Yield '\x1f23' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK CAPITAL LETTER ETA WITH PSILI AND OXIA AND PROSGEGRAMMENI
+foldMapping '\x1f9c' s = Yield '\x1f24' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK CAPITAL LETTER ETA WITH DASIA AND OXIA AND PROSGEGRAMMENI
+foldMapping '\x1f9d' s = Yield '\x1f25' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK CAPITAL LETTER ETA WITH PSILI AND PERISPOMENI AND PROSGEGRAMMENI
+foldMapping '\x1f9e' s = Yield '\x1f26' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK CAPITAL LETTER ETA WITH DASIA AND PERISPOMENI AND PROSGEGRAMMENI
+foldMapping '\x1f9f' s = Yield '\x1f27' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK SMALL LETTER OMEGA WITH PSILI AND YPOGEGRAMMENI
+foldMapping '\x1fa0' s = Yield '\x1f60' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK SMALL LETTER OMEGA WITH DASIA AND YPOGEGRAMMENI
+foldMapping '\x1fa1' s = Yield '\x1f61' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK SMALL LETTER OMEGA WITH PSILI AND VARIA AND YPOGEGRAMMENI
+foldMapping '\x1fa2' s = Yield '\x1f62' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK SMALL LETTER OMEGA WITH DASIA AND VARIA AND YPOGEGRAMMENI
+foldMapping '\x1fa3' s = Yield '\x1f63' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK SMALL LETTER OMEGA WITH PSILI AND OXIA AND YPOGEGRAMMENI
+foldMapping '\x1fa4' s = Yield '\x1f64' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK SMALL LETTER OMEGA WITH DASIA AND OXIA AND YPOGEGRAMMENI
+foldMapping '\x1fa5' s = Yield '\x1f65' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK SMALL LETTER OMEGA WITH PSILI AND PERISPOMENI AND YPOGEGRAMMENI
+foldMapping '\x1fa6' s = Yield '\x1f66' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK SMALL LETTER OMEGA WITH DASIA AND PERISPOMENI AND YPOGEGRAMMENI
+foldMapping '\x1fa7' s = Yield '\x1f67' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK CAPITAL LETTER OMEGA WITH PSILI AND PROSGEGRAMMENI
+foldMapping '\x1fa8' s = Yield '\x1f60' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK CAPITAL LETTER OMEGA WITH DASIA AND PROSGEGRAMMENI
+foldMapping '\x1fa9' s = Yield '\x1f61' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK CAPITAL LETTER OMEGA WITH PSILI AND VARIA AND PROSGEGRAMMENI
+foldMapping '\x1faa' s = Yield '\x1f62' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK CAPITAL LETTER OMEGA WITH DASIA AND VARIA AND PROSGEGRAMMENI
+foldMapping '\x1fab' s = Yield '\x1f63' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK CAPITAL LETTER OMEGA WITH PSILI AND OXIA AND PROSGEGRAMMENI
+foldMapping '\x1fac' s = Yield '\x1f64' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK CAPITAL LETTER OMEGA WITH DASIA AND OXIA AND PROSGEGRAMMENI
+foldMapping '\x1fad' s = Yield '\x1f65' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK CAPITAL LETTER OMEGA WITH PSILI AND PERISPOMENI AND PROSGEGRAMMENI
+foldMapping '\x1fae' s = Yield '\x1f66' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK CAPITAL LETTER OMEGA WITH DASIA AND PERISPOMENI AND PROSGEGRAMMENI
+foldMapping '\x1faf' s = Yield '\x1f67' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK SMALL LETTER ALPHA WITH VARIA AND YPOGEGRAMMENI
+foldMapping '\x1fb2' s = Yield '\x1f70' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK SMALL LETTER ALPHA WITH YPOGEGRAMMENI
+foldMapping '\x1fb3' s = Yield '\x03b1' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK SMALL LETTER ALPHA WITH OXIA AND YPOGEGRAMMENI
+foldMapping '\x1fb4' s = Yield '\x03ac' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK SMALL LETTER ALPHA WITH PERISPOMENI
+foldMapping '\x1fb6' s = Yield '\x03b1' (s :!: '\x0342' :!: '\x0000')
+-- GREEK SMALL LETTER ALPHA WITH PERISPOMENI AND YPOGEGRAMMENI
+foldMapping '\x1fb7' s = Yield '\x03b1' (s :!: '\x0342' :!: '\x03b9')
+-- GREEK CAPITAL LETTER ALPHA WITH PROSGEGRAMMENI
+foldMapping '\x1fbc' s = Yield '\x03b1' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK PROSGEGRAMMENI
+foldMapping '\x1fbe' s = Yield '\x03b9' (s :!: '\x0000' :!: '\x0000')
+-- GREEK SMALL LETTER ETA WITH VARIA AND YPOGEGRAMMENI
+foldMapping '\x1fc2' s = Yield '\x1f74' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK SMALL LETTER ETA WITH YPOGEGRAMMENI
+foldMapping '\x1fc3' s = Yield '\x03b7' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK SMALL LETTER ETA WITH OXIA AND YPOGEGRAMMENI
+foldMapping '\x1fc4' s = Yield '\x03ae' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK SMALL LETTER ETA WITH PERISPOMENI
+foldMapping '\x1fc6' s = Yield '\x03b7' (s :!: '\x0342' :!: '\x0000')
+-- GREEK SMALL LETTER ETA WITH PERISPOMENI AND YPOGEGRAMMENI
+foldMapping '\x1fc7' s = Yield '\x03b7' (s :!: '\x0342' :!: '\x03b9')
+-- GREEK CAPITAL LETTER ETA WITH PROSGEGRAMMENI
+foldMapping '\x1fcc' s = Yield '\x03b7' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK SMALL LETTER IOTA WITH DIALYTIKA AND VARIA
+foldMapping '\x1fd2' s = Yield '\x03b9' (s :!: '\x0308' :!: '\x0300')
+-- GREEK SMALL LETTER IOTA WITH DIALYTIKA AND OXIA
+foldMapping '\x1fd3' s = Yield '\x03b9' (s :!: '\x0308' :!: '\x0301')
+-- GREEK SMALL LETTER IOTA WITH PERISPOMENI
+foldMapping '\x1fd6' s = Yield '\x03b9' (s :!: '\x0342' :!: '\x0000')
+-- GREEK SMALL LETTER IOTA WITH DIALYTIKA AND PERISPOMENI
+foldMapping '\x1fd7' s = Yield '\x03b9' (s :!: '\x0308' :!: '\x0342')
+-- GREEK SMALL LETTER UPSILON WITH DIALYTIKA AND VARIA
+foldMapping '\x1fe2' s = Yield '\x03c5' (s :!: '\x0308' :!: '\x0300')
+-- GREEK SMALL LETTER UPSILON WITH DIALYTIKA AND OXIA
+foldMapping '\x1fe3' s = Yield '\x03c5' (s :!: '\x0308' :!: '\x0301')
+-- GREEK SMALL LETTER RHO WITH PSILI
+foldMapping '\x1fe4' s = Yield '\x03c1' (s :!: '\x0313' :!: '\x0000')
+-- GREEK SMALL LETTER UPSILON WITH PERISPOMENI
+foldMapping '\x1fe6' s = Yield '\x03c5' (s :!: '\x0342' :!: '\x0000')
+-- GREEK SMALL LETTER UPSILON WITH DIALYTIKA AND PERISPOMENI
+foldMapping '\x1fe7' s = Yield '\x03c5' (s :!: '\x0308' :!: '\x0342')
+-- GREEK SMALL LETTER OMEGA WITH VARIA AND YPOGEGRAMMENI
+foldMapping '\x1ff2' s = Yield '\x1f7c' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK SMALL LETTER OMEGA WITH YPOGEGRAMMENI
+foldMapping '\x1ff3' s = Yield '\x03c9' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK SMALL LETTER OMEGA WITH OXIA AND YPOGEGRAMMENI
+foldMapping '\x1ff4' s = Yield '\x03ce' (s :!: '\x03b9' :!: '\x0000')
+-- GREEK SMALL LETTER OMEGA WITH PERISPOMENI
+foldMapping '\x1ff6' s = Yield '\x03c9' (s :!: '\x0342' :!: '\x0000')
+-- GREEK SMALL LETTER OMEGA WITH PERISPOMENI AND YPOGEGRAMMENI
+foldMapping '\x1ff7' s = Yield '\x03c9' (s :!: '\x0342' :!: '\x03b9')
+-- GREEK CAPITAL LETTER OMEGA WITH PROSGEGRAMMENI
+foldMapping '\x1ffc' s = Yield '\x03c9' (s :!: '\x03b9' :!: '\x0000')
+-- LATIN SMALL LIGATURE FF
+foldMapping '\xfb00' s = Yield '\x0066' (s :!: '\x0066' :!: '\x0000')
+-- LATIN SMALL LIGATURE FI
+foldMapping '\xfb01' s = Yield '\x0066' (s :!: '\x0069' :!: '\x0000')
+-- LATIN SMALL LIGATURE FL
+foldMapping '\xfb02' s = Yield '\x0066' (s :!: '\x006c' :!: '\x0000')
+-- LATIN SMALL LIGATURE FFI
+foldMapping '\xfb03' s = Yield '\x0066' (s :!: '\x0066' :!: '\x0069')
+-- LATIN SMALL LIGATURE FFL
+foldMapping '\xfb04' s = Yield '\x0066' (s :!: '\x0066' :!: '\x006c')
+-- LATIN SMALL LIGATURE LONG S T
+foldMapping '\xfb05' s = Yield '\x0073' (s :!: '\x0074' :!: '\x0000')
+-- LATIN SMALL LIGATURE ST
+foldMapping '\xfb06' s = Yield '\x0073' (s :!: '\x0074' :!: '\x0000')
+-- ARMENIAN SMALL LIGATURE MEN NOW
+foldMapping '\xfb13' s = Yield '\x0574' (s :!: '\x0576' :!: '\x0000')
+-- ARMENIAN SMALL LIGATURE MEN ECH
+foldMapping '\xfb14' s = Yield '\x0574' (s :!: '\x0565' :!: '\x0000')
+-- ARMENIAN SMALL LIGATURE MEN INI
+foldMapping '\xfb15' s = Yield '\x0574' (s :!: '\x056b' :!: '\x0000')
+-- ARMENIAN SMALL LIGATURE VEW NOW
+foldMapping '\xfb16' s = Yield '\x057e' (s :!: '\x0576' :!: '\x0000')
+-- ARMENIAN SMALL LIGATURE MEN XEH
+foldMapping '\xfb17' s = Yield '\x0574' (s :!: '\x056d' :!: '\x0000')
+foldMapping c s = Yield (toLower c) (s :!: '\0' :!: '\0')
