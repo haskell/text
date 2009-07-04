@@ -811,15 +811,17 @@ splitChar c = splitWith (==c)
 -- not copy the substrings, it just constructs new 'Text's that are
 -- slices of the original.
 split :: Text -> Text -> [Text]
-split pat = go
+split pat src0
+    | l == 0    = [src0]
+    | otherwise = go src0
   where
+    l      = length pat
     go src = search 0 src
       where
         search !n !s
             | null s             = [src]      -- not found
             | pat `isPrefixOf` s = take n src : go (drop l s)
             | otherwise          = search (n+1) (unsafeTail s)
-        l = length pat
 {-# INLINE split #-}
 
 -- | /O(n)/ Splits a 'Text' into components delimited by separators,
