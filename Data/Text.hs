@@ -111,6 +111,7 @@ module Data.Text
 
     -- ** Breaking into many substrings
     , split
+    , splitChar
     , splitWith
     , breakSubstring
 
@@ -770,20 +771,46 @@ tails t | null t    = [empty]
 -- | /O(n)/ Break a 'Text' into pieces separated by the 'Char'
 -- argument, consuming the delimiter. I.e.
 --
--- > split '\n' "a\nb\nd\ne" == ["a","b","d","e"]
--- > split 'a'  "aXaXaXa"    == ["","X","X","X",""]
--- > split 'x'  "x"          == ["",""]
+-- > splitChar '\n' "a\nb\nd\ne" == ["a","b","d","e"]
+-- > splitChar 'a'  "aXaXaXa"    == ["","X","X","X",""]
+-- > splitChar 'x'  "x"          == ["",""]
 -- 
 -- and
 --
--- > intercalate (singleton c) . split c == id
--- > split == splitWith . (==)
+-- > intercalate (singleton c) . splitChar c == id
+-- > splitChar == splitWith . (==)
 -- 
 -- As for all splitting functions in this library, this function does
 -- not copy the substrings, it just constructs new 'Text's that are
 -- slices of the original.
-split :: Char -> Text -> [Text]
-split c = splitWith (==c)
+splitChar :: Char -> Text -> [Text]
+splitChar c = splitWith (==c)
+{-# INLINE splitChar #-}
+
+-- | /O(m)*O(n)/ Break a 'Text' into pieces separated by the 'Text'
+-- argument, consuming the delimiter. I.e.
+--
+-- > split "\r\n" "a\r\nb\r\nd\r\ne" == ["a","b","d","e"]
+-- > split "aaa"  "aaaXaaaXaaaXaaa"  == ["","X","X","X",""]
+-- > split "x"    "x"                == ["",""]
+-- 
+-- and
+--
+-- > intercalate s . split s == id
+-- 
+-- As for all splitting functions in this library, this function does
+-- not copy the substrings, it just constructs new 'Text's that are
+-- slices of the original.
+split :: Text -> Text -> [Text]
+split pat = go
+  where
+    go src = search 0 src
+      where
+        search !n !s
+            | null s             = [src]      -- not found
+            | pat `isPrefixOf` s = take n src : go (drop l s)
+            | otherwise          = search (n+1) (unsafeTail s)
+        l = length pat
 {-# INLINE split #-}
 
 -- | /O(n)/ Splits a 'Text' into components delimited by separators,
