@@ -789,7 +789,7 @@ tails t | null t    = [empty]
 -- > intercalate (singleton c) . splitChar c == id
 -- > splitChar == splitWith . (==)
 -- 
--- As for all splitting functions in this library, this function does
+-- As with all splitting functions in this library, this function does
 -- not copy the substrings, it just constructs new 'Text's that are
 -- slices of the original.
 splitChar :: Char -> Text -> [Text]
@@ -807,7 +807,7 @@ splitChar c = splitWith (==c)
 --
 -- > intercalate s . split s == id
 -- 
--- As for all splitting functions in this library, this function does
+-- As with all splitting functions in this library, this function does
 -- not copy the substrings, it just constructs new 'Text's that are
 -- slices of the original.
 split :: Text -> Text -> [Text]
