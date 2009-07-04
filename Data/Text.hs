@@ -102,6 +102,7 @@ module Data.Text
     , drop
     , takeWhile
     , dropWhile
+    , dropAfter
     , splitAt
     , span
     , break
@@ -172,7 +173,7 @@ import Data.Text.Fusion (stream, reverseStream, unstream)
 
 import Data.Text.Internal (Text(..), empty, text, textP)
 import qualified Prelude as P
-import Data.Text.Unsafe (iter, iter_, unsafeHead, unsafeTail)
+import Data.Text.Unsafe (iter, iter_, reverseIter, unsafeHead, unsafeTail)
 import Data.Text.UnsafeChar (unsafeChr)
 import qualified Data.Text.Encoding.Utf16 as U16
 
@@ -706,6 +707,24 @@ dropWhile p t@(Text arr off len) = loop 0 0
     dropWhile p t = unstream (S.dropWhile p (stream t))
 "TEXT dropWhile -> unfused" [1] forall p t.
     unstream (S.dropWhile p (stream t)) = dropWhile p t
+  #-}
+
+-- | /O(n)/ 'dropAfter' @p@ @t@ returns the prefix remaining after
+-- dropping characters that fail the predicate @p@ from the end of
+-- @t@.  This function is subject to array fusion.
+dropAfter :: (Char -> Bool) -> Text -> Text
+dropAfter p t@(Text arr off len) = loop (len-1) len
+  where loop !i !l | l <= 0    = empty
+                   | p c       = loop (i+d) (l+d)
+                   | otherwise = Text arr off l
+            where (c,d)        = reverseIter t i
+{-# INLINE [1] dropAfter #-}
+
+{-# RULES
+"TEXT dropAfter -> fused" [~1] forall p t.
+    dropAfter p t = S.reverse (S.dropWhile p (S.reverseStream t))
+"TEXT dropAfter -> unfused" [1] forall p t.
+    S.reverse (S.dropWhile p (S.reverseStream t)) = dropAfter p t
   #-}
 
 -- | /O(n)/ 'splitAt' @n t@ returns a pair whose first element is a
