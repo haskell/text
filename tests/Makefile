@@ -1,7 +1,8 @@
 all: Properties bin/Bench
 
+.PHONY: Properties
 Properties: Properties.hs QuickCheckUtils.hs
-	ghc -O --make Properties
+	ghc --make -fforce-recomp Properties
 
 bin/Bench: dist/setup-config *.hs
 	./Setup build
