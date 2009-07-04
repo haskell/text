@@ -54,6 +54,7 @@ module Data.Text
     , intersperse
     , transpose
     , reverse
+    , replace
 
     -- * Case conversion
     -- $case
@@ -387,6 +388,14 @@ intersperse c t = unstream (S.intersperse c (stream t))
 reverse :: Text -> Text
 reverse t = S.reverse (stream t)
 {-# INLINE reverse #-}
+
+-- | /O(m)*O(n)/ Replace every occurrence of one substring with another.
+replace :: Text                 -- ^ Text to search for
+        -> Text                 -- ^ Replacement text
+        -> Text                 -- ^ Input text
+        -> Text
+replace s d = intercalate d . split s
+{-# INLINE replace #-}
 
 -- ----------------------------------------------------------------------------
 -- ** Case conversions (folds)
