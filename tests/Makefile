@@ -1,4 +1,7 @@
-all: bin/Bench
+all: Properties bin/Bench
+
+Properties: Properties.hs QuickCheckUtils.hs
+	ghc -O --make Properties
 
 bin/Bench: dist/setup-config *.hs
 	./Setup build
