@@ -250,6 +250,7 @@ prop_T_dropWhile p     = L.dropWhile p `eqP` (unpackS . T.dropWhile p)
 prop_TL_dropWhile p    = L.dropWhile p `eqP` (unpackS . S.dropWhile p)
 prop_S_dropAfter p     = T.dropAfter p `eq` (S.reverse . S.dropWhile p . S.reverseStream)
 prop_T_dropAfter p     = (T.reverse . T.dropWhile p . T.reverse) `eq` T.dropAfter p
+prop_T_dropAround p    = (T.dropWhile p . T.dropAfter p) `eq` T.dropAround p
 prop_T_splitAt n       = L.splitAt n   `eqP` (unpack2 . T.splitAt n)
 prop_TL_splitAt n      = L.splitAt n   `eqP` (unpack2 . TL.splitAt (fromIntegral n))
 prop_T_span p          = L.span p      `eqP` (unpack2 . T.span p)
@@ -491,6 +492,7 @@ tests = [
   ("prop_TL_dropWhile", mytest prop_TL_dropWhile),
   ("prop_S_dropAfter", mytest prop_S_dropAfter),
   ("prop_T_dropAfter", mytest prop_T_dropAfter),
+  ("prop_T_dropAround", mytest prop_T_dropAround),
   ("prop_T_splitAt", mytest prop_T_splitAt),
   ("prop_T_span", mytest prop_T_span),
   ("prop_TL_span", mytest prop_TL_span),

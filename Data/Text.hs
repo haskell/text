@@ -103,6 +103,7 @@ module Data.Text
     , takeWhile
     , dropWhile
     , dropAfter
+    , dropAround
     , splitAt
     , span
     , break
@@ -730,6 +731,18 @@ dropAfter p t@(Text arr off len) = loop (len-1) len
 "TEXT dropAfter -> unfused" [1] forall p t.
     S.reverse (S.dropWhile p (S.reverseStream t)) = dropAfter p t
   #-}
+
+-- | /O(n)/ 'dropAround' @p@ @t@ returns the substring remaining after
+-- dropping characters that fail the predicate @p@ from both the
+-- beginning and end of @t@.  This function is subject to array
+-- fusion.
+--
+-- For example, to drop leading and trailing white space:
+--
+-- > dropAround isSpace
+dropAround :: (Char -> Bool) -> Text -> Text
+dropAround p = dropWhile p . dropAfter p
+{-# INLINE [1] dropAround #-}
 
 -- | /O(n)/ 'splitAt' @n t@ returns a pair whose first element is a
 -- prefix of @t@ of length @n@, and whose second is the remainder of
