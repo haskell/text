@@ -114,6 +114,7 @@ module Data.Text
 
     -- ** Breaking into many substrings
     , split
+    , splitTimes
     , splitChar
     , splitWith
     , breakSubstring
@@ -859,6 +860,39 @@ split pat src0
             | pat `isPrefixOf` s = take n src : go (drop l s)
             | otherwise          = search (n+1) (unsafeTail s)
 {-# INLINE split #-}
+
+-- | /O(m)*O(n)/ Break a 'Text' into pieces at most @k@ times,
+-- treating the first 'Text' argument as the delimiter to break on,
+-- and consuming the delimiter.  The last element of the list contains
+-- the remaining text after the number of times to split has been
+-- reached.  A value of zero or less for @k@ causes no splitting to
+-- occur.
+--
+-- Examples:
+--
+-- > splitTimes 0   "//"  "a//b//c"   == ["a//b//c"]
+-- > splitTimes 2   ":"   "a:b:c:d:e" == ["a","b","c:d:e"]
+-- > splitTimes 100 "???" "a????b"    == ["a","?b"]
+--
+-- and
+--
+-- > intercalate s . splitTimes k s   == id
+splitTimes :: Int               -- ^ Maximum number of times to split
+           -> Text              -- ^ Text to split on
+           -> Text              -- ^ Input text
+           -> [Text]
+splitTimes k pat src0
+    | k <= 0 || l == 0 = [src0]
+    | otherwise        = go k src0
+  where
+    l         = length pat
+    go !i src = search 0 src
+      where
+        search !n !s
+            | i == 0 || null s   = [src]      -- not found or limit reached
+            | pat `isPrefixOf` s = take n src : go (i-1) (drop l s)
+            | otherwise          = search (n+1) (unsafeTail s)
+{-# INLINE splitTimes #-}
 
 -- | /O(n)/ Splits a 'Text' into components delimited by separators,
 -- where the predicate returns True for a separator element.  The
