@@ -366,7 +366,7 @@ length t = S.length (stream t)
 
 -- -----------------------------------------------------------------------------
 -- * Transformations
--- | /O(n)/ 'map' @f @t@ is the 'Text' obtained by applying @f@ to
+-- | /O(n)/ 'map' @f@ @t@ is the 'Text' obtained by applying @f@ to
 -- each element of @t@.  Subject to array fusion.
 map :: (Char -> Char) -> Text -> Text
 map f t = unstream (S.map f (stream t))
@@ -712,6 +712,10 @@ dropWhile p t@(Text arr off len) = loop 0 0
 -- | /O(n)/ 'dropAfter' @p@ @t@ returns the prefix remaining after
 -- dropping characters that fail the predicate @p@ from the end of
 -- @t@.  This function is subject to array fusion.
+--
+-- For example, to drop trailing white space:
+--
+-- > dropAfter isSpace
 dropAfter :: (Char -> Bool) -> Text -> Text
 dropAfter p t@(Text arr off len) = loop (len-1) len
   where loop !i !l | l <= 0    = empty

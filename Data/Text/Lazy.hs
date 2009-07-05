@@ -339,7 +339,7 @@ length = foldlChunks go 0
     S.length (stream t) = length t
  #-}
 
--- | /O(n)/ 'map' @f @t@ is the 'Text' obtained by applying @f@ to
+-- | /O(n)/ 'map' @f@ @t@ is the 'Text' obtained by applying @f@ to
 -- each element of @t@.  Subject to array fusion.
 map :: (Char -> Char) -> Text -> Text
 map f t = unstream (S.map f (stream t))
