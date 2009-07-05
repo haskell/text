@@ -339,8 +339,8 @@ length = foldlChunks go 0
     S.length (stream t) = length t
  #-}
 
--- | /O(n)/ 'map' @f @xs is the 'Text' obtained by applying @f@ to
--- each element of @xs@.  Subject to array fusion.
+-- | /O(n)/ 'map' @f @t@ is the 'Text' obtained by applying @f@ to
+-- each element of @t@.  Subject to array fusion.
 map :: (Char -> Char) -> Text -> Text
 map f t = unstream (S.map f (stream t))
 {-# INLINE [1] map #-}
@@ -644,8 +644,8 @@ takeWhile p t0 = takeWhile' t0
     unstream (S.takeWhile p (stream t)) = takeWhile p t
   #-}
 
--- | /O(n)/ 'dropWhile' @p@ @xs@ returns the suffix remaining after
--- 'takeWhile' @p@ @xs@. This function is subject to array fusion.
+-- | /O(n)/ 'dropWhile' @p@ @t@ returns the suffix remaining after
+-- 'takeWhile' @p@ @t@. This function is subject to array fusion.
 dropWhile :: (Char -> Bool) -> Text -> Text
 dropWhile p t0 = dropWhile' t0
   where dropWhile' Empty        = Empty
