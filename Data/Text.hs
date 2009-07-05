@@ -113,6 +113,7 @@ module Data.Text
     , tails
 
     -- ** Breaking into many substrings
+    -- $split
     , split
     , splitTimes
     , splitChar
@@ -405,12 +406,12 @@ replace s d = intercalate d . split s
 
 -- $case
 --
--- With Unicode text, it is incorrect to use combinators like @map
--- toUpper@ to case convert each character of a string individually.
--- Instead, use the whole-string case conversion functions from this
--- module.  For correctness in different writing systems, these
--- functions may map one input character to two or three output
--- characters.
+-- When case converting Unicode text, it is incorrect to use
+-- combinators like @map toUpper@ to case convert each character of a
+-- string individually.  Instead, use the whole-string case conversion
+-- functions from this module.  For correctness in different writing
+-- systems, these functions may map one input character to two or
+-- three output characters.
 
 -- | /O(n)/ Convert a string to folded case.  This function is mainly
 -- useful for performing caseless (or case insensitive) string
@@ -422,27 +423,28 @@ replace s d = intercalate d . split s
 --
 -- The result string may be longer than the input string, and may
 -- differ from applying 'toLower' to the input string.  For instance,
--- the Armenian small ligature men now (U+FB13) is case folded to the
--- bigram men now (U+0574 U+0576), while the micro sign (U+00B5) is
--- case folded to the Greek small letter letter mu (U+03BC) instead of
--- itself.
+-- the Armenian small ligature \"&#xfb13;\" (men now, U+FB13) is case
+-- folded to the sequence \"&#x574;\" (men, U+0574) followed by
+-- \"&#x576;\" (now, U+0576), while the Greek \"&#xb5;\" (micro sign,
+-- U+00B5) is case folded to \"&#x3bc;\" (small letter mu, U+03BC)
+-- instead of itself.
 toCaseFold :: Text -> Text
 toCaseFold t = unstream (S.toCaseFold (stream t))
 {-# INLINE [0] toCaseFold #-}
 
 -- | /O(n)/ Convert a string to lower case, using simple case
 -- conversion.  The result string may be longer than the input string.
--- For instance, the Latin capital letter I with dot above (U+0130)
--- maps to the bigram Latin small letter i (U+0069) followed by
--- combining dot above (U+0307).
+-- For instance, \"&#x130;\" (Latin capital letter I with dot above,
+-- U+0130) maps to the sequence \"i\" (Latin small letter i, U+0069) followed
+-- by \" &#x307;\" (combining dot above, U+0307).
 toLower :: Text -> Text
 toLower t = unstream (S.toLower (stream t))
 {-# INLINE toLower #-}
 
 -- | /O(n)/ Convert a string to upper case, using simple case
 -- conversion.  The result string may be longer than the input string.
--- For instance, the German eszett (U+00DF) maps to the two-letter
--- sequence SS.
+-- For instance, the German \"&#xdf;\" (eszett, U+00DF) maps to the
+-- two-letter sequence \"SS\".
 toUpper :: Text -> Text
 toUpper t = unstream (S.toUpper (stream t))
 {-# INLINE toUpper #-}
@@ -824,17 +826,19 @@ tails t | null t    = [empty]
 -- and
 --
 -- > intercalate (singleton c) . splitChar c == id
--- > splitChar == splitWith . (==)
--- 
--- As with all splitting functions in this library, this function does
--- not copy the substrings, it just constructs new 'Text's that are
--- slices of the original.
+-- > splitChar                               == splitWith . (==)
 splitChar :: Char -> Text -> [Text]
 splitChar c = splitWith (==c)
 {-# INLINE splitChar #-}
 
--- | /O(m)*O(n)/ Break a 'Text' into pieces separated by the 'Text'
--- argument, consuming the delimiter. I.e.
+-- $split
+--
+-- Splitting functions in this library do not perform character-wise
+-- copies to create substrings; they just construct new 'Text's that
+-- are slices of the original.
+
+-- | /O(m)*O(n)/ Break a 'Text' into pieces separated by the first
+-- 'Text' argument, consuming the delimiter. Examples:
 --
 -- > split "\r\n" "a\r\nb\r\nd\r\ne" == ["a","b","d","e"]
 -- > split "aaa"  "aaaXaaaXaaaXaaa"  == ["","X","X","X",""]
@@ -842,17 +846,15 @@ splitChar c = splitWith (==c)
 -- 
 -- and
 --
--- > intercalate s . split s == id
--- 
--- As with all splitting functions in this library, this function does
--- not copy the substrings, it just constructs new 'Text's that are
--- slices of the original.
-split :: Text -> Text -> [Text]
+-- > intercalate s . split s         == id
+split :: Text                   -- ^ Text to split on
+      -> Text                   -- ^ Input text
+      -> [Text]
 split pat src0
     | l == 0    = [src0]
     | otherwise = go src0
   where
-    l      = length pat
+    l         = length pat
     go src = search 0 src
       where
         search !n !s
