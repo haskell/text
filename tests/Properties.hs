@@ -281,6 +281,15 @@ splitWith p xs = loop xs
                  | otherwise = l : loop (tail s')
               where (l, s') = break p s
 
+prop_T_chunksOf_same_lengths k t
+    = all ((==k) . T.length) . ini . T.chunksOf k $ t
+  where ini [] = []
+        ini xs = init xs
+
+prop_T_chunksOf_length k t = let len = L.foldl' f 0 (T.chunksOf k t)
+                             in  len == T.length t || (k <= 0 && len == 0)
+    where f s t = T.length t + s
+
 prop_T_breakSubstring_isInfixOf s l
                      = T.isInfixOf s l ==
                        T.null s || (not . T.null . snd $ T.breakSubstring s l)
@@ -513,6 +522,8 @@ tests = [
   ("prop_TL_split_i", mytest prop_TL_split_i),
   ("prop_T_splitWith", mytest prop_T_splitWith),
   ("prop_TL_splitWith", mytest prop_TL_splitWith),
+  ("prop_T_chunksOf_same_lengths", mytest prop_T_chunksOf_same_lengths),
+  ("prop_T_chunksOf_length", mytest prop_T_chunksOf_length),
   ("prop_T_breakSubstringC", mytest prop_T_breakSubstringC),
   ("prop_T_breakSubstring_isInfixOf", mytest prop_T_breakSubstring_isInfixOf),
 

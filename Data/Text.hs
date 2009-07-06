@@ -118,6 +118,7 @@ module Data.Text
     , splitTimes
     , splitChar
     , splitWith
+    , chunksOf
 
     -- ** Breaking into lines and words
     , lines
@@ -909,6 +910,20 @@ splitWith p t = loop t
                  | otherwise = l : loop (unsafeTail s')
               where (l, s') = break p s
 {-# INLINE splitWith #-}
+
+-- | /O(n)/ Splits a 'Text' into components of length @k@.  The last
+-- element may be shorter than the other chunks, depending on the
+-- length of the input. Examples:
+--
+-- > chunksOf 3 "foobarbaz"   == ["foo","bar","baz"]
+-- > chunksOf 4 "haskell.org" == ["hask","ell.","org"]
+chunksOf :: Int -> Text -> [Text]
+chunksOf k = go
+  where
+    go t = case splitAt k t of
+             (a,b) | null a    -> []
+                   | otherwise -> a : go b
+{-# INLINE chunksOf #-}
 
 -- ----------------------------------------------------------------------------
 -- * Searching
