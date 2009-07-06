@@ -14,6 +14,7 @@ import Control.Monad
 import Data.Word
 import qualified Data.ByteString as B
 import qualified Data.Text as T
+import qualified Data.Text.Compat as T (breakSubstring)
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Encoding as E
 import Control.Exception
