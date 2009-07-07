@@ -104,6 +104,9 @@ module Data.Text
     , dropWhile
     , dropAfter
     , dropAround
+    , strip
+    , stripLeft
+    , stripRight
     , splitAt
     , span
     , break
@@ -716,10 +719,6 @@ dropWhile p t@(Text arr off len) = loop 0 0
 -- | /O(n)/ 'dropAfter' @p@ @t@ returns the prefix remaining after
 -- dropping characters that fail the predicate @p@ from the end of
 -- @t@.  This function is subject to array fusion.
---
--- For example, to drop trailing white space:
---
--- > dropAfter isSpace
 dropAfter :: (Char -> Bool) -> Text -> Text
 dropAfter p t@(Text arr off len) = loop (len-1) len
   where loop !i !l | l <= 0    = empty
@@ -739,13 +738,31 @@ dropAfter p t@(Text arr off len) = loop (len-1) len
 -- dropping characters that fail the predicate @p@ from both the
 -- beginning and end of @t@.  This function is subject to array
 -- fusion.
---
--- For example, to drop leading and trailing white space:
---
--- > dropAround isSpace
 dropAround :: (Char -> Bool) -> Text -> Text
 dropAround p = dropWhile p . dropAfter p
 {-# INLINE [1] dropAround #-}
+
+-- | /O(n)/ Remove leading white space from a string.  Equivalent to:
+--
+-- > dropWhile isSpace
+stripLeft :: Text -> Text
+stripLeft = dropWhile isSpace
+{-# INLINE [1] stripLeft #-}
+
+-- | /O(n)/ Remove trailing white space from a string.  Equivalent to:
+--
+-- > dropAfter isSpace
+stripRight :: Text -> Text
+stripRight = dropAfter isSpace
+{-# INLINE [1] stripRight #-}
+
+-- | /O(n)/ Remove leading and trailing white space from a string.
+-- Equivalent to:
+--
+-- > dropAround isSpace
+strip :: Text -> Text
+strip = dropAround isSpace
+{-# INLINE [1] strip #-}
 
 -- | /O(n)/ 'splitAt' @n t@ returns a pair whose first element is a
 -- prefix of @t@ of length @n@, and whose second is the remainder of
