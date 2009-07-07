@@ -160,6 +160,7 @@ import qualified Prelude as P
 import Data.Int (Int64)
 import qualified Data.List as L
 import Data.Char (isSpace)
+import Data.Monoid (Monoid(..))
 import Data.String (IsString(..))
 import qualified Data.Text as T
 import qualified Data.Text.Fusion.Common as S
@@ -181,6 +182,11 @@ instance Show Text where
 
 instance Read Text where
     readsPrec p str = [(pack x,y) | (x,y) <- readsPrec p str]
+
+instance Monoid Text where
+    mempty  = empty
+    mappend = append
+    mconcat = concat
 
 instance IsString Text where
     fromString = pack
