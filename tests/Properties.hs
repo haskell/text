@@ -185,22 +185,29 @@ split pat src0
             | pat `L.isPrefixOf` s = take n src : go (drop l s)
             | otherwise            = search (n+1) s'
 
+prop_T_toCaseFold_length t = T.length (T.toCaseFold t) >= T.length t
+prop_T_toLower_length t = T.length (T.toLower t) >= T.length t
+prop_T_toLower_lower t = p (T.toLower t) >= p t
+    where p = T.length . T.filter isLower
+prop_T_toUpper_length t = T.length (T.toUpper t) >= T.length t
+prop_T_toUpper_upper t = p (T.toUpper t) >= p t
+    where p = T.length . T.filter isUpper
 prop_T_foldl f z       = L.foldl f z  `eqP`  (T.foldl f z)
-    where types      = f :: Char -> Char -> Char
+    where types        = f :: Char -> Char -> Char
 prop_TL_foldl f z      = L.foldl f z  `eqP`  (TL.foldl f z)
-    where types      = f :: Char -> Char -> Char
+    where types        = f :: Char -> Char -> Char
 prop_T_foldl' f z      = L.foldl' f z `eqP`  T.foldl' f z
-    where types      = f :: Char -> Char -> Char
+    where types        = f :: Char -> Char -> Char
 prop_TL_foldl' f z     = L.foldl' f z `eqP`  TL.foldl' f z
-    where types      = f :: Char -> Char -> Char
+    where types        = f :: Char -> Char -> Char
 prop_T_foldl1 f        = L.foldl1 f   `eqEP` T.foldl1 f
 prop_TL_foldl1 f       = L.foldl1 f   `eqEP` TL.foldl1 f
 prop_T_foldl1' f       = L.foldl1' f  `eqEP` T.foldl1' f
 prop_TL_foldl1' f      = L.foldl1' f  `eqEP` TL.foldl1' f
 prop_T_foldr f z       = L.foldr f z  `eqP`  T.foldr f z
-    where types      = f :: Char -> Char -> Char
+    where types        = f :: Char -> Char -> Char
 prop_TL_foldr f z      = L.foldr f z  `eqP`  TL.foldr f z
-    where types      = f :: Char -> Char -> Char
+    where types        = f :: Char -> Char -> Char
 prop_T_foldr1 f        = L.foldr1 f   `eqEP` T.foldr1 f
 prop_TL_foldr1 f       = L.foldr1 f   `eqEP` TL.foldr1 f
 
@@ -459,6 +466,12 @@ tests = [
   ("prop_TL_reverse", mytest prop_TL_reverse),
   ("prop_T_reverse_short", mytest prop_T_reverse_short),
   ("prop_T_replace", mytest prop_T_replace),
+
+  ("prop_T_toCaseFold_length", mytest prop_T_toCaseFold_length),
+  ("prop_T_toLower_length", mytest prop_T_toLower_length),
+  ("prop_T_toLower_lower", mytest prop_T_toLower_lower),
+  ("prop_T_toUpper_length", mytest prop_T_toUpper_length),
+  ("prop_T_toUpper_upper", mytest prop_T_toUpper_upper),
 
   ("prop_T_foldl", mytest prop_T_foldl),
   ("prop_TL_foldl", mytest prop_TL_foldl),
