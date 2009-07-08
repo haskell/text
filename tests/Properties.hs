@@ -1,4 +1,4 @@
-{-# LANGUAGE FlexibleInstances, TypeSynonymInstances #-}
+{-# LANGUAGE BangPatterns, FlexibleInstances, TypeSynonymInstances #-}
 {-# OPTIONS_GHC -fno-enable-rewrite-rules #-}
 
 import Test.QuickCheck
@@ -169,6 +169,21 @@ prop_TL_transpose      = L.transpose `eq` (map unpackS . TL.transpose . map TL.p
 prop_T_reverse         = L.reverse `eqP` (unpackS . T.reverse)
 prop_TL_reverse        = L.reverse `eqP` (unpackS . TL.reverse)
 prop_T_reverse_short n = L.reverse `eqP` (unpackS . S.reverse . shorten n . S.stream)
+
+prop_T_replace s d     = (L.intercalate d . split s) `eqP` (unpackS . T.replace (T.pack s) (T.pack d))
+
+split :: (Eq a) => [a] -> [a] -> [[a]]
+split pat src0
+    | l == 0    = [src0]
+    | otherwise = go src0
+  where
+    l           = length pat
+    go src      = search 0 src
+      where
+        search !n [] = [src]
+        search !n s@(_:s')
+            | pat `L.isPrefixOf` s = take n src : go (drop l s)
+            | otherwise            = search (n+1) s'
 
 prop_T_foldl f z       = L.foldl f z  `eqP`  (T.foldl f z)
     where types      = f :: Char -> Char -> Char
@@ -443,6 +458,7 @@ tests = [
   ("prop_T_reverse", mytest prop_T_reverse),
   ("prop_TL_reverse", mytest prop_TL_reverse),
   ("prop_T_reverse_short", mytest prop_T_reverse_short),
+  ("prop_T_replace", mytest prop_T_replace),
 
   ("prop_T_foldl", mytest prop_T_foldl),
   ("prop_TL_foldl", mytest prop_TL_foldl),
