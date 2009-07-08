@@ -56,11 +56,16 @@ module Data.Text
     , reverse
     , replace
 
-    -- * Case conversion
+    -- ** Case conversion
     -- $case
     , toCaseFold
     , toLower
     , toUpper
+
+    -- ** Justification
+    , justifyLeft
+    , justifyRight
+    , center
 
     -- * Folds
     , foldl
@@ -163,7 +168,7 @@ import Prelude (Char, Bool(..), Functor(..), Int, Maybe(..), String,
                 Eq(..), Ord(..), (++),
                 Read(..), Show(..),
                 (&&), (||), (+), (-), (.), ($),
-                not, return, otherwise)
+                div, not, return, otherwise)
 import Control.Exception (assert)
 import Data.Char (isSpace)
 import Control.Monad.ST (ST)
@@ -451,6 +456,52 @@ toLower t = unstream (S.toLower (stream t))
 toUpper :: Text -> Text
 toUpper t = unstream (S.toUpper (stream t))
 {-# INLINE toUpper #-}
+
+-- | /O(n)/ Left-justify a string to the given length, using the
+-- specified fill character on the right. This function is subject to
+-- array fusion. Examples:
+--
+-- > justifyLeft 7 'x' "foo"    == "fooxxxx"
+-- > justifyLeft 3 'x' "foobar" == "foobar"
+justifyLeft :: Int -> Char -> Text -> Text
+justifyLeft k c t
+    | len >= k  = t
+    | otherwise = t `append` replicate (k-len) c
+  where len = length t
+{-# INLINE [1] justifyLeft #-}
+
+{-# RULES
+"TEXT justifyLeft -> fused" [~1] forall k c t.
+    justifyLeft k c t = unstream (S.justifyLeft k c (stream t))
+"TEXT justifyLeft -> unfused" [1] forall k c t.
+    unstream (S.justifyLeft k c (stream t)) = justifyLeft k c t
+  #-}
+
+-- | /O(n)/ Right-justify a string to the given length, using the
+-- specified fill character on the left. Examples:
+--
+-- > justifyRight 7 'x' "bar"    == "xxxxbar"
+-- > justifyRight 3 'x' "foobar" == "foobar"
+justifyRight :: Int -> Char -> Text -> Text
+justifyRight k c t
+    | len >= k  = t
+    | otherwise = replicate (k-len) c `append` t
+  where len = length t
+{-# INLINE justifyRight #-}
+
+-- | /O(n)/ Center a string to the given length, using the
+-- specified fill character on either side. Examples:
+--
+-- > center 8 'x' "HS" = "xxxHSxxx"
+center :: Int -> Char -> Text -> Text
+center k c t
+    | len >= k  = t
+    | otherwise = replicate l c `append` t `append` replicate r c
+  where len = length t
+        d   = k - len
+        r   = d `div` 2
+        l   = d - r
+{-# INLINE center #-}
 
 -- | /O(n)/ The 'transpose' function transposes the rows and columns
 -- of its 'Text' argument.  Note that this function uses 'pack',

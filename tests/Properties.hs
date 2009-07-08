@@ -192,6 +192,12 @@ prop_T_toLower_lower t = p (T.toLower t) >= p t
 prop_T_toUpper_length t = T.length (T.toUpper t) >= T.length t
 prop_T_toUpper_upper t = p (T.toUpper t) >= p t
     where p = T.length . T.filter isUpper
+
+prop_T_justifyLeft k c = jl k c `eqP` (unpackS . T.justifyLeft k c)
+    where jl k c s = s ++ replicate (k - length s) c
+prop_T_justifyRight k c = jr k c `eqP` (unpackS . T.justifyRight k c)
+    where jr k c s = replicate (k - length s) c ++ s
+
 prop_T_foldl f z       = L.foldl f z  `eqP`  (T.foldl f z)
     where types        = f :: Char -> Char -> Char
 prop_TL_foldl f z      = L.foldl f z  `eqP`  (TL.foldl f z)
@@ -472,6 +478,9 @@ tests = [
   ("prop_T_toLower_lower", mytest prop_T_toLower_lower),
   ("prop_T_toUpper_length", mytest prop_T_toUpper_length),
   ("prop_T_toUpper_upper", mytest prop_T_toUpper_upper),
+
+  ("prop_T_justifyLeft", mytest prop_T_justifyLeft),
+  ("prop_T_justifyRight", mytest prop_T_justifyRight),
 
   ("prop_T_foldl", mytest prop_T_foldl),
   ("prop_TL_foldl", mytest prop_TL_foldl),

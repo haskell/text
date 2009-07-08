@@ -41,6 +41,9 @@ module Data.Text.Fusion.Common
     , toLower
     , toUpper
 
+    -- ** Justification
+    , justifyLeft
+
     -- * Folds
     , foldl
     , foldl'
@@ -357,6 +360,22 @@ toUpper = caseConvert upperMapping
 toLower :: Stream Char -> Stream Char
 toLower = caseConvert lowerMapping
 {-# INLINE [0] toLower #-}
+
+justifyLeft :: Int -> Char -> Stream Char -> Stream Char
+justifyLeft k c (Stream next0 s0 len) = Stream next (s0 :!: S1 :!: 0) newLen
+  where
+    newLen | k > len   = k
+           | otherwise = len
+    next (s :!: S1 :!: n) =
+        case next0 s of
+          Done       -> next (s :!: S2 :!: n)
+          Skip s'    -> Skip (s' :!: S1 :!: n)
+          Yield x s' -> Yield x (s' :!: S1 :!: n+1)
+    next (s :!: S2 :!: n)
+        | n < k       = Yield c (s :!: S2 :!: n+1)
+        | otherwise   = Done
+    {-# INLINE next #-}
+{-# INLINE justifyLeft #-}
 
 -- ----------------------------------------------------------------------------
 -- * Reducing Streams (folds)
