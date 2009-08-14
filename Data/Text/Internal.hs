@@ -45,7 +45,7 @@ text :: A.Array Word16 -> Int -> Int -> Text
 text arr off len =
     assert (len >= 0) .
     assert (off >= 0) .
-    assert (alen == 0 || off < alen) .
+    assert (alen == 0 || len == 0 || off < alen) .
     assert (len == 0 || c < 0xDC00 || c > 0xDFFF) $
     Text arr off len
   where c    = A.unsafeIndex arr off
