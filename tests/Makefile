@@ -22,6 +22,7 @@ qc: $(lib) QuickCheckUtils.o Properties.o
 
 qc-hpc: Properties.hs QuickCheckUtils.hs $(lib-srcs:%=../%)
 	-mkdir -p hpcdir
+	rm -f $@.tix
 	$(ghc) $(ghc-hpc-flags) -ihpcdir --make -o $@ $<
 
 %.o: %.hs
