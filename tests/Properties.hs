@@ -283,8 +283,8 @@ prop_TL_dropWhile p    = L.dropWhile p `eqP` (unpackS . S.dropWhile p)
 prop_S_dropWhileEnd p  = T.dropWhileEnd p `eq` (S.reverse . S.dropWhile p . S.reverseStream)
 prop_T_dropWhileEnd p  = (T.reverse . T.dropWhile p . T.reverse) `eq` T.dropWhileEnd p
 prop_T_dropAround p    = (T.dropWhile p . T.dropWhileEnd p) `eq` T.dropAround p
-prop_T_stripLeft       = T.dropWhile isSpace `eq` T.stripLeft
-prop_T_stripRight      = T.dropWhileEnd isSpace `eq` T.stripRight
+prop_T_stripStart       = T.dropWhile isSpace `eq` T.stripStart
+prop_T_stripEnd      = T.dropWhileEnd isSpace `eq` T.stripEnd
 prop_T_strip           = T.dropAround isSpace `eq` T.strip
 prop_T_splitAt n       = L.splitAt n   `eqP` (unpack2 . T.splitAt n)
 prop_TL_splitAt n      = L.splitAt n   `eqP` (unpack2 . TL.splitAt (fromIntegral n))
@@ -553,8 +553,8 @@ tests = [
   ("prop_S_dropWhileEnd", mytest prop_S_dropWhileEnd),
   ("prop_T_dropWhileEnd", mytest prop_T_dropWhileEnd),
   ("prop_T_dropAround", mytest prop_T_dropAround),
-  ("prop_T_stripLeft", mytest prop_T_stripLeft),
-  ("prop_T_stripRight", mytest prop_T_stripRight),
+  ("prop_T_stripStart", mytest prop_T_stripStart),
+  ("prop_T_stripEnd", mytest prop_T_stripEnd),
   ("prop_T_strip", mytest prop_T_strip),
   ("prop_T_splitAt", mytest prop_T_splitAt),
   ("prop_T_span", mytest prop_T_span),

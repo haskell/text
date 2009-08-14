@@ -110,8 +110,8 @@ module Data.Text
     , dropWhileEnd
     , dropAround
     , strip
-    , stripLeft
-    , stripRight
+    , stripStart
+    , stripEnd
     , splitAt
     , span
     , break
@@ -793,16 +793,16 @@ dropAround p = dropWhile p . dropWhileEnd p
 -- | /O(n)/ Remove leading white space from a string.  Equivalent to:
 --
 -- > dropWhile isSpace
-stripLeft :: Text -> Text
-stripLeft = dropWhile isSpace
-{-# INLINE [1] stripLeft #-}
+stripStart :: Text -> Text
+stripStart = dropWhile isSpace
+{-# INLINE [1] stripStart #-}
 
 -- | /O(n)/ Remove trailing white space from a string.  Equivalent to:
 --
 -- > dropWhileEnd isSpace
-stripRight :: Text -> Text
-stripRight = dropWhileEnd isSpace
-{-# INLINE [1] stripRight #-}
+stripEnd :: Text -> Text
+stripEnd = dropWhileEnd isSpace
+{-# INLINE [1] stripEnd #-}
 
 -- | /O(n)/ Remove leading and trailing white space from a string.
 -- Equivalent to:
