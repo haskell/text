@@ -309,7 +309,7 @@ prop_T_splitWith_split c = T.splitWith (==c) `eq` T.split (T.singleton c)
 prop_TL_splitWith p    = splitWith p `eqP` (map unpackS . TL.splitWith p)
 
 splitWith :: (a -> Bool) -> [a] -> [[a]]
-splitWith _ [] =  []
+splitWith _ [] =  [[]]
 splitWith p xs = loop xs
     where loop s | null s'   = [l]
                  | otherwise = l : loop (tail s')
