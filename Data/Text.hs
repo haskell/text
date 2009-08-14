@@ -290,7 +290,7 @@ uncons t@(Text arr off len)
     | len <= 0  = Nothing
     | otherwise = Just (c, textP arr (off+d) (len-d))
     where (c,d) = iter t 0
-{-# INLINE uncons #-}
+{-# INLINE [1] uncons #-}
 
 -- | Lifted from Control.Arrow and specialized.
 second :: (b -> c) -> (a,b) -> (a,c)
