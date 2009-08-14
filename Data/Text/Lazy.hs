@@ -765,9 +765,9 @@ split c = splitWith (==c)
 -- separators result in an empty component in the output.  eg.
 --
 -- > splitWith (=='a') "aabbaca" == ["","","bb","c",""]
--- > splitWith (=='a') []        == []
+-- > splitWith (=='a') []        == [""]
 splitWith :: (Char -> Bool) -> Text -> [Text]
-splitWith _ Empty = []
+splitWith _ Empty = [Empty]
 splitWith p (Chunk t0 ts0) = comb [] (T.splitWith p t0) ts0
   where comb acc (s:[]) Empty        = revChunks (s:acc) : []
         comb acc (s:[]) (Chunk t ts) = comb (s:acc) (T.splitWith p t) ts
