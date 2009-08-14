@@ -9,7 +9,7 @@ lib := ../dist/build/libHStext-$(version).a
 lib-srcs := $(shell grep '^  *Data' ../text.cabal | \
                     sed -e 's,\.,/,g' -e 's,$$,.hs,')
 
-all: qc qc-hpc
+all: qc coverage
 
 lib: $(lib)
 
@@ -22,8 +22,14 @@ qc: $(lib) QuickCheckUtils.o Properties.o
 
 qc-hpc: Properties.hs QuickCheckUtils.hs $(lib-srcs:%=../%)
 	-mkdir -p hpcdir
-	rm -f $@.tix
 	$(ghc) $(ghc-hpc-flags) -ihpcdir --make -o $@ $<
+
+coverage: qc-hpc-html/hpc_index.html
+
+qc-hpc-html/hpc_index.html: qc-hpc
+	./qc-hpc
+	hpc markup qc-hpc --exclude=Main --exclude=Properties \
+	  --exclude=QuickCheckUtils --srcdir=.. --srcdir=. --destdir=$(dir $@)
 
 %.o: %.hs
 	$(ghc) $(ghc-flags) -c -o $@ $<
@@ -38,4 +44,4 @@ text-testdata.tar.bz2:
 	curl -O http://projects.haskell.org/text/text-testdata.tar.bz2
 
 clean:
-	-rm -rf *.o *.hi qc qc-hpc hpcdir .hpc
+	-rm -rf *.o *.hi *.tix qc qc-hpc hpcdir .hpc qc-hpc-html
