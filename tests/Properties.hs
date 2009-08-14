@@ -5,6 +5,7 @@ import Test.QuickCheck
 import Text.Show.Functions
 
 import Data.Char
+import Data.Monoid
 import Debug.Trace
 import Text.Printf
 import System.Environment
@@ -127,9 +128,24 @@ eqEP a b e w  = a s == b t &&
           n             = fromIntegral w
           s             = notEmpty e
 
+prop_S_Eq s            = (s==)    `eq` ((S.stream s==) . S.stream)
+prop_T_Eq s            = (s==)    `eq` ((T.pack s==) . T.pack)
+prop_TL_Eq s           = (s==)    `eq` ((TL.pack s==) . TL.pack)
+prop_S_Ord s           = (compare s) `eq` (compare (S.stream s) . S.stream)
+prop_T_Ord s           = (compare s) `eq` (compare (T.pack s) . T.pack)
+prop_TL_Ord s          = (compare s) `eq` (compare (TL.pack s) . TL.pack)
+prop_T_Read            = id       `eq` (T.unpack . read . show)
+prop_TL_Read           = id       `eq` (TL.unpack . read . show)
+prop_T_Show            = show     `eq` (show . T.pack)
+prop_TL_Show           = show     `eq` (show . TL.pack)
+prop_T_mappend s       = mappend s`eqP` (unpackS . mappend (T.pack s))
+prop_TL_mappend s      = mappend s`eqP` (unpackS . mappend (TL.pack s))
+prop_T_mconcat         = mconcat  `eq` (unpackS . mconcat . L.map T.pack)
+prop_TL_mconcat        = mconcat  `eq` (unpackS . mconcat . L.map TL.pack)
+
 prop_S_cons x          = (x:)     `eqP` (unpackS . S.cons x)
 prop_T_cons x          = (x:)     `eqP` (unpackS . T.cons x)
-prop_TL_cons x         = ((x:)     `eqP` (TL.unpack . TL.cons x))
+prop_TL_cons x         = (x:)     `eqP` (unpackS . TL.cons x)
 prop_S_snoc x          = (++ [x]) `eqP` (unpackS . (flip S.snoc) x)
 prop_T_snoc x          = (++ [x]) `eqP` (unpackS . (flip T.snoc) x)
 prop_TL_snoc x         = (++ [x]) `eqP` (unpackS . (flip TL.snoc) x)
@@ -439,6 +455,21 @@ tests = [
   ("prop_T_utf16BE", mytest prop_T_utf16BE),
   ("prop_T_utf32LE", mytest prop_T_utf32LE),
   ("prop_T_utf32BE", mytest prop_T_utf32BE),
+
+  ("prop_S_Eq", mytest prop_S_Eq),
+  ("prop_T_Eq", mytest prop_T_Eq),
+  ("prop_TL_Eq", mytest prop_TL_Eq),
+  ("prop_S_Ord", mytest prop_S_Ord),
+  ("prop_T_Ord", mytest prop_T_Ord),
+  ("prop_TL_Ord", mytest prop_TL_Ord),
+  ("prop_T_Read", mytest prop_T_Read),
+  ("prop_TL_Read", mytest prop_TL_Read),
+  ("prop_T_Show", mytest prop_T_Show),
+  ("prop_TL_Show", mytest prop_TL_Show),
+  ("prop_T_mappend", mytest prop_T_mappend),
+  ("prop_TL_mappend", mytest prop_TL_mappend),
+  ("prop_T_mconcat", mytest prop_T_mconcat),
+  ("prop_TL_mconcat", mytest prop_TL_mconcat),
 
   ("prop_S_cons", mytest prop_S_cons),
   ("prop_T_cons", mytest prop_T_cons),
