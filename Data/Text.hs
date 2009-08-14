@@ -149,6 +149,7 @@ module Data.Text
     -- , findSubstring
     
     -- * Indexing
+    -- $index
     , index
     , findIndex
     , findIndices
@@ -190,9 +191,9 @@ import qualified Data.Text.Encoding.Utf16 as U16
 
 -- $fusion
 --
--- Most of the functions in this module are subject to /array fusion/,
--- meaning that a pipeline of functions will usually allocate at most
--- one 'Text' value.
+-- Most of the functions in this module are subject to /fusion/,
+-- meaning that a pipeline of such functions will usually allocate at
+-- most one 'Text' value.
 
 instance Eq Text where
     t1 == t2 = stream t1 == stream t2
@@ -219,21 +220,18 @@ instance IsString Text where
 -- -----------------------------------------------------------------------------
 -- * Conversion to/from 'Text'
 
--- | /O(n)/ Convert a 'String' into a 'Text'.
---
--- This function is subject to array fusion.
+-- | /O(n)/ Convert a 'String' into a 'Text'.  Subject to fusion.
 pack :: String -> Text
 pack = unstream . S.streamList
 {-# INLINE [1] pack #-}
 
--- | /O(n)/ Convert a Text into a String.
--- Subject to array fusion.
+-- | /O(n)/ Convert a Text into a String.  Subject to fusion.
 unpack :: Text -> String
 unpack = S.unstreamList . stream
 {-# INLINE [1] unpack #-}
 
 -- | /O(1)/ Convert a character into a Text.
--- Subject to array fusion.
+-- Subject to fusion.
 singleton :: Char -> Text
 singleton = unstream . S.singleton
 {-# INLINE [1] singleton #-}
@@ -243,19 +241,19 @@ singleton = unstream . S.singleton
 
 -- | /O(n)/ Adds a character to the front of a 'Text'.  This function
 -- is more costly than its 'List' counterpart because it requires
--- copying a new array.  Subject to array fusion.
+-- copying a new array.  Subject to fusion.
 cons :: Char -> Text -> Text
 cons c t = unstream (S.cons c (stream t))
 {-# INLINE cons #-}
 
 -- | /O(n)/ Adds a character to the end of a 'Text'.  This copies the
--- entire array in the process.  Subject to array fusion.
+-- entire array in the process, unless fused.  Subject to fusion.
 snoc :: Text -> Char -> Text
 snoc t c = unstream (S.snoc (stream t) c)
 {-# INLINE snoc #-}
 
 -- | /O(n)/ Appends one 'Text' to the other by copying both of them
--- into a new 'Text'.  Subject to array fusion.
+-- into a new 'Text'.  Subject to fusion.
 append :: Text -> Text -> Text
 append (Text arr1 off1 len1) (Text arr2 off2 len2) = Text (A.run x) 0 len
     where
@@ -280,13 +278,13 @@ append (Text arr1 off1 len1) (Text arr2 off2 len2) = Text (A.run x) 0 len
  #-}
 
 -- | /O(1)/ Returns the first character of a 'Text', which must be
--- non-empty.  Subject to array fusion.
+-- non-empty.  Subject to fusion.
 head :: Text -> Char
 head t = S.head (stream t)
 {-# INLINE head #-}
 
 -- | /O(1)/ Returns the first character and rest of a 'Text', or
--- 'Nothing' if empty. Subject to array fusion.
+-- 'Nothing' if empty. Subject to fusion.
 uncons :: Text -> Maybe (Char, Text)
 uncons t@(Text arr off len)
     | len <= 0  = Nothing
@@ -306,7 +304,7 @@ second f (a, b) = (a, f b)
   #-}
 
 -- | /O(1)/ Returns the last character of a 'Text', which must be
--- non-empty.  Subject to array fusion.
+-- non-empty.  Subject to fusion.
 last :: Text -> Char
 last (Text arr off len)
     | len <= 0                 = emptyError "last"
@@ -324,7 +322,7 @@ last (Text arr off len)
   #-}
 
 -- | /O(1)/ Returns all characters after the head of a 'Text', which
--- must be non-empty.  Subject to array fusion.
+-- must be non-empty.  Subject to fusion.
 tail :: Text -> Text
 tail t@(Text arr off len)
     | len <= 0  = emptyError "tail"
@@ -340,7 +338,7 @@ tail t@(Text arr off len)
  #-}
 
 -- | /O(1)/ Returns all but the last character of a 'Text', which must
--- be non-empty.  Subject to array fusion.
+-- be non-empty.  Subject to fusion.
 init :: Text -> Text
 init (Text arr off len) | len <= 0                   = emptyError "init"
                         | n >= 0xDC00 && n <= 0xDFFF = textP arr off (len-2)
@@ -356,7 +354,7 @@ init (Text arr off len) | len <= 0                   = emptyError "init"
     unstream (S.init (stream t)) = init t
  #-}
 
--- | /O(1)/ Tests whether a 'Text' is empty or not.  Subject to array
+-- | /O(1)/ Tests whether a 'Text' is empty or not.  Subject to
 -- fusion.
 null :: Text -> Bool
 null (Text _arr _off len) = assert (len >= 0) $ len <= 0
@@ -370,7 +368,7 @@ null (Text _arr _off len) = assert (len >= 0) $ len <= 0
  #-}
 
 -- | /O(n)/ Returns the number of characters in a 'Text'.
--- Subject to array fusion.
+-- Subject to fusion.
 length :: Text -> Int
 length t = S.length (stream t)
 {-# INLINE length #-}
@@ -378,7 +376,7 @@ length t = S.length (stream t)
 -- -----------------------------------------------------------------------------
 -- * Transformations
 -- | /O(n)/ 'map' @f@ @t@ is the 'Text' obtained by applying @f@ to
--- each element of @t@.  Subject to array fusion.
+-- each element of @t@.  Subject to fusion.
 map :: (Char -> Char) -> Text -> Text
 map f t = unstream (S.map f (stream t))
 {-# INLINE [1] map #-}
@@ -391,12 +389,12 @@ intercalate t ts = unstream (S.intercalate (stream t) (L.map stream ts))
 {-# INLINE intercalate #-}
 
 -- | /O(n)/ The 'intersperse' function takes a character and places it
--- between the characters of a 'Text'.  Subject to array fusion.
+-- between the characters of a 'Text'.  Subject to fusion.
 intersperse     :: Char -> Text -> Text
 intersperse c t = unstream (S.intersperse c (stream t))
 {-# INLINE intersperse #-}
 
--- | /O(n)/ Reverse the characters of a string. Subject to array fusion.
+-- | /O(n)/ Reverse the characters of a string. Subject to fusion.
 reverse :: Text -> Text
 reverse t = S.reverse (stream t)
 {-# INLINE reverse #-}
@@ -414,16 +412,18 @@ replace s d = intercalate d . split s
 
 -- $case
 --
--- When case converting Unicode text, it is incorrect to use
--- combinators like @map toUpper@ to case convert each character of a
--- string individually.  Instead, use the whole-string case conversion
--- functions from this module.  For correctness in different writing
--- systems, these functions may map one input character to two or
--- three output characters.
+-- When case converting 'Text' values, do not use combinators like
+-- @map toUpper@ to case convert each character of a string
+-- individually, as this gives incorrect results according to the
+-- rules of some writing systems.  The whole-string case conversion
+-- functions from this module, such as @toUpper@, obey the correct
+-- case conversion rules.  As a result, these functions may map one
+-- input character to two or three output characters. For examples,
+-- see the documentation of each function.
 
 -- | /O(n)/ Convert a string to folded case.  This function is mainly
--- useful for performing caseless (or case insensitive) string
--- comparisons.
+-- useful for performing caseless (also known as case insensitive)
+-- string comparisons.
 --
 -- A string @x@ is a caseless match for a string @y@ if and only if:
 --
@@ -458,8 +458,7 @@ toUpper t = unstream (S.toUpper (stream t))
 {-# INLINE toUpper #-}
 
 -- | /O(n)/ Left-justify a string to the given length, using the
--- specified fill character on the right. This function is subject to
--- array fusion. Examples:
+-- specified fill character on the right. Subject to fusion. Examples:
 --
 -- > justifyLeft 7 'x' "foo"    == "fooxxxx"
 -- > justifyLeft 3 'x' "foobar" == "foobar"
@@ -516,26 +515,23 @@ transpose ts = P.map pack (L.transpose (P.map unpack ts))
 -- | /O(n)/ 'foldl', applied to a binary operator, a starting value
 -- (typically the left-identity of the operator), and a 'Text',
 -- reduces the 'Text' using the binary operator, from left to right.
--- Subject to array fusion.
+-- Subject to fusion.
 foldl :: (b -> Char -> b) -> b -> Text -> b
 foldl f z t = S.foldl f z (stream t)
 {-# INLINE foldl #-}
 
--- | /O(n)/ A strict version of 'foldl'.
--- Subject to array fusion.
+-- | /O(n)/ A strict version of 'foldl'.  Subject to fusion.
 foldl' :: (b -> Char -> b) -> b -> Text -> b
 foldl' f z t = S.foldl' f z (stream t)
 {-# INLINE foldl' #-}
 
 -- | /O(n)/ A variant of 'foldl' that has no starting value argument,
--- and thus must be applied to a non-empty 'Text'.  Subject to array
--- fusion.
+-- and thus must be applied to a non-empty 'Text'.  Subject to fusion.
 foldl1 :: (Char -> Char -> Char) -> Text -> Char
 foldl1 f t = S.foldl1 f (stream t)
 {-# INLINE foldl1 #-}
 
--- | /O(n)/ A strict version of 'foldl1'.
--- Subject to array fusion.
+-- | /O(n)/ A strict version of 'foldl1'.  Subject to fusion.
 foldl1' :: (Char -> Char -> Char) -> Text -> Char
 foldl1' f t = S.foldl1' f (stream t)
 {-# INLINE foldl1' #-}
@@ -543,13 +539,13 @@ foldl1' f t = S.foldl1' f (stream t)
 -- | /O(n)/ 'foldr', applied to a binary operator, a starting value
 -- (typically the right-identity of the operator), and a 'Text',
 -- reduces the 'Text' using the binary operator, from right to left.
--- Subject to array fusion.
+-- Subject to fusion.
 foldr :: (Char -> b -> b) -> b -> Text -> b
 foldr f z t = S.foldr f z (stream t)
 {-# INLINE foldr #-}
 
--- | /O(n)/ A variant of 'foldr' that has no starting value argument, and
--- thust must be applied to a non-empty 'Text'.  Subject to array
+-- | /O(n)/ A variant of 'foldr' that has no starting value argument,
+-- and thust must be applied to a non-empty 'Text'.  Subject to
 -- fusion.
 foldr1 :: (Char -> Char -> Char) -> Text -> Char
 foldr1 f t = S.foldr1 f (stream t)
@@ -558,13 +554,13 @@ foldr1 f t = S.foldr1 f (stream t)
 -- -----------------------------------------------------------------------------
 -- ** Special folds
 
--- | /O(n)/ Concatenate a list of 'Text's. Subject to array fusion.
+-- | /O(n)/ Concatenate a list of 'Text's. Subject to fusion.
 concat :: [Text] -> Text
 concat ts = unstream (S.concat (L.map stream ts))
 {-# INLINE concat #-}
 
 -- | /O(n)/ Map a function over a 'Text' that results in a 'Text', and
--- concatenate the results.  This function is subject to array fusion.
+-- concatenate the results.  Subject to fusion.
 --
 -- Note: if in 'concatMap' @f@ @t@, @f@ is defined in terms of fusible
 -- functions, it will also be fusible.
@@ -573,25 +569,25 @@ concatMap f t = unstream (S.concatMap (stream . f) (stream t))
 {-# INLINE concatMap #-}
 
 -- | /O(n)/ 'any' @p@ @t@ determines whether any character in the
--- 'Text' @t@ satisifes the predicate @p@. Subject to array fusion.
+-- 'Text' @t@ satisifes the predicate @p@. Subject to fusion.
 any :: (Char -> Bool) -> Text -> Bool
 any p t = S.any p (stream t)
 {-# INLINE any #-}
 
 -- | /O(n)/ 'all' @p@ @t@ determines whether all characters in the
--- 'Text' @t@ satisify the predicate @p@. Subject to array fusion.
+-- 'Text' @t@ satisify the predicate @p@. Subject to fusion.
 all :: (Char -> Bool) -> Text -> Bool
 all p t = S.all p (stream t)
 {-# INLINE all #-}
 
 -- | /O(n)/ 'maximum' returns the maximum value from a 'Text', which
--- must be non-empty. Subject to array fusion.
+-- must be non-empty. Subject to fusion.
 maximum :: Text -> Char
 maximum t = S.maximum (stream t)
 {-# INLINE maximum #-}
 
 -- | /O(n)/ 'minimum' returns the minimum value from a 'Text', which
--- must be non-empty. Subject to array fusion.
+-- must be non-empty. Subject to fusion.
 minimum :: Text -> Char
 minimum t = S.minimum (stream t)
 {-# INLINE minimum #-}
@@ -600,8 +596,7 @@ minimum t = S.minimum (stream t)
 -- * Building 'Text's
 
 -- | /O(n)/ 'scanl' is similar to 'foldl', but returns a list of
--- successive reduced values from the left. This function is subject
--- to array fusion.
+-- successive reduced values from the left. Subject to fusion.
 --
 -- > scanl f z [x1, x2, ...] == [z, z `f` x1, (z `f` x1) `f` x2, ...]
 --
@@ -613,7 +608,7 @@ scanl f z t = unstream (S.scanl f z (stream t))
 {-# INLINE scanl #-}
 
 -- | /O(n)/ 'scanl1' is a variant of 'scanl' that has no starting
--- value argument.  This function is subject to array fusion.
+-- value argument.  Subject to fusion.
 --
 -- > scanl1 f [x1, x2, ...] == [x1, x1 `f` x2, ...]
 scanl1 :: (Char -> Char -> Char) -> Text -> Text
@@ -629,7 +624,7 @@ scanr f z = S.reverse . S.reverseScanr f z . reverseStream
 {-# INLINE scanr #-}
 
 -- | /O(n)/ 'scanr1' is a variant of 'scanr' that has no starting
--- value argument.  This function is subject to array fusion.
+-- value argument.  Subject to fusion.
 scanr1 :: (Char -> Char -> Char) -> Text -> Text
 scanr1 f t | null t    = empty
            | otherwise = scanr f (last t) (init t)
@@ -732,9 +727,9 @@ drop n t@(Text arr off len)
     unstream (S.drop n (stream t)) = drop n t
   #-}
 
--- | /O(n)/ 'takeWhile', applied to a predicate @p@ and a 'Text', returns
--- the longest prefix (possibly empty) of elements that satisfy @p@.
--- This function is subject to array fusion.
+-- | /O(n)/ 'takeWhile', applied to a predicate @p@ and a 'Text',
+-- returns the longest prefix (possibly empty) of elements that
+-- satisfy @p@.  Subject to fusion.
 takeWhile :: (Char -> Bool) -> Text -> Text
 takeWhile p t@(Text arr off len) = loop 0
   where loop !i | i >= len    = t
@@ -751,7 +746,7 @@ takeWhile p t@(Text arr off len) = loop 0
   #-}
 
 -- | /O(n)/ 'dropWhile' @p@ @t@ returns the suffix remaining after
--- 'takeWhile' @p@ @t@. This function is subject to array fusion.
+-- 'takeWhile' @p@ @t@. Subject to fusion.
 dropWhile :: (Char -> Bool) -> Text -> Text
 dropWhile p t@(Text arr off len) = loop 0 0
   where loop !i !l | l >= len  = empty
@@ -787,8 +782,7 @@ dropAfter p t@(Text arr off len) = loop (len-1) len
 
 -- | /O(n)/ 'dropAround' @p@ @t@ returns the substring remaining after
 -- dropping characters that fail the predicate @p@ from both the
--- beginning and end of @t@.  This function is subject to array
--- fusion.
+-- beginning and end of @t@.  Subject to fusion.
 dropAround :: (Char -> Bool) -> Text -> Text
 dropAround p = dropWhile p . dropAfter p
 {-# INLINE [1] dropAround #-}
@@ -1034,6 +1028,23 @@ filter p t = unstream (S.filter p (stream t))
 -------------------------------------------------------------------------------
 -- ** Indexing 'Text's
 
+-- $index
+--
+-- If you think of a 'Text' value as an array of 'Char' values (which
+-- it is not), you run the risk of writing inefficient code.
+--
+-- An idiom that is common in some languages is to find the numeric
+-- offset of a character or substring, then use that number to split
+-- or trim the searched string.  With a 'Text' value, this approach
+-- would require two /O(n)/ operations: one to perform the search, and
+-- one to operate from wherever the search ended.
+--
+-- For example, suppose you have a string that you want to split on
+-- the substring @\"::\"@, such as @\"foo::bar::quux\"@. Instead of
+-- searching for the index of @\"::\"@ and taking the substrings
+-- before and after that index, you would instead use @splitTimes 1
+-- "::"@.
+
 -- | /O(n)/ 'Text' index (subscript) operator, starting from 0.
 index :: Text -> Int -> Char
 index t n = S.index (stream t) n
@@ -1041,36 +1052,34 @@ index t n = S.index (stream t) n
 
 -- | /O(n)/ The 'findIndex' function takes a predicate and a 'Text'
 -- and returns the index of the first element in the 'Text' satisfying
--- the predicate. This function is subject to fusion.
+-- the predicate. Subject to fusion.
 findIndex :: (Char -> Bool) -> Text -> Maybe Int
 findIndex p t = S.findIndex p (stream t)
 {-# INLINE findIndex #-}
 
 -- | The 'findIndices' function extends 'findIndex', by returning the
 -- indices of all elements satisfying the predicate, in ascending
--- order. This function is subject to fusion.
+-- order. Subject to fusion.
 findIndices :: (Char -> Bool) -> Text -> [Int]
 findIndices p t = S.findIndices p (stream t)
 {-# INLINE findIndices #-}
 
 -- | /O(n)/ The 'elemIndex' function returns the index of the first
 -- element in the given 'Text' which is equal to the query element, or
--- 'Nothing' if there is no such element. This function is subject to
--- fusion.
+-- 'Nothing' if there is no such element. Subject to fusion.
 elemIndex :: Char -> Text -> Maybe Int
 elemIndex c t = S.elemIndex c (stream t)
 {-# INLINE elemIndex #-}
 
 -- | /O(n)/ The 'elemIndices' function returns the index of every
 -- element in the given 'Text' which is equal to the query
--- element. This function is subject to fusion.
+-- element. Subject to fusion.
 elemIndices :: Char -> Text -> [Int]
 elemIndices c t = S.elemIndices c (stream t)
 {-# INLINE elemIndices #-}
 
 -- | /O(n)/ The 'count' function returns the number of times the query
--- element appears in the given 'Text'. This function is subject to
--- fusion.
+-- element appears in the given 'Text'. Subject to fusion.
 count :: Char -> Text -> Int
 count c t = S.count c (stream t)
 {-# INLINE count #-}
