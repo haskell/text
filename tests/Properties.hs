@@ -592,6 +592,7 @@ tests = [
   ("prop_TL_words", mytest prop_TL_words),
   ("prop_T_unlines", mytest prop_T_unlines),
   ("prop_TL_unlines", mytest prop_TL_unlines),
+  ("prop_T_unwords", mytest prop_T_unwords),
   ("prop_TL_unwords", mytest prop_TL_unwords),
 
   ("prop_S_isPrefixOf", mytest prop_S_isPrefixOf),
