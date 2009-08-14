@@ -305,6 +305,7 @@ prop_T_splitChar_i c   = id `eq` (T.intercalate (T.singleton c) . T.splitChar c)
 prop_TL_split_i c      = id `eq` (TL.intercalate (TL.singleton c) . TL.split c)
 
 prop_T_splitWith p     = splitWith p `eqP` (map unpackS . T.splitWith p)
+prop_T_splitWith_split c = T.splitWith (==c) `eq` T.split (T.singleton c)
 prop_TL_splitWith p    = splitWith p `eqP` (map unpackS . TL.splitWith p)
 
 splitWith :: (a -> Bool) -> [a] -> [[a]]
@@ -569,6 +570,7 @@ tests = [
   ("prop_T_splitChar_i", mytest prop_T_splitChar_i),
   ("prop_TL_split_i", mytest prop_TL_split_i),
   ("prop_T_splitWith", mytest prop_T_splitWith),
+  ("prop_T_splitWith_split", mytest prop_T_splitWith_split),
   ("prop_TL_splitWith", mytest prop_TL_splitWith),
   ("prop_T_chunksOf_same_lengths", mytest prop_T_chunksOf_same_lengths),
   ("prop_T_chunksOf_length", mytest prop_T_chunksOf_length),

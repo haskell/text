@@ -984,9 +984,9 @@ splitTimesEnd k pat src =
 -- separators result in an empty component in the output.  eg.
 --
 -- > splitWith (=='a') "aabbaca" == ["","","bb","c",""]
--- > splitWith (=='a') []        == []
+-- > splitWith (=='a') ""        == [""]
 splitWith :: (Char -> Bool) -> Text -> [Text]
-splitWith _ (Text _off _arr 0) = []
+splitWith _ t@(Text _off _arr 0) = [t]
 splitWith p t = loop t
     where loop s | null s'   = [l]
                  | otherwise = l : loop (unsafeTail s')
