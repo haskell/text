@@ -299,6 +299,8 @@ prop_T_tails           = L.tails       `eqP` (map unpackS . T.tails)
 prop_TL_tails          = L.tails       `eqP` (map unpackS . TL.tails)
 
 prop_T_split_i t       = id `eq` (T.intercalate t . T.split t)
+prop_T_splitTimes_i k t= id `eq` (T.intercalate t . T.splitTimes k t)
+prop_T_splitTimesEnd_i k t = id `eq` (T.intercalate t . T.splitTimesEnd k t)
 prop_T_splitChar_i c   = id `eq` (T.intercalate (T.singleton c) . T.splitChar c)
 prop_TL_split_i c      = id `eq` (TL.intercalate (TL.singleton c) . TL.split c)
 
@@ -562,6 +564,8 @@ tests = [
   ("prop_TL_tails", mytest prop_TL_tails),
 
   ("prop_T_split_i", mytest prop_T_split_i),
+  ("prop_T_splitTimes_i", mytest prop_T_splitTimes_i),
+  ("prop_T_splitTimesEnd_i", mytest prop_T_splitTimesEnd_i),
   ("prop_T_splitChar_i", mytest prop_T_splitChar_i),
   ("prop_TL_split_i", mytest prop_TL_split_i),
   ("prop_T_splitWith", mytest prop_T_splitWith),

@@ -124,6 +124,7 @@ module Data.Text
     -- $split
     , split
     , splitTimes
+    , splitTimesEnd
     , splitChar
     , splitWith
     , chunksOf
@@ -960,6 +961,22 @@ splitTimes k pat src0
             | pat `isPrefixOf` s = take n src : go (i-1) (drop l s)
             | otherwise          = search (n+1) (unsafeTail s)
 {-# INLINE splitTimes #-}
+
+-- | /O(m)*O(n)/ Break a 'Text' into pieces at most @k@ times, like
+-- 'splitTimes', but start from the end of the input and work towards
+-- the start.
+--
+-- Examples:
+--
+-- > splitTimes 2    "::" "a::b::c::d::e" == ["a","b","c::d::e"]
+-- > splitTimesEnd 2 "::" "a::b::c::d::e" == ["a::b::c","d","e"]
+splitTimesEnd :: Int               -- ^ Maximum number of times to split
+              -> Text              -- ^ Text to split on
+              -> Text              -- ^ Input text
+              -> [Text]
+splitTimesEnd k pat src =
+    L.reverse . L.map reverse $ splitTimes k (reverse pat) (reverse src)
+{-# INLINE splitTimesEnd #-}
 
 -- | /O(n)/ Splits a 'Text' into components delimited by separators,
 -- where the predicate returns True for a separator element.  The
