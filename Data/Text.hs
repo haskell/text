@@ -897,6 +897,7 @@ tails t | null t    = [empty]
 -- and
 --
 -- > intercalate s . split s         == id
+-- > split (singleton c)             == splitWith (==c)
 split :: Text                   -- ^ Text to split on
       -> Text                   -- ^ Input text
       -> [Text]
