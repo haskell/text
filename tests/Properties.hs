@@ -323,14 +323,12 @@ splitWith p xs = loop xs
                  | otherwise = l : loop (tail s')
               where (l, s') = break p s
 
-prop_T_chunksOf_same_lengths k t
-    = all ((==k) . T.length) . ini . T.chunksOf k $ t
+prop_T_chunksOf_same_lengths k = all ((==k) . T.length) . ini . T.chunksOf k
   where ini [] = []
         ini xs = init xs
 
-prop_T_chunksOf_length k t = let len = L.foldl' f 0 (T.chunksOf k t)
-                             in  len == T.length t || (k <= 0 && len == 0)
-    where f s t = T.length t + s
+prop_T_chunksOf_length k t = len == T.length t || (k <= 0 && len == 0)
+  where len = L.sum . L.map T.length $ T.chunksOf k t
 
 prop_T_breakSubstring_isInfixOf s l
                      = T.isInfixOf s l ==
