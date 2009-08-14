@@ -145,11 +145,12 @@ module Data.Text.Compat
 
 import Data.ByteString (ByteString)
 import Data.Text hiding (split)
+import qualified Data.Text as T
 import Data.Text.Unsafe (unsafeTail)
 import Prelude (Char, (+), otherwise)
 
 split :: Char -> Text -> [Text]
-split = splitChar
+split c = T.split (singleton c)
 {-# INLINE split #-}
 
 -- | /O(n)/ Break a string on a substring, returning a pair of the

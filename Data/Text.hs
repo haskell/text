@@ -125,7 +125,6 @@ module Data.Text
     , split
     , splitTimes
     , splitTimesEnd
-    , splitChar
     , splitWith
     , chunksOf
 
@@ -882,21 +881,6 @@ tails :: Text -> [Text]
 tails t | null t    = [empty]
         | otherwise = t : tails (unsafeTail t)
 
--- | /O(n)/ Break a 'Text' into pieces separated by the 'Char'
--- argument, consuming the delimiter. I.e.
---
--- > splitChar '\n' "a\nb\nd\ne" == ["a","b","d","e"]
--- > splitChar 'a'  "aXaXaXa"    == ["","X","X","X",""]
--- > splitChar 'x'  "x"          == ["",""]
--- 
--- and
---
--- > intercalate (singleton c) . splitChar c == id
--- > splitChar                               == splitWith . (==)
-splitChar :: Char -> Text -> [Text]
-splitChar c = splitWith (==c)
-{-# INLINE splitChar #-}
-
 -- $split
 --
 -- Splitting functions in this library do not perform character-wise
@@ -918,16 +902,22 @@ split :: Text                   -- ^ Text to split on
       -> [Text]
 split pat src0
     | l == 0    = [src0]
+    | l == 1    = splitWith (== (head pat)) src0
     | otherwise = go src0
   where
-    l         = length pat
+    l      = length pat
     go src = search 0 src
       where
         search !n !s
             | null s             = [src]      -- not found
             | pat `isPrefixOf` s = take n src : go (drop l s)
             | otherwise          = search (n+1) (unsafeTail s)
-{-# INLINE split #-}
+{-# INLINE [1] split #-}
+
+{-# RULES
+"TEXT split/singleton -> splitWith/==" [~1] forall c t.
+    split (singleton c) t = splitWith (==c) t
+  #-}
 
 -- | /O(m)*O(n)/ Break a 'Text' into pieces at most @k@ times,
 -- treating the first 'Text' argument as the delimiter to break on,
