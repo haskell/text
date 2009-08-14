@@ -107,7 +107,7 @@ module Data.Text
     , drop
     , takeWhile
     , dropWhile
-    , dropAfter
+    , dropWhileEnd
     , dropAround
     , strip
     , stripLeft
@@ -762,29 +762,32 @@ dropWhile p t@(Text arr off len) = loop 0 0
     unstream (S.dropWhile p (stream t)) = dropWhile p t
   #-}
 
--- | /O(n)/ 'dropAfter' @p@ @t@ returns the prefix remaining after
+-- | /O(n)/ 'dropWhileEnd' @p@ @t@ returns the prefix remaining after
 -- dropping characters that fail the predicate @p@ from the end of
--- @t@.  This function is subject to array fusion.
-dropAfter :: (Char -> Bool) -> Text -> Text
-dropAfter p t@(Text arr off len) = loop (len-1) len
+-- @t@.  Subject to fusion.
+-- Examples:
+--
+-- > dropWhileEnd (=='.') "foo..." == "foo"
+dropWhileEnd :: (Char -> Bool) -> Text -> Text
+dropWhileEnd p t@(Text arr off len) = loop (len-1) len
   where loop !i !l | l <= 0    = empty
                    | p c       = loop (i+d) (l+d)
                    | otherwise = Text arr off l
             where (c,d)        = reverseIter t i
-{-# INLINE [1] dropAfter #-}
+{-# INLINE [1] dropWhileEnd #-}
 
 {-# RULES
-"TEXT dropAfter -> fused" [~1] forall p t.
-    dropAfter p t = S.reverse (S.dropWhile p (S.reverseStream t))
-"TEXT dropAfter -> unfused" [1] forall p t.
-    S.reverse (S.dropWhile p (S.reverseStream t)) = dropAfter p t
+"TEXT dropWhileEnd -> fused" [~1] forall p t.
+    dropWhileEnd p t = S.reverse (S.dropWhile p (S.reverseStream t))
+"TEXT dropWhileEnd -> unfused" [1] forall p t.
+    S.reverse (S.dropWhile p (S.reverseStream t)) = dropWhileEnd p t
   #-}
 
 -- | /O(n)/ 'dropAround' @p@ @t@ returns the substring remaining after
 -- dropping characters that fail the predicate @p@ from both the
 -- beginning and end of @t@.  Subject to fusion.
 dropAround :: (Char -> Bool) -> Text -> Text
-dropAround p = dropWhile p . dropAfter p
+dropAround p = dropWhile p . dropWhileEnd p
 {-# INLINE [1] dropAround #-}
 
 -- | /O(n)/ Remove leading white space from a string.  Equivalent to:
@@ -796,9 +799,9 @@ stripLeft = dropWhile isSpace
 
 -- | /O(n)/ Remove trailing white space from a string.  Equivalent to:
 --
--- > dropAfter isSpace
+-- > dropWhileEnd isSpace
 stripRight :: Text -> Text
-stripRight = dropAfter isSpace
+stripRight = dropWhileEnd isSpace
 {-# INLINE [1] stripRight #-}
 
 -- | /O(n)/ Remove leading and trailing white space from a string.
