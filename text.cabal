@@ -20,27 +20,27 @@ library
     Data.Text.Compat
     Data.Text.Encoding
     Data.Text.Encoding.Error
-    Data.Text.Encoding.Fusion
     Data.Text.Foreign
-    Data.Text.Fusion
-    Data.Text.Fusion.Common
     Data.Text.Lazy
     Data.Text.Lazy.Encoding
-    Data.Text.Lazy.Encoding.Fusion
-    Data.Text.Lazy.Fusion
   other-modules:
     Data.Text.Array
-    Data.Text.Internal
+    Data.Text.Encoding.Fusion
     Data.Text.Encoding.Fusion.Common
-    Data.Text.Fusion.Internal
+    Data.Text.Encoding.Utf16
+    Data.Text.Encoding.Utf32
+    Data.Text.Encoding.Utf8
+    Data.Text.Fusion
     Data.Text.Fusion.CaseMapping
+    Data.Text.Fusion.Common
+    Data.Text.Fusion.Internal
+    Data.Text.Internal
+    Data.Text.Lazy.Encoding.Fusion
+    Data.Text.Lazy.Fusion
     Data.Text.Lazy.Internal
     Data.Text.Unsafe
     Data.Text.UnsafeChar
     Data.Text.UnsafeShift
-    Data.Text.Encoding.Utf8
-    Data.Text.Encoding.Utf16
-    Data.Text.Encoding.Utf32
 
   build-depends:
     base       < 5,
