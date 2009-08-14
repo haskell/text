@@ -304,6 +304,7 @@ prop_T_splitTimesEnd_i k t = id `eq` (T.intercalate t . T.splitTimesEnd k t)
 prop_TL_split_i c      = id `eq` (TL.intercalate (TL.singleton c) . TL.split c)
 
 prop_T_splitWith p     = splitWith p `eqP` (map unpackS . T.splitWith p)
+prop_T_splitWith_count c = (L.length . T.splitWith (==c)) `eq` ((1+) . T.count c)
 prop_T_splitWith_split c = T.splitWith (==c) `eq` T.split (T.singleton c)
 prop_TL_splitWith p    = splitWith p `eqP` (map unpackS . TL.splitWith p)
 
@@ -568,6 +569,7 @@ tests = [
   ("prop_T_splitTimesEnd_i", mytest prop_T_splitTimesEnd_i),
   ("prop_TL_split_i", mytest prop_TL_split_i),
   ("prop_T_splitWith", mytest prop_T_splitWith),
+  ("prop_T_splitWith_count", mytest prop_T_splitWith_count),
   ("prop_T_splitWith_split", mytest prop_T_splitWith_split),
   ("prop_TL_splitWith", mytest prop_TL_splitWith),
   ("prop_T_chunksOf_same_lengths", mytest prop_T_chunksOf_same_lengths),
