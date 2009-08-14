@@ -299,8 +299,10 @@ prop_T_tails           = L.tails       `eqP` (map unpackS . T.tails)
 prop_TL_tails          = L.tails       `eqP` (map unpackS . TL.tails)
 
 prop_T_split_i t       = id `eq` (T.intercalate t . T.split t)
-prop_T_splitTimes_i k t= id `eq` (T.intercalate t . T.splitTimes k t)
+prop_T_splitTimes_i k t = id `eq` (T.intercalate t . T.splitTimes k t)
+prop_T_splitTimes_split t = T.splitTimes maxBound t `eq` T.split t
 prop_T_splitTimesEnd_i k t = id `eq` (T.intercalate t . T.splitTimesEnd k t)
+prop_T_splitTimesEnd_split t = T.splitTimesEnd maxBound t `eq` T.split t
 prop_TL_split_i c      = id `eq` (TL.intercalate (TL.singleton c) . TL.split c)
 
 prop_T_splitWith p     = splitWith p `eqP` (map unpackS . T.splitWith p)
@@ -566,7 +568,9 @@ tests = [
 
   ("prop_T_split_i", mytest prop_T_split_i),
   ("prop_T_splitTimes_i", mytest prop_T_splitTimes_i),
+  ("prop_T_splitTimes_split", mytest prop_T_splitTimes_split),
   ("prop_T_splitTimesEnd_i", mytest prop_T_splitTimesEnd_i),
+  ("prop_T_splitTimesEnd_split", mytest prop_T_splitTimesEnd_split),
   ("prop_TL_split_i", mytest prop_TL_split_i),
   ("prop_T_splitWith", mytest prop_T_splitWith),
   ("prop_T_splitWith_count", mytest prop_T_splitWith_count),
