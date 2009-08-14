@@ -1,12 +1,15 @@
 version := $(shell awk '/^version:/{print $$2}' ../text.cabal)
 ghc := ghc
-ghcflags := -O -Wall -package bytestring -package QuickCheck \
-	-hide-package text -i../dist/build -package-name text-$(version)
+ghc-base-flags := -O0 -package bytestring -package QuickCheck \
+	-ignore-package text
+ghc-flags := $(ghc-base-flags) -i../dist/build -package-name text-$(version)
+ghc-hpc-flags := $(ghc-base-flags) -fhpc -fno-ignore-asserts -odir hpcdir \
+	-hidir hpcdir -i..
 lib := ../dist/build/libHStext-$(version).a
 lib-srcs := $(shell grep '^  *Data' ../text.cabal | \
                     sed -e 's,\.,/,g' -e 's,$$,.hs,')
 
-all: qc
+all: qc qc-hpc
 
 lib: $(lib)
 
@@ -14,11 +17,18 @@ $(lib): $(lib-srcs:%=../%)
 	cd .. && runghc Setup configure --user --prefix=$(HOME)
 	cd .. && runghc Setup build
 
-qc: QuickCheckUtils.o Properties.o $(lib)
-	$(ghc) $(ghcflags) -o $@ $^
+qc: $(lib) QuickCheckUtils.o Properties.o
+	$(ghc) $(ghc-flags) -o $@ $^
+
+qc-hpc: Properties.hs QuickCheckUtils.hs $(lib-srcs:%=../%)
+	-mkdir -p hpcdir
+	$(ghc) $(ghc-hpc-flags) -ihpcdir --make -o $@ $<
 
 %.o: %.hs
-	$(ghc) $(ghcflags) -c -o $@ $<
+	$(ghc) $(ghc-flags) -c -o $@ $<
+
+hpcdir/%.o: %.hs
+	$(ghc) $(ghc-hpc-flags) --make -c -o $@ $<
 
 .PHONY: testdata
 testdata: text-testdata.tar.bz2
@@ -27,4 +37,4 @@ text-testdata.tar.bz2:
 	curl -O http://projects.haskell.org/text/text-testdata.tar.bz2
 
 clean:
-	-rm -f *.o *.hi qc
+	-rm -rf *.o *.hi qc qc-hpc hpcdir .hpc
