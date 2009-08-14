@@ -37,6 +37,9 @@ crashy onException p = unsafePerformIO $
     let types = e :: SomeException
     in trace ("*** Exception: " ++ show e) return onException
 
+tracer f a = let r = f a
+             in trace (show r) r
+
 prop_T_pack_unpack       = (T.unpack . T.pack) `eq` id
 prop_TL_pack_unpack      = (TL.unpack . TL.pack) `eq` id
 prop_T_stream_unstream   = (S.unstream . S.stream) `eq` id
@@ -300,7 +303,10 @@ prop_TL_tails          = L.tails       `eqP` (map unpackS . TL.tails)
 
 prop_T_split_i t       = id `eq` (T.intercalate t . T.split t)
 prop_T_splitTimes_i k t = id `eq` (T.intercalate t . T.splitTimes k t)
-prop_T_splitTimes_split t = T.splitTimes maxBound t `eq` T.split t
+prop_T_splitTimes_split k t = T.splitTimes k t `eq` \u ->
+                              case L.splitAt k (T.split t u) of
+                                (a,[]) -> a
+                                (a,b)  -> a ++ [T.intercalate t b]
 prop_T_splitTimesEnd_i k t = id `eq` (T.intercalate t . T.splitTimesEnd k t)
 prop_T_splitTimesEnd_split t = T.splitTimesEnd maxBound t `eq` T.split t
 prop_TL_split_i c      = id `eq` (TL.intercalate (TL.singleton c) . TL.split c)
