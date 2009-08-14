@@ -6,6 +6,7 @@ import Text.Show.Functions
 
 import Data.Char
 import Data.Monoid
+import Data.String
 import Debug.Trace
 import Text.Printf
 import System.Environment
@@ -15,7 +16,7 @@ import Control.Monad
 import Data.Word
 import qualified Data.ByteString as B
 import qualified Data.Text as T
-import qualified Data.Text.Compat as T (breakSubstring)
+import qualified Data.Text.Compat as C
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Encoding as E
 import Control.Exception
@@ -142,6 +143,8 @@ prop_T_mappend s       = mappend s`eqP` (unpackS . mappend (T.pack s))
 prop_TL_mappend s      = mappend s`eqP` (unpackS . mappend (TL.pack s))
 prop_T_mconcat         = mconcat  `eq` (unpackS . mconcat . L.map T.pack)
 prop_TL_mconcat        = mconcat  `eq` (unpackS . mconcat . L.map TL.pack)
+prop_T_IsString        = fromString  `eqP` (T.unpack . fromString)
+prop_TL_IsString       = fromString  `eqP` (TL.unpack . fromString)
 
 prop_S_cons x          = (x:)     `eqP` (unpackS . S.cons x)
 prop_T_cons x          = (x:)     `eqP` (unpackS . T.cons x)
@@ -332,6 +335,7 @@ prop_TL_split_i c      = id `eq` (TL.intercalate (TL.singleton c) . TL.split c)
 prop_T_splitWith p     = splitWith p `eqP` (map unpackS . T.splitWith p)
 prop_T_splitWith_count c = (L.length . T.splitWith (==c)) `eq` ((1+) . T.count c)
 prop_T_splitWith_split c = T.splitWith (==c) `eq` T.split (T.singleton c)
+prop_T_splitWith_Csplit c = T.splitWith (==c) `eq` C.split c
 prop_TL_splitWith p    = splitWith p `eqP` (map unpackS . TL.splitWith p)
 
 splitWith :: (a -> Bool) -> [a] -> [[a]]
@@ -350,10 +354,10 @@ prop_T_chunksOf_length k t = len == T.length t || (k <= 0 && len == 0)
 
 prop_T_breakSubstring_isInfixOf s l
                      = T.isInfixOf s l ==
-                       T.null s || (not . T.null . snd $ T.breakSubstring s l)
+                       T.null s || (not . T.null . snd $ C.breakSubstring s l)
 prop_T_breakSubstringC c
                      = L.break (==c) `eqP`
-                       (unpack2 . T.breakSubstring (T.singleton c))
+                       (unpack2 . C.breakSubstring (T.singleton c))
 
 prop_T_lines           = L.lines       `eqP` (map unpackS . T.lines)
 prop_TL_lines          = L.lines       `eqP` (map unpackS . TL.lines)
@@ -472,6 +476,8 @@ tests = [
   ("prop_TL_mappend", mytest prop_TL_mappend),
   ("prop_T_mconcat", mytest prop_T_mconcat),
   ("prop_TL_mconcat", mytest prop_TL_mconcat),
+  ("prop_T_IsString", mytest prop_T_IsString),
+  ("prop_TL_IsString", mytest prop_TL_IsString),
 
   ("prop_S_cons", mytest prop_S_cons),
   ("prop_T_cons", mytest prop_T_cons),
@@ -613,6 +619,7 @@ tests = [
   ("prop_T_splitWith", mytest prop_T_splitWith),
   ("prop_T_splitWith_count", mytest prop_T_splitWith_count),
   ("prop_T_splitWith_split", mytest prop_T_splitWith_split),
+  ("prop_T_splitWith_Csplit", mytest prop_T_splitWith_Csplit),
   ("prop_TL_splitWith", mytest prop_TL_splitWith),
   ("prop_T_chunksOf_same_lengths", mytest prop_T_chunksOf_same_lengths),
   ("prop_T_chunksOf_length", mytest prop_T_chunksOf_length),

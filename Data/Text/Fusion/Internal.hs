@@ -30,31 +30,29 @@ import Data.Word (Word8)
 -- | Specialised, strict Maybe-like type.
 data M a = N
          | J {-# UNPACK #-} !a
-           deriving (Eq, Ord, Show)
 
 type M8 = M Word8
 
 -- Restreaming state.
 data S s = S {-# UNPACK #-} !s
     {-# UNPACK #-} !M8 {-# UNPACK #-} !M8 {-# UNPACK #-} !M8
-           deriving (Eq, Ord, Show)
 
 infixl 2 :!:
 data PairS a b = !a :!: !b
-               deriving (Eq, Ord, Read, Show)
 
 -- | Allow a function over a stream to switch between two states.
 data Switch = S1 | S2
-            deriving (Eq, Ord, Show)
 
 data Step s a = Done
               | Skip !s
               | Yield !a !s
 
+{-
 instance Show a => Show (Step s a)
     where show Done        = "Done"
           show (Skip _)    = "Skip"
           show (Yield x _) = "Yield " ++ show x
+-}
 
 instance (Eq a) => Eq (Stream a) where
     (==) = eq

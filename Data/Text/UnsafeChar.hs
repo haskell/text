@@ -19,7 +19,7 @@ module Data.Text.UnsafeChar
     , unsafeChr8
     , unsafeChr32
     , unsafeWrite
-    , unsafeWriteRev
+    -- , unsafeWriteRev
     ) where
 
 import Control.Exception (assert)
@@ -60,6 +60,7 @@ unsafeWrite marr i c
           hi = fromIntegral $ (m .&. 0x3FF) + 0xDC00
 {-# INLINE unsafeWrite #-}
 
+{-
 unsafeWriteRev :: A.MArray s Word16 -> Int -> Char -> ST s Int
 unsafeWriteRev marr i c
     | n < 0x10000 = do
@@ -76,3 +77,4 @@ unsafeWriteRev marr i c
           lo = fromIntegral $ (m `shiftR` 10) + 0xD800
           hi = fromIntegral $ (m .&. 0x3FF) + 0xDC00
 {-# INLINE unsafeWriteRev #-}
+-}
