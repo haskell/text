@@ -1,7 +1,9 @@
 version := $(shell awk '/^version:/{print $$2}' ../text.cabal)
 ghc := ghc
-ghc-base-flags := -O -funbox-strict-fields -package bytestring \
-	-package QuickCheck -ignore-package text
+ghc-base-flags := -O -funbox-strict-fields \
+	-package bytestring -package QuickCheck -package test-framework \
+	-package test-framework-quickcheck -ignore-package text \
+ghc-base-flags += -Wall -fno-warn-orphans -fno-warn-missing-signatures
 ghc-flags := $(ghc-base-flags) -i../dist/build -package-name text-$(version)
 ghc-hpc-flags := $(ghc-base-flags) -fhpc -fno-ignore-asserts -odir hpcdir \
 	-hidir hpcdir -i..
@@ -29,17 +31,17 @@ Properties.o: QuickCheckUtils.o
 QuickCheckUtils.o: $(lib)
 
 qc: Properties.o QuickCheckUtils.o
-	$(ghc) $(ghc-flags) -o $@ $^ $(lib)
+	$(ghc) $(ghc-flags) -threaded -o $@ $^ $(lib)
 
 qc-hpc: Properties.hs QuickCheckUtils.hs $(lib-srcs:%=../%)
 	-mkdir -p hpcdir
 	@rm -f $@.tix
-	$(ghc) $(ghc-hpc-flags) -ihpcdir --make -o $@ $<
+	$(ghc) $(ghc-hpc-flags) -ihpcdir --make -threaded -o $@ $<
 
 coverage: qc-hpc-html/hpc_index.html
 
 qc-hpc-html/hpc_index.html: qc-hpc
-	./qc-hpc 500
+	./qc-hpc -a 500 +RTS -N2
 	hpc markup qc-hpc --exclude=Main --exclude=Properties \
 	  --exclude=QuickCheckUtils --srcdir=.. --srcdir=. --destdir=$(dir $@)
 

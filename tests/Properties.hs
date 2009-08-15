@@ -3,33 +3,29 @@
 {-# OPTIONS_GHC -fno-enable-rewrite-rules #-}
 
 import Test.QuickCheck
-import Text.Show.Functions
+import Text.Show.Functions ()
 
-import Data.Char
-import Data.Monoid
-import Data.String
-import Debug.Trace
-import Text.Printf
-import System.Environment
-import Control.Applicative
-import Control.Arrow
-import Control.Monad
-import Data.Word
-import qualified Data.ByteString as B
+import Data.Char (chr, isLower, isSpace, isUpper, ord)
+import Data.Monoid (Monoid(..))
+import Data.String (fromString)
+import Debug.Trace (trace)
+import Control.Arrow ((***), second)
+import Data.Word (Word8)
 import qualified Data.Text as T
 import qualified Data.Text.Compat as C
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Encoding as E
-import Control.Exception
+import Control.Exception (SomeException, try)
 import qualified Data.Text.Fusion as S
 import qualified Data.Text.Fusion.Common as S
 import qualified Data.Text.Lazy.Encoding as EL
 import qualified Data.Text.Lazy.Fusion as SL
 import qualified Data.List as L
-import System.IO.Unsafe
-import Prelude hiding (catch)
+import System.IO.Unsafe (unsafePerformIO)
+import Test.Framework (defaultMain, testGroup)
+import Test.Framework.Providers.QuickCheck (testProperty)
 
-import QuickCheckUtils
+import QuickCheckUtils ()
 
 -- Ensure that two potentially bottom values (in the sense of crashing
 -- for some inputs, not looping infinitely) either both crash, or both
@@ -45,9 +41,6 @@ i =^= j = unsafePerformIO $ do
     (Right a, Right b) -> return (a == b)
     e                  -> trace ("*** Divergence: " ++ show e) return False
 infix 4 =^=
-
-tracer f a = let r = f a
-             in trace (show r) r
 
 prop_T_pack_unpack       = (T.unpack . T.pack) `eq` id
 prop_TL_pack_unpack      = (TL.unpack . TL.pack) `eq` id
@@ -104,10 +97,10 @@ eq a b s  = a s =^= b s
 -- What about with the RHS packed?
 eqP :: (Eq a, Show a, Stringy s) =>
        (String -> a) -> (s -> a) -> String -> Word8 -> Bool
-eqP a b s w  = eq "orig" (a s) (b t) &&
-               eq "mini" (a s) (b mini) &&
-               eq "head" (a sa) (b ta) &&
-               eq "tail" (a sb) (b tb)
+eqP f g s w  = eql "orig" (f s) (g t) &&
+               eql "mini" (f s) (g mini) &&
+               eql "head" (f sa) (g ta) &&
+               eql "tail" (f sb) (g tb)
     where t             = packS s
           mini          = packSChunkSize 10 s
           (sa,sb)       = splitAt m s
@@ -116,14 +109,14 @@ eqP a b s w  = eq "orig" (a s) (b t) &&
           m | l == 0    = n
             | otherwise = n `mod` l
           n             = fromIntegral w
-          eq s a b | a =^= b   = True
-                   | otherwise = trace (s ++ ": " ++ show a ++ " /= " ++ show b) False
+          eql d a b | a =^= b   = True
+                    | otherwise = trace (d ++ ": " ++ show a ++ " /= " ++ show b) False
 
 -- For tests that have O(n^2) running times or input sizes, resize
 -- their inputs to the square root of the originals.
 unsquare :: (Arbitrary a, Show a, Testable b) => (a -> b) -> Property
 unsquare = forAll . sized $ \n -> resize (smaller n) arbitrary
-    where smaller = round . sqrt . fromIntegral
+    where smaller = round . (sqrt :: Double -> Double) . fromIntegral
 
 prop_S_Eq s            = (s==)    `eq` ((S.stream s==) . S.stream)
 prop_T_Eq s            = (s==)    `eq` ((T.pack s==) . T.pack)
@@ -155,9 +148,9 @@ uncons (x:xs) = Just (x,xs)
 uncons _      = Nothing
 
 prop_T_uncons s        = uncons   `eqP` (fmap (second unpackS) . T.uncons)
-    where types = s :: String
+    where _types = s :: String
 prop_TL_uncons s       = uncons   `eqP` (fmap (second unpackS) . TL.uncons)
-    where types = s :: String
+    where _types = s :: String
 prop_S_head            = head   `eqP` S.head
 prop_T_head            = head   `eqP` T.head
 prop_TL_head           = head   `eqP` TL.head
@@ -198,7 +191,7 @@ split pat src0
     l           = length pat
     go src      = search 0 src
       where
-        search !n [] = [src]
+        search _ [] = [src]
         search !n s@(_:s')
             | pat `L.isPrefixOf` s = take n src : go (drop l s)
             | otherwise            = search (n+1) s'
@@ -216,24 +209,24 @@ justifyLeft k c s = s ++ replicate (k - length s) c
 prop_S_justifyLeft k c = justifyLeft k c `eqP` (unpackS . S.justifyLeft k c)
 prop_T_justifyLeft k c = justifyLeft k c `eqP` (unpackS . T.justifyLeft k c)
 prop_T_justifyRight k c = jr k c `eqP` (unpackS . T.justifyRight k c)
-    where jr k c s = replicate (k - length s) c ++ s
+    where jr m n s = replicate (m - length s) n ++ s
 
 prop_T_foldl f z       = L.foldl f z  `eqP` (T.foldl f z)
-    where types        = f :: Char -> Char -> Char
+    where _types       = f :: Char -> Char -> Char
 prop_TL_foldl f z      = L.foldl f z  `eqP` (TL.foldl f z)
-    where types        = f :: Char -> Char -> Char
+    where _types       = f :: Char -> Char -> Char
 prop_T_foldl' f z      = L.foldl' f z `eqP` T.foldl' f z
-    where types        = f :: Char -> Char -> Char
+    where _types       = f :: Char -> Char -> Char
 prop_TL_foldl' f z     = L.foldl' f z `eqP` TL.foldl' f z
-    where types        = f :: Char -> Char -> Char
+    where _types       = f :: Char -> Char -> Char
 prop_T_foldl1 f        = L.foldl1 f   `eqP` T.foldl1 f
 prop_TL_foldl1 f       = L.foldl1 f   `eqP` TL.foldl1 f
 prop_T_foldl1' f       = L.foldl1' f  `eqP` T.foldl1' f
 prop_TL_foldl1' f      = L.foldl1' f  `eqP` TL.foldl1' f
 prop_T_foldr f z       = L.foldr f z  `eqP` T.foldr f z
-    where types        = f :: Char -> Char -> Char
+    where _types       = f :: Char -> Char -> Char
 prop_TL_foldr f z      = L.foldr f z  `eqP` TL.foldr f z
-    where types        = f :: Char -> Char -> Char
+    where _types       = f :: Char -> Char -> Char
 prop_T_foldr1 f        = L.foldr1 f   `eqP` T.foldr1 f
 prop_TL_foldr1 f       = L.foldr1 f   `eqP` TL.foldr1 f
 
@@ -260,13 +253,13 @@ prop_T_scanr1 f        = L.scanr1 f    `eqP` (unpackS . T.scanr1 f)
 prop_TL_scanr1 f       = L.scanr1 f    `eqP` (unpackS . TL.scanr1 f)
 
 prop_T_mapAccumL f z   = unsquare (L.mapAccumL f z `eqP` (second unpackS . T.mapAccumL f z))
-    where types = f :: Int -> Char -> (Int,Char)
+    where _types = f :: Int -> Char -> (Int,Char)
 prop_TL_mapAccumL f z  = unsquare (L.mapAccumL f z `eqP` (second unpackS . TL.mapAccumL f z))
-    where types = f :: Int -> Char -> (Int,Char)
+    where _types = f :: Int -> Char -> (Int,Char)
 prop_T_mapAccumR f z   = unsquare (L.mapAccumR f z `eqP` (second unpackS . T.mapAccumR f z))
-    where types = f :: Int -> Char -> (Int,Char)
+    where _types = f :: Int -> Char -> (Int,Char)
 prop_TL_mapAccumR f z   = unsquare (L.mapAccumR f z `eqP` (second unpackS . TL.mapAccumR f z))
-    where types = f :: Int -> Char -> (Int,Char)
+    where _types = f :: Int -> Char -> (Int,Char)
 
 prop_T_replicate n     = L.replicate n `eq` (unpackS . T.replicate n)
 prop_TL_replicate n    = L.replicate n `eq` (unpackS . TL.replicate n)
@@ -426,248 +419,280 @@ shorten n t@(S.Stream arr off len)
     | n < len && n > 0 = S.Stream arr off n
     | otherwise        = t
 
-main = run tests =<< getArgs
+main = defaultMain tests
 
-run :: [(String, Int -> IO (Bool,Int))] -> [String] -> IO ()
-run tests args = do
-  let (n,names) = case args of
-                    (k:ts) -> (read k,ts)
-                    []  -> (100,[])
-  (results,passed) <- fmap unzip . forM tests $ \(s,a) ->
-                      if null names || s `elem` names
-                      then printf "%-40s: " s >> a n
-                      else return (True,0)
-  printf "Passed %d tests!\n" (sum passed)
-  when (not . and $ results) $
-      fail "Not all tests passed!"
-
-tests :: [(String, Int -> IO (Bool, Int))]
 tests = [
-  ("prop_T_pack_unpack", mytest prop_T_pack_unpack),
-  ("prop_TL_pack_unpack", mytest prop_TL_pack_unpack),
-  ("prop_T_stream_unstream", mytest prop_T_stream_unstream),
-  ("prop_TL_stream_unstream", mytest prop_TL_stream_unstream),
-  ("prop_T_reverse_stream", mytest prop_T_reverse_stream),
-  ("prop_T_singleton", mytest prop_T_singleton),
-  ("prop_TL_singleton", mytest prop_TL_singleton),
-  ("prop_TL_unstreamChunks", mytest prop_TL_unstreamChunks),
-  ("prop_TL_chunk_unchunk", mytest prop_TL_chunk_unchunk),
+  testGroup "creation/elimination" [
+    testProperty "t_pack_unpack" prop_T_pack_unpack,
+    testProperty "tl_pack_unpack" prop_TL_pack_unpack,
+    testProperty "t_stream_unstream" prop_T_stream_unstream,
+    testProperty "tl_stream_unstream" prop_TL_stream_unstream,
+    testProperty "t_reverse_stream" prop_T_reverse_stream,
+    testProperty "t_singleton" prop_T_singleton,
+    testProperty "tl_singleton" prop_TL_singleton,
+    testProperty "tl_unstreamChunks" prop_TL_unstreamChunks,
+    testProperty "tl_chunk_unchunk" prop_TL_chunk_unchunk
+  ],
 
-  ("prop_T_ascii", mytest prop_T_ascii),
-  ("prop_T_utf8", mytest prop_T_utf8),
-  ("prop_TL_utf8", mytest prop_TL_utf8),
-  ("prop_T_utf16LE", mytest prop_T_utf16LE),
-  ("prop_T_utf16BE", mytest prop_T_utf16BE),
-  ("prop_T_utf32LE", mytest prop_T_utf32LE),
-  ("prop_T_utf32BE", mytest prop_T_utf32BE),
+  testGroup "transcoding" [
+    testProperty "t_ascii" prop_T_ascii,
+    testProperty "t_utf8" prop_T_utf8,
+    testProperty "tl_utf8" prop_TL_utf8,
+    testProperty "t_utf16LE" prop_T_utf16LE,
+    testProperty "t_utf16BE" prop_T_utf16BE,
+    testProperty "t_utf32LE" prop_T_utf32LE,
+    testProperty "t_utf32BE" prop_T_utf32BE
+  ],
 
-  ("prop_S_Eq", mytest prop_S_Eq),
-  ("prop_T_Eq", mytest prop_T_Eq),
-  ("prop_TL_Eq", mytest prop_TL_Eq),
-  ("prop_S_Ord", mytest prop_S_Ord),
-  ("prop_T_Ord", mytest prop_T_Ord),
-  ("prop_TL_Ord", mytest prop_TL_Ord),
-  ("prop_T_Read", mytest prop_T_Read),
-  ("prop_TL_Read", mytest prop_TL_Read),
-  ("prop_T_Show", mytest prop_T_Show),
-  ("prop_TL_Show", mytest prop_TL_Show),
-  ("prop_T_mappend", mytest prop_T_mappend),
-  ("prop_TL_mappend", mytest prop_TL_mappend),
-  ("prop_T_mconcat", mytest prop_T_mconcat),
-  ("prop_TL_mconcat", mytest prop_TL_mconcat),
-  ("prop_T_IsString", mytest prop_T_IsString),
-  ("prop_TL_IsString", mytest prop_TL_IsString),
+  testGroup "instances" [
+    testProperty "s_Eq" prop_S_Eq,
+    testProperty "t_Eq" prop_T_Eq,
+    testProperty "tl_Eq" prop_TL_Eq,
+    testProperty "s_Ord" prop_S_Ord,
+    testProperty "t_Ord" prop_T_Ord,
+    testProperty "tl_Ord" prop_TL_Ord,
+    testProperty "t_Read" prop_T_Read,
+    testProperty "tl_Read" prop_TL_Read,
+    testProperty "t_Show" prop_T_Show,
+    testProperty "tl_Show" prop_TL_Show,
+    testProperty "t_mappend" prop_T_mappend,
+    testProperty "tl_mappend" prop_TL_mappend,
+    testProperty "t_mconcat" prop_T_mconcat,
+    testProperty "tl_mconcat" prop_TL_mconcat,
+    testProperty "t_IsString" prop_T_IsString,
+    testProperty "tl_IsString" prop_TL_IsString
+  ],
 
-  ("prop_S_cons", mytest prop_S_cons),
-  ("prop_T_cons", mytest prop_T_cons),
-  ("prop_TL_cons", mytest prop_TL_cons),
-  ("prop_S_snoc", mytest prop_S_snoc),
-  ("prop_T_snoc", mytest prop_T_snoc),
-  ("prop_TL_snoc", mytest prop_TL_snoc),
-  ("prop_T_append", mytest prop_T_append),
-  ("prop_T_appendS", mytest prop_T_appendS),
-  ("prop_T_uncons", mytest prop_T_uncons),
-  ("prop_TL_uncons", mytest prop_TL_uncons),
-  ("prop_S_head", mytest prop_S_head),
-  ("prop_T_head", mytest prop_T_head),
-  ("prop_TL_head", mytest prop_TL_head),
-  ("prop_S_last", mytest prop_S_last),
-  ("prop_T_last", mytest prop_T_last),
-  ("prop_TL_last", mytest prop_TL_last),
-  ("prop_S_tail", mytest prop_S_tail),
-  ("prop_T_tail", mytest prop_T_tail),
-  ("prop_TL_tail", mytest prop_TL_tail),
-  ("prop_S_init", mytest prop_S_init),
-  ("prop_T_init", mytest prop_T_init),
-  ("prop_TL_init", mytest prop_TL_init),
-  ("prop_S_null", mytest prop_S_null),
-  ("prop_T_null", mytest prop_T_null),
-  ("prop_TL_null", mytest prop_TL_null),
-  ("prop_S_length", mytest prop_S_length),
-  ("prop_T_length", mytest prop_T_length),
-  ("prop_TL_length", mytest prop_TL_length),
+  testGroup "basics" [
+    testProperty "s_cons" prop_S_cons,
+    testProperty "t_cons" prop_T_cons,
+    testProperty "tl_cons" prop_TL_cons,
+    testProperty "s_snoc" prop_S_snoc,
+    testProperty "t_snoc" prop_T_snoc,
+    testProperty "tl_snoc" prop_TL_snoc,
+    testProperty "t_append" prop_T_append,
+    testProperty "t_appendS" prop_T_appendS,
+    testProperty "t_uncons" prop_T_uncons,
+    testProperty "tl_uncons" prop_TL_uncons,
+    testProperty "s_head" prop_S_head,
+    testProperty "t_head" prop_T_head,
+    testProperty "tl_head" prop_TL_head,
+    testProperty "s_last" prop_S_last,
+    testProperty "t_last" prop_T_last,
+    testProperty "tl_last" prop_TL_last,
+    testProperty "s_tail" prop_S_tail,
+    testProperty "t_tail" prop_T_tail,
+    testProperty "tl_tail" prop_TL_tail,
+    testProperty "s_init" prop_S_init,
+    testProperty "t_init" prop_T_init,
+    testProperty "tl_init" prop_TL_init,
+    testProperty "s_null" prop_S_null,
+    testProperty "t_null" prop_T_null,
+    testProperty "tl_null" prop_TL_null,
+    testProperty "s_length" prop_S_length,
+    testProperty "t_length" prop_T_length,
+    testProperty "tl_length" prop_TL_length
+  ],
 
-  ("prop_T_map", mytest prop_T_map),
-  ("prop_TL_map", mytest prop_TL_map),
-  ("prop_T_intercalate", mytest prop_T_intercalate),
-  ("prop_TL_intercalate", mytest prop_TL_intercalate),
-  ("prop_T_intersperse", mytest prop_T_intersperse),
-  ("prop_TL_intersperse", mytest prop_TL_intersperse),
-  ("prop_T_transpose", mytest prop_T_transpose),
-  ("prop_TL_transpose", mytest prop_TL_transpose),
-  ("prop_T_reverse", mytest prop_T_reverse),
-  ("prop_TL_reverse", mytest prop_TL_reverse),
-  ("prop_T_reverse_short", mytest prop_T_reverse_short),
-  ("prop_T_replace", mytest prop_T_replace),
+  testGroup "transformations" [
+    testProperty "t_map" prop_T_map,
+    testProperty "tl_map" prop_TL_map,
+    testProperty "t_intercalate" prop_T_intercalate,
+    testProperty "tl_intercalate" prop_TL_intercalate,
+    testProperty "t_intersperse" prop_T_intersperse,
+    testProperty "tl_intersperse" prop_TL_intersperse,
+    testProperty "t_transpose" prop_T_transpose,
+    testProperty "tl_transpose" prop_TL_transpose,
+    testProperty "t_reverse" prop_T_reverse,
+    testProperty "tl_reverse" prop_TL_reverse,
+    testProperty "t_reverse_short" prop_T_reverse_short,
+    testProperty "t_replace" prop_T_replace,
 
-  ("prop_T_toCaseFold_length", mytest prop_T_toCaseFold_length),
-  ("prop_T_toLower_length", mytest prop_T_toLower_length),
-  ("prop_T_toLower_lower", mytest prop_T_toLower_lower),
-  ("prop_T_toUpper_length", mytest prop_T_toUpper_length),
-  ("prop_T_toUpper_upper", mytest prop_T_toUpper_upper),
+    testGroup "case conversion" [
+      testProperty "t_toCaseFold_length" prop_T_toCaseFold_length,
+      testProperty "t_toLower_length" prop_T_toLower_length,
+      testProperty "t_toLower_lower" prop_T_toLower_lower,
+      testProperty "t_toUpper_length" prop_T_toUpper_length,
+      testProperty "t_toUpper_upper" prop_T_toUpper_upper
+    ],
 
-  ("prop_S_justifyLeft", mytest prop_S_justifyLeft),
-  ("prop_T_justifyLeft", mytest prop_T_justifyLeft),
-  ("prop_T_justifyRight", mytest prop_T_justifyRight),
+    testGroup "justification" [
+      testProperty "s_justifyLeft" prop_S_justifyLeft,
+      testProperty "t_justifyLeft" prop_T_justifyLeft,
+      testProperty "t_justifyRight" prop_T_justifyRight
+    ]
+  ],
 
-  ("prop_T_foldl", mytest prop_T_foldl),
-  ("prop_TL_foldl", mytest prop_TL_foldl),
-  ("prop_T_foldl'", mytest prop_T_foldl'),
-  ("prop_TL_foldl'", mytest prop_TL_foldl'),
-  ("prop_T_foldl1", mytest prop_T_foldl1),
-  ("prop_TL_foldl1", mytest prop_TL_foldl1),
-  ("prop_T_foldl1'", mytest prop_T_foldl1'),
-  ("prop_TL_foldl1'", mytest prop_TL_foldl1'),
-  ("prop_T_foldr", mytest prop_T_foldr),
-  ("prop_TL_foldr", mytest prop_TL_foldr),
-  ("prop_T_foldr1", mytest prop_T_foldr1),
-  ("prop_TL_foldr1", mytest prop_TL_foldr1),
+  testGroup "folds" [
+    testProperty "t_foldl" prop_T_foldl,
+    testProperty "tl_foldl" prop_TL_foldl,
+    testProperty "t_foldl'" prop_T_foldl',
+    testProperty "tl_foldl'" prop_TL_foldl',
+    testProperty "t_foldl1" prop_T_foldl1,
+    testProperty "tl_foldl1" prop_TL_foldl1,
+    testProperty "t_foldl1'" prop_T_foldl1',
+    testProperty "tl_foldl1'" prop_TL_foldl1',
+    testProperty "t_foldr" prop_T_foldr,
+    testProperty "tl_foldr" prop_TL_foldr,
+    testProperty "t_foldr1" prop_T_foldr1,
+    testProperty "tl_foldr1" prop_TL_foldr1,
 
-  ("prop_T_concat", mytest prop_T_concat),
-  ("prop_TL_concat", mytest prop_TL_concat),
-  ("prop_T_concatMap", mytest prop_T_concatMap),
-  ("prop_TL_concatMap", mytest prop_TL_concatMap),
-  ("prop_T_any", mytest prop_T_any),
-  ("prop_TL_any", mytest prop_TL_any),
-  ("prop_T_all", mytest prop_T_all),
-  ("prop_TL_all", mytest prop_TL_all),
-  ("prop_T_maximum", mytest prop_T_maximum),
-  ("prop_TL_maximum", mytest prop_TL_maximum),
-  ("prop_T_minimum", mytest prop_T_minimum),
-  ("prop_TL_minimum", mytest prop_TL_minimum),
+    testGroup "special" [
+      testProperty "t_concat" prop_T_concat,
+      testProperty "tl_concat" prop_TL_concat,
+      testProperty "t_concatMap" prop_T_concatMap,
+      testProperty "tl_concatMap" prop_TL_concatMap,
+      testProperty "t_any" prop_T_any,
+      testProperty "tl_any" prop_TL_any,
+      testProperty "t_all" prop_T_all,
+      testProperty "tl_all" prop_TL_all,
+      testProperty "t_maximum" prop_T_maximum,
+      testProperty "tl_maximum" prop_TL_maximum,
+      testProperty "t_minimum" prop_T_minimum,
+      testProperty "tl_minimum" prop_TL_minimum
+    ]
+  ],
 
-  ("prop_T_scanl", mytest prop_T_scanl),
-  ("prop_TL_scanl", mytest prop_TL_scanl),
-  ("prop_T_scanl1", mytest prop_T_scanl1),
-  ("prop_TL_scanl1", mytest prop_TL_scanl1),
-  ("prop_T_scanr", mytest prop_T_scanr),
-  ("prop_TL_scanr", mytest prop_TL_scanr),
-  ("prop_T_scanr1", mytest prop_T_scanr1),
-  ("prop_TL_scanr1", mytest prop_TL_scanr1),
+  testGroup "construction" [
+    testGroup "scans" [
+      testProperty "t_scanl" prop_T_scanl,
+      testProperty "tl_scanl" prop_TL_scanl,
+      testProperty "t_scanl1" prop_T_scanl1,
+      testProperty "tl_scanl1" prop_TL_scanl1,
+      testProperty "t_scanr" prop_T_scanr,
+      testProperty "tl_scanr" prop_TL_scanr,
+      testProperty "t_scanr1" prop_T_scanr1,
+      testProperty "tl_scanr1" prop_TL_scanr1
+    ],
 
-  ("prop_T_mapAccumL", mytest prop_T_mapAccumL),
-  ("prop_TL_mapAccumL", mytest prop_TL_mapAccumL),
-  ("prop_T_mapAccumR", mytest prop_T_mapAccumR),
-  ("prop_TL_mapAccumR", mytest prop_TL_mapAccumR),
+    testGroup "mapAccum" [
+      testProperty "t_mapAccumL" prop_T_mapAccumL,
+      testProperty "tl_mapAccumL" prop_TL_mapAccumL,
+      testProperty "t_mapAccumR" prop_T_mapAccumR,
+      testProperty "tl_mapAccumR" prop_TL_mapAccumR
+    ],
 
-  ("prop_T_replicate", mytest prop_T_replicate),
-  ("prop_TL_replicate", mytest prop_TL_replicate),
-  ("prop_T_unfoldr", mytest prop_T_unfoldr),
-  ("prop_TL_unfoldr", mytest prop_TL_unfoldr),
-  ("prop_T_unfoldrN", mytest prop_T_unfoldrN),
-  ("prop_TL_unfoldrN", mytest prop_TL_unfoldrN),
+    testGroup "unfolds" [
+      testProperty "t_replicate" prop_T_replicate,
+      testProperty "tl_replicate" prop_TL_replicate,
+      testProperty "t_unfoldr" prop_T_unfoldr,
+      testProperty "tl_unfoldr" prop_TL_unfoldr,
+      testProperty "t_unfoldrN" prop_T_unfoldrN,
+      testProperty "tl_unfoldrN" prop_TL_unfoldrN
+    ]
+  ],
 
-  ("prop_S_take", mytest prop_S_take),
-  ("prop_T_take", mytest prop_T_take),
-  ("prop_TL_take", mytest prop_TL_take),
-  ("prop_S_drop", mytest prop_S_drop),
-  ("prop_T_drop", mytest prop_T_drop),
-  ("prop_TL_drop", mytest prop_TL_drop),
-  ("prop_S_takeWhile", mytest prop_S_takeWhile),
-  ("prop_T_takeWhile", mytest prop_T_takeWhile),
-  ("prop_TL_takeWhile", mytest prop_TL_takeWhile),
-  ("prop_S_dropWhile", mytest prop_S_dropWhile),
-  ("prop_T_dropWhile", mytest prop_T_dropWhile),
-  ("prop_TL_dropWhile", mytest prop_TL_dropWhile),
-  ("prop_S_dropWhileEnd", mytest prop_S_dropWhileEnd),
-  ("prop_T_dropWhileEnd", mytest prop_T_dropWhileEnd),
-  ("prop_T_dropAround", mytest prop_T_dropAround),
-  ("prop_T_stripStart", mytest prop_T_stripStart),
-  ("prop_T_stripEnd", mytest prop_T_stripEnd),
-  ("prop_T_strip", mytest prop_T_strip),
-  ("prop_T_splitAt", mytest prop_T_splitAt),
-  ("prop_T_span", mytest prop_T_span),
-  ("prop_TL_span", mytest prop_TL_span),
-  ("prop_T_break", mytest prop_T_break),
-  ("prop_TL_break", mytest prop_TL_break),
-  ("prop_T_group", mytest prop_T_group),
-  ("prop_TL_group", mytest prop_TL_group),
-  ("prop_T_groupBy", mytest prop_T_groupBy),
-  ("prop_TL_groupBy", mytest prop_TL_groupBy),
-  ("prop_T_inits", mytest prop_T_inits),
-  ("prop_TL_inits", mytest prop_TL_inits),
-  ("prop_T_tails", mytest prop_T_tails),
-  ("prop_TL_tails", mytest prop_TL_tails),
+  testGroup "substrings" [
+    testGroup "breaking" [
+      testProperty "s_take" prop_S_take,
+      testProperty "t_take" prop_T_take,
+      testProperty "tl_take" prop_TL_take,
+      testProperty "s_drop" prop_S_drop,
+      testProperty "t_drop" prop_T_drop,
+      testProperty "tl_drop" prop_TL_drop,
+      testProperty "s_takeWhile" prop_S_takeWhile,
+      testProperty "t_takeWhile" prop_T_takeWhile,
+      testProperty "tl_takeWhile" prop_TL_takeWhile,
+      testProperty "s_dropWhile" prop_S_dropWhile,
+      testProperty "t_dropWhile" prop_T_dropWhile,
+      testProperty "tl_dropWhile" prop_TL_dropWhile,
+      testProperty "s_dropWhileEnd" prop_S_dropWhileEnd,
+      testProperty "t_dropWhileEnd" prop_T_dropWhileEnd,
+      testProperty "t_dropAround" prop_T_dropAround,
+      testProperty "t_stripStart" prop_T_stripStart,
+      testProperty "t_stripEnd" prop_T_stripEnd,
+      testProperty "t_strip" prop_T_strip,
+      testProperty "t_splitAt" prop_T_splitAt,
+      testProperty "tl_splitAt" prop_TL_splitAt,
+      testProperty "t_span" prop_T_span,
+      testProperty "tl_span" prop_TL_span,
+      testProperty "t_break" prop_T_break,
+      testProperty "tl_break" prop_TL_break,
+      testProperty "t_group" prop_T_group,
+      testProperty "tl_group" prop_TL_group,
+      testProperty "t_groupBy" prop_T_groupBy,
+      testProperty "tl_groupBy" prop_TL_groupBy,
+      testProperty "t_inits" prop_T_inits,
+      testProperty "tl_inits" prop_TL_inits,
+      testProperty "t_tails" prop_T_tails,
+      testProperty "tl_tails" prop_TL_tails
+    ],
 
-  ("prop_T_split_i", mytest prop_T_split_i),
-  ("prop_T_splitTimes_i", mytest prop_T_splitTimes_i),
-  ("prop_T_splitTimes_split", mytest prop_T_splitTimes_split),
-  ("prop_T_splitTimesEnd_i", mytest prop_T_splitTimesEnd_i),
-  ("prop_T_splitTimesEnd_split", mytest prop_T_splitTimesEnd_split),
-  ("prop_TL_split_i", mytest prop_TL_split_i),
-  ("prop_T_splitWith", mytest prop_T_splitWith),
-  ("prop_T_splitWith_count", mytest prop_T_splitWith_count),
-  ("prop_T_splitWith_split", mytest prop_T_splitWith_split),
-  ("prop_T_splitWith_Csplit", mytest prop_T_splitWith_Csplit),
-  ("prop_TL_splitWith", mytest prop_TL_splitWith),
-  ("prop_T_chunksOf_same_lengths", mytest prop_T_chunksOf_same_lengths),
-  ("prop_T_chunksOf_length", mytest prop_T_chunksOf_length),
-  ("prop_T_breakSubstringC", mytest prop_T_breakSubstringC),
-  ("prop_T_breakSubstring_isInfixOf", mytest prop_T_breakSubstring_isInfixOf),
+    testGroup "breaking many" [
+      testProperty "t_split_i" prop_T_split_i,
+      testProperty "t_splitTimes_i" prop_T_splitTimes_i,
+      testProperty "t_splitTimes_split" prop_T_splitTimes_split,
+      testProperty "t_splitTimesEnd_i" prop_T_splitTimesEnd_i,
+      testProperty "t_splitTimesEnd_split" prop_T_splitTimesEnd_split,
+      testProperty "tl_split_i" prop_TL_split_i,
+      testProperty "t_splitWith" prop_T_splitWith,
+      testProperty "t_splitWith_count" prop_T_splitWith_count,
+      testProperty "t_splitWith_split" prop_T_splitWith_split,
+      testProperty "t_splitWith_Csplit" prop_T_splitWith_Csplit,
+      testProperty "tl_splitWith" prop_TL_splitWith,
+      testProperty "t_chunksOf_same_lengths" prop_T_chunksOf_same_lengths,
+      testProperty "t_chunksOf_length" prop_T_chunksOf_length,
+      testProperty "t_breakSubstringC" prop_T_breakSubstringC,
+      testProperty "t_breakSubstring_isInfixOf" prop_T_breakSubstring_isInfixOf
+    ],
 
-  ("prop_T_lines", mytest prop_T_lines),
-  ("prop_TL_lines", mytest prop_TL_lines),
---("prop_T_lines'", mytest prop_T_lines'),
-  ("prop_T_words", mytest prop_T_words),
-  ("prop_TL_words", mytest prop_TL_words),
-  ("prop_T_unlines", mytest prop_T_unlines),
-  ("prop_TL_unlines", mytest prop_TL_unlines),
-  ("prop_T_unwords", mytest prop_T_unwords),
-  ("prop_TL_unwords", mytest prop_TL_unwords),
+    testGroup "lines and words" [
+      testProperty "t_lines" prop_T_lines,
+      testProperty "tl_lines" prop_TL_lines,
+    --testProperty "t_lines'" prop_T_lines',
+      testProperty "t_words" prop_T_words,
+      testProperty "tl_words" prop_TL_words,
+      testProperty "t_unlines" prop_T_unlines,
+      testProperty "tl_unlines" prop_TL_unlines,
+      testProperty "t_unwords" prop_T_unwords,
+      testProperty "tl_unwords" prop_TL_unwords
+    ]
+  ],
 
-  ("prop_S_isPrefixOf", mytest prop_S_isPrefixOf),
-  ("prop_T_isPrefixOf", mytest prop_T_isPrefixOf),
-  ("prop_TL_isPrefixOf", mytest prop_TL_isPrefixOf),
-  ("prop_T_isSuffixOf", mytest prop_T_isSuffixOf),
-  ("prop_TL_isSuffixOf", mytest prop_TL_isSuffixOf),
-  ("prop_T_isInfixOf", mytest prop_T_isInfixOf),
-  ("prop_TL_isInfixOf", mytest prop_TL_isInfixOf),
+  testGroup "predicates" [
+    testProperty "s_isPrefixOf" prop_S_isPrefixOf,
+    testProperty "t_isPrefixOf" prop_T_isPrefixOf,
+    testProperty "tl_isPrefixOf" prop_TL_isPrefixOf,
+    testProperty "t_isSuffixOf" prop_T_isSuffixOf,
+    testProperty "tl_isSuffixOf" prop_TL_isSuffixOf,
+    testProperty "t_isInfixOf" prop_T_isInfixOf,
+    testProperty "tl_isInfixOf" prop_TL_isInfixOf
+  ],
 
-  ("prop_T_elem", mytest prop_T_elem),
-  ("prop_TL_elem", mytest prop_TL_elem),
-  ("prop_T_filter", mytest prop_T_filter),
-  ("prop_TL_filter", mytest prop_TL_filter),
-  ("prop_T_find", mytest prop_T_find),
-  ("prop_TL_find", mytest prop_TL_find),
-  ("prop_T_partition", mytest prop_T_partition),
-  ("prop_TL_partition", mytest prop_TL_partition),
+  testGroup "searching" [
+    testProperty "t_elem" prop_T_elem,
+    testProperty "tl_elem" prop_TL_elem,
+    testProperty "t_filter" prop_T_filter,
+    testProperty "tl_filter" prop_TL_filter,
+    testProperty "t_find" prop_T_find,
+    testProperty "tl_find" prop_TL_find,
+    testProperty "t_partition" prop_T_partition,
+    testProperty "tl_partition" prop_TL_partition
+  ],
 
-  ("prop_T_index", mytest prop_T_index),
-  ("prop_TL_index", mytest prop_TL_index),
-  ("prop_T_findIndex", mytest prop_T_findIndex),
-  ("prop_TL_findIndex", mytest prop_TL_findIndex),
-  ("prop_T_findIndices", mytest prop_T_findIndices),
-  ("prop_TL_findIndices", mytest prop_TL_findIndices),
-  ("prop_T_elemIndex", mytest prop_T_elemIndex),
-  ("prop_TL_elemIndex", mytest prop_TL_elemIndex),
-  ("prop_T_elemIndices", mytest prop_T_elemIndices),
-  ("prop_TL_elemIndices", mytest prop_TL_elemIndices),
-  ("prop_T_count", mytest prop_T_count),
-  ("prop_TL_count", mytest prop_TL_count),
-  ("prop_T_zip", mytest prop_T_zip),
-  ("prop_TL_zip", mytest prop_TL_zip),
-  ("prop_T_zipWith", mytest prop_T_zipWith),
-  ("prop_TL_zipWith", mytest prop_TL_zipWith),
+  testGroup "indexing" [
+    testProperty "t_index" prop_T_index,
+    testProperty "tl_index" prop_TL_index,
+    testProperty "t_findIndex" prop_T_findIndex,
+    testProperty "tl_findIndex" prop_TL_findIndex,
+    testProperty "t_findIndices" prop_T_findIndices,
+    testProperty "tl_findIndices" prop_TL_findIndices,
+    testProperty "t_elemIndex" prop_T_elemIndex,
+    testProperty "tl_elemIndex" prop_TL_elemIndex,
+    testProperty "t_elemIndices" prop_T_elemIndices,
+    testProperty "tl_elemIndices" prop_TL_elemIndices,
+    testProperty "t_count" prop_T_count,
+    testProperty "tl_count" prop_TL_count
+  ],
 
-  ("prop_S_filter_eq", mytest prop_S_filter_eq)
+  testGroup "zips" [
+    testProperty "t_zip" prop_T_zip,
+    testProperty "tl_zip" prop_TL_zip,
+    testProperty "t_zipWith" prop_T_zipWith,
+    testProperty "tl_zipWith" prop_TL_zipWith
+  ],
+
+  testGroup "regressions" [
+    testProperty "s_filter_eq" prop_S_filter_eq
   ]
+ ]
