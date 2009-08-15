@@ -65,7 +65,7 @@ module Data.Text.Fusion.Common
     , scanl
 
     -- ** Accumulating maps
-    , mapAccumL
+    -- , mapAccumL
 
     -- ** Generation and unfolding
     , replicate
@@ -552,6 +552,7 @@ scanl f z0 (Stream next0 s0 len) = Stream next (S1 :!: z0 :!: s0) (len+1) -- HIN
 -- -----------------------------------------------------------------------------
 -- ** Accumulating maps
 
+{-
 -- | /O(n)/ Like a combination of 'map' and 'foldl'. Applies a
 -- function to each element of a stream, passing an accumulating
 -- parameter from left to right, and returns a final stream.
@@ -569,6 +570,7 @@ mapAccumL f z0 (Stream next0 s0 len) = Stream next (s0 :!: z0) len -- HINT depen
                        Skip s'    -> Skip (s' :!: z)
                        Done       -> Done
 {-# INLINE [0] mapAccumL #-}
+-}
 
 -- -----------------------------------------------------------------------------
 -- ** Generating and unfolding streams
