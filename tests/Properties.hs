@@ -157,32 +157,43 @@ t_append s        = (s++)    `eqP` (unpackS . T.append (packS s))
 uncons (x:xs) = Just (x,xs)
 uncons _      = Nothing
 
-t_uncons s        = uncons   `eqP` (fmap (second unpackS) . T.uncons)
-    where _types = s :: String
-tl_uncons s       = uncons   `eqP` (fmap (second unpackS) . TL.uncons)
-    where _types = s :: String
+s_uncons          = uncons   `eqP` (fmap (second unpackS) . S.uncons)
+sf_uncons p       = (uncons . L.filter p) `eqP` (fmap (second unpackS) . S.uncons . S.filter p)
+t_uncons          = uncons   `eqP` (fmap (second unpackS) . T.uncons)
+tl_uncons         = uncons   `eqP` (fmap (second unpackS) . TL.uncons)
 s_head            = head   `eqP` S.head
+sf_head p         = (head . L.filter p) `eqP` (S.head . S.filter p)
 t_head            = head   `eqP` T.head
 tl_head           = head   `eqP` TL.head
 s_last            = last   `eqP` S.last
+sf_last p         = (last . L.filter p) `eqP` (S.last . S.filter p)
 t_last            = last   `eqP` T.last
 tl_last           = last   `eqP` TL.last
 s_tail            = tail   `eqP` (unpackS . S.tail)
+sf_tail p         = (tail . L.filter p) `eqP` (unpackS . S.tail . S.filter p)
 t_tail            = tail   `eqP` (unpackS . T.tail)
 tl_tail           = tail   `eqP` (unpackS . TL.tail)
 s_init            = init   `eqP` (unpackS . S.init)
+sf_init p         = (init . L.filter p) `eqP` (unpackS . S.init . S.filter p)
 t_init            = init   `eqP` (unpackS . T.init)
 tl_init           = init   `eqP` (unpackS . TL.init)
 s_null            = null   `eqP` S.null
+sf_null p         = (null . L.filter p) `eqP` (S.null . S.filter p)
 t_null            = null   `eqP` T.null
 tl_null           = null   `eqP` TL.null
 s_length          = length `eqP` S.length
+sf_length p       = (length . L.filter p) `eqP` (S.length . S.filter p)
 t_length          = length `eqP` T.length
 tl_length         = length `eqP` (fromIntegral . TL.length)
+
+s_map f           = map f  `eqP` (unpackS . S.map f)
+sf_map p f        = (map f . L.filter p)  `eqP` (unpackS . S.map f . S.filter p)
 t_map f           = map f  `eqP` (unpackS . T.map f)
 tl_map f          = map f  `eqP` (unpackS . TL.map f)
 t_intercalate c   = unsquare (L.intercalate c `eq` (unpackS . T.intercalate (packS c) . map packS))
 tl_intercalate c  = unsquare (L.intercalate c `eq` (unpackS . TL.intercalate (TL.pack c) . map TL.pack))
+s_intersperse c   = L.intersperse c `eqP` (unpackS . S.intersperse c)
+sf_intersperse p c= (L.intersperse c . L.filter p) `eqP` (unpackS . S.intersperse c . S.filter p)
 t_intersperse c   = L.intersperse c `eqP` (unpackS . T.intersperse c)
 tl_intersperse c  = L.intersperse c `eqP` (unpackS . TL.intersperse c)
 t_transpose       = unsquare (L.transpose `eq` (map unpackS . T.transpose . map packS))
@@ -206,6 +217,11 @@ split pat src0
             | pat `L.isPrefixOf` s = take n src : go (drop l s)
             | otherwise            = search (n+1) s'
 
+s_toCaseFold_length xs = S.length (S.toCaseFold s) >= length xs
+    where s = S.streamList xs
+sf_toCaseFold_length p xs =
+    (S.length . S.toCaseFold . S.filter p $ s) >= (length . L.filter p $ xs)
+    where s = S.streamList xs
 t_toCaseFold_length t = T.length (T.toCaseFold t) >= T.length t
 t_toLower_length t = T.length (T.toLower t) >= T.length t
 t_toLower_lower t = p (T.toLower t) >= p t
@@ -217,42 +233,60 @@ t_toUpper_upper t = p (T.toUpper t) >= p t
 justifyLeft k c s = s ++ replicate (k - length s) c
 
 s_justifyLeft k c = justifyLeft k c `eqP` (unpackS . S.justifyLeft k c)
+sf_justifyLeft p k c =
+    (justifyLeft k c . L.filter p) `eqP` (unpackS . S.justifyLeft k c . S.filter p)
 t_justifyLeft k c = justifyLeft k c `eqP` (unpackS . T.justifyLeft k c)
 t_justifyRight k c = jr k c `eqP` (unpackS . T.justifyRight k c)
     where jr m n s = replicate (m - length s) n ++ s
 
+sf_foldl p f z     = (L.foldl f z . L.filter p)  `eqP` (S.foldl f z . S.filter p)
+    where _types  = f :: Char -> Char -> Char
 t_foldl f z       = L.foldl f z  `eqP` (T.foldl f z)
-    where _types       = f :: Char -> Char -> Char
+    where _types  = f :: Char -> Char -> Char
 tl_foldl f z      = L.foldl f z  `eqP` (TL.foldl f z)
-    where _types       = f :: Char -> Char -> Char
+    where _types  = f :: Char -> Char -> Char
+sf_foldl' p f z   = (L.foldl' f z . L.filter p) `eqP` (S.foldl' f z . S.filter p)
+    where _types  = f :: Char -> Char -> Char
 t_foldl' f z      = L.foldl' f z `eqP` T.foldl' f z
-    where _types       = f :: Char -> Char -> Char
+    where _types  = f :: Char -> Char -> Char
 tl_foldl' f z     = L.foldl' f z `eqP` TL.foldl' f z
-    where _types       = f :: Char -> Char -> Char
+    where _types  = f :: Char -> Char -> Char
+sf_foldl1 p f     = (L.foldl1 f . L.filter p) `eqP` (S.foldl1 f . S.filter p)
 t_foldl1 f        = L.foldl1 f   `eqP` T.foldl1 f
 tl_foldl1 f       = L.foldl1 f   `eqP` TL.foldl1 f
+sf_foldl1' p f    = (L.foldl1' f . L.filter p) `eqP` (S.foldl1' f . S.filter p)
 t_foldl1' f       = L.foldl1' f  `eqP` T.foldl1' f
 tl_foldl1' f      = L.foldl1' f  `eqP` TL.foldl1' f
+sf_foldr p f z    = (L.foldr f z . L.filter p) `eqP` (S.foldr f z . S.filter p)
+    where _types  = f :: Char -> Char -> Char
 t_foldr f z       = L.foldr f z  `eqP` T.foldr f z
-    where _types       = f :: Char -> Char -> Char
+    where _types  = f :: Char -> Char -> Char
 tl_foldr f z      = L.foldr f z  `eqP` TL.foldr f z
-    where _types       = f :: Char -> Char -> Char
+    where _types  = f :: Char -> Char -> Char
+sf_foldr1 p f     = (L.foldr1 f . L.filter p) `eqP` (S.foldr1 f . S.filter p)
 t_foldr1 f        = L.foldr1 f   `eqP` T.foldr1 f
 tl_foldr1 f       = L.foldr1 f   `eqP` TL.foldr1 f
 
+sf_concat p       = unsquare ((L.concat . map (L.filter p)) `eq` (unpackS . S.concat . map (S.filter p . packS)))
 t_concat          = unsquare (L.concat `eq` (unpackS . T.concat . map packS))
 tl_concat         = unsquare (L.concat `eq` (unpackS . TL.concat . map TL.pack))
+sf_concatMap p f  = unsquare ((L.concatMap f . L.filter p) `eqP` (unpackS . S.concatMap (packS . f) . S.filter p))
 t_concatMap f     = unsquare (L.concatMap f `eqP` (unpackS . T.concatMap (packS . f)))
 tl_concatMap f    = unsquare (L.concatMap f `eqP` (unpackS . TL.concatMap (TL.pack . f)))
+sf_any q p        = (L.any p . L.filter q) `eqP` (S.any p . S.filter q)
 t_any p           = L.any p       `eqP` T.any p
 tl_any p          = L.any p       `eqP` TL.any p
+sf_all q p        = (L.all p . L.filter q) `eqP` (S.all p . S.filter q)
 t_all p           = L.all p       `eqP` T.all p
 tl_all p          = L.all p       `eqP` TL.all p
+sf_maximum p      = (L.maximum . L.filter p) `eqP` (S.maximum . S.filter p)
 t_maximum         = L.maximum     `eqP` T.maximum
 tl_maximum        = L.maximum     `eqP` TL.maximum
+sf_minimum p      = (L.minimum . L.filter p) `eqP` (S.minimum . S.filter p)
 t_minimum         = L.minimum     `eqP` T.minimum
 tl_minimum        = L.minimum     `eqP` TL.minimum
 
+sf_scanl p f z    = (L.scanl f z . L.filter p) `eqP` (unpackS . S.scanl f z . S.filter p)
 t_scanl f z       = L.scanl f z   `eqP` (unpackS . T.scanl f z)
 tl_scanl f z      = L.scanl f z   `eqP` (unpackS . TL.scanl f z)
 t_scanl1 f        = L.scanl1 f    `eqP` (unpackS . T.scanl1 f)
@@ -289,22 +323,25 @@ unpack2 :: (Stringy s) => (s,s) -> (String,String)
 unpack2 = unpackS *** unpackS
 
 s_take n          = L.take n      `eqP` (unpackS . S.take n)
+sf_take p n       = (L.take n . L.filter p) `eqP` (unpackS . S.take n . S.filter p)
 t_take n          = L.take n      `eqP` (unpackS . T.take n)
 tl_take n         = L.take n      `eqP` (unpackS . TL.take (fromIntegral n))
 s_drop n          = L.drop n      `eqP` (unpackS . S.drop n)
+sf_drop p n       = (L.drop n . L.filter p) `eqP` (unpackS . S.drop n . S.filter p)
 t_drop n          = L.drop n      `eqP` (unpackS . T.drop n)
 tl_drop n         = L.drop n      `eqP` (unpackS . TL.drop n)
 s_takeWhile p     = L.takeWhile p `eqP` (unpackS . S.takeWhile p)
+sf_takeWhile q p  = (L.takeWhile p . L.filter q) `eqP` (unpackS . S.takeWhile p . S.filter q)
 t_takeWhile p     = L.takeWhile p `eqP` (unpackS . T.takeWhile p)
 tl_takeWhile p    = L.takeWhile p `eqP` (unpackS . TL.takeWhile p)
 s_dropWhile p     = L.dropWhile p `eqP` (unpackS . S.dropWhile p)
+sf_dropWhile q p  = (L.dropWhile p . L.filter q) `eqP` (unpackS . S.dropWhile p . S.filter q)
 t_dropWhile p     = L.dropWhile p `eqP` (unpackS . T.dropWhile p)
 tl_dropWhile p    = L.dropWhile p `eqP` (unpackS . S.dropWhile p)
-s_dropWhileEnd p  = T.dropWhileEnd p `eq` (S.reverse . S.dropWhile p . S.reverseStream)
-t_dropWhileEnd p  = (T.reverse . T.dropWhile p . T.reverse) `eq` T.dropWhileEnd p
-t_dropAround p    = (T.dropWhile p . T.dropWhileEnd p) `eq` T.dropAround p
-t_stripStart       = T.dropWhile isSpace `eq` T.stripStart
-t_stripEnd      = T.dropWhileEnd isSpace `eq` T.stripEnd
+t_dropWhileEnd p  = (L.reverse . L.dropWhile p . L.reverse) `eqP` (unpackS . T.dropWhileEnd p)
+t_dropAround p    = (L.dropWhile p . L.reverse . L.dropWhile p . L.reverse) `eqP` (unpackS . T.dropAround p)
+t_stripStart      = T.dropWhile isSpace `eq` T.stripStart
+t_stripEnd        = T.dropWhileEnd isSpace `eq` T.stripEnd
 t_strip           = T.dropAround isSpace `eq` T.strip
 t_splitAt n       = L.splitAt n   `eqP` (unpack2 . T.splitAt n)
 tl_splitAt n      = L.splitAt n   `eqP` (unpack2 . TL.splitAt (fromIntegral n))
@@ -378,7 +415,8 @@ tl_unlines        = unsquare (L.unlines `eq` (unpackS . TL.unlines . map packS))
 t_unwords         = unsquare (L.unwords `eq` (unpackS . T.unwords . map packS))
 tl_unwords        = unsquare (L.unwords `eq` (unpackS . TL.unwords . map packS))
 
-s_isPrefixOf s    = L.isPrefixOf s`eqP` (S.isPrefixOf (S.stream $ packS s) . S.stream)
+s_isPrefixOf s    = L.isPrefixOf s `eqP` (S.isPrefixOf (S.stream $ packS s) . S.stream)
+sf_isPrefixOf p s = (L.isPrefixOf s . L.filter p) `eqP` (S.isPrefixOf (S.stream $ packS s) . S.filter p . S.stream)
 t_isPrefixOf s    = L.isPrefixOf s`eqP` T.isPrefixOf (packS s)
 tl_isPrefixOf s   = L.isPrefixOf s`eqP` TL.isPrefixOf (packS s)
 t_isSuffixOf s    = L.isSuffixOf s`eqP` T.isSuffixOf (packS s)
@@ -386,33 +424,44 @@ tl_isSuffixOf s   = L.isSuffixOf s`eqP` TL.isSuffixOf (packS s)
 t_isInfixOf s     = L.isInfixOf s `eqP` T.isInfixOf (packS s)
 tl_isInfixOf s    = L.isInfixOf s `eqP` TL.isInfixOf (packS s)
 
+sf_elem p c       = (L.elem c . L.filter p) `eqP` (S.elem c . S.filter p)
 t_elem c          = L.elem c      `eqP` T.elem c
 tl_elem c         = L.elem c      `eqP` TL.elem c
+sf_filter q p     = (L.filter p . L.filter q) `eqP` (unpackS . S.filter p . S.filter q)
 t_filter p        = L.filter p    `eqP` (unpackS . T.filter p)
 tl_filter p       = L.filter p    `eqP` (unpackS . TL.filter p)
+sf_find q p       = (L.find p . L.filter q) `eqP` (S.find p . S.filter q)
 t_find p          = L.find p      `eqP` T.find p
 tl_find p         = L.find p      `eqP` TL.find p
 t_partition p     = L.partition p `eqP` (unpack2 . T.partition p)
 tl_partition p    = L.partition p `eqP` (unpack2 . TL.partition p)
 
+sf_index p s      = forAll (choose (-l,l*2)) ((L.filter p s L.!!) `eq` S.index (S.filter p $ packS s))
+    where l = L.length s
 t_index s         = forAll (choose (-l,l*2)) ((s L.!!) `eq` T.index (packS s))
     where l = L.length s
 
 tl_index s        = forAll (choose (-l,l*2)) ((s L.!!) `eq` (TL.index (packS s) . fromIntegral))
     where l = L.length s
 
+sf_findIndex q p  = (L.findIndex p . L.filter q) `eqP` (S.findIndex p . S.filter q)
 t_findIndex p     = L.findIndex p `eqP` T.findIndex p
 tl_findIndex p    = (fmap fromIntegral . L.findIndex p) `eqP` TL.findIndex p
+sf_findIndices q p= (L.findIndices p . L.filter q) `eqP` (S.findIndices p . S.filter q)
 t_findIndices p   = L.findIndices p `eqP` T.findIndices p
 tl_findIndices p  = (fmap fromIntegral . L.findIndices p) `eqP` TL.findIndices p
+sf_elemIndex p c  = (L.elemIndex c . L.filter p) `eqP` (S.elemIndex c . S.filter p)
 t_elemIndex c     = L.elemIndex c `eqP` T.elemIndex c
 tl_elemIndex c    = (fmap fromIntegral . L.elemIndex c) `eqP` TL.elemIndex c
+sf_elemIndices p c= (L.elemIndices c . L.filter p) `eqP` (S.elemIndices c . S.filter p)
 t_elemIndices c   = L.elemIndices c`eqP` T.elemIndices c
 tl_elemIndices c  = (fmap fromIntegral . L.elemIndices c) `eqP` TL.elemIndices c
+sf_count p c      = (L.length . L.elemIndices c . L.filter p) `eqP` (S.count c . S.filter p)
 t_count c         = (L.length . L.elemIndices c) `eqP` T.count c
 tl_count c        = (fromIntegral . L.length . L.elemIndices c) `eqP` TL.count c
 t_zip s           = L.zip s `eqP` T.zip (packS s)
 tl_zip s          = L.zip s `eqP` TL.zip (packS s)
+sf_zipWith p c s  = (L.zipWith c (L.filter p s) . L.filter p) `eqP` (unpackS . S.zipWith c (S.filter p $ packS s) . S.filter p)
 t_zipWith c s     = L.zipWith c s `eqP` (unpackS . T.zipWith c (packS s))
 tl_zipWith c s    = L.zipWith c s `eqP` (unpackS . TL.zipWith c (packS s))
 
@@ -486,33 +535,45 @@ tests = [
     testProperty "s_append" s_append,
     testProperty "sf_append" sf_append,
     testProperty "t_append" t_append,
+    testProperty "s_uncons" s_uncons,
+    testProperty "sf_uncons" sf_uncons,
     testProperty "t_uncons" t_uncons,
     testProperty "tl_uncons" tl_uncons,
     testProperty "s_head" s_head,
+    testProperty "sf_head" sf_head,
     testProperty "t_head" t_head,
     testProperty "tl_head" tl_head,
     testProperty "s_last" s_last,
+    testProperty "sf_last" sf_last,
     testProperty "t_last" t_last,
     testProperty "tl_last" tl_last,
     testProperty "s_tail" s_tail,
+    testProperty "sf_tail" sf_tail,
     testProperty "t_tail" t_tail,
     testProperty "tl_tail" tl_tail,
     testProperty "s_init" s_init,
+    testProperty "sf_init" sf_init,
     testProperty "t_init" t_init,
     testProperty "tl_init" tl_init,
     testProperty "s_null" s_null,
+    testProperty "sf_null" sf_null,
     testProperty "t_null" t_null,
     testProperty "tl_null" tl_null,
     testProperty "s_length" s_length,
+    testProperty "sf_length" sf_length,
     testProperty "t_length" t_length,
     testProperty "tl_length" tl_length
   ],
 
   testGroup "transformations" [
+    testProperty "s_map" s_map,
+    testProperty "sf_map" sf_map,
     testProperty "t_map" t_map,
     testProperty "tl_map" tl_map,
     testProperty "t_intercalate" t_intercalate,
     testProperty "tl_intercalate" tl_intercalate,
+    testProperty "s_intersperse" s_intersperse,
+    testProperty "sf_intersperse" sf_intersperse,
     testProperty "t_intersperse" t_intersperse,
     testProperty "tl_intersperse" tl_intersperse,
     testProperty "t_transpose" t_transpose,
@@ -523,6 +584,8 @@ tests = [
     testProperty "t_replace" t_replace,
 
     testGroup "case conversion" [
+      testProperty "s_toCaseFold_length" s_toCaseFold_length,
+      testProperty "sf_toCaseFold_length" sf_toCaseFold_length,
       testProperty "t_toCaseFold_length" t_toCaseFold_length,
       testProperty "t_toLower_length" t_toLower_length,
       testProperty "t_toLower_lower" t_toLower_lower,
@@ -532,36 +595,49 @@ tests = [
 
     testGroup "justification" [
       testProperty "s_justifyLeft" s_justifyLeft,
+      testProperty "sf_justifyLeft" sf_justifyLeft,
       testProperty "t_justifyLeft" t_justifyLeft,
       testProperty "t_justifyRight" t_justifyRight
     ]
   ],
 
   testGroup "folds" [
+    testProperty "sf_foldl" sf_foldl,
     testProperty "t_foldl" t_foldl,
     testProperty "tl_foldl" tl_foldl,
+    testProperty "sf_foldl'" sf_foldl',
     testProperty "t_foldl'" t_foldl',
     testProperty "tl_foldl'" tl_foldl',
+    testProperty "sf_foldl1" sf_foldl1,
     testProperty "t_foldl1" t_foldl1,
     testProperty "tl_foldl1" tl_foldl1,
     testProperty "t_foldl1'" t_foldl1',
+    testProperty "sf_foldl1'" sf_foldl1',
     testProperty "tl_foldl1'" tl_foldl1',
+    testProperty "sf_foldr" sf_foldr,
     testProperty "t_foldr" t_foldr,
     testProperty "tl_foldr" tl_foldr,
+    testProperty "sf_foldr1" sf_foldr1,
     testProperty "t_foldr1" t_foldr1,
     testProperty "tl_foldr1" tl_foldr1,
 
     testGroup "special" [
+      testProperty "sf_concat" sf_concat,
       testProperty "t_concat" t_concat,
       testProperty "tl_concat" tl_concat,
+      testProperty "sf_concatMap" sf_concatMap,
       testProperty "t_concatMap" t_concatMap,
       testProperty "tl_concatMap" tl_concatMap,
+      testProperty "sf_any" sf_any,
       testProperty "t_any" t_any,
       testProperty "tl_any" tl_any,
+      testProperty "sf_all" sf_all,
       testProperty "t_all" t_all,
       testProperty "tl_all" tl_all,
+      testProperty "sf_maximum" sf_maximum,
       testProperty "t_maximum" t_maximum,
       testProperty "tl_maximum" tl_maximum,
+      testProperty "sf_minimum" sf_minimum,
       testProperty "t_minimum" t_minimum,
       testProperty "tl_minimum" tl_minimum
     ]
@@ -569,6 +645,7 @@ tests = [
 
   testGroup "construction" [
     testGroup "scans" [
+      testProperty "sf_scanl" sf_scanl,
       testProperty "t_scanl" t_scanl,
       testProperty "tl_scanl" tl_scanl,
       testProperty "t_scanl1" t_scanl1,
@@ -599,18 +676,21 @@ tests = [
   testGroup "substrings" [
     testGroup "breaking" [
       testProperty "s_take" s_take,
+      testProperty "sf_take" sf_take,
       testProperty "t_take" t_take,
       testProperty "tl_take" tl_take,
       testProperty "s_drop" s_drop,
+      testProperty "sf_drop" sf_drop,
       testProperty "t_drop" t_drop,
       testProperty "tl_drop" tl_drop,
       testProperty "s_takeWhile" s_takeWhile,
+      testProperty "sf_takeWhile" sf_takeWhile,
       testProperty "t_takeWhile" t_takeWhile,
       testProperty "tl_takeWhile" tl_takeWhile,
+      testProperty "sf_dropWhile" sf_dropWhile,
       testProperty "s_dropWhile" s_dropWhile,
       testProperty "t_dropWhile" t_dropWhile,
       testProperty "tl_dropWhile" tl_dropWhile,
-      testProperty "s_dropWhileEnd" s_dropWhileEnd,
       testProperty "t_dropWhileEnd" t_dropWhileEnd,
       testProperty "t_dropAround" t_dropAround,
       testProperty "t_stripStart" t_stripStart,
@@ -665,6 +745,7 @@ tests = [
 
   testGroup "predicates" [
     testProperty "s_isPrefixOf" s_isPrefixOf,
+    testProperty "sf_isPrefixOf" sf_isPrefixOf,
     testProperty "t_isPrefixOf" t_isPrefixOf,
     testProperty "tl_isPrefixOf" tl_isPrefixOf,
     testProperty "t_isSuffixOf" t_isSuffixOf,
@@ -674,10 +755,13 @@ tests = [
   ],
 
   testGroup "searching" [
+    testProperty "sf_elem" sf_elem,
     testProperty "t_elem" t_elem,
     testProperty "tl_elem" tl_elem,
+    testProperty "sf_filter" sf_filter,
     testProperty "t_filter" t_filter,
     testProperty "tl_filter" tl_filter,
+    testProperty "sf_find" sf_find,
     testProperty "t_find" t_find,
     testProperty "tl_find" tl_find,
     testProperty "t_partition" t_partition,
@@ -685,16 +769,22 @@ tests = [
   ],
 
   testGroup "indexing" [
+    testProperty "sf_index" sf_index,
     testProperty "t_index" t_index,
     testProperty "tl_index" tl_index,
+    testProperty "sf_findIndex" sf_findIndex,
     testProperty "t_findIndex" t_findIndex,
     testProperty "tl_findIndex" tl_findIndex,
+    testProperty "sf_findIndices" sf_findIndices,
     testProperty "t_findIndices" t_findIndices,
     testProperty "tl_findIndices" tl_findIndices,
+    testProperty "sf_elemIndex" sf_elemIndex,
     testProperty "t_elemIndex" t_elemIndex,
     testProperty "tl_elemIndex" tl_elemIndex,
+    testProperty "sf_elemIndices" sf_elemIndices,
     testProperty "t_elemIndices" t_elemIndices,
     testProperty "tl_elemIndices" tl_elemIndices,
+    testProperty "sf_count" sf_count,
     testProperty "t_count" t_count,
     testProperty "tl_count" tl_count
   ],
@@ -702,6 +792,7 @@ tests = [
   testGroup "zips" [
     testProperty "t_zip" t_zip,
     testProperty "tl_zip" tl_zip,
+    testProperty "sf_zipWith" sf_zipWith,
     testProperty "t_zipWith" t_zipWith,
     testProperty "tl_zipWith" tl_zipWith
   ],
