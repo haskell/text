@@ -119,6 +119,12 @@ eqP a b s w  = eq "orig" (a s) (b t) &&
           eq s a b | a =^= b   = True
                    | otherwise = trace (s ++ ": " ++ show a ++ " /= " ++ show b) False
 
+-- For tests that have O(n^2) running times or input sizes, resize
+-- their inputs to the square root of the originals.
+unsquare :: (Arbitrary a, Show a, Testable b) => (a -> b) -> Property
+unsquare = forAll . sized $ \n -> resize (smaller n) arbitrary
+    where smaller = round . sqrt . fromIntegral
+
 prop_S_Eq s            = (s==)    `eq` ((S.stream s==) . S.stream)
 prop_T_Eq s            = (s==)    `eq` ((T.pack s==) . T.pack)
 prop_TL_Eq s           = (s==)    `eq` ((TL.pack s==) . TL.pack)
@@ -131,8 +137,8 @@ prop_T_Show            = show     `eq` (show . T.pack)
 prop_TL_Show           = show     `eq` (show . TL.pack)
 prop_T_mappend s       = mappend s`eqP` (unpackS . mappend (T.pack s))
 prop_TL_mappend s      = mappend s`eqP` (unpackS . mappend (TL.pack s))
-prop_T_mconcat         = mconcat  `eq` (unpackS . mconcat . L.map T.pack)
-prop_TL_mconcat        = mconcat  `eq` (unpackS . mconcat . L.map TL.pack)
+prop_T_mconcat         = unsquare (mconcat `eq` (unpackS . mconcat . L.map T.pack))
+prop_TL_mconcat        = unsquare (mconcat `eq` (unpackS . mconcat . L.map TL.pack))
 prop_T_IsString        = fromString  `eqP` (T.unpack . fromString)
 prop_TL_IsString       = fromString  `eqP` (TL.unpack . fromString)
 
@@ -172,12 +178,12 @@ prop_T_length          = length `eqP` T.length
 prop_TL_length         = length `eqP` (fromIntegral . TL.length)
 prop_T_map f           = map f  `eqP` (unpackS . T.map f)
 prop_TL_map f          = map f  `eqP` (unpackS . TL.map f)
-prop_T_intercalate c   = L.intercalate c `eq` (unpackS . T.intercalate (packS c) . map packS)
-prop_TL_intercalate c  = L.intercalate c `eq` (unpackS . TL.intercalate (TL.pack c) . map TL.pack)
+prop_T_intercalate c   = unsquare (L.intercalate c `eq` (unpackS . T.intercalate (packS c) . map packS))
+prop_TL_intercalate c  = unsquare (L.intercalate c `eq` (unpackS . TL.intercalate (TL.pack c) . map TL.pack))
 prop_T_intersperse c   = L.intersperse c `eqP` (unpackS . T.intersperse c)
 prop_TL_intersperse c  = L.intersperse c `eqP` (unpackS . TL.intersperse c)
-prop_T_transpose       = L.transpose `eq` (map unpackS . T.transpose . map packS)
-prop_TL_transpose      = L.transpose `eq` (map unpackS . TL.transpose . map TL.pack)
+prop_T_transpose       = unsquare (L.transpose `eq` (map unpackS . T.transpose . map packS))
+prop_TL_transpose      = unsquare (L.transpose `eq` (map unpackS . TL.transpose . map TL.pack))
 prop_T_reverse         = L.reverse `eqP` (unpackS . T.reverse)
 prop_TL_reverse        = L.reverse `eqP` (unpackS . TL.reverse)
 prop_T_reverse_short n = L.reverse `eqP` (unpackS . S.reverse . shorten n . S.stream)
@@ -231,10 +237,10 @@ prop_TL_foldr f z      = L.foldr f z  `eqP` TL.foldr f z
 prop_T_foldr1 f        = L.foldr1 f   `eqP` T.foldr1 f
 prop_TL_foldr1 f       = L.foldr1 f   `eqP` TL.foldr1 f
 
-prop_T_concat          = L.concat      `eq`   (unpackS . T.concat . map packS)
-prop_TL_concat         = L.concat      `eq`   (unpackS . TL.concat . map TL.pack)
-prop_T_concatMap f     = L.concatMap f `eqP` (unpackS . T.concatMap (packS . f))
-prop_TL_concatMap f    = L.concatMap f `eqP` (unpackS . TL.concatMap (TL.pack . f))
+prop_T_concat          = unsquare (L.concat `eq` (unpackS . T.concat . map packS))
+prop_TL_concat         = unsquare (L.concat `eq` (unpackS . TL.concat . map TL.pack))
+prop_T_concatMap f     = unsquare (L.concatMap f `eqP` (unpackS . T.concatMap (packS . f)))
+prop_TL_concatMap f    = unsquare (L.concatMap f `eqP` (unpackS . TL.concatMap (TL.pack . f)))
 prop_T_any p           = L.any p       `eqP` T.any p
 prop_TL_any p          = L.any p       `eqP` TL.any p
 prop_T_all p           = L.all p       `eqP` T.all p
@@ -362,11 +368,12 @@ prop_T_lines'          = lines'        `eqP` (map unpackS . T.lines')
           eol c = c == '\r' || c == '\n'
 -}
 prop_T_words           = L.words       `eqP` (map unpackS . T.words)
+
 prop_TL_words          = L.words       `eqP` (map unpackS . TL.words)
-prop_T_unlines         = L.unlines     `eq`  (unpackS . T.unlines . map packS)
-prop_TL_unlines        = L.unlines     `eq`  (unpackS . TL.unlines . map packS)
-prop_T_unwords         = L.unwords     `eq`  (unpackS . T.unwords . map packS)
-prop_TL_unwords        = L.unwords     `eq`  (unpackS . TL.unwords . map packS)
+prop_T_unlines         = unsquare (L.unlines `eq` (unpackS . T.unlines . map packS))
+prop_TL_unlines        = unsquare (L.unlines `eq` (unpackS . TL.unlines . map packS))
+prop_T_unwords         = unsquare (L.unwords `eq` (unpackS . T.unwords . map packS))
+prop_TL_unwords        = unsquare (L.unwords `eq` (unpackS . TL.unwords . map packS))
 
 prop_S_isPrefixOf s    = L.isPrefixOf s`eqP` (S.isPrefixOf (S.stream $ packS s) . S.stream)
 prop_T_isPrefixOf s    = L.isPrefixOf s`eqP` T.isPrefixOf (packS s)
@@ -385,10 +392,12 @@ prop_TL_find p         = L.find p      `eqP` TL.find p
 prop_T_partition p     = L.partition p `eqP` (unpack2 . T.partition p)
 prop_TL_partition p    = L.partition p `eqP` (unpack2 . TL.partition p)
 
-prop_T_index x s       = x < L.length s && x >= 0 ==>
-                         (L.!!) s x == T.index (packS s) x
-prop_TL_index x s      = x < L.length s && x >= 0 ==>
-                         (L.!!) s x == TL.index (packS s) (fromIntegral x)
+prop_T_index s         = forAll (choose (-l,l*2)) ((s L.!!) `eq` T.index (packS s))
+    where l = L.length s
+
+prop_TL_index s        = forAll (choose (-l,l*2)) ((s L.!!) `eq` (TL.index (packS s) . fromIntegral))
+    where l = L.length s
+
 prop_T_findIndex p     = L.findIndex p `eqP` T.findIndex p
 prop_TL_findIndex p    = (fmap fromIntegral . L.findIndex p) `eqP` TL.findIndex p
 prop_T_findIndices p   = L.findIndices p `eqP` T.findIndices p
@@ -644,6 +653,7 @@ tests = [
   ("prop_TL_partition", mytest prop_TL_partition),
 
   ("prop_T_index", mytest prop_T_index),
+  ("prop_TL_index", mytest prop_TL_index),
   ("prop_T_findIndex", mytest prop_T_findIndex),
   ("prop_TL_findIndex", mytest prop_TL_findIndex),
   ("prop_T_findIndices", mytest prop_T_findIndices),
