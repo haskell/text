@@ -43,6 +43,7 @@ coverage: qc-hpc-html/hpc_index.html
 qc-hpc-html/hpc_index.html: qc-hpc
 	./qc-hpc -a 500 +RTS -N2
 	hpc markup qc-hpc --exclude=Main --exclude=Properties \
+	  --exclude=Data.Text.Fusion.CaseMapping \
 	  --exclude=QuickCheckUtils --srcdir=.. --srcdir=. --destdir=$(dir $@)
 
 %.o: %.hs
