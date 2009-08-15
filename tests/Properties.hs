@@ -118,10 +118,18 @@ unsquare :: (Arbitrary a, Show a, Testable b) => (a -> b) -> Property
 unsquare = forAll . sized $ \n -> resize (smaller n) arbitrary
     where smaller = round . (sqrt :: Double -> Double) . fromIntegral
 
-prop_S_Eq s            = (s==)    `eq` ((S.stream s==) . S.stream)
+prop_S_Eq s            = (s==)    `eq` ((S.streamList s==) . S.streamList)
+    where _types = s :: String
+prop_Sf_Eq p s =
+    ((L.filter p s==) . L.filter p) `eq`
+    (((S.filter p $ S.streamList s)==) . S.filter p . S.streamList)
 prop_T_Eq s            = (s==)    `eq` ((T.pack s==) . T.pack)
 prop_TL_Eq s           = (s==)    `eq` ((TL.pack s==) . TL.pack)
-prop_S_Ord s           = (compare s) `eq` (compare (S.stream s) . S.stream)
+prop_S_Ord s           = (compare s) `eq` (compare (S.streamList s) . S.streamList)
+    where _types = s :: String
+prop_Sf_Ord p s =
+    ((compare $ L.filter p s) . L.filter p) `eq`
+    (compare (S.filter p $ S.streamList s) . S.filter p . S.streamList)
 prop_T_Ord s           = (compare s) `eq` (compare (T.pack s) . T.pack)
 prop_TL_Ord s          = (compare s) `eq` (compare (TL.pack s) . TL.pack)
 prop_T_Read            = id       `eq` (T.unpack . read . show)
@@ -446,9 +454,11 @@ tests = [
 
   testGroup "instances" [
     testProperty "s_Eq" prop_S_Eq,
+    testProperty "sf_Eq" prop_Sf_Eq,
     testProperty "t_Eq" prop_T_Eq,
     testProperty "tl_Eq" prop_TL_Eq,
     testProperty "s_Ord" prop_S_Ord,
+    testProperty "sf_Ord" prop_Sf_Ord,
     testProperty "t_Ord" prop_T_Ord,
     testProperty "tl_Ord" prop_TL_Ord,
     testProperty "t_Read" prop_T_Read,
