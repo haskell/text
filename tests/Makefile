@@ -9,13 +9,20 @@ lib := ../dist/build/libHStext-$(version).a
 lib-srcs := $(shell grep '^  *Data' ../text.cabal | \
                     sed -e 's,\.,/,g' -e 's,$$,.hs,')
 
+cabal := $(shell which cabal 2>/dev/null)
+
 all: qc coverage
 
 lib: $(lib)
 
 $(lib): $(lib-srcs:%=../%)
+ifeq ($(cabal),)
 	cd .. && runghc Setup configure --user --prefix=$(HOME)
 	cd .. && runghc Setup build
+else
+	cd .. && cabal configure
+	cd .. && cabal build
+endif
 
 Properties.o: QuickCheckUtils.o
 
