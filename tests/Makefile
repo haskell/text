@@ -17,8 +17,12 @@ $(lib): $(lib-srcs:%=../%)
 	cd .. && runghc Setup configure --user --prefix=$(HOME)
 	cd .. && runghc Setup build
 
-qc: $(lib) QuickCheckUtils.o Properties.o
-	$(ghc) $(ghc-flags) -o $@ $^
+Properties.o: QuickCheckUtils.o
+
+QuickCheckUtils.o: $(lib)
+
+qc: Properties.o QuickCheckUtils.o
+	$(ghc) $(ghc-flags) -o $@ $^ $(lib)
 
 qc-hpc: Properties.hs QuickCheckUtils.hs $(lib-srcs:%=../%)
 	-mkdir -p hpcdir
