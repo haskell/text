@@ -2,7 +2,7 @@ version := $(shell awk '/^version:/{print $$2}' ../text.cabal)
 ghc := ghc
 ghc-base-flags := -O -funbox-strict-fields \
 	-package bytestring -package QuickCheck -package test-framework \
-	-package test-framework-quickcheck -ignore-package text \
+	-package test-framework-quickcheck -ignore-package text
 ghc-base-flags += -Wall -fno-warn-orphans -fno-warn-missing-signatures
 ghc-flags := $(ghc-base-flags) -i../dist/build -package-name text-$(version)
 ghc-hpc-flags := $(ghc-base-flags) -fhpc -fno-ignore-asserts -odir hpcdir \
