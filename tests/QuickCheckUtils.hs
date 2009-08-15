@@ -2,7 +2,7 @@
 
 module QuickCheckUtils where
 
-import Data.Word (Word8, Word16)
+import Data.Word (Word8, Word16, Word32)
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import System.Random (Random(..), RandomGen)
@@ -31,6 +31,14 @@ instance Random Word16 where
     random  = randomR (minBound,maxBound)
 
 instance Arbitrary Word16 where
+    arbitrary     = choose (minBound,maxBound)
+    coarbitrary c = variant (fromEnum c `rem` 4)
+
+instance Random Word32 where
+    randomR = integralRandomR
+    random  = randomR (minBound,maxBound)
+
+instance Arbitrary Word32 where
     arbitrary     = choose (minBound,maxBound)
     coarbitrary c = variant (fromEnum c `rem` 4)
 

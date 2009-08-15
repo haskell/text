@@ -5,12 +5,13 @@
 import Test.QuickCheck
 import Text.Show.Functions ()
 
+import qualified Data.Bits as Bits (shiftL, shiftR)
 import Data.Char (chr, isLower, isSpace, isUpper, ord)
 import Data.Monoid (Monoid(..))
 import Data.String (fromString)
 import Debug.Trace (trace)
 import Control.Arrow ((***), second)
-import Data.Word (Word8)
+import Data.Word (Word8, Word16, Word32)
 import qualified Data.Text as T
 import qualified Data.Text.Compat as C
 import qualified Data.Text.Lazy as TL
@@ -20,6 +21,7 @@ import qualified Data.Text.Fusion as S
 import qualified Data.Text.Fusion.Common as S
 import qualified Data.Text.Lazy.Encoding as EL
 import qualified Data.Text.Lazy.Fusion as SL
+import qualified Data.Text.UnsafeShift as U
 import qualified Data.List as L
 import System.IO.Unsafe (unsafePerformIO)
 import Test.Framework (defaultMain, testGroup)
@@ -465,6 +467,21 @@ sf_zipWith p c s  = (L.zipWith c (L.filter p s) . L.filter p) `eqP` (unpackS . S
 t_zipWith c s     = L.zipWith c s `eqP` (unpackS . T.zipWith c (packS s))
 tl_zipWith c s    = L.zipWith c s `eqP` (unpackS . TL.zipWith c (packS s))
 
+-- Bit shifts.
+shiftL w = forAll (choose (0,width-1)) $ \k -> Bits.shiftL w k == U.shiftL w k
+    where width = round (log (fromIntegral m) / log 2)
+          (m,_) = (maxBound, m == w)
+shiftR w = forAll (choose (0,width-1)) $ \k -> Bits.shiftR w k == U.shiftR w k
+    where width = round (log (fromIntegral m) / log 2)
+          (m,_) = (maxBound, m == w)
+
+shiftL_Int    = shiftL :: Int -> Property
+shiftL_Word16 = shiftL :: Word16 -> Property
+shiftL_Word32 = shiftL :: Word32 -> Property
+shiftR_Int    = shiftR :: Int -> Property
+shiftR_Word16 = shiftR :: Word16 -> Property
+shiftR_Word32 = shiftR :: Word32 -> Property
+
 -- Regression tests.
 s_filter_eq s = S.filter p t == S.streamList (filter p s)
     where p = (/= S.last t)
@@ -799,5 +816,14 @@ tests = [
 
   testGroup "regressions" [
     testProperty "s_filter_eq" s_filter_eq
+  ],
+
+  testGroup "shifts" [
+    testProperty "shiftL_Int" shiftL_Int,
+    testProperty "shiftL_Word16" shiftL_Word16,
+    testProperty "shiftL_Word32" shiftL_Word32,
+    testProperty "shiftR_Int" shiftR_Int,
+    testProperty "shiftR_Word16" shiftR_Word16,
+    testProperty "shiftR_Word32" shiftR_Word32
   ]
  ]

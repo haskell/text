@@ -33,14 +33,14 @@ class UnsafeShift a where
 
 instance UnsafeShift Word16 where
     {-# INLINE shiftL #-}
-    shiftL (W16# x#) (I# i#) = W16# (x# `uncheckedShiftL#` i#)
+    shiftL (W16# x#) (I# i#) = W16# (narrow16Word# (x# `uncheckedShiftL#` i#))
 
     {-# INLINE shiftR #-}
     shiftR (W16# x#) (I# i#) = W16# (x# `uncheckedShiftRL#` i#)
 
 instance UnsafeShift Word32 where
     {-# INLINE shiftL #-}
-    shiftL (W32# x#) (I# i#) = W32# (x# `uncheckedShiftL#` i#)
+    shiftL (W32# x#) (I# i#) = W32# (narrow32Word# (x# `uncheckedShiftL#` i#))
 
     {-# INLINE shiftR #-}
     shiftR (W32# x#) (I# i#) = W32# (x# `uncheckedShiftRL#` i#)
