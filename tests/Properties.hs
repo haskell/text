@@ -144,13 +144,15 @@ prop_T_IsString        = fromString  `eqP` (T.unpack . fromString)
 prop_TL_IsString       = fromString  `eqP` (TL.unpack . fromString)
 
 prop_S_cons x          = (x:)     `eqP` (unpackS . S.cons x)
+prop_Sf_cons p x       = ((x:) . L.filter p) `eqP` (unpackS . S.cons x . S.filter p)
 prop_T_cons x          = (x:)     `eqP` (unpackS . T.cons x)
 prop_TL_cons x         = (x:)     `eqP` (unpackS . TL.cons x)
 prop_S_snoc x          = (++ [x]) `eqP` (unpackS . (flip S.snoc) x)
 prop_T_snoc x          = (++ [x]) `eqP` (unpackS . (flip T.snoc) x)
 prop_TL_snoc x         = (++ [x]) `eqP` (unpackS . (flip TL.snoc) x)
+prop_S_append s        = (s++)    `eqP` (unpackS . S.append (S.streamList s))
+prop_Sf_append p s     = (L.filter p s++) `eqP` (unpackS . S.append (S.filter p $ S.streamList s))
 prop_T_append s        = (s++)    `eqP` (unpackS . T.append (packS s))
-prop_T_appendS s       = (s++)    `eqP` (unpackS . S.unstream . S.append (S.stream (packS s)) . S.stream)
 
 uncons (x:xs) = Just (x,xs)
 uncons _      = Nothing
@@ -475,13 +477,15 @@ tests = [
 
   testGroup "basics" [
     testProperty "s_cons" prop_S_cons,
+    testProperty "sf_cons" prop_Sf_cons,
     testProperty "t_cons" prop_T_cons,
     testProperty "tl_cons" prop_TL_cons,
     testProperty "s_snoc" prop_S_snoc,
     testProperty "t_snoc" prop_T_snoc,
     testProperty "tl_snoc" prop_TL_snoc,
+    testProperty "s_append" prop_S_append,
+    testProperty "sf_append" prop_Sf_append,
     testProperty "t_append" prop_T_append,
-    testProperty "t_appendS" prop_T_appendS,
     testProperty "t_uncons" prop_T_uncons,
     testProperty "tl_uncons" prop_TL_uncons,
     testProperty "s_head" prop_S_head,
