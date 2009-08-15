@@ -1,4 +1,5 @@
-{-# LANGUAGE BangPatterns, FlexibleInstances, TypeSynonymInstances #-}
+{-# LANGUAGE BangPatterns, FlexibleInstances, ScopedTypeVariables,
+             TypeSynonymInstances #-}
 {-# OPTIONS_GHC -fno-enable-rewrite-rules #-}
 
 import Test.QuickCheck
@@ -30,14 +31,20 @@ import Prelude hiding (catch)
 
 import QuickCheckUtils
 
--- If a pure property threatens to crash, wrap it with this to keep
--- QuickCheck from bombing out.
-crashy :: a -> a -> a
-{-# NOINLINE crashy #-}
-crashy onException p = unsafePerformIO $
-    (return $! p) `catch` \e ->
-    let types = e :: SomeException
-    in trace ("*** Exception: " ++ show e) return onException
+-- Ensure that two potentially bottom values (in the sense of crashing
+-- for some inputs, not looping infinitely) either both crash, or both
+-- give comparable results for some input.
+(=^=) :: (Eq a, Show a) => a -> a -> Bool
+{-# NOINLINE (=^=) #-}
+i =^= j = unsafePerformIO $ do
+  x <- try (return $! i)
+  y <- try (return $! j)
+  case (x,y) of
+    (Left (_ :: SomeException), Left (_ :: SomeException))
+                       -> return True
+    (Right a, Right b) -> return (a == b)
+    e                  -> trace ("*** Divergence: " ++ show e) return False
+infix 4 =^=
 
 tracer f a = let r = f a
              in trace (show r) r
@@ -91,8 +98,8 @@ instance Stringy TL.Text where
     splitAtS = TL.splitAt . fromIntegral
 
 -- Do two functions give the same answer?
-eq :: (Eq a) => (t -> a) -> (t -> a) -> t -> Bool
-eq a b s  = crashy False $ a s == b s
+eq :: (Eq a, Show a) => (t -> a) -> (t -> a) -> t -> Bool
+eq a b s  = a s =^= b s
 
 -- What about with the RHS packed?
 eqP :: (Eq a, Show a, Stringy s) =>
@@ -109,25 +116,8 @@ eqP a b s w  = eq "orig" (a s) (b t) &&
           m | l == 0    = n
             | otherwise = n `mod` l
           n             = fromIntegral w
-          eq s a b | crashy False $ a == b = True
+          eq s a b | a =^= b   = True
                    | otherwise = trace (s ++ ": " ++ show a ++ " /= " ++ show b) False
-
--- Or with the string non-empty, and the RHS packed?
-eqEP :: (Eq a, Stringy s) =>
-        (String -> a) -> (s -> a) -> NotEmpty String -> Word8 -> Bool
-eqEP a b e w  = a s == b t &&
-                a s == b mini &&
-                (null sa || a sa == b ta) &&
-                (null sb || a sb == b tb)
-    where (sa,sb)       = splitAt m s
-          (ta,tb)       = splitAtS m t
-          t             = packS s
-          mini          = packSChunkSize 10 s
-          l             = length s
-          m | l == 0    = n
-            | otherwise = n `mod` l
-          n             = fromIntegral w
-          s             = notEmpty e
 
 prop_S_Eq s            = (s==)    `eq` ((S.stream s==) . S.stream)
 prop_T_Eq s            = (s==)    `eq` ((T.pack s==) . T.pack)
@@ -162,26 +152,26 @@ prop_T_uncons s        = uncons   `eqP` (fmap (second unpackS) . T.uncons)
     where types = s :: String
 prop_TL_uncons s       = uncons   `eqP` (fmap (second unpackS) . TL.uncons)
     where types = s :: String
-prop_S_head            = head   `eqEP` S.head
-prop_T_head            = head   `eqEP` T.head
-prop_TL_head           = head   `eqEP` TL.head
-prop_S_last            = last   `eqEP` S.last
-prop_T_last            = last   `eqEP` T.last
-prop_TL_last           = last   `eqEP` TL.last
-prop_S_tail            = tail   `eqEP` (unpackS . S.tail)
-prop_T_tail            = tail   `eqEP` (unpackS . T.tail)
-prop_TL_tail           = tail   `eqEP` (unpackS . TL.tail)
-prop_S_init            = init   `eqEP` (unpackS . S.init)
-prop_T_init            = init   `eqEP` (unpackS . T.init)
-prop_TL_init           = init   `eqEP` (unpackS . TL.init)
-prop_S_null            = null   `eqP`  S.null
-prop_T_null            = null   `eqP`  T.null
-prop_TL_null           = null   `eqP`  TL.null
-prop_S_length          = length `eqP`  S.length
-prop_T_length          = length `eqP`  T.length
-prop_TL_length         = length `eqP`  (fromIntegral . TL.length)
-prop_T_map f           = map f  `eqP`  (unpackS . T.map f)
-prop_TL_map f          = map f  `eqP`  (unpackS . TL.map f)
+prop_S_head            = head   `eqP` S.head
+prop_T_head            = head   `eqP` T.head
+prop_TL_head           = head   `eqP` TL.head
+prop_S_last            = last   `eqP` S.last
+prop_T_last            = last   `eqP` T.last
+prop_TL_last           = last   `eqP` TL.last
+prop_S_tail            = tail   `eqP` (unpackS . S.tail)
+prop_T_tail            = tail   `eqP` (unpackS . T.tail)
+prop_TL_tail           = tail   `eqP` (unpackS . TL.tail)
+prop_S_init            = init   `eqP` (unpackS . S.init)
+prop_T_init            = init   `eqP` (unpackS . T.init)
+prop_TL_init           = init   `eqP` (unpackS . TL.init)
+prop_S_null            = null   `eqP` S.null
+prop_T_null            = null   `eqP` T.null
+prop_TL_null           = null   `eqP` TL.null
+prop_S_length          = length `eqP` S.length
+prop_T_length          = length `eqP` T.length
+prop_TL_length         = length `eqP` (fromIntegral . TL.length)
+prop_T_map f           = map f  `eqP` (unpackS . T.map f)
+prop_TL_map f          = map f  `eqP` (unpackS . TL.map f)
 prop_T_intercalate c   = L.intercalate c `eq` (unpackS . T.intercalate (packS c) . map packS)
 prop_TL_intercalate c  = L.intercalate c `eq` (unpackS . TL.intercalate (TL.pack c) . map TL.pack)
 prop_T_intersperse c   = L.intersperse c `eqP` (unpackS . T.intersperse c)
@@ -222,46 +212,46 @@ prop_T_justifyLeft k c = justifyLeft k c `eqP` (unpackS . T.justifyLeft k c)
 prop_T_justifyRight k c = jr k c `eqP` (unpackS . T.justifyRight k c)
     where jr k c s = replicate (k - length s) c ++ s
 
-prop_T_foldl f z       = L.foldl f z  `eqP`  (T.foldl f z)
+prop_T_foldl f z       = L.foldl f z  `eqP` (T.foldl f z)
     where types        = f :: Char -> Char -> Char
-prop_TL_foldl f z      = L.foldl f z  `eqP`  (TL.foldl f z)
+prop_TL_foldl f z      = L.foldl f z  `eqP` (TL.foldl f z)
     where types        = f :: Char -> Char -> Char
-prop_T_foldl' f z      = L.foldl' f z `eqP`  T.foldl' f z
+prop_T_foldl' f z      = L.foldl' f z `eqP` T.foldl' f z
     where types        = f :: Char -> Char -> Char
-prop_TL_foldl' f z     = L.foldl' f z `eqP`  TL.foldl' f z
+prop_TL_foldl' f z     = L.foldl' f z `eqP` TL.foldl' f z
     where types        = f :: Char -> Char -> Char
-prop_T_foldl1 f        = L.foldl1 f   `eqEP` T.foldl1 f
-prop_TL_foldl1 f       = L.foldl1 f   `eqEP` TL.foldl1 f
-prop_T_foldl1' f       = L.foldl1' f  `eqEP` T.foldl1' f
-prop_TL_foldl1' f      = L.foldl1' f  `eqEP` TL.foldl1' f
-prop_T_foldr f z       = L.foldr f z  `eqP`  T.foldr f z
+prop_T_foldl1 f        = L.foldl1 f   `eqP` T.foldl1 f
+prop_TL_foldl1 f       = L.foldl1 f   `eqP` TL.foldl1 f
+prop_T_foldl1' f       = L.foldl1' f  `eqP` T.foldl1' f
+prop_TL_foldl1' f      = L.foldl1' f  `eqP` TL.foldl1' f
+prop_T_foldr f z       = L.foldr f z  `eqP` T.foldr f z
     where types        = f :: Char -> Char -> Char
-prop_TL_foldr f z      = L.foldr f z  `eqP`  TL.foldr f z
+prop_TL_foldr f z      = L.foldr f z  `eqP` TL.foldr f z
     where types        = f :: Char -> Char -> Char
-prop_T_foldr1 f        = L.foldr1 f   `eqEP` T.foldr1 f
-prop_TL_foldr1 f       = L.foldr1 f   `eqEP` TL.foldr1 f
+prop_T_foldr1 f        = L.foldr1 f   `eqP` T.foldr1 f
+prop_TL_foldr1 f       = L.foldr1 f   `eqP` TL.foldr1 f
 
 prop_T_concat          = L.concat      `eq`   (unpackS . T.concat . map packS)
 prop_TL_concat         = L.concat      `eq`   (unpackS . TL.concat . map TL.pack)
-prop_T_concatMap f     = L.concatMap f `eqP`  (unpackS . T.concatMap (packS . f))
-prop_TL_concatMap f    = L.concatMap f `eqP`  (unpackS . TL.concatMap (TL.pack . f))
-prop_T_any p           = L.any p       `eqP`  T.any p
-prop_TL_any p          = L.any p       `eqP`  TL.any p
-prop_T_all p           = L.all p       `eqP`  T.all p
-prop_TL_all p          = L.all p       `eqP`  TL.all p
-prop_T_maximum         = L.maximum     `eqEP` T.maximum
-prop_TL_maximum        = L.maximum     `eqEP` TL.maximum
-prop_T_minimum         = L.minimum     `eqEP` T.minimum
-prop_TL_minimum        = L.minimum     `eqEP` TL.minimum
+prop_T_concatMap f     = L.concatMap f `eqP` (unpackS . T.concatMap (packS . f))
+prop_TL_concatMap f    = L.concatMap f `eqP` (unpackS . TL.concatMap (TL.pack . f))
+prop_T_any p           = L.any p       `eqP` T.any p
+prop_TL_any p          = L.any p       `eqP` TL.any p
+prop_T_all p           = L.all p       `eqP` T.all p
+prop_TL_all p          = L.all p       `eqP` TL.all p
+prop_T_maximum         = L.maximum     `eqP` T.maximum
+prop_TL_maximum        = L.maximum     `eqP` TL.maximum
+prop_T_minimum         = L.minimum     `eqP` T.minimum
+prop_TL_minimum        = L.minimum     `eqP` TL.minimum
 
-prop_T_scanl f z       = L.scanl f z   `eqP`  (unpackS . T.scanl f z)
-prop_TL_scanl f z      = L.scanl f z   `eqP`  (unpackS . TL.scanl f z)
-prop_T_scanl1 f        = L.scanl1 f    `eqP`  (unpackS . T.scanl1 f)
-prop_TL_scanl1 f       = L.scanl1 f    `eqP`  (unpackS . TL.scanl1 f)
-prop_T_scanr f z       = L.scanr f z   `eqP`  (unpackS . T.scanr f z)
-prop_TL_scanr f z      = L.scanr f z   `eqP`  (unpackS . TL.scanr f z)
-prop_T_scanr1 f        = L.scanr1 f    `eqP`  (unpackS . T.scanr1 f)
-prop_TL_scanr1 f       = L.scanr1 f    `eqP`  (unpackS . TL.scanr1 f)
+prop_T_scanl f z       = L.scanl f z   `eqP` (unpackS . T.scanl f z)
+prop_TL_scanl f z      = L.scanl f z   `eqP` (unpackS . TL.scanl f z)
+prop_T_scanl1 f        = L.scanl1 f    `eqP` (unpackS . T.scanl1 f)
+prop_TL_scanl1 f       = L.scanl1 f    `eqP` (unpackS . TL.scanl1 f)
+prop_T_scanr f z       = L.scanr f z   `eqP` (unpackS . T.scanr f z)
+prop_TL_scanr f z      = L.scanr f z   `eqP` (unpackS . TL.scanr f z)
+prop_T_scanr1 f        = L.scanr1 f    `eqP` (unpackS . T.scanr1 f)
+prop_TL_scanr1 f       = L.scanr1 f    `eqP` (unpackS . TL.scanr1 f)
 
 prop_T_mapAccumL f z   = L.mapAccumL f z `eqP` (second unpackS . T.mapAccumL f z)
     where types = f :: Int -> Char -> (Int,Char)
