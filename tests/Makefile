@@ -1,7 +1,7 @@
 version := $(shell awk '/^version:/{print $$2}' ../text.cabal)
 ghc := ghc
-ghc-base-flags := -O0 -package bytestring -package QuickCheck \
-	-ignore-package text
+ghc-base-flags := -O -funbox-strict-fields -package bytestring \
+	-package QuickCheck -ignore-package text
 ghc-flags := $(ghc-base-flags) -i../dist/build -package-name text-$(version)
 ghc-hpc-flags := $(ghc-base-flags) -fhpc -fno-ignore-asserts -odir hpcdir \
 	-hidir hpcdir -i..
@@ -32,7 +32,7 @@ qc-hpc: Properties.hs QuickCheckUtils.hs $(lib-srcs:%=../%)
 coverage: qc-hpc-html/hpc_index.html
 
 qc-hpc-html/hpc_index.html: qc-hpc
-	./qc-hpc
+	./qc-hpc 500
 	hpc markup qc-hpc --exclude=Main --exclude=Properties \
 	  --exclude=QuickCheckUtils --srcdir=.. --srcdir=. --destdir=$(dir $@)
 
