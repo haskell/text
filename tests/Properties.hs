@@ -469,10 +469,10 @@ tl_zipWith c s    = L.zipWith c s `eqP` (unpackS . TL.zipWith c (packS s))
 
 -- Bit shifts.
 shiftL w = forAll (choose (0,width-1)) $ \k -> Bits.shiftL w k == U.shiftL w k
-    where width = round (log (fromIntegral m) / log 2)
+    where width = round (log (fromIntegral m) / log 2 :: Double)
           (m,_) = (maxBound, m == w)
 shiftR w = forAll (choose (0,width-1)) $ \k -> Bits.shiftR w k == U.shiftR w k
-    where width = round (log (fromIntegral m) / log 2)
+    where width = round (log (fromIntegral m) / log 2 :: Double)
           (m,_) = (maxBound, m == w)
 
 shiftL_Int    = shiftL :: Int -> Property
