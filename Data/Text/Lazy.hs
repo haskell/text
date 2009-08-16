@@ -394,9 +394,9 @@ justifyLeft k c t
 {-# INLINE [1] justifyLeft #-}
 
 {-# RULES
-"TEXT justifyLeft -> fused" [~1] forall k c t.
+"LAZY TEXT justifyLeft -> fused" [~1] forall k c t.
     justifyLeft k c t = unstream (S.justifyLeftI k c (stream t))
-"TEXT justifyLeft -> unfused" [1] forall k c t.
+"LAZY TEXT justifyLeft -> unfused" [1] forall k c t.
     unstream (S.justifyLeftI k c (stream t)) = justifyLeft k c t
   #-}
 
