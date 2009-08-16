@@ -1,4 +1,5 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# LANGUAGE BangPatterns #-}
 -- |
 -- Module      : Data.Text.Lazy
 -- Copyright   : (c) Bryan O'Sullivan 2009
@@ -57,6 +58,7 @@ module Data.Text.Lazy
     , intersperse
     , transpose
     , reverse
+    , replace
 
     -- ** Case conversion
     -- $case
@@ -109,6 +111,11 @@ module Data.Text.Lazy
     , drop
     , takeWhile
     , dropWhile
+    , dropWhileEnd
+    , dropAround
+    , strip
+    , stripStart
+    , stripEnd
     , splitAt
     , span
     , break
@@ -118,7 +125,10 @@ module Data.Text.Lazy
     , tails
 
     -- ** Breaking into many substrings
+    -- $split
     , split
+    , splitTimes
+    , splitTimesEnd
     , splitWith
     , chunksOf
     -- , breakSubstring
@@ -160,7 +170,7 @@ module Data.Text.Lazy
 
 import Prelude (Char, Bool(..), Int, Maybe(..), String,
                 Eq(..), Ord(..), Read(..), Show(..),
-                (&&), (+), (-), (.), ($), (++),
+                (&&), (||), (+), (-), (.), ($), (++),
                 div, flip, fromIntegral, not, otherwise)
 import qualified Prelude as P
 import Data.Int (Int64)
@@ -430,6 +440,14 @@ reverse = rev Empty
   where rev a Empty        = a
         rev a (Chunk t ts) = rev (Chunk (T.reverse t) a) ts
 
+-- | /O(m)*O(n)/ Replace every occurrence of one substring with another.
+replace :: Text                 -- ^ Text to search for
+        -> Text                 -- ^ Replacement text
+        -> Text                 -- ^ Input text
+        -> Text
+replace s d = intercalate d . split s
+{-# INLINE replace #-}
+
 -- ----------------------------------------------------------------------------
 -- ** Case conversions (folds)
 
@@ -662,7 +680,7 @@ take i t0         = take' i t0
 -- | /O(n)/ 'drop' @n@, applied to a 'Text', returns the suffix of the
 -- 'Text' of length @n@, or the empty 'Text' if @n@ is greater than the
 -- length of the 'Text'. Subject to fusion.
-drop :: Int -> Text -> Text
+drop :: Int64 -> Text -> Text
 drop i t0
     | i <= 0 = t0
     | otherwise = drop' i t0
@@ -718,6 +736,52 @@ dropWhile p t0 = dropWhile' t0
 "LAZY TEXT dropWhile -> unfused" [1] forall p t.
     unstream (S.dropWhile p (stream t)) = dropWhile p t
   #-}
+-- | /O(n)/ 'dropWhileEnd' @p@ @t@ returns the prefix remaining after
+-- dropping characters that fail the predicate @p@ from the end of
+-- @t@.
+-- Examples:
+--
+-- > dropWhileEnd (=='.') "foo..." == "foo"
+dropWhileEnd :: (Char -> Bool) -> Text -> Text
+dropWhileEnd p = go
+  where go Empty = Empty
+        go (Chunk t Empty) = if T.null t'
+                             then Empty
+                             else Chunk t' Empty
+            where t' = T.dropWhileEnd p t
+        go (Chunk t ts) = case go ts of
+                            Empty -> go (Chunk t Empty)
+                            ts' -> Chunk t ts'
+{-# INLINE dropWhileEnd #-}
+
+-- | /O(n)/ 'dropAround' @p@ @t@ returns the substring remaining after
+-- dropping characters that fail the predicate @p@ from both the
+-- beginning and end of @t@.  Subject to fusion.
+dropAround :: (Char -> Bool) -> Text -> Text
+dropAround p = dropWhile p . dropWhileEnd p
+{-# INLINE [1] dropAround #-}
+
+-- | /O(n)/ Remove leading white space from a string.  Equivalent to:
+--
+-- > dropWhile isSpace
+stripStart :: Text -> Text
+stripStart = dropWhile isSpace
+{-# INLINE [1] stripStart #-}
+
+-- | /O(n)/ Remove trailing white space from a string.  Equivalent to:
+--
+-- > dropWhileEnd isSpace
+stripEnd :: Text -> Text
+stripEnd = dropWhileEnd isSpace
+{-# INLINE [1] stripEnd #-}
+
+-- | /O(n)/ Remove leading and trailing white space from a string.
+-- Equivalent to:
+--
+-- > dropAround isSpace
+strip :: Text -> Text
+strip = dropAround isSpace
+{-# INLINE [1] strip #-}
 
 -- | /O(n)/ 'splitAt' @n t@ returns a pair whose first element is a
 -- prefix of @t@ of length @n@, and whose second is the remainder of
@@ -791,24 +855,93 @@ tails ts@(Chunk t ts')
   | T.length t == 1 = ts : tails ts'
   | otherwise       = ts : tails (Chunk (T.unsafeTail t) ts')
 
--- | /O(n)/ Break a 'Text' into pieces separated by the byte
--- argument, consuming the delimiter. I.e.
+-- $split
 --
--- > split '\n' "a\nb\nd\ne" == ["a","b","d","e"]
--- > split 'a'  "aXaXaXa"    == ["","X","X","X",""]
--- > split 'x'  "x"          == ["",""]
+-- Splitting functions in this library do not perform character-wise
+-- copies to create substrings; they just construct new 'Text's that
+-- are slices of the original.
+
+-- | /O(m)*O(n)/ Break a 'Text' into pieces separated by the first
+-- 'Text' argument, consuming the delimiter. Examples:
+--
+-- > split "\r\n" "a\r\nb\r\nd\r\ne" == ["a","b","d","e"]
+-- > split "aaa"  "aaaXaaaXaaaXaaa"  == ["","X","X","X",""]
+-- > split "x"    "x"                == ["",""]
 -- 
 -- and
 --
--- > intercalate [c] . split c == id
--- > split == splitWith . (==)
--- 
--- As for all splitting functions in this library, this function does
--- not copy the substrings, it just constructs new 'Text's that are
--- slices of the original.
-split :: Char -> Text -> [Text]
-split c = splitWith (==c)
-{-# INLINE split #-}
+-- > intercalate s . split s         == id
+-- > split (singleton c)             == splitWith (==c)
+split :: Text                   -- ^ Text to split on
+      -> Text                   -- ^ Input text
+      -> [Text]
+split pat src0
+    | l == 0    = [src0]
+    | l == 1    = splitWith (== (head pat)) src0
+    | otherwise = go src0
+  where
+    l      = length pat
+    go src = search 0 src
+      where
+        search !n !s
+            | null s             = [src]      -- not found
+            | pat `isPrefixOf` s = take n src : go (drop l s)
+            | otherwise          = search (n+1) (tail s)
+{-# INLINE [1] split #-}
+
+{-# RULES
+"LAZY TEXT split/singleton -> splitWith/==" [~1] forall c t.
+    split (singleton c) t = splitWith (==c) t
+  #-}
+
+-- | /O(m)*O(n)/ Break a 'Text' into pieces at most @k@ times,
+-- treating the first 'Text' argument as the delimiter to break on,
+-- and consuming the delimiter.  The last element of the list contains
+-- the remaining text after the number of times to split has been
+-- reached.  A value of zero or less for @k@ causes no splitting to
+-- occur.
+--
+-- Examples:
+--
+-- > splitTimes 0   "//"  "a//b//c"   == ["a//b//c"]
+-- > splitTimes 2   ":"   "a:b:c:d:e" == ["a","b","c:d:e"]
+-- > splitTimes 100 "???" "a????b"    == ["a","?b"]
+--
+-- and
+--
+-- > intercalate s . splitTimes k s   == id
+splitTimes :: Int64             -- ^ Maximum number of times to split
+           -> Text              -- ^ Text to split on
+           -> Text              -- ^ Input text
+           -> [Text]
+splitTimes k pat src0
+    | k <= 0 || l == 0 = [src0]
+    | otherwise        = go k src0
+  where
+    l         = length pat
+    go !i src = search 0 src
+      where
+        search !n !s
+            | i == 0 || null s   = [src]      -- not found or limit reached
+            | pat `isPrefixOf` s = take n src : go (i-1) (drop l s)
+            | otherwise          = search (n+1) (tail s)
+{-# INLINE splitTimes #-}
+
+-- | /O(m)*O(n)/ Break a 'Text' into pieces at most @k@ times, like
+-- 'splitTimes', but start from the end of the input and work towards
+-- the start.
+--
+-- Examples:
+--
+-- > splitTimes 2    "::" "a::b::c::d::e" == ["a","b","c::d::e"]
+-- > splitTimesEnd 2 "::" "a::b::c::d::e" == ["a::b::c","d","e"]
+splitTimesEnd :: Int64             -- ^ Maximum number of times to split
+              -> Text              -- ^ Text to split on
+              -> Text              -- ^ Input text
+              -> [Text]
+splitTimesEnd k pat src =
+    L.reverse . L.map reverse $ splitTimes k (reverse pat) (reverse src)
+{-# INLINE splitTimesEnd #-}
 
 -- | /O(n)/ Splits a 'Text' into components delimited by separators,
 -- where the predicate returns True for a separator element.  The

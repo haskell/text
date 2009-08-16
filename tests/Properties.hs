@@ -205,6 +205,7 @@ tl_reverse        = L.reverse `eqP` (unpackS . TL.reverse)
 t_reverse_short n = L.reverse `eqP` (unpackS . S.reverse . shorten n . S.stream)
 
 t_replace s d     = (L.intercalate d . split s) `eqP` (unpackS . T.replace (T.pack s) (T.pack d))
+tl_replace s d     = (L.intercalate d . split s) `eqP` (unpackS . TL.replace (TL.pack s) (TL.pack d))
 
 split :: (Eq a) => [a] -> [a] -> [[a]]
 split pat src0
@@ -333,7 +334,7 @@ tl_take n         = L.take n      `eqP` (unpackS . TL.take (fromIntegral n))
 s_drop n          = L.drop n      `eqP` (unpackS . S.drop n)
 sf_drop p n       = (L.drop n . L.filter p) `eqP` (unpackS . S.drop n . S.filter p)
 t_drop n          = L.drop n      `eqP` (unpackS . T.drop n)
-tl_drop n         = L.drop n      `eqP` (unpackS . TL.drop n)
+tl_drop n         = L.drop n      `eqP` (unpackS . TL.drop (fromIntegral n))
 s_takeWhile p     = L.takeWhile p `eqP` (unpackS . S.takeWhile p)
 sf_takeWhile q p  = (L.takeWhile p . L.filter q) `eqP` (unpackS . S.takeWhile p . S.filter q)
 t_takeWhile p     = L.takeWhile p `eqP` (unpackS . T.takeWhile p)
@@ -343,10 +344,15 @@ sf_dropWhile q p  = (L.dropWhile p . L.filter q) `eqP` (unpackS . S.dropWhile p 
 t_dropWhile p     = L.dropWhile p `eqP` (unpackS . T.dropWhile p)
 tl_dropWhile p    = L.dropWhile p `eqP` (unpackS . S.dropWhile p)
 t_dropWhileEnd p  = (L.reverse . L.dropWhile p . L.reverse) `eqP` (unpackS . T.dropWhileEnd p)
+tl_dropWhileEnd p = (L.reverse . L.dropWhile p . L.reverse) `eqP` (unpackS . TL.dropWhileEnd p)
 t_dropAround p    = (L.dropWhile p . L.reverse . L.dropWhile p . L.reverse) `eqP` (unpackS . T.dropAround p)
+tl_dropAround p   = (L.dropWhile p . L.reverse . L.dropWhile p . L.reverse) `eqP` (unpackS . TL.dropAround p)
 t_stripStart      = T.dropWhile isSpace `eq` T.stripStart
+tl_stripStart     = TL.dropWhile isSpace `eq` TL.stripStart
 t_stripEnd        = T.dropWhileEnd isSpace `eq` T.stripEnd
+tl_stripEnd       = TL.dropWhileEnd isSpace `eq` TL.stripEnd
 t_strip           = T.dropAround isSpace `eq` T.strip
+tl_strip          = TL.dropAround isSpace `eq` TL.strip
 t_splitAt n       = L.splitAt n   `eqP` (unpack2 . T.splitAt n)
 tl_splitAt n      = L.splitAt n   `eqP` (unpack2 . TL.splitAt (fromIntegral n))
 t_span p          = L.span p      `eqP` (unpack2 . T.span p)
@@ -370,7 +376,7 @@ t_splitTimes_split k t = T.splitTimes k t `eq` \u ->
                                 (a,b)  -> a ++ [T.intercalate t b]
 t_splitTimesEnd_i k t = id `eq` (T.intercalate t . T.splitTimesEnd k t)
 t_splitTimesEnd_split t = T.splitTimesEnd maxBound t `eq` T.split t
-tl_split_i c      = id `eq` (TL.intercalate (TL.singleton c) . TL.split c)
+tl_split_i t      = id `eq` (TL.intercalate t . TL.split t)
 
 t_splitWith p     = splitWith p `eqP` (map unpackS . T.splitWith p)
 t_splitWith_count c = (L.length . T.splitWith (==c)) `eq` ((1+) . T.count c)
@@ -603,6 +609,7 @@ tests = [
     testProperty "tl_reverse" tl_reverse,
     testProperty "t_reverse_short" t_reverse_short,
     testProperty "t_replace" t_replace,
+    testProperty "tl_replace" tl_replace,
 
     testGroup "case conversion" [
       testProperty "s_toCaseFold_length" s_toCaseFold_length,
@@ -715,10 +722,15 @@ tests = [
       testProperty "t_dropWhile" t_dropWhile,
       testProperty "tl_dropWhile" tl_dropWhile,
       testProperty "t_dropWhileEnd" t_dropWhileEnd,
+      testProperty "tl_dropWhileEnd" tl_dropWhileEnd,
       testProperty "t_dropAround" t_dropAround,
+      testProperty "tl_dropAround" tl_dropAround,
       testProperty "t_stripStart" t_stripStart,
+      testProperty "tl_stripStart" tl_stripStart,
       testProperty "t_stripEnd" t_stripEnd,
+      testProperty "tl_stripEnd" tl_stripEnd,
       testProperty "t_strip" t_strip,
+      testProperty "tl_strip" tl_strip,
       testProperty "t_splitAt" t_splitAt,
       testProperty "tl_splitAt" tl_splitAt,
       testProperty "t_span" t_span,
