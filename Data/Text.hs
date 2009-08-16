@@ -156,6 +156,7 @@ module Data.Text
     , findIndices
     , elemIndex
     , elemIndices
+    , count
     , countChar
 
     -- * Zipping and unzipping
@@ -899,7 +900,10 @@ tails t | null t    = [empty]
 -- are slices of the original.
 
 -- | /O(m)*O(n)/ Break a 'Text' into pieces separated by the first
--- 'Text' argument, consuming the delimiter. Examples:
+-- 'Text' argument, consuming the delimiter. An empty delimiter is
+-- invalid, and will cause an error to be raised.
+--
+-- Examples:
 --
 -- > split "\r\n" "a\r\nb\r\nd\r\ne" == ["a","b","d","e"]
 -- > split "aaa"  "aaaXaaaXaaaXaaa"  == ["","X","X","X",""]
@@ -913,8 +917,8 @@ split :: Text                   -- ^ Text to split on
       -> Text                   -- ^ Input text
       -> [Text]
 split pat src0
-    | l == 0    = [src0]
-    | l == 1    = splitWith (== (head pat)) src0
+    | l == 0    = emptyError "split"
+    | l == 1    = splitWith (== (unsafeHead pat)) src0
     | otherwise = go src0
   where
     l      = length pat
@@ -936,7 +940,8 @@ split pat src0
 -- and consuming the delimiter.  The last element of the list contains
 -- the remaining text after the number of times to split has been
 -- reached.  A value of zero or less for @k@ causes no splitting to
--- occur.
+-- occur. An empty delimiter is invalid, and will cause an error to be
+-- raised.
 --
 -- Examples:
 --
@@ -952,8 +957,9 @@ splitTimes :: Int               -- ^ Maximum number of times to split
            -> Text              -- ^ Input text
            -> [Text]
 splitTimes k pat src0
-    | k <= 0 || l == 0 = [src0]
-    | otherwise        = go k src0
+    | k <= 0    = [src0]
+    | l == 0    = emptyError "splitTimes"
+    | otherwise = go k src0
   where
     l         = length pat
     go !i src = search 0 src
@@ -1099,6 +1105,22 @@ elemIndex c t = S.elemIndex c (stream t)
 elemIndices :: Char -> Text -> [Int]
 elemIndices c t = S.elemIndices c (stream t)
 {-# INLINE elemIndices #-}
+
+-- | /O(n*m)/ The 'count' function returns the number of times the
+-- query string appears in the given 'Text'.
+count :: Text -> Text -> Int
+count pat src0
+    | l == 0    = length src0 + 1
+    | l == 1    = countChar (unsafeHead pat) src0
+    | otherwise = go 0 src0
+  where
+    l = length pat
+    go !n src = search src
+      where
+        search s | null s             = n
+                 | pat `isPrefixOf` s = go (n+1) (drop l s)
+                 | otherwise          = search (unsafeTail s)
+{-# INLINE [1] count #-}
 
 -- | /O(n)/ The 'countChar' function returns the number of times the
 -- query element appears in the given 'Text'. Subject to fusion.
