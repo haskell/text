@@ -31,5 +31,7 @@ Authors
 
 The base code for this library was originally written by Tom Harper,
 based on the stream fusion framework developed by Roman Leshchinskiy,
-Duncan Coutts, and Don Stewart.  The core library was fleshed out,
-debugged, and tested by Bryan O'Sullivan.
+Duncan Coutts, and Don Stewart.
+
+The core library was fleshed out, debugged, and tested by Bryan
+O'Sullivan, and he is the current maintainer.
