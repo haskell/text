@@ -157,7 +157,6 @@ module Data.Text
     , elemIndex
     , elemIndices
     , count
-    , countChar
 
     -- * Zipping and unzipping
     , zip
@@ -1122,6 +1121,11 @@ count pat src0
                  | pat `isPrefixOf` s = go (n+1) (drop l s)
                  | otherwise          = search (unsafeTail s)
 {-# INLINE [1] count #-}
+
+{-# RULES
+"TEXT count/singleton -> countChar" [~1] forall c t.
+    count (singleton c) t = countChar c t
+  #-}
 
 -- | /O(n)/ The 'countChar' function returns the number of times the
 -- query element appears in the given 'Text'. Subject to fusion.
