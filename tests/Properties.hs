@@ -226,12 +226,17 @@ sf_toCaseFold_length p xs =
     (S.length . S.toCaseFold . S.filter p $ s) >= (length . L.filter p $ xs)
     where s = S.streamList xs
 t_toCaseFold_length t = T.length (T.toCaseFold t) >= T.length t
+tl_toCaseFold_length t = TL.length (TL.toCaseFold t) >= TL.length t
 t_toLower_length t = T.length (T.toLower t) >= T.length t
 t_toLower_lower t = p (T.toLower t) >= p t
     where p = T.length . T.filter isLower
+tl_toLower_lower t = p (TL.toLower t) >= p t
+    where p = TL.length . TL.filter isLower
 t_toUpper_length t = T.length (T.toUpper t) >= T.length t
 t_toUpper_upper t = p (T.toUpper t) >= p t
     where p = T.length . T.filter isUpper
+tl_toUpper_upper t = p (TL.toUpper t) >= p t
+    where p = TL.length . TL.filter isUpper
 
 justifyLeft k c s  = s ++ replicate (k - length s) c
 justifyRight m n s = replicate (m - length s) n ++ s
@@ -370,12 +375,19 @@ tl_tails          = L.tails       `eqP` (map unpackS . TL.tails)
 
 t_split_i t       = id `eq` (T.intercalate t . T.split t)
 t_splitTimes_i k t = id `eq` (T.intercalate t . T.splitTimes k t)
+tl_splitTimes_i k t = id `eq` (TL.intercalate t . TL.splitTimes k t)
 t_splitTimes_split k t = T.splitTimes k t `eq` \u ->
                               case L.splitAt k (T.split t u) of
                                 (a,[]) -> a
                                 (a,b)  -> a ++ [T.intercalate t b]
+tl_splitTimes_split k t = TL.splitTimes k t `eq` \u ->
+                              case L.splitAt (fromIntegral k) (TL.split t u) of
+                                (a,[]) -> a
+                                (a,b)  -> a ++ [TL.intercalate t b]
 t_splitTimesEnd_i k t = id `eq` (T.intercalate t . T.splitTimesEnd k t)
+tl_splitTimesEnd_i k t = id `eq` (TL.intercalate t . TL.splitTimesEnd k t)
 t_splitTimesEnd_split t = T.splitTimesEnd maxBound t `eq` T.split t
+tl_splitTimesEnd_split t = TL.splitTimesEnd maxBound t `eq` TL.split t
 tl_split_i t      = id `eq` (TL.intercalate t . TL.split t)
 
 t_splitWith p     = splitWith p `eqP` (map unpackS . T.splitWith p)
@@ -615,10 +627,13 @@ tests = [
       testProperty "s_toCaseFold_length" s_toCaseFold_length,
       testProperty "sf_toCaseFold_length" sf_toCaseFold_length,
       testProperty "t_toCaseFold_length" t_toCaseFold_length,
+      testProperty "tl_toCaseFold_length" tl_toCaseFold_length,
       testProperty "t_toLower_length" t_toLower_length,
       testProperty "t_toLower_lower" t_toLower_lower,
+      testProperty "tl_toLower_lower" tl_toLower_lower,
       testProperty "t_toUpper_length" t_toUpper_length,
-      testProperty "t_toUpper_upper" t_toUpper_upper
+      testProperty "t_toUpper_upper" t_toUpper_upper,
+      testProperty "tl_toUpper_upper" tl_toUpper_upper
     ],
 
     testGroup "justification" [
@@ -750,9 +765,13 @@ tests = [
     testGroup "breaking many" [
       testProperty "t_split_i" t_split_i,
       testProperty "t_splitTimes_i" t_splitTimes_i,
+      testProperty "tl_splitTimes_i" tl_splitTimes_i,
       testProperty "t_splitTimes_split" t_splitTimes_split,
+      testProperty "tl_splitTimes_split" tl_splitTimes_split,
       testProperty "t_splitTimesEnd_i" t_splitTimesEnd_i,
+      testProperty "tl_splitTimesEnd_i" tl_splitTimesEnd_i,
       testProperty "t_splitTimesEnd_split" t_splitTimesEnd_split,
+      testProperty "tl_splitTimesEnd_split" tl_splitTimesEnd_split,
       testProperty "tl_split_i" tl_split_i,
       testProperty "t_splitWith" t_splitWith,
       testProperty "t_splitWith_count" t_splitWith_count,

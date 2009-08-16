@@ -2,6 +2,7 @@
 
 module QuickCheckUtils where
 
+import Data.Int (Int64)
 import Data.Word (Word8, Word16, Word32)
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
@@ -13,6 +14,14 @@ integralRandomR :: (Integral a, RandomGen g) => (a,a) -> g -> (a,g)
 integralRandomR  (a,b) g = case randomR (fromIntegral a :: Integer,
                                          fromIntegral b :: Integer) g of
                             (x,h) -> (fromIntegral x, h)
+
+instance Random Int64 where
+    randomR = integralRandomR
+    random  = randomR (minBound,maxBound)
+
+instance Arbitrary Int64 where
+    arbitrary     = choose (minBound,maxBound)
+    coarbitrary c = variant (fromEnum c `rem` 4)
 
 instance Random Word8 where
     randomR = integralRandomR
