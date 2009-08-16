@@ -390,6 +390,8 @@ t_chunksOf_same_lengths k = all ((==k) . T.length) . ini . T.chunksOf k
 t_chunksOf_length k t = len == T.length t || (k <= 0 && len == 0)
   where len = L.sum . L.map T.length $ T.chunksOf k t
 
+tl_chunksOf k = T.chunksOf k `eq` (map (T.concat . TL.toChunks) . TL.chunksOf (fromIntegral k) . TL.fromChunks . (:[]))
+
 t_breakSubstring_isInfixOf s l
                      = T.isInfixOf s l ==
                        T.null s || (not . T.null . snd $ C.breakSubstring s l)
@@ -743,6 +745,7 @@ tests = [
       testProperty "tl_splitWith" tl_splitWith,
       testProperty "t_chunksOf_same_lengths" t_chunksOf_same_lengths,
       testProperty "t_chunksOf_length" t_chunksOf_length,
+      testProperty "tl_chunksOf" tl_chunksOf,
       testProperty "t_breakSubstringC" t_breakSubstringC,
       testProperty "t_breakSubstring_isInfixOf" t_breakSubstring_isInfixOf
     ],

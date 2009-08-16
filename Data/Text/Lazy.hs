@@ -115,6 +115,7 @@ module Data.Text.Lazy
     -- ** Breaking into many substrings
     , split
     , splitWith
+    , chunksOf
     -- , breakSubstring
 
     -- ** Breaking into lines and words
@@ -774,6 +775,20 @@ splitWith p (Chunk t0 ts0) = comb [] (T.splitWith p t0) ts0
         comb acc (s:ss) ts           = revChunks (s:acc) : comb [] ss ts
         comb _   []     _            = impossibleError "splitWith"
 {-# INLINE splitWith #-}
+
+-- | /O(n)/ Splits a 'Text' into components of length @k@.  The last
+-- element may be shorter than the other chunks, depending on the
+-- length of the input. Examples:
+--
+-- > chunksOf 3 "foobarbaz"   == ["foo","bar","baz"]
+-- > chunksOf 4 "haskell.org" == ["hask","ell.","org"]
+chunksOf :: Int64 -> Text -> [Text]
+chunksOf k = go
+  where
+    go t = case splitAt k t of
+             (a,b) | null a    -> []
+                   | otherwise -> a : go b
+{-# INLINE chunksOf #-}
 
 -- | /O(n)/ Breaks a 'Text' up into a list of 'Text's at
 -- newline 'Char's. The resulting strings do not contain newlines.
