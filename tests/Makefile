@@ -1,6 +1,6 @@
 version := $(shell awk '/^version:/{print $$2}' ../text.cabal)
 ghc := ghc
-ghc-base-flags := -O -funbox-strict-fields \
+ghc-base-flags := -O0 -funbox-strict-fields \
 	-package bytestring -package QuickCheck -package test-framework \
 	-package test-framework-quickcheck -ignore-package text
 ghc-base-flags += -Wall -fno-warn-orphans -fno-warn-missing-signatures
@@ -41,7 +41,7 @@ qc-hpc: Properties.hs QuickCheckUtils.hs $(lib-srcs:%=../%)
 coverage: qc-hpc-html/hpc_index.html
 
 qc-hpc-html/hpc_index.html: qc-hpc
-	./qc-hpc -a 500 +RTS -N2
+	./qc-hpc -a 100 +RTS -N2
 	hpc markup qc-hpc --exclude=Main --exclude=Properties \
 	  --exclude=Data.Text.Fusion.CaseMapping \
 	  --exclude=QuickCheckUtils --srcdir=.. --srcdir=. --destdir=$(dir $@)
