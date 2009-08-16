@@ -101,6 +101,7 @@ module Data.Text.Lazy
 
     -- ** Generation and unfolding
     , replicate
+    , replicateChar
     , unfoldr
     , unfoldrN
 
@@ -388,7 +389,7 @@ intersperse c t = unstream (S.intersperse c (stream t))
 justifyLeft :: Int64 -> Char -> Text -> Text
 justifyLeft k c t
     | len >= k  = t
-    | otherwise = t `append` replicate (k-len) c
+    | otherwise = t `append` replicateChar (k-len) c
   where len = length t
 {-# INLINE [1] justifyLeft #-}
 
@@ -407,7 +408,7 @@ justifyLeft k c t
 justifyRight :: Int64 -> Char -> Text -> Text
 justifyRight k c t
     | len >= k  = t
-    | otherwise = replicate (k-len) c `append` t
+    | otherwise = replicateChar (k-len) c `append` t
   where len = length t
 {-# INLINE justifyRight #-}
 
@@ -418,7 +419,7 @@ justifyRight k c t
 center :: Int64 -> Char -> Text -> Text
 center k c t
     | len >= k  = t
-    | otherwise = replicate l c `append` t `append` replicate r c
+    | otherwise = replicateChar l c `append` t `append` replicateChar r c
   where len = length t
         d   = k - len
         r   = d `div` 2
@@ -631,11 +632,21 @@ mapAccumR f s t = case uncons t of
                         where (s'',y ) = f s' x
                               (s', ys) = mapAccumR f s xs
 
--- | /O(n)/ 'replicate' @n@ @c@ is a 'Text' of length @n@ with @c@ the
--- value of every element.
-replicate :: Int64 -> Char -> Text
-replicate n c = unstream (S.replicateI n c)
+-- | /O(n*m)/ 'replicate' @n@ @t@ is a 'Text' consisting of the input
+-- @t@ repeated @n@ times. Subject to fusion.
+replicate :: Int64 -> Text -> Text
+replicate n t = unstream (S.replicateI (fromIntegral n) (S.stream t))
 {-# INLINE replicate #-}
+
+-- | /O(n)/ 'replicateChar' @n@ @c@ is a 'Text' of length @n@ with @c@ the
+-- value of every element. Subject to fusion.
+replicateChar :: Int64 -> Char -> Text
+replicateChar n c = unstream (S.replicateCharI n c)
+
+{-# RULES
+"LAZY TEXT replicate/singleton -> replicateChar" [~1] forall n c.
+    replicate n (singleton c) = replicateChar n c
+  #-}
 
 -- | /O(n)/, where @n@ is the length of the result. The 'unfoldr'
 -- function is analogous to the List 'L.unfoldr'. 'unfoldr' builds a

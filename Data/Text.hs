@@ -97,6 +97,7 @@ module Data.Text
 
     -- ** Generation and unfolding
     , replicate
+    , replicateChar
     , unfoldr
     , unfoldrN
 
@@ -169,7 +170,7 @@ import Prelude (Char, Bool(..), Functor(..), Int, Maybe(..), String,
                 Eq(..), Ord(..), (++),
                 Read(..), Show(..),
                 (&&), (||), (+), (-), (.), ($),
-                div, not, return, otherwise)
+                fromIntegral, div, not, return, otherwise)
 import Control.Exception (assert)
 import Data.Char (isSpace)
 import Control.Monad.ST (ST)
@@ -465,7 +466,7 @@ toUpper t = unstream (S.toUpper (stream t))
 justifyLeft :: Int -> Char -> Text -> Text
 justifyLeft k c t
     | len >= k  = t
-    | otherwise = t `append` replicate (k-len) c
+    | otherwise = t `append` replicateChar (k-len) c
   where len = length t
 {-# INLINE [1] justifyLeft #-}
 
@@ -484,7 +485,7 @@ justifyLeft k c t
 justifyRight :: Int -> Char -> Text -> Text
 justifyRight k c t
     | len >= k  = t
-    | otherwise = replicate (k-len) c `append` t
+    | otherwise = replicateChar (k-len) c `append` t
   where len = length t
 {-# INLINE justifyRight #-}
 
@@ -495,7 +496,7 @@ justifyRight k c t
 center :: Int -> Char -> Text -> Text
 center k c t
     | len >= k  = t
-    | otherwise = replicate l c `append` t `append` replicate r c
+    | otherwise = replicateChar l c `append` t `append` replicateChar r c
   where len = length t
         d   = k - len
         r   = d `div` 2
@@ -654,11 +655,21 @@ mapAccumR f s t = case uncons t of
 -- -----------------------------------------------------------------------------
 -- ** Generating and unfolding 'Text's
 
--- | /O(n)/ 'replicate' @n@ @c@ is a 'Text' of length @n@ with @c@ the
+-- | /O(n*m)/ 'replicate' @n@ @t@ is a 'Text' consisting of the input
+-- @t@ repeated @n@ times. Subject to fusion.
+replicate :: Int -> Text -> Text
+replicate n t = unstream (S.replicateI (fromIntegral n) (S.stream t))
+{-# INLINE [1] replicate #-}
+
+{-# RULES
+"TEXT replicate/singleton -> replicateChar" [~1] forall n c.
+    replicate n (singleton c) = replicateChar n c
+  #-}
+
+-- | /O(n)/ 'replicateChar' @n@ @c@ is a 'Text' of length @n@ with @c@ the
 -- value of every element. Subject to fusion.
-replicate :: Int -> Char -> Text
-replicate n c = unstream (S.replicateI n c)
-{-# INLINE replicate #-}
+replicateChar :: Int -> Char -> Text
+replicateChar n c = unstream (S.replicateCharI n c)
 
 -- | /O(n)/, where @n@ is the length of the result. The 'unfoldr'
 -- function is analogous to the List 'L.unfoldr'. 'unfoldr' builds a

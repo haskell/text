@@ -13,7 +13,6 @@ import Debug.Trace (trace)
 import Control.Arrow ((***), second)
 import Data.Word (Word8, Word16, Word32)
 import qualified Data.Text as T
-import qualified Data.Text.Compat as C
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Encoding as E
 import Control.Exception (SomeException, try)
@@ -23,6 +22,7 @@ import qualified Data.Text.Lazy.Encoding as EL
 import qualified Data.Text.Lazy.Fusion as SL
 import qualified Data.Text.UnsafeShift as U
 import qualified Data.List as L
+import Prelude hiding (replicate)
 import System.IO.Unsafe (unsafePerformIO)
 import Test.Framework (defaultMain, testGroup)
 import Test.Framework.Providers.QuickCheck (testProperty)
@@ -238,8 +238,8 @@ t_toUpper_upper t = p (T.toUpper t) >= p t
 tl_toUpper_upper t = p (TL.toUpper t) >= p t
     where p = TL.length . TL.filter isUpper
 
-justifyLeft k c s  = s ++ replicate (k - length s) c
-justifyRight m n s = replicate (m - length s) n ++ s
+justifyLeft k c s  = s ++ L.replicate (k - length s) c
+justifyRight m n s = L.replicate (m - length s) n ++ s
 
 s_justifyLeft k c = justifyLeft k c `eqP` (unpackS . S.justifyLeftI k c)
 sf_justifyLeft p k c =
@@ -315,8 +315,12 @@ t_mapAccumR f z   = unsquare (L.mapAccumR f z `eqP` (second unpackS . T.mapAccum
 tl_mapAccumR f z   = unsquare (L.mapAccumR f z `eqP` (second unpackS . TL.mapAccumR f z))
     where _types = f :: Int -> Char -> (Int,Char)
 
-t_replicate n     = L.replicate n `eq` (unpackS . T.replicate n)
-tl_replicate n    = L.replicate n `eq` (unpackS . TL.replicate (fromIntegral n))
+replicate n l = concat (L.replicate n l)
+
+t_replicate n     = replicate n `eq` (unpackS . T.replicate n . packS)
+tl_replicate n    = replicate n `eq` (unpackS . TL.replicate (fromIntegral n) . packS)
+t_replicateChar n = L.replicate n `eq` (unpackS . T.replicateChar n)
+tl_replicateChar n= L.replicate n `eq` (unpackS . TL.replicateChar (fromIntegral n))
 
 unf :: Int -> Char -> Maybe (Char, Char)
 unf n c | fromEnum c * 100 > n = Nothing
@@ -393,7 +397,6 @@ tl_split_i t      = id `eq` (TL.intercalate t . TL.split t)
 t_splitWith p     = splitWith p `eqP` (map unpackS . T.splitWith p)
 t_splitWith_count c = (L.length . T.splitWith (==c)) `eq` ((1+) . T.count c)
 t_splitWith_split c = T.splitWith (==c) `eq` T.split (T.singleton c)
-t_splitWith_Csplit c = T.splitWith (==c) `eq` C.split c
 tl_splitWith p    = splitWith p `eqP` (map unpackS . TL.splitWith p)
 
 splitWith :: (a -> Bool) -> [a] -> [[a]]
@@ -411,13 +414,6 @@ t_chunksOf_length k t = len == T.length t || (k <= 0 && len == 0)
   where len = L.sum . L.map T.length $ T.chunksOf k t
 
 tl_chunksOf k = T.chunksOf k `eq` (map (T.concat . TL.toChunks) . TL.chunksOf (fromIntegral k) . TL.fromChunks . (:[]))
-
-t_breakSubstring_isInfixOf s l
-                     = T.isInfixOf s l ==
-                       T.null s || (not . T.null . snd $ C.breakSubstring s l)
-t_breakSubstringC c
-                     = L.break (==c) `eqP`
-                       (unpack2 . C.breakSubstring (T.singleton c))
 
 t_lines           = L.lines       `eqP` (map unpackS . T.lines)
 tl_lines          = L.lines       `eqP` (map unpackS . TL.lines)
@@ -711,6 +707,8 @@ tests = [
     testGroup "unfolds" [
       testProperty "t_replicate" t_replicate,
       testProperty "tl_replicate" tl_replicate,
+      testProperty "t_replicateChar" t_replicateChar,
+      testProperty "tl_replicateChar" tl_replicateChar,
       testProperty "t_unfoldr" t_unfoldr,
       testProperty "tl_unfoldr" tl_unfoldr,
       testProperty "t_unfoldrN" t_unfoldrN,
@@ -776,13 +774,10 @@ tests = [
       testProperty "t_splitWith" t_splitWith,
       testProperty "t_splitWith_count" t_splitWith_count,
       testProperty "t_splitWith_split" t_splitWith_split,
-      testProperty "t_splitWith_Csplit" t_splitWith_Csplit,
       testProperty "tl_splitWith" tl_splitWith,
       testProperty "t_chunksOf_same_lengths" t_chunksOf_same_lengths,
       testProperty "t_chunksOf_length" t_chunksOf_length,
-      testProperty "tl_chunksOf" tl_chunksOf,
-      testProperty "t_breakSubstringC" t_breakSubstringC,
-      testProperty "t_breakSubstring_isInfixOf" t_breakSubstring_isInfixOf
+      testProperty "tl_chunksOf" tl_chunksOf
     ],
 
     testGroup "lines and words" [

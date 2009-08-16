@@ -68,6 +68,7 @@ module Data.Text.Fusion.Common
     -- , mapAccumL
 
     -- ** Generation and unfolding
+    , replicateCharI
     , replicateI
     , unfoldr
     , unfoldrNI
@@ -104,6 +105,7 @@ import Prelude (Bool(..), Char, Either(..), Eq(..), Int, Integral, Maybe(..),
                 fromIntegral, otherwise)
 import qualified Data.List as L
 import qualified Prelude as P
+import Data.Int (Int64)
 import Data.Text.Fusion.Internal
 import Data.Text.Fusion.CaseMapping (foldMapping, lowerMapping, upperMapping)
 
@@ -576,14 +578,26 @@ mapAccumL f z0 (Stream next0 s0 len) = Stream next (s0 :!: z0) len -- HINT depen
 -- -----------------------------------------------------------------------------
 -- ** Generating and unfolding streams
 
-replicateI :: Integral a => a -> Char -> Stream Char
-replicateI n c
+replicateCharI :: Integral a => a -> Char -> Stream Char
+replicateCharI n c
     | n < 0     = empty
     | otherwise = Stream next 0 (fromIntegral n) -- HINT maybe too low
   where
     {-# INLINE next #-}
     next i | i >= n    = Done
            | otherwise = Yield c (i + 1)
+{-# INLINE [0] replicateCharI #-}
+
+replicateI :: Int64 -> Stream Char -> Stream Char
+replicateI n (Stream next0 s0 len) =
+    Stream next (0 :!: s0) (max 0 (fromIntegral n * len))
+  where
+    next (k :!: s)
+        | k >= n = Done
+        | otherwise = case next0 s of
+                        Done       -> Skip    (k+1 :!: s0)
+                        Skip s'    -> Skip    (k :!: s')
+                        Yield x s' -> Yield x (k :!: s')
 {-# INLINE [0] replicateI #-}
 
 -- | /O(n)/, where @n@ is the length of the result. The unfoldr function

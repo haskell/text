@@ -17,7 +17,7 @@ module Data.Text.UnsafeShift
       UnsafeShift(..)
     ) where
 
-import qualified Data.Bits as Bits
+-- import qualified Data.Bits as Bits
 import GHC.Base
 import GHC.Word
 
