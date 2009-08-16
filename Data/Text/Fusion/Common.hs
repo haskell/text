@@ -42,7 +42,7 @@ module Data.Text.Fusion.Common
     , toUpper
 
     -- ** Justification
-    , justifyLeft
+    , justifyLeftI
 
     -- * Folds
     , foldl
@@ -68,7 +68,7 @@ module Data.Text.Fusion.Common
     -- , mapAccumL
 
     -- ** Generation and unfolding
-    , replicate
+    , replicateI
     , unfoldr
     , unfoldrNI
 
@@ -361,10 +361,11 @@ toLower :: Stream Char -> Stream Char
 toLower = caseConvert lowerMapping
 {-# INLINE [0] toLower #-}
 
-justifyLeft :: Int -> Char -> Stream Char -> Stream Char
-justifyLeft k c (Stream next0 s0 len) = Stream next (s0 :!: S1 :!: 0) newLen
+justifyLeftI :: Integral a => a -> Char -> Stream Char -> Stream Char
+justifyLeftI k c (Stream next0 s0 len) = Stream next (s0 :!: S1 :!: 0) newLen
   where
-    newLen | k > len   = k
+    j = fromIntegral k
+    newLen | j > len   = j
            | otherwise = len
     next (s :!: S1 :!: n) =
         case next0 s of
@@ -375,7 +376,7 @@ justifyLeft k c (Stream next0 s0 len) = Stream next (s0 :!: S1 :!: 0) newLen
         | n < k       = Yield c (s :!: S2 :!: n+1)
         | otherwise   = Done
     {-# INLINE next #-}
-{-# INLINE justifyLeft #-}
+{-# INLINE [0] justifyLeftI #-}
 
 -- ----------------------------------------------------------------------------
 -- * Reducing Streams (folds)
@@ -575,15 +576,15 @@ mapAccumL f z0 (Stream next0 s0 len) = Stream next (s0 :!: z0) len -- HINT depen
 -- -----------------------------------------------------------------------------
 -- ** Generating and unfolding streams
 
-replicate :: Int -> Char -> Stream Char
-replicate n c
+replicateI :: Integral a => a -> Char -> Stream Char
+replicateI n c
     | n < 0     = empty
-    | otherwise = Stream next 0 n -- HINT maybe too low
+    | otherwise = Stream next 0 (fromIntegral n) -- HINT maybe too low
   where
     {-# INLINE next #-}
     next i | i >= n    = Done
            | otherwise = Yield c (i + 1)
-{-# INLINE [0] replicate #-}
+{-# INLINE [0] replicateI #-}
 
 -- | /O(n)/, where @n@ is the length of the result. The unfoldr function
 -- is analogous to the List 'unfoldr'. unfoldr builds a stream

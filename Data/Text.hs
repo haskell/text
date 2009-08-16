@@ -471,9 +471,9 @@ justifyLeft k c t
 
 {-# RULES
 "TEXT justifyLeft -> fused" [~1] forall k c t.
-    justifyLeft k c t = unstream (S.justifyLeft k c (stream t))
+    justifyLeft k c t = unstream (S.justifyLeftI k c (stream t))
 "TEXT justifyLeft -> unfused" [1] forall k c t.
-    unstream (S.justifyLeft k c (stream t)) = justifyLeft k c t
+    unstream (S.justifyLeftI k c (stream t)) = justifyLeft k c t
   #-}
 
 -- | /O(n)/ Right-justify a string to the given length, using the
@@ -657,7 +657,7 @@ mapAccumR f s t = case uncons t of
 -- | /O(n)/ 'replicate' @n@ @c@ is a 'Text' of length @n@ with @c@ the
 -- value of every element. Subject to fusion.
 replicate :: Int -> Char -> Text
-replicate n c = unstream (S.replicate n c)
+replicate n c = unstream (S.replicateI n c)
 {-# INLINE replicate #-}
 
 -- | /O(n)/, where @n@ is the length of the result. The 'unfoldr'

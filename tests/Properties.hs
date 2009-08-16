@@ -232,14 +232,16 @@ t_toUpper_length t = T.length (T.toUpper t) >= T.length t
 t_toUpper_upper t = p (T.toUpper t) >= p t
     where p = T.length . T.filter isUpper
 
-justifyLeft k c s = s ++ replicate (k - length s) c
+justifyLeft k c s  = s ++ replicate (k - length s) c
+justifyRight m n s = replicate (m - length s) n ++ s
 
-s_justifyLeft k c = justifyLeft k c `eqP` (unpackS . S.justifyLeft k c)
+s_justifyLeft k c = justifyLeft k c `eqP` (unpackS . S.justifyLeftI k c)
 sf_justifyLeft p k c =
-    (justifyLeft k c . L.filter p) `eqP` (unpackS . S.justifyLeft k c . S.filter p)
+    (justifyLeft k c . L.filter p) `eqP` (unpackS . S.justifyLeftI k c . S.filter p)
 t_justifyLeft k c = justifyLeft k c `eqP` (unpackS . T.justifyLeft k c)
-t_justifyRight k c = jr k c `eqP` (unpackS . T.justifyRight k c)
-    where jr m n s = replicate (m - length s) n ++ s
+tl_justifyLeft k c = justifyLeft k c `eqP` (unpackS . TL.justifyLeft (fromIntegral k) c)
+t_justifyRight k c = justifyRight k c `eqP` (unpackS . T.justifyRight k c)
+tl_justifyRight k c = justifyRight k c `eqP` (unpackS . TL.justifyRight (fromIntegral k) c)
 
 sf_foldl p f z     = (L.foldl f z . L.filter p)  `eqP` (S.foldl f z . S.filter p)
     where _types  = f :: Char -> Char -> Char
@@ -308,7 +310,7 @@ tl_mapAccumR f z   = unsquare (L.mapAccumR f z `eqP` (second unpackS . TL.mapAcc
     where _types = f :: Int -> Char -> (Int,Char)
 
 t_replicate n     = L.replicate n `eq` (unpackS . T.replicate n)
-tl_replicate n    = L.replicate n `eq` (unpackS . TL.replicate n)
+tl_replicate n    = L.replicate n `eq` (unpackS . TL.replicate (fromIntegral n))
 
 unf :: Int -> Char -> Maybe (Char, Char)
 unf n c | fromEnum c * 100 > n = Nothing
@@ -616,7 +618,9 @@ tests = [
       testProperty "s_justifyLeft" s_justifyLeft,
       testProperty "sf_justifyLeft" sf_justifyLeft,
       testProperty "t_justifyLeft" t_justifyLeft,
-      testProperty "t_justifyRight" t_justifyRight
+      testProperty "tl_justifyLeft" tl_justifyLeft,
+      testProperty "t_justifyRight" t_justifyRight,
+      testProperty "tl_justifyRight" tl_justifyRight
     ]
   ],
 

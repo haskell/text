@@ -64,6 +64,11 @@ module Data.Text.Lazy
     , toLower
     , toUpper
 
+    -- ** Justification
+    , justifyLeft
+    , justifyRight
+    , center
+
     -- * Folds
     , foldl
     , foldl'
@@ -156,7 +161,7 @@ module Data.Text.Lazy
 import Prelude (Char, Bool(..), Int, Maybe(..), String,
                 Eq(..), Ord(..), Read(..), Show(..),
                 (&&), (+), (-), (.), ($), (++),
-                flip, fromIntegral, not, otherwise)
+                div, flip, fromIntegral, not, otherwise)
 import qualified Prelude as P
 import Data.Int (Int64)
 import qualified Data.List as L
@@ -365,6 +370,51 @@ intersperse     :: Char -> Text -> Text
 intersperse c t = unstream (S.intersperse c (stream t))
 {-# INLINE intersperse #-}
 
+-- | /O(n)/ Left-justify a string to the given length, using the
+-- specified fill character on the right. Subject to fusion. Examples:
+--
+-- > justifyLeft 7 'x' "foo"    == "fooxxxx"
+-- > justifyLeft 3 'x' "foobar" == "foobar"
+justifyLeft :: Int64 -> Char -> Text -> Text
+justifyLeft k c t
+    | len >= k  = t
+    | otherwise = t `append` replicate (k-len) c
+  where len = length t
+{-# INLINE [1] justifyLeft #-}
+
+{-# RULES
+"TEXT justifyLeft -> fused" [~1] forall k c t.
+    justifyLeft k c t = unstream (S.justifyLeftI k c (stream t))
+"TEXT justifyLeft -> unfused" [1] forall k c t.
+    unstream (S.justifyLeftI k c (stream t)) = justifyLeft k c t
+  #-}
+
+-- | /O(n)/ Right-justify a string to the given length, using the
+-- specified fill character on the left. Examples:
+--
+-- > justifyRight 7 'x' "bar"    == "xxxxbar"
+-- > justifyRight 3 'x' "foobar" == "foobar"
+justifyRight :: Int64 -> Char -> Text -> Text
+justifyRight k c t
+    | len >= k  = t
+    | otherwise = replicate (k-len) c `append` t
+  where len = length t
+{-# INLINE justifyRight #-}
+
+-- | /O(n)/ Center a string to the given length, using the
+-- specified fill character on either side. Examples:
+--
+-- > center 8 'x' "HS" = "xxxHSxxx"
+center :: Int64 -> Char -> Text -> Text
+center k c t
+    | len >= k  = t
+    | otherwise = replicate l c `append` t `append` replicate r c
+  where len = length t
+        d   = k - len
+        r   = d `div` 2
+        l   = d - r
+{-# INLINE center #-}
+
 -- | /O(n)/ The 'transpose' function transposes the rows and columns
 -- of its 'Text' argument.  Note that this function uses 'pack',
 -- 'unpack', and the list version of transpose, and is thus not very
@@ -565,8 +615,8 @@ mapAccumR f s t = case uncons t of
 
 -- | /O(n)/ 'replicate' @n@ @c@ is a 'Text' of length @n@ with @c@ the
 -- value of every element.
-replicate :: Int -> Char -> Text
-replicate n c = unstream (S.replicate n c)
+replicate :: Int64 -> Char -> Text
+replicate n c = unstream (S.replicateI n c)
 {-# INLINE replicate #-}
 
 -- | /O(n)/, where @n@ is the length of the result. The 'unfoldr'
