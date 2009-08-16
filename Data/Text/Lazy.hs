@@ -159,6 +159,7 @@ module Data.Text.Lazy
     , findIndices
     , elemIndex
     , elemIndices
+    , count
     , countChar
 
     -- * Zipping and unzipping
@@ -1113,6 +1114,23 @@ elemIndex c t = S.elemIndex c (stream t)
 elemIndices :: Char -> Text -> [Int64]
 elemIndices c t = S.elemIndices c (stream t)
 {-# INLINE elemIndices #-}
+
+-- | /O(n*m)/ The 'count' function returns the number of times the
+-- query string appears in the given 'Text'. An empty query string is
+-- invalid, and will cause an error to be raised.
+count :: Text -> Text -> Int64
+count pat src0
+    | l == 0    = emptyError "count"
+    | l == 1    = countChar (head pat) src0
+    | otherwise = go 0 src0
+  where
+    l = length pat
+    go !n src = search src
+      where
+        search s | null s             = n
+                 | pat `isPrefixOf` s = go (n+1) (drop l s)
+                 | otherwise          = search (tail s)
+{-# INLINE [1] count #-}
 
 -- | /O(n)/ The 'countChar' function returns the number of times the
 -- query element appears in the given 'Text'. This function is subject

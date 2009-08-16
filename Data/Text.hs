@@ -1107,10 +1107,11 @@ elemIndices c t = S.elemIndices c (stream t)
 {-# INLINE elemIndices #-}
 
 -- | /O(n*m)/ The 'count' function returns the number of times the
--- query string appears in the given 'Text'.
+-- query string appears in the given 'Text'. An empty query string is
+-- invalid, and will cause an error to be raised.
 count :: Text -> Text -> Int
 count pat src0
-    | l == 0    = length src0 + 1
+    | l == 0    = emptyError "count"
     | l == 1    = countChar (unsafeHead pat) src0
     | otherwise = go 0 src0
   where

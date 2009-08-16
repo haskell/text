@@ -478,9 +478,11 @@ tl_elemIndex c    = (fmap fromIntegral . L.elemIndex c) `eqP` TL.elemIndex c
 sf_elemIndices p c= (L.elemIndices c . L.filter p) `eqP` (S.elemIndices c . S.filter p)
 t_elemIndices c   = L.elemIndices c`eqP` T.elemIndices c
 tl_elemIndices c  = (fmap fromIntegral . L.elemIndices c) `eqP` TL.elemIndices c
-sf_countChar p c      = (L.length . L.elemIndices c . L.filter p) `eqP` (S.countChar c . S.filter p)
-t_countChar c         = (L.length . L.elemIndices c) `eqP` T.countChar c
-tl_countChar c        = (fromIntegral . L.length . L.elemIndices c) `eqP` TL.countChar c
+t_count t         = (subtract 1 . L.length . T.split t) `eq` T.count t
+tl_count t        = (subtract 1 . L.genericLength . TL.split t) `eq` TL.count t
+sf_countChar p c  = (L.length . L.elemIndices c . L.filter p) `eqP` (S.countChar c . S.filter p)
+t_countChar c     = (L.length . L.elemIndices c) `eqP` T.countChar c
+tl_countChar c    = (fromIntegral . L.length . L.elemIndices c) `eqP` TL.countChar c
 t_zip s           = L.zip s `eqP` T.zip (packS s)
 tl_zip s          = L.zip s `eqP` TL.zip (packS s)
 sf_zipWith p c s  = (L.zipWith c (L.filter p s) . L.filter p) `eqP` (unpackS . S.zipWith c (S.filter p $ packS s) . S.filter p)
@@ -836,6 +838,8 @@ tests = [
     testProperty "sf_elemIndices" sf_elemIndices,
     testProperty "t_elemIndices" t_elemIndices,
     testProperty "tl_elemIndices" tl_elemIndices,
+    testProperty "t_count" t_count,
+    testProperty "tl_count" tl_count,
     testProperty "sf_countChar" sf_countChar,
     testProperty "t_countChar" t_countChar,
     testProperty "tl_countChar" tl_countChar
