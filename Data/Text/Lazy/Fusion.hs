@@ -22,7 +22,7 @@ module Data.Text.Lazy.Fusion
     , findIndices
     , elemIndex
     , elemIndices
-    , count
+    , countChar
     ) where
 
 import Prelude hiding (length)
@@ -134,6 +134,6 @@ elemIndices = S.elemIndicesI
 
 -- | /O(n)/ The 'count' function returns the number of times the query
 -- element appears in the given stream.
-count :: Char -> Stream Char -> Int64
-count = S.countI
-{-# INLINE [0] count #-}
+countChar :: Char -> Stream Char -> Int64
+countChar = S.countCharI
+{-# INLINE [0] countChar #-}

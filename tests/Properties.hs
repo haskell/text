@@ -395,7 +395,7 @@ tl_splitTimesEnd_split t = TL.splitTimesEnd maxBound t `eq` TL.split t
 tl_split_i t      = id `eq` (TL.intercalate t . TL.split t)
 
 t_splitWith p     = splitWith p `eqP` (map unpackS . T.splitWith p)
-t_splitWith_count c = (L.length . T.splitWith (==c)) `eq` ((1+) . T.count c)
+t_splitWith_count c = (L.length . T.splitWith (==c)) `eq` ((1+) . T.countChar c)
 t_splitWith_split c = T.splitWith (==c) `eq` T.split (T.singleton c)
 tl_splitWith p    = splitWith p `eqP` (map unpackS . TL.splitWith p)
 
@@ -476,9 +476,9 @@ tl_elemIndex c    = (fmap fromIntegral . L.elemIndex c) `eqP` TL.elemIndex c
 sf_elemIndices p c= (L.elemIndices c . L.filter p) `eqP` (S.elemIndices c . S.filter p)
 t_elemIndices c   = L.elemIndices c`eqP` T.elemIndices c
 tl_elemIndices c  = (fmap fromIntegral . L.elemIndices c) `eqP` TL.elemIndices c
-sf_count p c      = (L.length . L.elemIndices c . L.filter p) `eqP` (S.count c . S.filter p)
-t_count c         = (L.length . L.elemIndices c) `eqP` T.count c
-tl_count c        = (fromIntegral . L.length . L.elemIndices c) `eqP` TL.count c
+sf_count p c      = (L.length . L.elemIndices c . L.filter p) `eqP` (S.countChar c . S.filter p)
+t_count c         = (L.length . L.elemIndices c) `eqP` T.countChar c
+tl_count c        = (fromIntegral . L.length . L.elemIndices c) `eqP` TL.countChar c
 t_zip s           = L.zip s `eqP` T.zip (packS s)
 tl_zip s          = L.zip s `eqP` TL.zip (packS s)
 sf_zipWith p c s  = (L.zipWith c (L.filter p s) . L.filter p) `eqP` (unpackS . S.zipWith c (S.filter p $ packS s) . S.filter p)

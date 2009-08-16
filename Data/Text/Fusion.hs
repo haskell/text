@@ -44,7 +44,7 @@ module Data.Text.Fusion
     , findIndexOrEnd
     , elemIndex
     , elemIndices
-    , count
+    , countChar
     ) where
 
 import Prelude (Bool(..), Char, Eq(..), Maybe(..), Monad(..), Int,
@@ -229,6 +229,6 @@ elemIndices = S.elemIndicesI
 
 -- | /O(n)/ The 'count' function returns the number of times the query
 -- element appears in the given stream.
-count :: Char -> Stream Char -> Int
-count = S.countI
-{-# INLINE [0] count #-}
+countChar :: Char -> Stream Char -> Int
+countChar = S.countCharI
+{-# INLINE [0] countChar #-}

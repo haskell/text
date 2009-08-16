@@ -159,7 +159,7 @@ module Data.Text.Lazy
     , findIndices
     , elemIndex
     , elemIndices
-    , count
+    , countChar
 
     -- * Zipping and unzipping
     , zip
@@ -1109,12 +1109,12 @@ elemIndices :: Char -> Text -> [Int64]
 elemIndices c t = S.elemIndices c (stream t)
 {-# INLINE elemIndices #-}
 
--- | /O(n)/ The 'count' function returns the number of times the query
--- element appears in the given 'Text'. This function is subject to
--- fusion.
-count :: Char -> Text -> Int64
-count c t = S.count c (stream t)
-{-# INLINE count #-}
+-- | /O(n)/ The 'countChar' function returns the number of times the
+-- query element appears in the given 'Text'. This function is subject
+-- to fusion.
+countChar :: Char -> Text -> Int64
+countChar c t = S.countChar c (stream t)
+{-# INLINE countChar #-}
 
 -- | /O(n)/ 'zip' takes two 'Text's and returns a list of
 -- corresponding pairs of bytes. If one input 'Text' is short,

@@ -94,7 +94,7 @@ module Data.Text.Fusion.Common
     , findIndicesI
     , elemIndexI
     , elemIndicesI
-    , countI
+    , countCharI
 
     -- * Zipping and unzipping
     , zipWith
@@ -840,17 +840,17 @@ elemIndicesI a (Stream next s0 _len) = loop 0 s0
                  | otherwise -> loop (i+1) s'
 {-# INLINE [0] elemIndicesI #-}
 
--- | /O(n)/ The 'count' function returns the number of times the query
--- element appears in the given stream.
-countI :: Integral a => Char -> Stream Char -> a
-countI a (Stream next s0 _len) = loop 0 s0
+-- | /O(n)/ The 'countCharI' function returns the number of times the
+-- query element appears in the given stream.
+countCharI :: Integral a => Char -> Stream Char -> a
+countCharI a (Stream next s0 _len) = loop 0 s0
   where
     loop !i !s = case next s of
       Done                   -> i
       Skip    s'             -> loop i s'
       Yield x s' | a == x    -> loop (i+1) s'
                  | otherwise -> loop i s'
-{-# INLINE [0] countI #-}
+{-# INLINE [0] countCharI #-}
 
 streamError :: String -> String -> a
 streamError func msg = P.error $ "Data.Text.Fusion.Common." ++ func ++ ": " ++ msg
