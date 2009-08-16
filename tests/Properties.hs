@@ -27,7 +27,7 @@ import System.IO.Unsafe (unsafePerformIO)
 import Test.Framework (defaultMain, testGroup)
 import Test.Framework.Providers.QuickCheck (testProperty)
 
-import QuickCheckUtils ()
+import QuickCheckUtils (NotEmpty(..))
 
 -- Ensure that two potentially bottom values (in the sense of crashing
 -- for some inputs, not looping infinitely) either both crash, or both
@@ -209,7 +209,7 @@ tl_replace s d     = (L.intercalate d . split s) `eqP` (unpackS . TL.replace (TL
 
 split :: (Eq a) => [a] -> [a] -> [[a]]
 split pat src0
-    | l == 0    = [src0]
+    | l == 0    = error "empty"
     | otherwise = go src0
   where
     l           = length pat
@@ -377,22 +377,24 @@ tl_inits          = L.inits       `eqP` (map unpackS . TL.inits)
 t_tails           = L.tails       `eqP` (map unpackS . T.tails)
 tl_tails          = L.tails       `eqP` (map unpackS . TL.tails)
 
-t_split_i t       = id `eq` (T.intercalate t . T.split t)
-t_splitTimes_i k t = id `eq` (T.intercalate t . T.splitTimes k t)
-tl_splitTimes_i k t = id `eq` (TL.intercalate t . TL.splitTimes k t)
-t_splitTimes_split k t = T.splitTimes k t `eq` \u ->
-                              case L.splitAt k (T.split t u) of
-                                (a,[]) -> a
-                                (a,b)  -> a ++ [T.intercalate t b]
-tl_splitTimes_split k t = TL.splitTimes k t `eq` \u ->
-                              case L.splitAt (fromIntegral k) (TL.split t u) of
-                                (a,[]) -> a
-                                (a,b)  -> a ++ [TL.intercalate t b]
-t_splitTimesEnd_i k t = id `eq` (T.intercalate t . T.splitTimesEnd k t)
-tl_splitTimesEnd_i k t = id `eq` (TL.intercalate t . TL.splitTimesEnd k t)
-t_splitTimesEnd_split t = T.splitTimesEnd maxBound t `eq` T.split t
-tl_splitTimesEnd_split t = TL.splitTimesEnd maxBound t `eq` TL.split t
-tl_split_i t      = id `eq` (TL.intercalate t . TL.split t)
+t_split_i (NotEmpty t)  = id `eq` (T.intercalate t . T.split t)
+tl_split_i (NotEmpty t) = id `eq` (TL.intercalate t . TL.split t)
+t_splitTimes_i k (NotEmpty t) = id `eq` (T.intercalate t . T.splitTimes k t)
+tl_splitTimes_i k (NotEmpty t) = id `eq` (TL.intercalate t . TL.splitTimes k t)
+t_splitTimes_split k (NotEmpty t) =
+    T.splitTimes k t `eq` \u ->
+        case L.splitAt k (T.split t u) of
+          (a,[]) -> a
+          (a,b)  -> a ++ [T.intercalate t b]
+tl_splitTimes_split k (NotEmpty t) =
+    TL.splitTimes k t `eq` \u ->
+        case L.splitAt (fromIntegral k) (TL.split t u) of
+          (a,[]) -> a
+          (a,b)  -> a ++ [TL.intercalate t b]
+t_splitTimesEnd_i k (NotEmpty t) = id `eq` (T.intercalate t . T.splitTimesEnd k t)
+tl_splitTimesEnd_i k (NotEmpty t) = id `eq` (TL.intercalate t . TL.splitTimesEnd k t)
+t_splitTimesEnd_split (NotEmpty t) = T.splitTimesEnd maxBound t `eq` T.split t
+tl_splitTimesEnd_split (NotEmpty t) = TL.splitTimesEnd maxBound t `eq` TL.split t
 
 t_splitWith p     = splitWith p `eqP` (map unpackS . T.splitWith p)
 t_splitWith_count c = (L.length . T.splitWith (==c)) `eq` ((1+) . T.countChar c)
