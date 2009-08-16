@@ -635,7 +635,7 @@ mapAccumR f s t = case uncons t of
 -- | /O(n*m)/ 'replicate' @n@ @t@ is a 'Text' consisting of the input
 -- @t@ repeated @n@ times. Subject to fusion.
 replicate :: Int64 -> Text -> Text
-replicate n t = unstream (S.replicateI (fromIntegral n) (S.stream t))
+replicate n t = unstream (S.replicateI n (S.stream t))
 {-# INLINE replicate #-}
 
 -- | /O(n)/ 'replicateChar' @n@ @c@ is a 'Text' of length @n@ with @c@ the
@@ -873,7 +873,10 @@ tails ts@(Chunk t ts')
 -- are slices of the original.
 
 -- | /O(m)*O(n)/ Break a 'Text' into pieces separated by the first
--- 'Text' argument, consuming the delimiter. Examples:
+-- 'Text' argument, consuming the delimiter.  An empty delimiter is
+-- invalid, and will cause an error to be raised.
+--
+-- Examples:
 --
 -- > split "\r\n" "a\r\nb\r\nd\r\ne" == ["a","b","d","e"]
 -- > split "aaa"  "aaaXaaaXaaaXaaa"  == ["","X","X","X",""]
@@ -887,7 +890,7 @@ split :: Text                   -- ^ Text to split on
       -> Text                   -- ^ Input text
       -> [Text]
 split pat src0
-    | l == 0    = [src0]
+    | l == 0    = emptyError "split"
     | l == 1    = splitWith (== (head pat)) src0
     | otherwise = go src0
   where
@@ -910,7 +913,8 @@ split pat src0
 -- and consuming the delimiter.  The last element of the list contains
 -- the remaining text after the number of times to split has been
 -- reached.  A value of zero or less for @k@ causes no splitting to
--- occur.
+-- occur.  An empty delimiter is invalid, and will cause an error to
+-- be raised.
 --
 -- Examples:
 --
@@ -926,8 +930,9 @@ splitTimes :: Int64             -- ^ Maximum number of times to split
            -> Text              -- ^ Input text
            -> [Text]
 splitTimes k pat src0
-    | k <= 0 || l == 0 = [src0]
-    | otherwise        = go k src0
+    | k <= 0    = [src0]
+    | l == 0    = emptyError "splitTimes"
+    | otherwise = go k src0
   where
     l         = length pat
     go !i src = search 0 src
