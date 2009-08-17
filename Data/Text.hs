@@ -917,7 +917,7 @@ split :: Text                   -- ^ Text to split on
       -> Text                   -- ^ Input text
       -> [Text]
 split pat src0
-    | l == 0    = emptyError "split"
+    | null pat  = emptyError "split"
     | l == 1    = splitWith (== (unsafeHead pat)) src0
     | otherwise = go src0
   where
@@ -958,7 +958,7 @@ splitTimes :: Int               -- ^ Maximum number of times to split
            -> [Text]
 splitTimes k pat src0
     | k <= 0    = [src0]
-    | l == 0    = emptyError "splitTimes"
+    | null pat  = emptyError "splitTimes"
     | otherwise = go k src0
   where
     l         = length pat
@@ -1054,7 +1054,7 @@ filter p t = unstream (S.filter p (stream t))
 
 findAll :: Text -> Text -> (Text, [Text])
 findAll pat@(Text _ _ plen) src@(Text sarr soff slen)
-    | plen == 0 = emptyError "findAll"
+    | plen <= 0 = emptyError "findAll"
     | otherwise = (h,t)
   where
     (h:t) = go 0 (search 0)
@@ -1126,7 +1126,7 @@ elemIndices c t = S.elemIndices c (stream t)
 -- invalid, and will cause an error to be raised.
 count :: Text -> Text -> Int
 count pat src0
-    | l == 0    = emptyError "count"
+    | null pat  = emptyError "count"
     | l == 1    = countChar (unsafeHead pat) src0
     | otherwise = go 0 src0
   where
