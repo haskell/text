@@ -1052,21 +1052,38 @@ filter :: (Char -> Bool) -> Text -> Text
 filter p t = unstream (S.filter p (stream t))
 {-# INLINE filter #-}
 
+-- /O(n*m)/ Find all non-overlapping instances of @needle@ in
+-- @haystack@.  The first element of the returned tuple is the prefix
+-- of @haystack@ before any matches of @needle@.  The second element
+-- of the tuple is a list of non-overlapping substrings from
+-- @haystack@.  Each begins with @needle@ and ends just before the
+-- following match.  If @needle@ is not present in @haystack@, the
+-- list will be empty.
+--
+-- Examples:
+--
+-- > findAll "::" "a::b::c" ==> ("a", ["::b", "::c"])
+-- > findAll "/" "foobar"   ==> ("foobar", [])
+--
+-- Laws:
+--
+-- > concat (prefix : matches) == haystack
+-- >   where (prefix, matches) = findAll needle haystack
 findAll :: Text -> Text -> (Text, [Text])
 findAll pat@(Text _ _ plen) src@(Text sarr soff slen)
     | plen <= 0 = emptyError "findAll"
     | otherwise = (h,t)
   where
-    (h:t) = go 0 (search 0)
-    go !k (x:xs) = Text sarr k (x-k) : go x xs
-    go _ []      = []
-    search !i
+    (h:t)       = go 0 (search 0)
+    go k (x:xs) = Text sarr k (x-k) : go x xs
+    go _ []     = []
+    search i
       | i >= slen          = [slen]      -- not found
-      | pat `isPrefixOf` s = i : search (i+d+plen)
+      | pat `isPrefixOf` s = i : search (i+plen)
       | otherwise          = search (i+d)
-            where s = Text sarr (soff+i) (slen-i)
-                  d = iter_ src i
-
+      where d = iter_ src i
+            s = Text sarr (soff+i) (slen-i)
+{-# INLINE findAll #-}
 
 -------------------------------------------------------------------------------
 -- ** Indexing 'Text's
