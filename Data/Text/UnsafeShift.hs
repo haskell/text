@@ -45,14 +45,12 @@ instance UnsafeShift Word32 where
     {-# INLINE shiftR #-}
     shiftR (W32# x#) (I# i#) = W32# (x# `uncheckedShiftRL#` i#)
 
-{-
 instance UnsafeShift Word64 where
     {-# INLINE shiftL #-}
     shiftL (W64# x#) (I# i#) = W64# (x# `uncheckedShiftL64#` i#)
 
     {-# INLINE shiftR #-}
     shiftR (W64# x#) (I# i#) = W64# (x# `uncheckedShiftRL64#` i#)
--}
 
 instance UnsafeShift Int where
     {-# INLINE shiftL #-}

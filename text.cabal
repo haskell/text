@@ -22,6 +22,7 @@ library
     Data.Text.Foreign
     Data.Text.Lazy
     Data.Text.Lazy.Encoding
+    Data.Text.Search
   other-modules:
     Data.Text.Array
     Data.Text.Encoding.Fusion
