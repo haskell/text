@@ -1058,7 +1058,7 @@ filter p t = unstream (S.filter p (stream t))
 -- of the tuple is a list of non-overlapping substrings from
 -- @haystack@.  Each begins with @needle@ and ends just before the
 -- following match.  If @needle@ is not present in @haystack@, the
--- list will be empty.
+-- list will be empty and the prefix will contain @haystack@.
 --
 -- Examples:
 --
