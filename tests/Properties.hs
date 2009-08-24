@@ -26,6 +26,7 @@ import Prelude hiding (replicate)
 import System.IO.Unsafe (unsafePerformIO)
 import Test.Framework (defaultMain, testGroup)
 import Test.Framework.Providers.QuickCheck (testProperty)
+import Data.Text.Search
 
 import QuickCheckUtils (NotEmpty(..))
 
@@ -486,6 +487,10 @@ sf_zipWith p c s  = (L.zipWith c (L.filter p s) . L.filter p) `eqP` (unpackS . S
 t_zipWith c s     = L.zipWith c s `eqP` (unpackS . T.zipWith c (packS s))
 tl_zipWith c s    = L.zipWith c s `eqP` (unpackS . TL.zipWith c (packS s))
 
+t_indices = unsquare (\s -> slowIndices s `eq` indices s)
+t_indices_occurs t = unsquare (\ts -> let s = T.intercalate t ts
+                                      in slowIndices t s == indices t s)
+
 -- Bit shifts.
 shiftL w = forAll (choose (0,width-1)) $ \k -> Bits.shiftL w k == U.shiftL w k
     where width = round (log (fromIntegral m) / log 2 :: Double)
@@ -836,7 +841,9 @@ tests = [
     testProperty "t_elemIndices" t_elemIndices,
     testProperty "tl_elemIndices" tl_elemIndices,
     testProperty "t_count" t_count,
-    testProperty "tl_count" tl_count
+    testProperty "tl_count" tl_count,
+    testProperty "t_indices" t_indices,
+    testProperty "t_indices_occurs" t_indices_occurs
   ],
 
   testGroup "zips" [
