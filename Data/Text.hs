@@ -401,7 +401,7 @@ reverse :: Text -> Text
 reverse t = S.reverse (stream t)
 {-# INLINE reverse #-}
 
--- | /O(m)*O(n)/ Replace every occurrence of one substring with another.
+-- | /O(m*n)/ Replace every occurrence of one substring with another.
 replace :: Text                 -- ^ Text to search for
         -> Text                 -- ^ Replacement text
         -> Text                 -- ^ Input text
@@ -899,7 +899,7 @@ tails t | null t    = [empty]
 -- copies to create substrings; they just construct new 'Text's that
 -- are slices of the original.
 
--- | /O(m)*O(n)/ Break a 'Text' into pieces separated by the first
+-- | /O(m*n)/ Break a 'Text' into pieces separated by the first
 -- 'Text' argument, consuming the delimiter. An empty delimiter is
 -- invalid, and will cause an error to be raised.
 --
@@ -935,7 +935,7 @@ split pat src0
     split (singleton c) t = splitWith (==c) t
   #-}
 
--- | /O(m)*O(n)/ Break a 'Text' into pieces at most @k@ times,
+-- | /O(m*n)/ Break a 'Text' into pieces at most @k@ times,
 -- treating the first 'Text' argument as the delimiter to break on,
 -- and consuming the delimiter.  The last element of the list contains
 -- the remaining text after the number of times to split has been
@@ -970,7 +970,7 @@ splitTimes k pat src0
             | otherwise          = search (n+1) (unsafeTail s)
 {-# INLINE splitTimes #-}
 
--- | /O(m)*O(n)/ Break a 'Text' into pieces at most @k@ times, like
+-- | /O(m*n)/ Break a 'Text' into pieces at most @k@ times, like
 -- 'splitTimes', but start from the end of the input and work towards
 -- the start.
 --
