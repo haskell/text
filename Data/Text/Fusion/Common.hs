@@ -637,7 +637,8 @@ unfoldrNI n f s0 | n <  0    = empty
 -- stream of length @n@, or the stream itself if @n@ is greater than the
 -- length of the stream.
 take :: Integral a => a -> Stream Char -> Stream Char
-take n0 (Stream next0 s0 len) = Stream next (n0 :!: s0) (min 0 (len - fromIntegral n0)) -- HINT maybe too high
+take n0 (Stream next0 s0 len) =
+    Stream next (n0 :!: s0) (max 0 (len - fromIntegral n0)) -- HINT maybe too high
     where
       {-# INLINE next #-}
       next (n :!: s) | n <= 0    = Done
