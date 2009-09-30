@@ -1,6 +1,7 @@
 version := $(shell awk '/^version:/{print $$2}' ../text.cabal)
 ghc := ghc
-ghc-base-flags := -O0 -funbox-strict-fields \
+ghc-opt-flags = -O0
+ghc-base-flags := -funbox-strict-fields -package criterion \
 	-package bytestring -package QuickCheck -package test-framework \
 	-package test-framework-quickcheck -ignore-package text
 ghc-base-flags += -Wall -fno-warn-orphans -fno-warn-missing-signatures
@@ -33,10 +34,14 @@ QuickCheckUtils.o: $(lib)
 qc: Properties.o QuickCheckUtils.o
 	$(ghc) $(ghc-flags) -threaded -o $@ $^ $(lib)
 
+sb: SearchBench.o
+	$(ghc) $(ghc-flags) -threaded -o $@ $^ $(lib)
+
 qc-hpc: Properties.hs QuickCheckUtils.hs $(lib-srcs:%=../%)
 	-mkdir -p hpcdir
 	@rm -f $@.tix
-	$(ghc) $(ghc-hpc-flags) -ihpcdir --make -threaded -o $@ $<
+	$(ghc) $(ghc-hpc-flags) $(ghc-opt-flags) -ihpcdir \
+	  --make -threaded -o $@ $<
 
 coverage: qc-hpc-html/hpc_index.html
 
@@ -46,11 +51,12 @@ qc-hpc-html/hpc_index.html: qc-hpc
 	  --exclude=Data.Text.Fusion.CaseMapping \
 	  --exclude=QuickCheckUtils --srcdir=.. --srcdir=. --destdir=$(dir $@)
 
+SearchBench.o: ghc-opt-flags = -O
 %.o: %.hs
-	$(ghc) $(ghc-flags) -c -o $@ $<
+	$(ghc) $(ghc-flags) $(ghc-opt-flags) -c -o $@ $<
 
 hpcdir/%.o: %.hs
-	$(ghc) $(ghc-hpc-flags) --make -c -o $@ $<
+	$(ghc) $(ghc-hpc-flags) $(ghc-opt-flags) --make -c -o $@ $<
 
 .PHONY: testdata
 testdata: text-testdata.tar.bz2

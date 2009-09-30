@@ -345,6 +345,7 @@ s_drop n          = L.drop n      `eqP` (unpackS . S.drop n)
 sf_drop p n       = (L.drop n . L.filter p) `eqP` (unpackS . S.drop n . S.filter p)
 t_drop n          = L.drop n      `eqP` (unpackS . T.drop n)
 tl_drop n         = L.drop n      `eqP` (unpackS . TL.drop (fromIntegral n))
+s_take_drop n     = (L.take n . L.drop n) `eqP` (unpackS . S.take n . S.drop n)
 s_takeWhile p     = L.takeWhile p `eqP` (unpackS . S.takeWhile p)
 sf_takeWhile q p  = (L.takeWhile p . L.filter q) `eqP` (unpackS . S.takeWhile p . S.filter q)
 t_takeWhile p     = L.takeWhile p `eqP` (unpackS . T.takeWhile p)
@@ -732,6 +733,7 @@ tests = [
       testProperty "sf_drop" sf_drop,
       testProperty "t_drop" t_drop,
       testProperty "tl_drop" tl_drop,
+      testProperty "s_take_drop" s_take_drop,
       testProperty "s_takeWhile" s_takeWhile,
       testProperty "sf_takeWhile" sf_takeWhile,
       testProperty "t_takeWhile" t_takeWhile,
