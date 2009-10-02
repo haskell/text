@@ -3,7 +3,8 @@ ghc := ghc
 ghc-opt-flags = -O0
 ghc-base-flags := -funbox-strict-fields -package criterion \
 	-package bytestring -package QuickCheck -package test-framework \
-	-package test-framework-quickcheck -ignore-package text
+	-package test-framework-quickcheck -ignore-package text \
+	-fno-ignore-asserts
 ghc-base-flags += -Wall -fno-warn-orphans -fno-warn-missing-signatures
 ghc-flags := $(ghc-base-flags) -i../dist/build -package-name text-$(version)
 ghc-hpc-flags := $(ghc-base-flags) -fhpc -fno-ignore-asserts -odir hpcdir \

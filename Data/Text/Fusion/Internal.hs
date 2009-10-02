@@ -25,6 +25,7 @@ module Data.Text.Fusion.Internal
     , empty
     ) where
 
+import Data.Text.Fusion.Size
 import Data.Word (Word8)
 
 -- | Specialised, strict Maybe-like type.
@@ -76,7 +77,7 @@ data Stream a =
     forall s. Stream
     (s -> Step s a)             -- stepper function
     !s                          -- current state
-    {-# UNPACK #-}!Int          -- length hint
+    {-# UNPACK #-} !Size        -- size hint
 
 -- | /O(n)/ Determines if two streams are equal.
 eq :: (Eq a) => Stream a -> Stream a -> Bool

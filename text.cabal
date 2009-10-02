@@ -33,6 +33,7 @@ library
     Data.Text.Fusion.CaseMapping
     Data.Text.Fusion.Common
     Data.Text.Fusion.Internal
+    Data.Text.Fusion.Size
     Data.Text.Internal
     Data.Text.Lazy.Encoding.Fusion
     Data.Text.Lazy.Fusion

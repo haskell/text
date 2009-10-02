@@ -18,6 +18,7 @@ import qualified Data.Text.Encoding as E
 import Control.Exception (SomeException, try)
 import qualified Data.Text.Fusion as S
 import qualified Data.Text.Fusion.Common as S
+import Data.Text.Fusion.Size
 import qualified Data.Text.Lazy.Encoding as EL
 import qualified Data.Text.Lazy.Fusion as SL
 import qualified Data.Text.UnsafeShift as U
@@ -28,7 +29,7 @@ import Test.Framework (defaultMain, testGroup)
 import Test.Framework.Providers.QuickCheck (testProperty)
 import Data.Text.Search
 
-import QuickCheckUtils (NotEmpty(..))
+import QuickCheckUtils (NotEmpty(..), small)
 
 -- Ensure that two potentially bottom values (in the sense of crashing
 -- for some inputs, not looping infinitely) either both crash, or both
@@ -118,8 +119,8 @@ eqP f g s w  = eql "orig" (f s) (g t) &&
 -- For tests that have O(n^2) running times or input sizes, resize
 -- their inputs to the square root of the originals.
 unsquare :: (Arbitrary a, Show a, Testable b) => (a -> b) -> Property
-unsquare = forAll . sized $ \n -> resize (smaller n) arbitrary
-    where smaller = round . (sqrt :: Double -> Double) . fromIntegral
+unsquare = forAll . sized $ \n -> resize (smallish n) arbitrary
+    where smallish = round . (sqrt :: Double -> Double) . fromIntegral
 
 s_Eq s            = (s==)    `eq` ((S.streamList s==) . S.streamList)
     where _types = s :: String
@@ -147,6 +148,7 @@ t_IsString        = fromString  `eqP` (T.unpack . fromString)
 tl_IsString       = fromString  `eqP` (TL.unpack . fromString)
 
 s_cons x          = (x:)     `eqP` (unpackS . S.cons x)
+s_cons_s x        = (x:)     `eqP` (unpackS . S.unstream . S.cons x)
 sf_cons p x       = ((x:) . L.filter p) `eqP` (unpackS . S.cons x . S.filter p)
 t_cons x          = (x:)     `eqP` (unpackS . T.cons x)
 tl_cons x         = (x:)     `eqP` (unpackS . TL.cons x)
@@ -338,14 +340,21 @@ unpack2 :: (Stringy s) => (s,s) -> (String,String)
 unpack2 = unpackS *** unpackS
 
 s_take n          = L.take n      `eqP` (unpackS . S.take n)
+s_take_s m        = L.take n      `eqP` (unpackS . S.unstream . S.take n)
+  where n = small m
 sf_take p n       = (L.take n . L.filter p) `eqP` (unpackS . S.take n . S.filter p)
 t_take n          = L.take n      `eqP` (unpackS . T.take n)
 tl_take n         = L.take n      `eqP` (unpackS . TL.take (fromIntegral n))
 s_drop n          = L.drop n      `eqP` (unpackS . S.drop n)
+s_drop_s m        = L.drop n      `eqP` (unpackS . S.unstream . S.drop n)
+  where n = small m
 sf_drop p n       = (L.drop n . L.filter p) `eqP` (unpackS . S.drop n . S.filter p)
 t_drop n          = L.drop n      `eqP` (unpackS . T.drop n)
 tl_drop n         = L.drop n      `eqP` (unpackS . TL.drop (fromIntegral n))
-s_take_drop n     = (L.take n . L.drop n) `eqP` (unpackS . S.take n . S.drop n)
+s_take_drop m     = (L.take n . L.drop n) `eqP` (unpackS . S.take n . S.drop n)
+  where n = small m
+s_take_drop_s m   = (L.take n . L.drop n) `eqP` (unpackS . S.unstream . S.take n . S.drop n)
+  where n = small m
 s_takeWhile p     = L.takeWhile p `eqP` (unpackS . S.takeWhile p)
 sf_takeWhile q p  = (L.takeWhile p . L.filter q) `eqP` (unpackS . S.takeWhile p . S.filter q)
 t_takeWhile p     = L.takeWhile p `eqP` (unpackS . T.takeWhile p)
@@ -517,8 +526,8 @@ s_filter_eq s = S.filter p t == S.streamList (filter p s)
 -- themselves.
 shorten :: Int -> S.Stream a -> S.Stream a
 shorten n t@(S.Stream arr off len)
-    | n < len && n > 0 = S.Stream arr off n
-    | otherwise        = t
+    | n > 0     = S.Stream arr off (smaller (exactSize n) len) 
+    | otherwise = t
 
 main = defaultMain tests
 
@@ -568,6 +577,7 @@ tests = [
 
   testGroup "basics" [
     testProperty "s_cons" s_cons,
+    testProperty "s_cons_s" s_cons_s,
     testProperty "sf_cons" sf_cons,
     testProperty "t_cons" t_cons,
     testProperty "tl_cons" tl_cons,
@@ -726,14 +736,17 @@ tests = [
   testGroup "substrings" [
     testGroup "breaking" [
       testProperty "s_take" s_take,
+      testProperty "s_take_s" s_take_s,
       testProperty "sf_take" sf_take,
       testProperty "t_take" t_take,
       testProperty "tl_take" tl_take,
       testProperty "s_drop" s_drop,
+      testProperty "s_drop_s" s_drop_s,
       testProperty "sf_drop" sf_drop,
       testProperty "t_drop" t_drop,
       testProperty "tl_drop" tl_drop,
       testProperty "s_take_drop" s_take_drop,
+      testProperty "s_take_drop_s" s_take_drop_s,
       testProperty "s_takeWhile" s_takeWhile,
       testProperty "sf_takeWhile" sf_takeWhile,
       testProperty "t_takeWhile" t_takeWhile,

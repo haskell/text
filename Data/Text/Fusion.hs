@@ -47,7 +47,7 @@ module Data.Text.Fusion
     , countChar
     ) where
 
-import Prelude (Bool(..), Char, Eq(..), Maybe(..), Monad(..), Int,
+import Prelude (Bool(..), Char, Maybe(..), Monad(..), Int,
                 Num(..), Ord(..), ($), (&&),
                 fromIntegral, otherwise)
 import Data.Bits ((.&.))
@@ -58,6 +58,7 @@ import Data.Text.UnsafeShift (shiftR)
 import qualified Data.Text.Array as A
 import qualified Data.Text.Fusion.Common as S
 import Data.Text.Fusion.Internal
+import Data.Text.Fusion.Size
 import qualified Data.Text.Internal as I
 import qualified Data.Text.Encoding.Utf16 as U16
 import qualified Prelude as P
@@ -66,7 +67,7 @@ default(Int)
 
 -- | /O(n)/ Convert a 'Text' into a 'Stream Char'.
 stream :: Text -> Stream Char
-stream (Text arr off len) = Stream next off len
+stream (Text arr off len) = Stream next off (maxSize len)
     where
       end = off+len
       {-# INLINE next #-}
@@ -82,7 +83,7 @@ stream (Text arr off len) = Stream next off len
 -- | /O(n)/ Convert a 'Text' into a 'Stream Char', but iterate
 -- backwards.
 reverseStream :: Text -> Stream Char
-reverseStream (Text arr off len) = Stream next (off+len-1) len
+reverseStream (Text arr off len) = Stream next (off+len-1) (maxSize len)
     where
       {-# INLINE next #-}
       next !i
@@ -97,10 +98,11 @@ reverseStream (Text arr off len) = Stream next (off+len-1) len
 -- | /O(n)/ Convert a 'Stream Char' into a 'Text'.
 unstream :: Stream Char -> Text
 unstream (Stream next0 s0 len)
-    | len == 0  = I.empty
-    | otherwise = I.textP (P.fst a) 0 (P.snd a)
+    | isEmpty len = I.empty
+    | otherwise   = I.textP (P.fst a) 0 (P.snd a)
     where
-      a = A.run2 (A.unsafeNew len >>= (\arr -> loop arr len s0 0))
+      mlen = upperBound 4 len
+      a = A.run2 (A.unsafeNew mlen >>= (\arr -> loop arr mlen s0 0))
       loop arr !top !s !i
           | i + 1 >= top = case next0 s of
                             Done -> return (arr, i)
@@ -125,10 +127,10 @@ length = S.lengthI
 -- | /O(n)/ Reverse the characters of a string.
 reverse :: Stream Char -> Text
 reverse (Stream next s len0)
-    | len0 == 0 = I.empty
-    | otherwise = I.textP arr off' len'
+    | isEmpty len0 = I.empty
+    | otherwise    = I.textP arr off' len'
   where
-    len0' = max len0 4
+    len0' = upperBound 4 (larger len0 4)
     (arr, (off', len')) = A.run2 (A.unsafeNew len0' >>= loop s (len0'-1) len0')
     loop !s0 !i !len marr =
         case next s0 of

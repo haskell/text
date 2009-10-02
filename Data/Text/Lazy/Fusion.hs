@@ -28,6 +28,7 @@ module Data.Text.Lazy.Fusion
 import Prelude hiding (length)
 import qualified Data.Text.Fusion.Common as S
 import Data.Text.Fusion.Internal
+import Data.Text.Fusion.Size (isEmpty)
 import Data.Text.Lazy.Internal
 import qualified Data.Text.Internal as I
 import qualified Data.Text.Array as A
@@ -52,8 +53,8 @@ stream text = Stream next (text :!: 0) 4 -- random HINT
 -- chunk size.
 unstreamChunks :: Int -> Stream Char -> Text
 unstreamChunks chunkSize (Stream next s0 len0)
-  | len0 == 0 = Empty
-  | otherwise = outer s0
+  | isEmpty len0 = Empty
+  | otherwise    = outer s0
   where
     outer s = case next s of
                 Done       -> Empty

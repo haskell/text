@@ -36,6 +36,7 @@ import Data.Text.Encoding.Fusion.Common
 import Data.Text.Encoding.Error
 import Data.Text.Fusion (Step(..), Stream(..))
 import Data.Text.Fusion.Internal (M(..), PairS(..), S(..))
+import Data.Text.Fusion.Size
 import Data.Text.UnsafeChar (unsafeChr8)
 import Data.Word (Word8)
 import qualified Data.Text.Encoding.Utf8 as U8
@@ -46,13 +47,10 @@ import Data.ByteString.Internal (mallocByteString, memcpy)
 import Control.Exception (assert)
 import qualified Data.ByteString.Internal as B
 
-unknownLength :: Int
-unknownLength = 4
-
 -- | /O(n)/ Convert a lazy 'ByteString' into a 'Stream Char', using
 -- UTF-8 encoding.
 streamUtf8 :: OnDecodeError -> ByteString -> Stream Char
-streamUtf8 onErr bs0 = Stream next (bs0 :!: empty :!: 0) unknownLength
+streamUtf8 onErr bs0 = Stream next (bs0 :!: empty :!: 0) unknownSize
     where
       empty = S N N N N
       {-# INLINE next #-}
@@ -100,9 +98,9 @@ streamUtf8 onErr bs0 = Stream next (bs0 :!: empty :!: 0) unknownLength
 
 -- | /O(n)/ Convert a 'Stream' 'Word8' to a lazy 'ByteString'.
 unstreamChunks :: Int -> Stream Word8 -> ByteString
-unstreamChunks chunkSize (Stream next s0 len0) = chunk s0 len0
+unstreamChunks chunkSize (Stream next s0 len0) = chunk s0 (upperBound 4 len0)
   where chunk s1 len1 = unsafePerformIO $ do
-          let len = min (max len1 unknownLength) chunkSize
+          let len = min len1 chunkSize
           mallocByteString len >>= loop len 0 s1
           where
             loop !n !off !s fp = case next s of

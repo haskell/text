@@ -108,9 +108,10 @@ import qualified Prelude as P
 import Data.Int (Int64)
 import Data.Text.Fusion.Internal
 import Data.Text.Fusion.CaseMapping (foldMapping, lowerMapping, upperMapping)
+import Data.Text.Fusion.Size
 
 singleton :: Char -> Stream Char
-singleton c = Stream next False 1 -- HINT maybe too low
+singleton c = Stream next False 1
     where next False = Yield c True
           next True  = Done
 {-# INLINE singleton #-}
@@ -118,10 +119,9 @@ singleton c = Stream next False 1 -- HINT maybe too low
 streamList :: [a] -> Stream a
 {-# INLINE [0] streamList #-}
 streamList [] = empty
-streamList s  = Stream next s unknownLength
+streamList s  = Stream next s unknownSize
     where next []       = Done
           next (x:xs)   = Yield x xs
-          unknownLength = 8 -- random HINT
 
 unstreamList :: Stream a -> [a]
 {-# INLINE [0] unstreamList #-}
@@ -138,7 +138,7 @@ unstreamList (Stream next s0 _len) = unfold s0
 
 -- | /O(n)/ Adds a character to the front of a Stream Char.
 cons :: Char -> Stream Char -> Stream Char
-cons w (Stream next0 s0 len) = Stream next (S2 :!: s0) (len+2) -- HINT maybe too high
+cons w (Stream next0 s0 len) = Stream next (S2 :!: s0) (len+1)
     where
       {-# INLINE next #-}
       next (S2 :!: s) = Yield w (S1 :!: s)
@@ -150,7 +150,7 @@ cons w (Stream next0 s0 len) = Stream next (S2 :!: s0) (len+2) -- HINT maybe too
 
 -- | /O(n)/ Adds a character to the end of a stream.
 snoc :: Stream Char -> Char -> Stream Char
-snoc (Stream next0 xs0 len) w = Stream next (J xs0) (len+2) -- HINT maybe too high
+snoc (Stream next0 xs0 len) w = Stream next (J xs0) (len+1)
   where
     {-# INLINE next #-}
     next (J xs) = case next0 xs of
@@ -193,7 +193,7 @@ uncons :: Stream Char -> Maybe (Char, Stream Char)
 uncons (Stream next s0 len) = loop_uncons s0
     where
       loop_uncons !s = case next s of
-                         Yield x s1 -> Just (x, Stream next s1 (len-1)) -- HINT maybe too high
+                         Yield x s1 -> Just (x, Stream next s1 (len-1))
                          Skip s'    -> loop_uncons s'
                          Done       -> Nothing
 {-# INLINE [0] uncons #-}
@@ -216,7 +216,7 @@ last (Stream next s0 _len) = loop0_last s0
 -- | /O(1)/ Returns all characters after the head of a Stream Char, which must
 -- be non-empty.
 tail :: Stream Char -> Stream Char
-tail (Stream next0 s0 len) = Stream next (False :!: s0) (len-1) -- HINT maybe too high
+tail (Stream next0 s0 len) = Stream next (False :!: s0) (len-1)
     where
       {-# INLINE next #-}
       next (False :!: s) = case next0 s of
@@ -233,7 +233,7 @@ tail (Stream next0 s0 len) = Stream next (False :!: s0) (len-1) -- HINT maybe to
 -- | /O(1)/ Returns all but the last character of a Stream Char, which
 -- must be non-empty.
 init :: Stream Char -> Stream Char
-init (Stream next0 s0 len) = Stream next (N :!: s0) (len-1) -- HINT maybe too high
+init (Stream next0 s0 len) = Stream next (N :!: s0) (len-1)
     where
       {-# INLINE next #-}
       next (N :!: s) = case next0 s of
@@ -269,10 +269,10 @@ lengthI (Stream next s0 _len) = loop_length 0 s0
 -- ----------------------------------------------------------------------------
 -- * Stream transformations
 
--- | /O(n)/ 'map' @f @xs is the Stream Char obtained by applying @f@ to each element of
--- @xs@.
+-- | /O(n)/ 'map' @f @xs is the Stream Char obtained by applying @f@
+-- to each element of @xs@.
 map :: (Char -> Char) -> Stream Char -> Stream Char
-map f (Stream next0 s0 len) = Stream next s0 len -- HINT depends on f
+map f (Stream next0 s0 len) = Stream next s0 len
     where
       {-# INLINE next #-}
       next !s = case next0 s of
@@ -289,7 +289,7 @@ map f (Stream next0 s0 len) = Stream next s0 len -- HINT depends on f
 -- | /O(n)/ Take a character and place it between each of the
 -- characters of a 'Stream Char'.
 intersperse :: Char -> Stream Char -> Stream Char
-intersperse c (Stream next0 s0 len) = Stream next (s0 :!: N :!: S1) len -- HINT maybe too low
+intersperse c (Stream next0 s0 len) = Stream next (s0 :!: N :!: S1) len
     where
       {-# INLINE next #-}
       next (s :!: N :!: S1) = case next0 s of
@@ -364,11 +364,9 @@ toLower = caseConvert lowerMapping
 {-# INLINE [0] toLower #-}
 
 justifyLeftI :: Integral a => a -> Char -> Stream Char -> Stream Char
-justifyLeftI k c (Stream next0 s0 len) = Stream next (s0 :!: S1 :!: 0) newLen
+justifyLeftI k c (Stream next0 s0 len) =
+    Stream next (s0 :!: S1 :!: 0) (larger (fromIntegral k) len)
   where
-    j = fromIntegral k
-    newLen | j > len   = j
-           | otherwise = len
     next (s :!: S1 :!: n) =
         case next0 s of
           Done       -> next (s :!: S2 :!: n)
@@ -590,7 +588,7 @@ replicateCharI n c
 
 replicateI :: Int64 -> Stream Char -> Stream Char
 replicateI n (Stream next0 s0 len) =
-    Stream next (0 :!: s0) (max 0 (fromIntegral n * len))
+    Stream next (0 :!: s0) (fromIntegral (max 0 n) * len)
   where
     next (k :!: s)
         | k >= n = Done
@@ -638,7 +636,7 @@ unfoldrNI n f s0 | n <  0    = empty
 -- length of the stream.
 take :: Integral a => a -> Stream Char -> Stream Char
 take n0 (Stream next0 s0 len) =
-    Stream next (n0 :!: s0) (max 0 (len - fromIntegral n0)) -- HINT maybe too high
+    Stream next (n0 :!: s0) (smaller len (fromIntegral (max 0 n0)))
     where
       {-# INLINE next #-}
       next (n :!: s) | n <= 0    = Done
@@ -653,11 +651,11 @@ take n0 (Stream next0 s0 len) =
 -- length of the stream.
 drop :: Integral a => a -> Stream Char -> Stream Char
 drop n0 (Stream next0 s0 len) =
-    Stream next (J (max 0 n0) :!: s0) (len - fromIntegral n0) -- HINT maybe too high
+    Stream next (J n0 :!: s0) (len - fromIntegral (max 0 n0))
   where
     {-# INLINE next #-}
     next (J n :!: s)
-      | n == 0    = Skip (N :!: s)
+      | n <= 0    = Skip (N :!: s)
       | otherwise = case next0 s of
           Done       -> Done
           Skip    s' -> Skip (J n    :!: s')
@@ -806,7 +804,8 @@ findIndicesI p (Stream next s0 _len) = loop_findIndex 0 s0
 -- | zipWith generalises 'zip' by zipping with the function given as
 -- the first argument, instead of a tupling function.
 zipWith :: (a -> a -> b) -> Stream a -> Stream a -> Stream b
-zipWith f (Stream next0 sa0 len1) (Stream next1 sb0 len2) = Stream next (sa0 :!: sb0 :!: N) (min len1 len2)
+zipWith f (Stream next0 sa0 len1) (Stream next1 sb0 len2) =
+    Stream next (sa0 :!: sb0 :!: N) (smaller len1 len2)
     where
       {-# INLINE next #-}
       next (sa :!: sb :!: N) = case next0 sa of
