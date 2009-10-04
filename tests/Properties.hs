@@ -181,6 +181,7 @@ sf_tail p         = (tail . L.filter p) `eqP` (unpackS . S.tail . S.filter p)
 t_tail            = tail   `eqP` (unpackS . T.tail)
 tl_tail           = tail   `eqP` (unpackS . TL.tail)
 s_init            = init   `eqP` (unpackS . S.init)
+s_init_s          = init   `eqP` (unpackS . S.unstream . S.init)
 sf_init p         = (init . L.filter p) `eqP` (unpackS . S.init . S.filter p)
 t_init            = init   `eqP` (unpackS . T.init)
 tl_init           = init   `eqP` (unpackS . TL.init)
@@ -194,12 +195,14 @@ t_length          = length `eqP` T.length
 tl_length         = length `eqP` (fromIntegral . TL.length)
 
 s_map f           = map f  `eqP` (unpackS . S.map f)
+s_map_s f         = map f  `eqP` (unpackS . S.unstream . S.map f)
 sf_map p f        = (map f . L.filter p)  `eqP` (unpackS . S.map f . S.filter p)
 t_map f           = map f  `eqP` (unpackS . T.map f)
 tl_map f          = map f  `eqP` (unpackS . TL.map f)
 t_intercalate c   = unsquare (L.intercalate c `eq` (unpackS . T.intercalate (packS c) . map packS))
 tl_intercalate c  = unsquare (L.intercalate c `eq` (unpackS . TL.intercalate (TL.pack c) . map TL.pack))
 s_intersperse c   = L.intersperse c `eqP` (unpackS . S.intersperse c)
+s_intersperse_s c = L.intersperse c `eqP` (unpackS . S.unstream . S.intersperse c)
 sf_intersperse p c= (L.intersperse c . L.filter p) `eqP` (unpackS . S.intersperse c . S.filter p)
 t_intersperse c   = L.intersperse c `eqP` (unpackS . T.intersperse c)
 tl_intersperse c  = L.intersperse c `eqP` (unpackS . TL.intersperse c)
@@ -247,6 +250,7 @@ justifyLeft k c s  = s ++ L.replicate (k - length s) c
 justifyRight m n s = L.replicate (m - length s) n ++ s
 
 s_justifyLeft k c = justifyLeft k c `eqP` (unpackS . S.justifyLeftI k c)
+s_justifyLeft_s k c = justifyLeft k c `eqP` (unpackS . S.unstream . S.justifyLeftI k c)
 sf_justifyLeft p k c =
     (justifyLeft k c . L.filter p) `eqP` (unpackS . S.justifyLeftI k c . S.filter p)
 t_justifyLeft k c = justifyLeft k c `eqP` (unpackS . T.justifyLeft k c)
@@ -282,6 +286,7 @@ sf_foldr1 p f     = (L.foldr1 f . L.filter p) `eqP` (S.foldr1 f . S.filter p)
 t_foldr1 f        = L.foldr1 f   `eqP` T.foldr1 f
 tl_foldr1 f       = L.foldr1 f   `eqP` TL.foldr1 f
 
+s_concat_s        = unsquare (L.concat `eq` (unpackS . S.unstream . S.concat . map packS))
 sf_concat p       = unsquare ((L.concat . map (L.filter p)) `eq` (unpackS . S.concat . map (S.filter p . packS)))
 t_concat          = unsquare (L.concat `eq` (unpackS . T.concat . map packS))
 tl_concat         = unsquare (L.concat `eq` (unpackS . TL.concat . map TL.pack))
@@ -358,10 +363,12 @@ s_take_drop m     = (L.take n . L.drop n) `eqP` (unpackS . S.take n . S.drop n)
 s_take_drop_s m   = (L.take n . L.drop n) `eqP` (unpackS . S.unstream . S.take n . S.drop n)
   where n = small m
 s_takeWhile p     = L.takeWhile p `eqP` (unpackS . S.takeWhile p)
+s_takeWhile_s p   = L.takeWhile p `eqP` (unpackS . S.unstream . S.takeWhile p)
 sf_takeWhile q p  = (L.takeWhile p . L.filter q) `eqP` (unpackS . S.takeWhile p . S.filter q)
 t_takeWhile p     = L.takeWhile p `eqP` (unpackS . T.takeWhile p)
 tl_takeWhile p    = L.takeWhile p `eqP` (unpackS . TL.takeWhile p)
 s_dropWhile p     = L.dropWhile p `eqP` (unpackS . S.dropWhile p)
+s_dropWhile_s p   = L.dropWhile p `eqP` (unpackS . S.unstream . S.dropWhile p)
 sf_dropWhile q p  = (L.dropWhile p . L.filter q) `eqP` (unpackS . S.dropWhile p . S.filter q)
 t_dropWhile p     = L.dropWhile p `eqP` (unpackS . T.dropWhile p)
 tl_dropWhile p    = L.dropWhile p `eqP` (unpackS . S.dropWhile p)
@@ -608,6 +615,7 @@ tests = [
     testProperty "t_tail" t_tail,
     testProperty "tl_tail" tl_tail,
     testProperty "s_init" s_init,
+    testProperty "s_init_s" s_init_s,
     testProperty "sf_init" sf_init,
     testProperty "t_init" t_init,
     testProperty "tl_init" tl_init,
@@ -623,12 +631,14 @@ tests = [
 
   testGroup "transformations" [
     testProperty "s_map" s_map,
+    testProperty "s_map_s" s_map_s,
     testProperty "sf_map" sf_map,
     testProperty "t_map" t_map,
     testProperty "tl_map" tl_map,
     testProperty "t_intercalate" t_intercalate,
     testProperty "tl_intercalate" tl_intercalate,
     testProperty "s_intersperse" s_intersperse,
+    testProperty "s_intersperse_s" s_intersperse_s,
     testProperty "sf_intersperse" sf_intersperse,
     testProperty "t_intersperse" t_intersperse,
     testProperty "tl_intersperse" tl_intersperse,
@@ -655,6 +665,7 @@ tests = [
 
     testGroup "justification" [
       testProperty "s_justifyLeft" s_justifyLeft,
+      testProperty "s_justifyLeft_s" s_justifyLeft_s,
       testProperty "sf_justifyLeft" sf_justifyLeft,
       testProperty "t_justifyLeft" t_justifyLeft,
       testProperty "tl_justifyLeft" tl_justifyLeft,
@@ -684,6 +695,7 @@ tests = [
     testProperty "tl_foldr1" tl_foldr1,
 
     testGroup "special" [
+      testProperty "s_concat_s" s_concat_s,
       testProperty "sf_concat" sf_concat,
       testProperty "t_concat" t_concat,
       testProperty "tl_concat" tl_concat,
@@ -752,11 +764,13 @@ tests = [
       testProperty "s_take_drop" s_take_drop,
       testProperty "s_take_drop_s" s_take_drop_s,
       testProperty "s_takeWhile" s_takeWhile,
+      testProperty "s_takeWhile_s" s_takeWhile_s,
       testProperty "sf_takeWhile" sf_takeWhile,
       testProperty "t_takeWhile" t_takeWhile,
       testProperty "tl_takeWhile" tl_takeWhile,
       testProperty "sf_dropWhile" sf_dropWhile,
       testProperty "s_dropWhile" s_dropWhile,
+      testProperty "s_dropWhile_s" s_dropWhile_s,
       testProperty "t_dropWhile" t_dropWhile,
       testProperty "tl_dropWhile" tl_dropWhile,
       testProperty "t_dropWhileEnd" t_dropWhileEnd,
