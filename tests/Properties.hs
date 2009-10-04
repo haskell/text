@@ -156,6 +156,7 @@ s_snoc x          = (++ [x]) `eqP` (unpackS . (flip S.snoc) x)
 t_snoc x          = (++ [x]) `eqP` (unpackS . (flip T.snoc) x)
 tl_snoc x         = (++ [x]) `eqP` (unpackS . (flip TL.snoc) x)
 s_append s        = (s++)    `eqP` (unpackS . S.append (S.streamList s))
+s_append_s s      = (s++)    `eqP` (unpackS . S.unstream . S.append (S.streamList s))
 sf_append p s     = (L.filter p s++) `eqP` (unpackS . S.append (S.filter p $ S.streamList s))
 t_append s        = (s++)    `eqP` (unpackS . T.append (packS s))
 
@@ -175,6 +176,7 @@ sf_last p         = (last . L.filter p) `eqP` (S.last . S.filter p)
 t_last            = last   `eqP` T.last
 tl_last           = last   `eqP` TL.last
 s_tail            = tail   `eqP` (unpackS . S.tail)
+s_tail_s          = tail   `eqP` (unpackS . S.unstream . S.tail)
 sf_tail p         = (tail . L.filter p) `eqP` (unpackS . S.tail . S.filter p)
 t_tail            = tail   `eqP` (unpackS . T.tail)
 tl_tail           = tail   `eqP` (unpackS . TL.tail)
@@ -585,6 +587,7 @@ tests = [
     testProperty "t_snoc" t_snoc,
     testProperty "tl_snoc" tl_snoc,
     testProperty "s_append" s_append,
+    testProperty "s_append_s" s_append_s,
     testProperty "sf_append" sf_append,
     testProperty "t_append" t_append,
     testProperty "s_uncons" s_uncons,
@@ -600,6 +603,7 @@ tests = [
     testProperty "t_last" t_last,
     testProperty "tl_last" tl_last,
     testProperty "s_tail" s_tail,
+    testProperty "s_tail_s" s_tail_s,
     testProperty "sf_tail" sf_tail,
     testProperty "t_tail" t_tail,
     testProperty "tl_tail" tl_tail,

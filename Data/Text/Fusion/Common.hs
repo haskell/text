@@ -118,7 +118,6 @@ singleton c = Stream next False 1
 
 streamList :: [a] -> Stream a
 {-# INLINE [0] streamList #-}
-streamList [] = empty
 streamList s  = Stream next s unknownSize
     where next []       = Done
           next (x:xs)   = Yield x xs
@@ -220,12 +219,12 @@ tail (Stream next0 s0 len) = Stream next (False :!: s0) (len-1)
     where
       {-# INLINE next #-}
       next (False :!: s) = case next0 s of
-                          Done -> emptyError "tail"
-                          Skip s' -> Skip (False :!: s')
+                          Done       -> emptyError "tail"
+                          Skip s'    -> Skip (False :!: s')
                           Yield _ s' -> Skip (True :!: s')
       next (True :!: s) = case next0 s of
-                          Done -> Done
-                          Skip s' -> Skip (True :!: s')
+                          Done       -> Done
+                          Skip s'    -> Skip    (True :!: s')
                           Yield x s' -> Yield x (True :!: s')
 {-# INLINE [0] tail #-}
 

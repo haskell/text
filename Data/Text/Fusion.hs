@@ -54,7 +54,7 @@ import Data.Bits ((.&.))
 import Data.Char (ord)
 import Data.Text.Internal (Text(..))
 import Data.Text.UnsafeChar (unsafeChr, unsafeWrite)
-import Data.Text.UnsafeShift (shiftR)
+import Data.Text.UnsafeShift (shiftL, shiftR)
 import qualified Data.Text.Array as A
 import qualified Data.Text.Fusion.Common as S
 import Data.Text.Fusion.Internal
@@ -97,9 +97,7 @@ reverseStream (Text arr off len) = Stream next (off+len-1) (maxSize len)
 
 -- | /O(n)/ Convert a 'Stream Char' into a 'Text'.
 unstream :: Stream Char -> Text
-unstream (Stream next0 s0 len)
-    | isEmpty len = I.empty
-    | otherwise   = I.textP (P.fst a) 0 (P.snd a)
+unstream (Stream next0 s0 len) = I.textP (P.fst a) 0 (P.snd a)
     where
       mlen = upperBound 4 len
       a = A.run2 (A.unsafeNew mlen >>= (\arr -> loop arr mlen s0 0))
@@ -107,8 +105,9 @@ unstream (Stream next0 s0 len)
           | i + 1 >= top = case next0 s of
                             Done -> return (arr, i)
                             _    -> do
-                              arr' <- A.unsafeNew (top*2)
-                              A.copy arr arr' >> loop arr' (top*2) s i
+                              let top' = (top `shiftL` 1) + 1
+                              arr' <- A.unsafeNew top'
+                              A.copy arr arr' >> loop arr' top' s i
           | otherwise = case next0 s of
                Done       -> return (arr, i)
                Skip s'    -> loop arr top s' i
