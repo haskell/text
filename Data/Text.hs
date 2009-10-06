@@ -915,8 +915,8 @@ tails t | null t    = [empty]
 -- > intercalate s . split s         == id
 -- > split (singleton c)             == splitBy (==c)
 --
--- In (unlikely) bad cases, this function's time complexity
--- degenerates towards /O(n*m)/.
+-- In (unlikely) bad cases, this function's time complexity degrades
+-- towards /O(n*m)/.
 split :: Text -> Text -> [Text]
 split pat@(Text _ _ l) src@(Text arr off len)
     | l <= 0          = emptyError "split"
@@ -1017,8 +1017,8 @@ filter p t = unstream (S.filter p (stream t))
 -- want to break on every instance of a substring), use 'find'
 -- instead, as it has lower startup overhead.
 --
--- In (unlikely) bad cases, this function's time complexity
--- degenerates towards /O(n*m)/.
+-- In (unlikely) bad cases, this function's time complexity degrades
+-- towards /O(n*m)/.
 break :: Text -> Text -> (Text, Text)
 break pat src@(Text arr off len)
     | null pat  = emptyError "break"
@@ -1091,8 +1091,8 @@ findIndex p t = S.findIndex p (stream t)
 -- query string appears in the given 'Text'. An empty query string is
 -- invalid, and will cause an error to be raised.
 --
--- In (unlikely) bad cases, this function's time complexity
--- degenerates towards /O(n*m)/.
+-- In (unlikely) bad cases, this function's time complexity degrades
+-- towards /O(n*m)/.
 count :: Text -> Text -> Int
 count pat src
     | null pat        = emptyError "count"
@@ -1217,8 +1217,8 @@ isSuffixOf a@(Text _aarr _aoff alen) b@(Text barr boff blen) =
 -- 'True' iff the first is contained, wholly and intact, anywhere
 -- within the second.
 --
--- In (unlikely) bad cases, this function's time complexity
--- degenerates towards /O(n*m)/.
+-- In (unlikely) bad cases, this function's time complexity degrades
+-- towards /O(n*m)/.
 isInfixOf :: Text -> Text -> Bool
 isInfixOf pat src = null pat || (not . L.null $ indices pat src)
 {-# INLINE isInfixOf #-}

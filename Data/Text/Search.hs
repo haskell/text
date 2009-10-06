@@ -39,8 +39,10 @@ import Data.Bits ((.|.), (.&.))
 import Data.Text.UnsafeShift (shiftL)
 
 -- | /O(n+m)/ Find the offsets of all non-overlapping indices of
--- @needle@ within @haystack@. In (unlikely) bad cases, this
--- algorithm's complexity degenerates towards /O(n*m)/.
+-- @needle@ within @haystack@.
+--
+-- In (unlikely) bad cases, this algorithm's complexity degrades
+-- towards /O(n*m)/.
 indices :: Text                -- ^ Substring to search for (@needle@)
         -> Text                -- ^ Text to search in (@haystack@)
         -> [Int]
