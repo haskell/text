@@ -27,7 +27,8 @@ import Prelude hiding (replicate)
 import System.IO.Unsafe (unsafePerformIO)
 import Test.Framework (defaultMain, testGroup)
 import Test.Framework.Providers.QuickCheck (testProperty)
-import Data.Text.Search
+import Data.Text.Search (indices)
+import qualified SlowFunctions as Slow
 
 import QuickCheckUtils (NotEmpty(..), small)
 
@@ -397,6 +398,7 @@ tl_inits          = L.inits       `eqP` (map unpackS . TL.inits)
 t_tails           = L.tails       `eqP` (map unpackS . T.tails)
 tl_tails          = L.tails       `eqP` (map unpackS . TL.tails)
 
+t_split_split p     = T.split p `eq` Slow.split p
 t_split_i (NotEmpty t)  = id `eq` (T.intercalate t . T.split t)
 tl_split_i (NotEmpty t) = id `eq` (TL.intercalate t . TL.split t)
 t_splitTimes_i k (NotEmpty t) = id `eq` (T.intercalate t . T.splitTimes k t)
@@ -506,9 +508,9 @@ sf_zipWith p c s  = (L.zipWith c (L.filter p s) . L.filter p) `eqP` (unpackS . S
 t_zipWith c s     = L.zipWith c s `eqP` (unpackS . T.zipWith c (packS s))
 tl_zipWith c s    = L.zipWith c s `eqP` (unpackS . TL.zipWith c (packS s))
 
-t_indices = unsquare (\s -> slowIndices s `eq` indices s)
+t_indices = unsquare (\s -> Slow.indices s `eq` indices s)
 t_indices_occurs t = unsquare (\ts -> let s = T.intercalate t ts
-                                      in slowIndices t s == indices t s)
+                                      in Slow.indices t s == indices t s)
 
 -- Bit shifts.
 shiftL w = forAll (choose (0,width-1)) $ \k -> Bits.shiftL w k == U.shiftL w k
@@ -800,6 +802,7 @@ tests = [
     ],
 
     testGroup "breaking many" [
+      testProperty "t_split_split" t_split_split,
       testProperty "t_split_i" t_split_i,
       testProperty "t_splitTimes_i" t_splitTimes_i,
       testProperty "tl_splitTimes_i" tl_splitTimes_i,

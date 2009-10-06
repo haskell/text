@@ -26,19 +26,17 @@
 --
 -- * F. Lundh: The Fast Search Algorithm.
 --   <http://effbot.org/zone/stringlib.htm> (2006)
+
 module Data.Text.Search
     (
       indices
-    , slowIndices
     ) where
 
-import qualified Data.Text as T
 import qualified Data.Text.Array as A
 import Data.Word (Word64)
 import Data.Text.Internal (Text(..))
 import Data.Bits ((.|.), (.&.))
 import Data.Text.UnsafeShift (shiftL)
-import Data.Text.Unsafe (iter_)
 
 -- | /O(n+m)/ Find the offsets of all non-overlapping indices of
 -- @needle@ within @haystack@. In (unlikely) bad cases, this
@@ -82,19 +80,3 @@ indices _needle@(Text narr noff nlen) _haystack@(Text harr hoff hlen)
                       | hindex i == c = i : loop (i+1)
                       | otherwise     = loop (i+1)
 {-# INLINE indices #-}
-
--- | /O(n*m)/ Find the offsets of all non-overlapping indices of
--- @needle@ within @haystack@. Provided purely as a slower, reliable
--- counterpart to 'indices'.
-slowIndices :: Text             -- ^ Substring to search for (@needle@)
-            -> Text             -- ^ Text to search in (@haystack@)
-            -> [Int]
-slowIndices needle@(Text _narr _noff nlen) haystack@(Text harr hoff hlen)
-    | T.null needle = []
-    | otherwise     = scan 0
-  where
-    scan i | i >= hlen = []
-           | needle `T.isPrefixOf` t = i : scan (i+nlen)
-           | otherwise = scan (i+d)
-           where t = Text harr (hoff+i) (hlen-i)
-                 d = iter_ haystack i

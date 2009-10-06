@@ -180,16 +180,15 @@ import qualified Data.List as L
 import Data.Monoid (Monoid(..))
 import Data.Word (Word16)
 import Data.String (IsString(..))
-
 import qualified Data.Text.Fusion as S
 import qualified Data.Text.Fusion.Common as S
 import Data.Text.Fusion (stream, reverseStream, unstream)
-
 import Data.Text.Internal (Text(..), empty, text, textP)
 import qualified Prelude as P
 import Data.Text.Unsafe (iter, iter_, reverseIter, unsafeHead, unsafeTail)
 import Data.Text.UnsafeChar (unsafeChr)
 import qualified Data.Text.Encoding.Utf16 as U16
+import Data.Text.Search (indices)
 
 -- $fusion
 --
@@ -899,7 +898,7 @@ tails t | null t    = [empty]
 -- copies to create substrings; they just construct new 'Text's that
 -- are slices of the original.
 
--- | /O(m*n)/ Break a 'Text' into pieces separated by the first
+-- | /O(m+n)/ Break a 'Text' into pieces separated by the first
 -- 'Text' argument, consuming the delimiter. An empty delimiter is
 -- invalid, and will cause an error to be raised.
 --
@@ -913,21 +912,18 @@ tails t | null t    = [empty]
 --
 -- > intercalate s . split s         == id
 -- > split (singleton c)             == splitWith (==c)
-split :: Text                   -- ^ Text to split on
-      -> Text                   -- ^ Input text
-      -> [Text]
-split pat src0
+--
+-- In (unlikely) bad cases, this function's time complexity
+-- degenerates towards /O(n*m)/.
+split :: Text -> Text -> [Text]
+split pat src@(Text arr _off len)
     | null pat  = emptyError "split"
-    | l == 1    = splitWith (== (unsafeHead pat)) src0
-    | otherwise = go src0
+    | l == 1    = splitWith (== unsafeHead pat) src
+    | otherwise = chomp 0 (indices pat src)
   where
-    l      = length pat
-    go src = search 0 src
-      where
-        search !n !s
-            | null s             = [src]      -- not found
-            | pat `isPrefixOf` s = take n src : go (drop l s)
-            | otherwise          = search (n+1) (unsafeTail s)
+    l              =  length pat
+    chomp s (x:xs) =  textP arr s (x-s) : chomp (x+l) xs
+    chomp s []     = [textP arr s (len-s)]
 {-# INLINE [1] split #-}
 
 {-# RULES

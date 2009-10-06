@@ -28,11 +28,11 @@ else
 	cd .. && cabal build
 endif
 
-Properties.o: QuickCheckUtils.o
+Properties.o: QuickCheckUtils.o SlowFunctions.o
 
 QuickCheckUtils.o: $(lib)
 
-qc: Properties.o QuickCheckUtils.o
+qc: Properties.o QuickCheckUtils.o SlowFunctions.o
 	$(ghc) $(ghc-flags) -threaded -o $@ $^ $(lib)
 
 sb: SearchBench.o
