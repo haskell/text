@@ -38,6 +38,7 @@ library
     Data.Text.Lazy.Encoding.Fusion
     Data.Text.Lazy.Fusion
     Data.Text.Lazy.Internal
+    Data.Text.Lazy.Search
     Data.Text.Search
     Data.Text.Unsafe
     Data.Text.UnsafeChar
