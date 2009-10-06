@@ -101,7 +101,6 @@ module Data.Text.Lazy
 
     -- ** Generation and unfolding
     , replicate
-    , replicateChar
     , unfoldr
     , unfoldrN
 
@@ -329,6 +328,12 @@ null _     = False
 "LAZY TEXT null -> unfused" [1] forall t.
     S.null (stream t) = null t
  #-}
+
+-- | /O(1)/ Tests whether a 'Text' contains exactly one character.
+-- Subject to fusion.
+isSingleton :: Text -> Bool
+isSingleton = S.isSingleton . stream
+{-# INLINE isSingleton #-}
 
 -- | /O(1)/ Returns the last character of a 'Text', which must be
 -- non-empty.  Subject to array fusion.
@@ -631,13 +636,16 @@ mapAccumR f s t = case uncons t of
 -- | /O(n*m)/ 'replicate' @n@ @t@ is a 'Text' consisting of the input
 -- @t@ repeated @n@ times. Subject to fusion.
 replicate :: Int64 -> Text -> Text
-replicate n t = unstream (S.replicateI n (S.stream t))
+replicate n t
+    | isSingleton t = replicateChar n (head t)
+    | otherwise     = unstream (S.replicateI n (S.stream t))
 {-# INLINE replicate #-}
 
 -- | /O(n)/ 'replicateChar' @n@ @c@ is a 'Text' of length @n@ with @c@ the
 -- value of every element. Subject to fusion.
 replicateChar :: Int64 -> Char -> Text
 replicateChar n c = unstream (S.replicateCharI n c)
+{-# INLINE replicateChar #-}
 
 {-# RULES
 "LAZY TEXT replicate/singleton -> replicateChar" [~1] forall n c.

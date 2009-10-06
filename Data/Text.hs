@@ -97,7 +97,6 @@ module Data.Text
 
     -- ** Generation and unfolding
     , replicate
-    , replicateChar
     , unfoldr
     , unfoldrN
 
@@ -660,7 +659,9 @@ mapAccumR f s t = case uncons t of
 -- | /O(n*m)/ 'replicate' @n@ @t@ is a 'Text' consisting of the input
 -- @t@ repeated @n@ times. Subject to fusion.
 replicate :: Int -> Text -> Text
-replicate n t = unstream (S.replicateI (fromIntegral n) (S.stream t))
+replicate n t
+    | isSingleton t = replicateChar n (unsafeHead t)
+    | otherwise     = unstream (S.replicateI (fromIntegral n) (S.stream t))
 {-# INLINE [1] replicate #-}
 
 {-# RULES
@@ -672,6 +673,7 @@ replicate n t = unstream (S.replicateI (fromIntegral n) (S.stream t))
 -- value of every element. Subject to fusion.
 replicateChar :: Int -> Char -> Text
 replicateChar n c = unstream (S.replicateCharI n c)
+{-# INLINE replicateChar #-}
 
 -- | /O(n)/, where @n@ is the length of the result. The 'unfoldr'
 -- function is analogous to the List 'L.unfoldr'. 'unfoldr' builds a
