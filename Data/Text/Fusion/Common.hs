@@ -29,6 +29,7 @@ module Data.Text.Fusion.Common
     , init
     , null
     , lengthI
+    , isSingleton
 
     -- * Transformations
     , map
@@ -255,7 +256,7 @@ null (Stream next s0 _len) = loop_null s0
                        Skip s'   -> loop_null s'
 {-# INLINE[0] null #-}
 
--- | /O(n)/ Returns the number of characters in a text.
+-- | /O(n)/ Returns the number of characters in a string.
 lengthI :: Integral a => Stream Char -> a
 lengthI (Stream next s0 _len) = loop_length 0 s0
     where
@@ -264,6 +265,18 @@ lengthI (Stream next s0 _len) = loop_length 0 s0
                            Skip    s' -> loop_length z s'
                            Yield _ s' -> loop_length (z + 1) s'
 {-# INLINE[0] lengthI #-}
+
+-- | /O(n)/ Indicate whether a string contains exactly one element.
+isSingleton :: Stream Char -> Bool
+isSingleton (Stream next s0 _len) = loop 0 s0
+    where
+      loop !z s  = case next s of
+                     Done            -> z == (1::Int)
+                     Skip    s'      -> loop z s'
+                     Yield _ s'
+                         | z >= 1    -> False
+                         | otherwise -> loop (z+1) s'
+{-# INLINE[0] isSingleton #-}
 
 -- ----------------------------------------------------------------------------
 -- * Stream transformations

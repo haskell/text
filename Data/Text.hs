@@ -368,6 +368,12 @@ null (Text _arr _off len) = assert (len >= 0) $ len <= 0
     S.null (stream t) = null t
  #-}
 
+-- | /O(1)/ Tests whether a 'Text' contains exactly one character.
+-- Subject to fusion.
+isSingleton :: Text -> Bool
+isSingleton = S.isSingleton . stream
+{-# INLINE isSingleton #-}
+
 -- | /O(n)/ Returns the number of characters in a 'Text'.
 -- Subject to fusion.
 length :: Text -> Int
@@ -916,12 +922,11 @@ tails t | null t    = [empty]
 -- In (unlikely) bad cases, this function's time complexity
 -- degenerates towards /O(n*m)/.
 split :: Text -> Text -> [Text]
-split pat src@(Text arr off len)
-    | null pat  = emptyError "split"
-    | l == 1    = splitWith (== unsafeHead pat) src
-    | otherwise = go 0 (indices pat src)
+split pat@(Text _ _ l) src@(Text arr off len)
+    | l <= 0          = emptyError "split"
+    | isSingleton pat = splitWith (== unsafeHead pat) src
+    | otherwise       = go 0 (indices pat src)
   where
-    l            =  length pat
     go !s (x:xs) =  textP arr (s+off) (x-s) : go (x+l) xs
     go  s _      = [textP arr (s+off) (len-s)]
 {-# INLINE [1] split #-}
@@ -955,14 +960,13 @@ splitTimes :: Int               -- ^ Maximum number of times to split
            -> Text              -- ^ Text to split on
            -> Text              -- ^ Input text
            -> [Text]
-splitTimes k pat src@(Text arr off len)
-    | null pat  = emptyError "splitTimes"
+splitTimes k pat@(Text _ _ l) src@(Text arr off len)
+    | l <= 0    = emptyError "splitTimes"
     | otherwise = go 0 0 (indices pat src)
   where
     go !s !i _  | i >= k = [textP arr (s+off) (len-s)]
     go !s  _ []          = [textP arr (s+off) (len-s)]
     go !s !i (x:xs)      =  textP arr (s+off) (x-s) : go (x+l) (i+1) xs
-    l                    =  length pat
 {-# INLINE splitTimes #-}
 
 -- | /O(m+n)/ Break a 'Text' into pieces at most @k@ times, like
