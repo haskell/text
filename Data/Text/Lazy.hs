@@ -118,8 +118,8 @@ module Data.Text.Lazy
     , stripStart
     , stripEnd
     , splitAt
-    , span
-    , break
+    , spanBy
+    , breakBy
     , group
     , groupBy
     , inits
@@ -149,7 +149,7 @@ module Data.Text.Lazy
     , elem
     , filter
     , findBy
-    , partition
+    , partitionBy
 
     -- , findSubstring
     
@@ -804,10 +804,10 @@ splitAt = loop
                            in (Chunk t ts', ts'')
              where len = fromIntegral (T.length t)
 
--- | /O(n)/ 'break' is like 'span', but the prefix returned is over
+-- | /O(n)/ 'breakBy' is like 'spanBy', but the prefix returned is over
 -- elements that fail the predicate @p@.
-break :: (Char -> Bool) -> Text -> (Text, Text)
-break p t0 = break' t0
+breakBy :: (Char -> Bool) -> Text -> (Text, Text)
+breakBy p t0 = break' t0
   where break' Empty          = (empty, empty)
         break' c@(Chunk t ts) =
           case T.findIndex p t of
@@ -817,13 +817,13 @@ break p t0 = break' t0
                    | otherwise -> let (a,b) = T.splitAt n t
                                   in (Chunk a Empty, Chunk b ts)
 
--- | /O(n)/ 'span', applied to a predicate @p@ and text @t@, returns a
--- pair whose first element is the longest prefix (possibly empty) of
--- @t@ of elements that satisfy @p@, and whose second is the remainder
--- of the list.
-span :: (Char -> Bool) -> Text -> (Text, Text)
-span p = break (not . p)
-{-# INLINE span #-}
+-- | /O(n)/ 'spanBy', applied to a predicate @p@ and text @t@, returns
+-- a pair whose first element is the longest prefix (possibly empty)
+-- of @t@ of elements that satisfy @p@, and whose second is the
+-- remainder of the list.
+spanBy :: (Char -> Bool) -> Text -> (Text, Text)
+spanBy p = breakBy (not . p)
+{-# INLINE spanBy #-}
 
 -- | The 'group' function takes a 'Text' and returns a list of 'Text's
 -- such that the concatenation of the result is equal to the argument.
@@ -842,7 +842,7 @@ group =  groupBy (==)
 groupBy :: (Char -> Char -> Bool) -> Text -> [Text]
 groupBy _  Empty        = []
 groupBy eq (Chunk t ts) = cons x ys : groupBy eq zs
-                          where (ys,zs) = span (eq x) xs
+                          where (ys,zs) = spanBy (eq x) xs
                                 x  = T.unsafeHead t
                                 xs = chunk (T.unsafeTail t) ts
 
@@ -989,7 +989,7 @@ chunksOf k = go
 -- newline 'Char's. The resulting strings do not contain newlines.
 lines :: Text -> [Text]
 lines Empty = []
-lines t = let (l,t') = break ((==) '\n') t
+lines t = let (l,t') = breakBy ((==) '\n') t
           in l : if null t' then []
                  else lines (tail t')
 
@@ -1067,14 +1067,14 @@ findBy :: (Char -> Bool) -> Text -> Maybe Char
 findBy p t = S.findBy p (stream t)
 {-# INLINE findBy #-}
 
--- | /O(n)/ The 'partition' function takes a predicate and a 'Text',
+-- | /O(n)/ The 'partitionBy' function takes a predicate and a 'Text',
 -- and returns the pair of 'Text's with elements which do and do not
 -- satisfy the predicate, respectively; i.e.
 --
--- > partition p t == (filter p t, filter (not . p) t)
-partition :: (Char -> Bool) -> Text -> (Text, Text)
-partition p t = (filter p t, filter (not . p) t)
-{-# INLINE partition #-}
+-- > partitionBy p t == (filter p t, filter (not . p) t)
+partitionBy :: (Char -> Bool) -> Text -> (Text, Text)
+partitionBy p t = (filter p t, filter (not . p) t)
+{-# INLINE partitionBy #-}
 
 -- | /O(n)/ 'Text' index (subscript) operator, starting from 0.
 index :: Text -> Int64 -> Char

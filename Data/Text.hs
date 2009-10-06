@@ -114,8 +114,8 @@ module Data.Text
     , stripStart
     , stripEnd
     , splitAt
-    , span
-    , break
+    , spanBy
+    , breakBy
     , group
     , groupBy
     , inits
@@ -146,7 +146,7 @@ module Data.Text
     , filter
     , find
     , findBy
-    , partition
+    , partitionBy
 
     -- , findSubstring
     
@@ -841,23 +841,23 @@ splitAt n t@(Text arr off len)
             where d                = iter_ t i
 {-# INLINE splitAt #-}
 
--- | /O(n)/ 'span', applied to a predicate @p@ and text @t@, returns a
--- pair whose first element is the longest prefix (possibly empty) of
--- @t@ of elements that satisfy @p@, and whose second is the remainder
--- of the list.
-span :: (Char -> Bool) -> Text -> (Text, Text)
-span p t@(Text arr off len) = (textP arr off k, textP arr (off+k) (len-k))
+-- | /O(n)/ 'spanBy', applied to a predicate @p@ and text @t@, returns
+-- a pair whose first element is the longest prefix (possibly empty)
+-- of @t@ of elements that satisfy @p@, and whose second is the
+-- remainder of the list.
+spanBy :: (Char -> Bool) -> Text -> (Text, Text)
+spanBy p t@(Text arr off len) = (textP arr off k, textP arr (off+k) (len-k))
   where k = loop 0
         loop !i | i >= len || not (p c) = i
                 | otherwise             = loop (i+d)
             where (c,d)                 = iter t i
-{-# INLINE span #-}
+{-# INLINE spanBy #-}
 
--- | /O(n)/ 'break' is like 'span', but the prefix returned is over
--- elements that fail the predicate @p@.
-break :: (Char -> Bool) -> Text -> (Text, Text)
-break p = span (not . p)
-{-# INLINE break #-}
+-- | /O(n)/ 'breakBy' is like 'spanBy', but the prefix returned is
+-- over elements that fail the predicate @p@.
+breakBy :: (Char -> Bool) -> Text -> (Text, Text)
+breakBy p = spanBy (not . p)
+{-# INLINE breakBy #-}
 
 -- | /O(n)/ Group characters in a string according to a predicate.
 groupBy :: (Char -> Char -> Bool) -> Text -> [Text]
@@ -997,7 +997,7 @@ splitBy _ t@(Text _off _arr 0) = [t]
 splitBy p t = loop t
     where loop s | null s'   = [l]
                  | otherwise = l : loop (unsafeTail s')
-              where (l, s') = break p s
+              where (l, s') = breakBy p s
 {-# INLINE splitBy #-}
 
 -- | /O(n)/ Splits a 'Text' into components of length @k@.  The last
@@ -1035,14 +1035,14 @@ findBy :: (Char -> Bool) -> Text -> Maybe Char
 findBy p t = S.findBy p (stream t)
 {-# INLINE findBy #-}
 
--- | /O(n)/ The 'partition' function takes a predicate and a 'Text',
+-- | /O(n)/ The 'partitionBy' function takes a predicate and a 'Text',
 -- and returns the pair of 'Text's with elements which do and do not
 -- satisfy the predicate, respectively; i.e.
 --
--- > partition p t == (filter p t, filter (not . p) t)
-partition :: (Char -> Bool) -> Text -> (Text, Text)
-partition p t = (filter p t, filter (not . p) t)
-{-# INLINE partition #-}
+-- > partitionBy p t == (filter p t, filter (not . p) t)
+partitionBy :: (Char -> Bool) -> Text -> (Text, Text)
+partitionBy p t = (filter p t, filter (not . p) t)
+{-# INLINE partitionBy #-}
 
 -- | /O(n)/ 'filter', applied to a predicate and a 'Text',
 -- returns a 'Text' containing those characters that satisfy the
@@ -1179,7 +1179,7 @@ lines ps | null ps   = []
          | otherwise = h : if null t
                            then []
                            else lines (unsafeTail t)
-    where (h,t) = span (/= '\n') ps
+    where (h,t) = spanBy (/= '\n') ps
 {-# INLINE lines #-}
 
 -- | /O(n)/ Portably breaks a 'Text' up into a list of 'Text's at line
