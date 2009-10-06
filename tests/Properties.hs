@@ -385,10 +385,10 @@ t_strip           = T.dropAround isSpace `eq` T.strip
 tl_strip          = TL.dropAround isSpace `eq` TL.strip
 t_splitAt n       = L.splitAt n   `eqP` (unpack2 . T.splitAt n)
 tl_splitAt n      = L.splitAt n   `eqP` (unpack2 . TL.splitAt (fromIntegral n))
-t_span p          = L.span p      `eqP` (unpack2 . T.spanBy p)
-tl_span p         = L.span p      `eqP` (unpack2 . TL.spanBy p)
-t_break p         = L.break p     `eqP` (unpack2 . T.breakBy p)
-tl_break p        = L.break p     `eqP` (unpack2 . TL.breakBy p)
+t_spanBy p        = L.span p      `eqP` (unpack2 . T.spanBy p)
+tl_spanBy p       = L.span p      `eqP` (unpack2 . TL.spanBy p)
+t_breakBy p       = L.break p     `eqP` (unpack2 . T.breakBy p)
+tl_breakBy p      = L.break p     `eqP` (unpack2 . TL.breakBy p)
 t_group           = L.group       `eqP` (map unpackS . T.group)
 tl_group          = L.group       `eqP` (map unpackS . TL.group)
 t_groupBy p       = L.groupBy p   `eqP` (map unpackS . T.groupBy p)
@@ -768,10 +768,10 @@ tests = [
       testProperty "tl_strip" tl_strip,
       testProperty "t_splitAt" t_splitAt,
       testProperty "tl_splitAt" tl_splitAt,
-      testProperty "t_span" t_span,
-      testProperty "tl_span" tl_span,
-      testProperty "t_break" t_break,
-      testProperty "tl_break" tl_break,
+      testProperty "t_spanBy" t_spanBy,
+      testProperty "tl_spanBy" tl_spanBy,
+      testProperty "t_breakBy" t_breakBy,
+      testProperty "tl_breakBy" tl_breakBy,
       testProperty "t_group" t_group,
       testProperty "tl_group" tl_group,
       testProperty "t_groupBy" t_groupBy,
