@@ -64,7 +64,7 @@ indices _needle@(Text narr noff nlen) _haystack@(Text harr hoff hlen)
     swizzle k = 1 `shiftL` (fromIntegral k .&. 0x3f)
     scan !i
         | i > ldiff                  = []
-        | c == z && candidateMatch 0 = i : scan (i + nlast)
+        | c == z && candidateMatch 0 = i : scan (i + nlen)
         | otherwise                  = scan (i + delta)
         where c = hindex (i + nlast)
               candidateMatch !j
