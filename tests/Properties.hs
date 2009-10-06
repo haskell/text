@@ -422,14 +422,14 @@ tl_splitTimesEnd_i k (NotEmpty t) = id `eq` (TL.intercalate t . TL.splitTimesEnd
 t_splitTimesEnd_split (NotEmpty t) = T.splitTimesEnd maxBound t `eq` T.split t
 tl_splitTimesEnd_split (NotEmpty t) = TL.splitTimesEnd maxBound t `eq` TL.split t
 
-t_splitWith p     = splitWith p `eqP` (map unpackS . T.splitWith p)
-t_splitWith_count c = (L.length . T.splitWith (==c)) `eq` ((1+) . T.count (T.singleton c))
-t_splitWith_split c = T.splitWith (==c) `eq` T.split (T.singleton c)
-tl_splitWith p    = splitWith p `eqP` (map unpackS . TL.splitWith p)
+t_splitBy p       = splitBy p `eqP` (map unpackS . T.splitBy p)
+t_splitBy_count c = (L.length . T.splitBy (==c)) `eq` ((1+) . T.count (T.singleton c))
+t_splitBy_split c = T.splitBy (==c) `eq` T.split (T.singleton c)
+tl_splitBy p      = splitBy p `eqP` (map unpackS . TL.splitBy p)
 
-splitWith :: (a -> Bool) -> [a] -> [[a]]
-splitWith _ [] =  [[]]
-splitWith p xs = loop xs
+splitBy :: (a -> Bool) -> [a] -> [[a]]
+splitBy _ [] =  [[]]
+splitBy p xs = loop xs
     where loop s | null s'   = [l]
                  | otherwise = l : loop (tail s')
               where (l, s') = break p s
@@ -807,10 +807,10 @@ tests = [
       testProperty "t_splitTimesEnd_split" t_splitTimesEnd_split,
       testProperty "tl_splitTimesEnd_split" tl_splitTimesEnd_split,
       testProperty "tl_split_i" tl_split_i,
-      testProperty "t_splitWith" t_splitWith,
-      testProperty "t_splitWith_count" t_splitWith_count,
-      testProperty "t_splitWith_split" t_splitWith_split,
-      testProperty "tl_splitWith" tl_splitWith,
+      testProperty "t_splitBy" t_splitBy,
+      testProperty "t_splitBy_count" t_splitBy_count,
+      testProperty "t_splitBy_split" t_splitBy_split,
+      testProperty "tl_splitBy" tl_splitBy,
       testProperty "t_chunksOf_same_lengths" t_chunksOf_same_lengths,
       testProperty "t_chunksOf_length" t_chunksOf_length,
       testProperty "tl_chunksOf" tl_chunksOf

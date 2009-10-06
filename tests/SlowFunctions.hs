@@ -28,7 +28,7 @@ split :: Text                   -- ^ Text to split on
       -> [Text]
 split pat src0
     | T.null pat  = error "split: empty"
-    | l == 1      = T.splitWith (== (unsafeHead pat)) src0
+    | l == 1      = T.splitBy (== (unsafeHead pat)) src0
     | otherwise   = go src0
   where
     l      = T.length pat

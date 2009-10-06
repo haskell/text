@@ -130,7 +130,7 @@ module Data.Text.Lazy
     , split
     , splitTimes
     , splitTimesEnd
-    , splitWith
+    , splitBy
     , chunksOf
     -- , breakSubstring
 
@@ -881,13 +881,13 @@ tails ts@(Chunk t ts')
 -- and
 --
 -- > intercalate s . split s         == id
--- > split (singleton c)             == splitWith (==c)
+-- > split (singleton c)             == splitBy (==c)
 split :: Text                   -- ^ Text to split on
       -> Text                   -- ^ Input text
       -> [Text]
 split pat src0
     | l == 0    = emptyError "split"
-    | l == 1    = splitWith (== (head pat)) src0
+    | l == 1    = splitBy (== (head pat)) src0
     | otherwise = go src0
   where
     l      = length pat
@@ -900,8 +900,8 @@ split pat src0
 {-# INLINE [1] split #-}
 
 {-# RULES
-"LAZY TEXT split/singleton -> splitWith/==" [~1] forall c t.
-    split (singleton c) t = splitWith (==c) t
+"LAZY TEXT split/singleton -> splitBy/==" [~1] forall c t.
+    split (singleton c) t = splitBy (==c) t
   #-}
 
 -- | /O(m)*O(n)/ Break a 'Text' into pieces at most @k@ times,
@@ -960,16 +960,16 @@ splitTimesEnd k pat src =
 -- resulting components do not contain the separators.  Two adjacent
 -- separators result in an empty component in the output.  eg.
 --
--- > splitWith (=='a') "aabbaca" == ["","","bb","c",""]
--- > splitWith (=='a') []        == [""]
-splitWith :: (Char -> Bool) -> Text -> [Text]
-splitWith _ Empty = [Empty]
-splitWith p (Chunk t0 ts0) = comb [] (T.splitWith p t0) ts0
+-- > splitBy (=='a') "aabbaca" == ["","","bb","c",""]
+-- > splitBy (=='a') []        == [""]
+splitBy :: (Char -> Bool) -> Text -> [Text]
+splitBy _ Empty = [Empty]
+splitBy p (Chunk t0 ts0) = comb [] (T.splitBy p t0) ts0
   where comb acc (s:[]) Empty        = revChunks (s:acc) : []
-        comb acc (s:[]) (Chunk t ts) = comb (s:acc) (T.splitWith p t) ts
+        comb acc (s:[]) (Chunk t ts) = comb (s:acc) (T.splitBy p t) ts
         comb acc (s:ss) ts           = revChunks (s:acc) : comb [] ss ts
-        comb _   []     _            = impossibleError "splitWith"
-{-# INLINE splitWith #-}
+        comb _   []     _            = impossibleError "splitBy"
+{-# INLINE splitBy #-}
 
 -- | /O(n)/ Splits a 'Text' into components of length @k@.  The last
 -- element may be shorter than the other chunks, depending on the
@@ -996,7 +996,7 @@ lines t = let (l,t') = break ((==) '\n') t
 -- | /O(n)/ Breaks a 'Text' up into a list of words, delimited by 'Char's
 -- representing white space.
 words :: Text -> [Text]
-words = L.filter (not . null) . splitWith isSpace
+words = L.filter (not . null) . splitBy isSpace
 {-# INLINE words #-}
 
 -- | /O(n)/ Joins lines, after appending a terminating newline to

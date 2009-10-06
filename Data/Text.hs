@@ -126,7 +126,7 @@ module Data.Text
     , split
     , splitTimes
     , splitTimesEnd
-    , splitWith
+    , splitBy
     , chunksOf
 
     -- ** Breaking into lines and words
@@ -914,14 +914,14 @@ tails t | null t    = [empty]
 -- and
 --
 -- > intercalate s . split s         == id
--- > split (singleton c)             == splitWith (==c)
+-- > split (singleton c)             == splitBy (==c)
 --
 -- In (unlikely) bad cases, this function's time complexity
 -- degenerates towards /O(n*m)/.
 split :: Text -> Text -> [Text]
 split pat@(Text _ _ l) src@(Text arr off len)
     | l <= 0          = emptyError "split"
-    | isSingleton pat = splitWith (== unsafeHead pat) src
+    | isSingleton pat = splitBy (== unsafeHead pat) src
     | otherwise       = go 0 (indices pat src)
   where
     go !s (x:xs) =  textP arr (s+off) (x-s) : go (x+l) xs
@@ -929,8 +929,8 @@ split pat@(Text _ _ l) src@(Text arr off len)
 {-# INLINE [1] split #-}
 
 {-# RULES
-"TEXT split/singleton -> splitWith/==" [~1] forall c t.
-    split (singleton c) t = splitWith (==c) t
+"TEXT split/singleton -> splitBy/==" [~1] forall c t.
+    split (singleton c) t = splitBy (==c) t
   #-}
 
 -- | /O(m+n)/ Break a 'Text' into pieces at most @k@ times,
@@ -990,15 +990,15 @@ splitTimesEnd k pat src =
 -- resulting components do not contain the separators.  Two adjacent
 -- separators result in an empty component in the output.  eg.
 --
--- > splitWith (=='a') "aabbaca" == ["","","bb","c",""]
--- > splitWith (=='a') ""        == [""]
-splitWith :: (Char -> Bool) -> Text -> [Text]
-splitWith _ t@(Text _off _arr 0) = [t]
-splitWith p t = loop t
+-- > splitBy (=='a') "aabbaca" == ["","","bb","c",""]
+-- > splitBy (=='a') ""        == [""]
+splitBy :: (Char -> Bool) -> Text -> [Text]
+splitBy _ t@(Text _off _arr 0) = [t]
+splitBy p t = loop t
     where loop s | null s'   = [l]
                  | otherwise = l : loop (unsafeTail s')
               where (l, s') = break p s
-{-# INLINE splitWith #-}
+{-# INLINE splitBy #-}
 
 -- | /O(n)/ Splits a 'Text' into components of length @k@.  The last
 -- element may be shorter than the other chunks, depending on the
