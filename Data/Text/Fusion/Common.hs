@@ -88,7 +88,7 @@ module Data.Text.Fusion.Common
     , filter
 
     -- * Indexing
-    , find
+    , findBy
     , indexI
     , findIndexI
     , findIndicesI
@@ -729,19 +729,19 @@ elem w (Stream next s0 _len) = loop_elem s0
 -------------------------------------------------------------------------------
 -- ** Searching with a predicate
 
--- | /O(n)/ The 'find' function takes a predicate and a stream,
+-- | /O(n)/ The 'findBy' function takes a predicate and a stream,
 -- and returns the first element in matching the predicate, or 'Nothing'
 -- if there is no such element.
 
-find :: (Char -> Bool) -> Stream Char -> Maybe Char
-find p (Stream next s0 _len) = loop_find s0
+findBy :: (Char -> Bool) -> Stream Char -> Maybe Char
+findBy p (Stream next s0 _len) = loop_find s0
     where
       loop_find !s = case next s of
                        Done -> Nothing
                        Skip s' -> loop_find s'
                        Yield x s' | p x -> Just x
                                   | otherwise -> loop_find s'
-{-# INLINE [0] find #-}
+{-# INLINE [0] findBy #-}
 
 -- | /O(n)/ Stream index (subscript) operator, starting from 0.
 indexI :: Integral a => Stream Char -> a -> Char

@@ -148,7 +148,7 @@ module Data.Text.Lazy
     -- * Searching
     , elem
     , filter
-    , find
+    , findBy
     , partition
 
     -- , findSubstring
@@ -1064,12 +1064,12 @@ filter :: (Char -> Bool) -> Text -> Text
 filter p t = unstream (S.filter p (stream t))
 {-# INLINE filter #-}
 
--- | /O(n)/ The 'find' function takes a predicate and a 'Text',
--- and returns the first element in matching the predicate, or 'Nothing'
+-- | /O(n)/ The 'findBy' function takes a predicate and a 'Text', and
+-- returns the first element in matching the predicate, or 'Nothing'
 -- if there is no such element.
-find :: (Char -> Bool) -> Text -> Maybe Char
-find p t = S.find p (stream t)
-{-# INLINE find #-}
+findBy :: (Char -> Bool) -> Text -> Maybe Char
+findBy p t = S.findBy p (stream t)
+{-# INLINE findBy #-}
 
 -- | /O(n)/ The 'partition' function takes a predicate and a 'Text',
 -- and returns the pair of 'Text's with elements which do and do not

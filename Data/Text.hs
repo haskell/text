@@ -1066,10 +1066,10 @@ filter p t = unstream (S.filter p (stream t))
 -- Laws:
 --
 -- > concat (prefix : matches) == haystack
--- >   where (prefix, matches) = findAll needle haystack
+-- >   where (prefix, matches) = find needle haystack
 find :: Text -> Text -> (Text, [Text])
 find pat@(Text _ _ plen) src@(Text sarr soff slen)
-    | plen <= 0 = emptyError "findAll"
+    | plen <= 0 = emptyError "find"
     | otherwise = (h,t)
   where
     (h:t)       = go 0 (search 0)

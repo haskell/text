@@ -474,9 +474,9 @@ tl_elem c         = L.elem c      `eqP` TL.elem c
 sf_filter q p     = (L.filter p . L.filter q) `eqP` (unpackS . S.filter p . S.filter q)
 t_filter p        = L.filter p    `eqP` (unpackS . T.filter p)
 tl_filter p       = L.filter p    `eqP` (unpackS . TL.filter p)
-sf_find q p       = (L.find p . L.filter q) `eqP` (S.find p . S.filter q)
-t_find p          = L.find p      `eqP` T.find p
-tl_find p         = L.find p      `eqP` TL.find p
+sf_findBy q p     = (L.find p . L.filter q) `eqP` (S.findBy p . S.filter q)
+t_findBy p        = L.find p      `eqP` T.findBy p
+tl_findBy p       = L.find p      `eqP` TL.findBy p
 t_partition p     = L.partition p `eqP` (unpack2 . T.partition p)
 tl_partition p    = L.partition p `eqP` (unpack2 . TL.partition p)
 
@@ -853,9 +853,9 @@ tests = [
     testProperty "sf_filter" sf_filter,
     testProperty "t_filter" t_filter,
     testProperty "tl_filter" tl_filter,
-    testProperty "sf_find" sf_find,
-    testProperty "t_find" t_find,
-    testProperty "tl_find" tl_find,
+    testProperty "sf_findBy" sf_findBy,
+    testProperty "t_findBy" t_findBy,
+    testProperty "tl_findBy" tl_findBy,
     testProperty "t_partition" t_partition,
     testProperty "tl_partition" tl_partition
   ],
