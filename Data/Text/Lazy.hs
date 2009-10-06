@@ -180,6 +180,7 @@ import qualified Data.Text.Unsafe as T
 import qualified Data.Text.Lazy.Fusion as S
 import Data.Text.Lazy.Fusion (stream, unstream)
 import Data.Text.Lazy.Internal
+import Data.Text.Lazy.Search (indices)
 
 instance Eq Text where
     t1 == t2 = stream t1 == stream t2

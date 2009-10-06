@@ -34,7 +34,7 @@ module Data.Text.Lazy.Search
 
 import qualified Data.Text.Array as A
 import Data.Int (Int64)
-import Data.Word (Word64)
+import Data.Word (Word16, Word64)
 import qualified Data.Text.Internal as T
 import Data.Text.Fusion.Internal (PairS(..))
 import Data.Text.Lazy.Internal (Text(..))
@@ -49,7 +49,48 @@ import Data.Text.UnsafeShift (shiftL)
 indices :: Text              -- ^ Substring to search for (@needle@)
         -> Text              -- ^ Text to search in (@haystack@)
         -> [Int64]
-indices = undefined
+indices needle Empty = []
+indices needle@(Chunk n ns) haystack@(Chunk c cs)
+    | nlen <= 0 || ldiff < 0 = []
+    | otherwise              = scan 0 0 c cs
+  where
+    scan !g !i x@(T.Text harr hoff l) xs
+         | g > ldiff                  = []
+         | i >= m                     = case xs of
+                                          Empty      -> []
+                                          Chunk y ys -> scan g (i-m) y ys
+         | c == z && candidateMatch 0 = g : scan (g+nlen) (i+nlen) x xs
+         | otherwise                  = scan (g+delta) (i+delta) x xs
+       where
+         m = fromIntegral l
+         c = hindex (i + nlast)
+         delta | nextInPattern = nlen + 1
+               | c == z        = skip + 1
+               | otherwise     = 1
+         nextInPattern         = mask .&. swizzle (hindex (i+nlen)) == 0
+         candidateMatch !j
+             | j >= nlast               = True
+             | hindex (i+j) /= nindex j = False
+             | otherwise                = candidateMatch (j+1)
+         hindex                = index x xs
+    ldiff     = hlen - nlen
+    hlen      = wordLength haystack
+    nlen      = wordLength needle
+    nlast     = nlen - 1
+    nindex    = index n ns
+    z         = foldChunks fin 0 needle
+        where fin _ (T.Text narr noff nlen) = A.unsafeIndex narr (noff+nlen-1)
+    mask :*: skip = buildTable needle
+
+index :: T.Text -> Text -> Int64 -> Word16
+index (T.Text arr off len) xs i
+    | j <= len = A.unsafeIndex arr (off+j)
+    | otherwise = case xs of
+                    Empty      -> error "empty"
+                    Chunk c cs -> index c cs (i-fromIntegral len)
+    where j = fromIntegral i
+
+swizzle k = 1 `shiftL` (fromIntegral k .&. 0x3f)
 
 foldChunks :: (a -> T.Text -> a) -> a -> Text -> a
 foldChunks _ z Empty        = z
@@ -73,7 +114,6 @@ buildTable needle@(Chunk c cs) = outer c cs 0 0 (nlen-2)
             where c                 = A.unsafeIndex xarr (xoff+i)
                   skip' | c == z    = nlen - fromIntegral i - 2
                         | otherwise = skip
-    swizzle k = 1 `shiftL` (fromIntegral k .&. 0x3f)
     nlen      = wordLength needle
     z         = foldChunks fin 0 needle
         where fin _ (T.Text narr noff nlen) = A.unsafeIndex narr (noff+nlen-1)
