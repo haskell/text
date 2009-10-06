@@ -398,8 +398,8 @@ tl_inits          = L.inits       `eqP` (map unpackS . TL.inits)
 t_tails           = L.tails       `eqP` (map unpackS . T.tails)
 tl_tails          = L.tails       `eqP` (map unpackS . TL.tails)
 
-findSplit s t = let (x,xs) = T.find s t
-                in x : L.map (T.drop (T.length s)) xs
+findSplit s t = case T.find s t of
+                  (x,xs) -> x : L.map (T.drop (T.length s)) xs
 
 t_findSplit s           = T.split s `eq` findSplit s
 t_split_split s         = T.split s `eq` Slow.split s
