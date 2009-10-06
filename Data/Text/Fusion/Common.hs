@@ -135,14 +135,14 @@ unstreamList (Stream next s0 _len) = unfold s0
 
 -- | /O(n)/ Adds a character to the front of a Stream Char.
 cons :: Char -> Stream Char -> Stream Char
-cons w (Stream next0 s0 len) = Stream next (S2 :!: s0) (len+1)
+cons w (Stream next0 s0 len) = Stream next (S2 :*: s0) (len+1)
     where
       {-# INLINE next #-}
-      next (S2 :!: s) = Yield w (S1 :!: s)
-      next (S1 :!: s) = case next0 s of
+      next (S2 :*: s) = Yield w (S1 :*: s)
+      next (S1 :*: s) = case next0 s of
                           Done -> Done
-                          Skip s' -> Skip (S1 :!: s')
-                          Yield x s' -> Yield x (S1 :!: s')
+                          Skip s' -> Skip (S1 :*: s')
+                          Yield x s' -> Yield x (S1 :*: s')
 {-# INLINE [0] cons #-}
 
 -- | /O(n)/ Adds a character to the end of a stream.
@@ -213,34 +213,34 @@ last (Stream next s0 _len) = loop0_last s0
 -- | /O(1)/ Returns all characters after the head of a Stream Char, which must
 -- be non-empty.
 tail :: Stream Char -> Stream Char
-tail (Stream next0 s0 len) = Stream next (False :!: s0) (len-1)
+tail (Stream next0 s0 len) = Stream next (False :*: s0) (len-1)
     where
       {-# INLINE next #-}
-      next (False :!: s) = case next0 s of
+      next (False :*: s) = case next0 s of
                           Done       -> emptyError "tail"
-                          Skip s'    -> Skip (False :!: s')
-                          Yield _ s' -> Skip (True :!: s')
-      next (True :!: s) = case next0 s of
+                          Skip s'    -> Skip (False :*: s')
+                          Yield _ s' -> Skip (True :*: s')
+      next (True :*: s) = case next0 s of
                           Done       -> Done
-                          Skip s'    -> Skip    (True :!: s')
-                          Yield x s' -> Yield x (True :!: s')
+                          Skip s'    -> Skip    (True :*: s')
+                          Yield x s' -> Yield x (True :*: s')
 {-# INLINE [0] tail #-}
 
 
 -- | /O(1)/ Returns all but the last character of a Stream Char, which
 -- must be non-empty.
 init :: Stream Char -> Stream Char
-init (Stream next0 s0 len) = Stream next (N :!: s0) (len-1)
+init (Stream next0 s0 len) = Stream next (N :*: s0) (len-1)
     where
       {-# INLINE next #-}
-      next (N :!: s) = case next0 s of
+      next (N :*: s) = case next0 s of
                          Done       -> emptyError "init"
-                         Skip s'    -> Skip (N :!: s')
-                         Yield x s' -> Skip (J x  :!: s')
-      next (J x :!: s)  = case next0 s of
+                         Skip s'    -> Skip (N :*: s')
+                         Yield x s' -> Skip (J x  :*: s')
+      next (J x :*: s)  = case next0 s of
                             Done        -> Done
-                            Skip s'     -> Skip    (J x  :!: s')
-                            Yield x' s' -> Yield x (J x' :!: s')
+                            Skip s'     -> Skip    (J x  :*: s')
+                            Yield x' s' -> Yield x (J x' :*: s')
 {-# INLINE [0] init #-}
 
 -- | /O(1)/ Tests whether a Stream Char is empty or not.
@@ -298,18 +298,18 @@ map f (Stream next0 s0 len) = Stream next s0 len
 -- | /O(n)/ Take a character and place it between each of the
 -- characters of a 'Stream Char'.
 intersperse :: Char -> Stream Char -> Stream Char
-intersperse c (Stream next0 s0 len) = Stream next (s0 :!: N :!: S1) len
+intersperse c (Stream next0 s0 len) = Stream next (s0 :*: N :*: S1) len
     where
       {-# INLINE next #-}
-      next (s :!: N :!: S1) = case next0 s of
+      next (s :*: N :*: S1) = case next0 s of
         Done       -> Done
-        Skip s'    -> Skip (s' :!: N :!: S1)
-        Yield x s' -> Skip (s' :!: J x :!: S1)
-      next (s :!: J x :!: S1)  = Yield x (s :!: N :!: S2)
-      next (s :!: N :!: S2) = case next0 s of
+        Skip s'    -> Skip (s' :*: N :*: S1)
+        Yield x s' -> Skip (s' :*: J x :*: S1)
+      next (s :*: J x :*: S1)  = Yield x (s :*: N :*: S2)
+      next (s :*: N :*: S2) = case next0 s of
         Done       -> Done
-        Skip s'    -> Skip    (s' :!: N :!: S2)
-        Yield x s' -> Yield c (s' :!: J x :!: S1)
+        Skip s'    -> Skip    (s' :*: N :*: S2)
+        Yield x s' -> Yield c (s' :*: J x :*: S1)
       next _ = internalError "intersperse"
 {-# INLINE [0] intersperse #-}
 
@@ -327,15 +327,15 @@ intersperse c (Stream next0 s0 len) = Stream next (s0 :!: N :!: S1) len
 
 caseConvert :: (forall s. Char -> s -> Step (PairS (PairS s Char) Char) Char)
             -> Stream Char -> Stream Char
-caseConvert remap (Stream next0 s0 len) = Stream next (s0 :!: '\0' :!: '\0') len
+caseConvert remap (Stream next0 s0 len) = Stream next (s0 :*: '\0' :*: '\0') len
   where
     {-# INLINE next #-}
-    next (s :!: '\0' :!: _) =
+    next (s :*: '\0' :*: _) =
         case next0 s of
           Done       -> Done
-          Skip s'    -> Skip (s' :!: '\0' :!: '\0')
+          Skip s'    -> Skip (s' :*: '\0' :*: '\0')
           Yield c s' -> remap c s'
-    next (s :!: a :!: b) = Yield a (s :!: b :!: '\0')
+    next (s :*: a :*: b) = Yield a (s :*: b :*: '\0')
 
 -- | /O(n)/ Convert a string to folded case.  This function is mainly
 -- useful for performing caseless (or case insensitive) string
@@ -374,15 +374,15 @@ toLower = caseConvert lowerMapping
 
 justifyLeftI :: Integral a => a -> Char -> Stream Char -> Stream Char
 justifyLeftI k c (Stream next0 s0 len) =
-    Stream next (s0 :!: S1 :!: 0) (larger (fromIntegral k) len)
+    Stream next (s0 :*: S1 :*: 0) (larger (fromIntegral k) len)
   where
-    next (s :!: S1 :!: n) =
+    next (s :*: S1 :*: n) =
         case next0 s of
-          Done       -> next (s :!: S2 :!: n)
-          Skip s'    -> Skip (s' :!: S1 :!: n)
-          Yield x s' -> Yield x (s' :!: S1 :!: n+1)
-    next (s :!: S2 :!: n)
-        | n < k       = Yield c (s :!: S2 :!: n+1)
+          Done       -> next (s :*: S2 :*: n)
+          Skip s'    -> Skip (s' :*: S1 :*: n)
+          Yield x s' -> Yield x (s' :*: S1 :*: n+1)
+    next (s :*: S2 :*: n)
+        | n < k       = Yield c (s :*: S2 :*: n+1)
         | otherwise   = Done
     {-# INLINE next #-}
 {-# INLINE [0] justifyLeftI #-}
@@ -548,14 +548,14 @@ minimum (Stream next0 s0 _len) = loop0_minimum s0
 -- * Building streams
 
 scanl :: (Char -> Char -> Char) -> Char -> Stream Char -> Stream Char
-scanl f z0 (Stream next0 s0 len) = Stream next (S1 :!: z0 :!: s0) (len+1) -- HINT maybe too low
+scanl f z0 (Stream next0 s0 len) = Stream next (S1 :*: z0 :*: s0) (len+1) -- HINT maybe too low
   where
     {-# INLINE next #-}
-    next (S1 :!: z :!: s) = Yield z (S2 :!: z :!: s)
-    next (S2 :!: z :!: s) = case next0 s of
+    next (S1 :*: z :*: s) = Yield z (S2 :*: z :*: s)
+    next (S2 :*: z :*: s) = case next0 s of
                               Yield x s' -> let !x' = f z x
-                                            in Yield x' (S2 :!: x' :!: s')
-                              Skip s'    -> Skip (S2 :!: z :!: s')
+                                            in Yield x' (S2 :*: x' :*: s')
+                              Skip s'    -> Skip (S2 :*: z :*: s')
                               Done       -> Done
 {-# INLINE [0] scanl #-}
 
@@ -571,13 +571,13 @@ scanl f z0 (Stream next0 s0 len) = Stream next (S1 :!: z0 :!: s0) (len+1) -- HIN
 -- return a final value for the accumulator, because the nature of
 -- streams precludes it.
 mapAccumL :: (a -> b -> (a,b)) -> a -> Stream b -> Stream b
-mapAccumL f z0 (Stream next0 s0 len) = Stream next (s0 :!: z0) len -- HINT depends on f
+mapAccumL f z0 (Stream next0 s0 len) = Stream next (s0 :*: z0) len -- HINT depends on f
   where
     {-# INLINE next #-}
-    next (s :!: z) = case next0 s of
+    next (s :*: z) = case next0 s of
                        Yield x s' -> let (z',y) = f z x
-                                     in Yield y (s' :!: z')
-                       Skip s'    -> Skip (s' :!: z)
+                                     in Yield y (s' :*: z')
+                       Skip s'    -> Skip (s' :*: z)
                        Done       -> Done
 {-# INLINE [0] mapAccumL #-}
 -}
@@ -597,14 +597,14 @@ replicateCharI n c
 
 replicateI :: Int64 -> Stream Char -> Stream Char
 replicateI n (Stream next0 s0 len) =
-    Stream next (0 :!: s0) (fromIntegral (max 0 n) * len)
+    Stream next (0 :*: s0) (fromIntegral (max 0 n) * len)
   where
-    next (k :!: s)
+    next (k :*: s)
         | k >= n = Done
         | otherwise = case next0 s of
-                        Done       -> Skip    (k+1 :!: s0)
-                        Skip s'    -> Skip    (k :!: s')
-                        Yield x s' -> Yield x (k :!: s')
+                        Done       -> Skip    (k+1 :*: s0)
+                        Skip s'    -> Skip    (k :*: s')
+                        Yield x s' -> Yield x (k :*: s')
 {-# INLINE [0] replicateI #-}
 
 -- | /O(n)/, where @n@ is the length of the result. The unfoldr function
@@ -628,13 +628,13 @@ unfoldr f s0 = Stream next s0 1 -- HINT maybe too low
 -- 'unfoldr' when the length of the result is known.
 unfoldrNI :: Integral a => a -> (b -> Maybe (Char,b)) -> b -> Stream Char
 unfoldrNI n f s0 | n <  0    = empty
-                 | otherwise = Stream next (0 :!: s0) (fromIntegral (n*2)) -- HINT maybe too high
+                 | otherwise = Stream next (0 :*: s0) (fromIntegral (n*2)) -- HINT maybe too high
     where
       {-# INLINE next #-}
-      next (z :!: s) = case f s of
+      next (z :*: s) = case f s of
           Nothing                  -> Done
           Just (w, s') | z >= n    -> Done
-                       | otherwise -> Yield w ((z + 1) :!: s')
+                       | otherwise -> Yield w ((z + 1) :*: s')
 {-# INLINE unfoldrNI #-}
 
 -------------------------------------------------------------------------------
@@ -645,14 +645,14 @@ unfoldrNI n f s0 | n <  0    = empty
 -- length of the stream.
 take :: Integral a => a -> Stream Char -> Stream Char
 take n0 (Stream next0 s0 len) =
-    Stream next (n0 :!: s0) (smaller len (fromIntegral (max 0 n0)))
+    Stream next (n0 :*: s0) (smaller len (fromIntegral (max 0 n0)))
     where
       {-# INLINE next #-}
-      next (n :!: s) | n <= 0    = Done
+      next (n :*: s) | n <= 0    = Done
                      | otherwise = case next0 s of
                                      Done -> Done
-                                     Skip s' -> Skip (n :!: s')
-                                     Yield x s' -> Yield x ((n-1) :!: s')
+                                     Skip s' -> Skip (n :*: s')
+                                     Yield x s' -> Yield x ((n-1) :*: s')
 {-# INLINE [0] take #-}
 
 -- | /O(n)/ drop n, applied to a stream, returns the suffix of the
@@ -660,19 +660,19 @@ take n0 (Stream next0 s0 len) =
 -- length of the stream.
 drop :: Integral a => a -> Stream Char -> Stream Char
 drop n0 (Stream next0 s0 len) =
-    Stream next (J n0 :!: s0) (len - fromIntegral (max 0 n0))
+    Stream next (J n0 :*: s0) (len - fromIntegral (max 0 n0))
   where
     {-# INLINE next #-}
-    next (J n :!: s)
-      | n <= 0    = Skip (N :!: s)
+    next (J n :*: s)
+      | n <= 0    = Skip (N :*: s)
       | otherwise = case next0 s of
           Done       -> Done
-          Skip    s' -> Skip (J n    :!: s')
-          Yield _ s' -> Skip (J (n-1) :!: s')
-    next (N :!: s) = case next0 s of
+          Skip    s' -> Skip (J n    :*: s')
+          Yield _ s' -> Skip (J (n-1) :*: s')
+    next (N :*: s) = case next0 s of
       Done       -> Done
-      Skip    s' -> Skip    (N :!: s')
-      Yield x s' -> Yield x (N :!: s')
+      Skip    s' -> Skip    (N :*: s')
+      Yield x s' -> Yield x (N :*: s')
 {-# INLINE [0] drop #-}
 
 -- | takeWhile, applied to a predicate @p@ and a stream, returns the
@@ -690,18 +690,18 @@ takeWhile p (Stream next0 s0 len) = Stream next s0 len -- HINT maybe too high
 
 -- | dropWhile @p @xs returns the suffix remaining after takeWhile @p @xs.
 dropWhile :: (Char -> Bool) -> Stream Char -> Stream Char
-dropWhile p (Stream next0 s0 len) = Stream next (S1 :!: s0) len -- HINT maybe too high
+dropWhile p (Stream next0 s0 len) = Stream next (S1 :*: s0) len -- HINT maybe too high
     where
     {-# INLINE next #-}
-    next (S1 :!: s)  = case next0 s of
+    next (S1 :*: s)  = case next0 s of
       Done                   -> Done
-      Skip    s'             -> Skip    (S1 :!: s')
-      Yield x s' | p x       -> Skip    (S1 :!: s')
-                 | otherwise -> Yield x (S2 :!: s')
-    next (S2 :!: s) = case next0 s of
+      Skip    s'             -> Skip    (S1 :*: s')
+      Yield x s' | p x       -> Skip    (S1 :*: s')
+                 | otherwise -> Yield x (S2 :*: s')
+    next (S2 :*: s) = case next0 s of
       Done       -> Done
-      Skip    s' -> Skip    (S2 :!: s')
-      Yield x s' -> Yield x (S2 :!: s')
+      Skip    s' -> Skip    (S2 :*: s')
+      Yield x s' -> Yield x (S2 :*: s')
 {-# INLINE [0] dropWhile #-}
 
 -- | /O(n)/ The 'isPrefixOf' function takes two 'Stream's and returns
@@ -814,18 +814,18 @@ findIndicesI p (Stream next s0 _len) = loop_findIndex 0 s0
 -- the first argument, instead of a tupling function.
 zipWith :: (a -> a -> b) -> Stream a -> Stream a -> Stream b
 zipWith f (Stream next0 sa0 len1) (Stream next1 sb0 len2) =
-    Stream next (sa0 :!: sb0 :!: N) (smaller len1 len2)
+    Stream next (sa0 :*: sb0 :*: N) (smaller len1 len2)
     where
       {-# INLINE next #-}
-      next (sa :!: sb :!: N) = case next0 sa of
+      next (sa :*: sb :*: N) = case next0 sa of
                                  Done -> Done
-                                 Skip sa' -> Skip (sa' :!: sb :!: N)
-                                 Yield a sa' -> Skip (sa' :!: sb :!: J a)
+                                 Skip sa' -> Skip (sa' :*: sb :*: N)
+                                 Yield a sa' -> Skip (sa' :*: sb :*: J a)
 
-      next (sa' :!: sb :!: J a) = case next1 sb of
+      next (sa' :*: sb :*: J a) = case next1 sb of
                                     Done -> Done
-                                    Skip sb' -> Skip (sa' :!: sb' :!: J a)
-                                    Yield b sb' -> Yield (f a b) (sa' :!: sb' :!: N)
+                                    Skip sb' -> Skip (sa' :*: sb' :*: J a)
+                                    Yield b sb' -> Yield (f a b) (sa' :*: sb' :*: N)
 {-# INLINE [0] zipWith #-}
 
 -- | /O(n)/ The 'countCharI' function returns the number of times the

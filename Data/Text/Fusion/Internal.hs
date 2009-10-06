@@ -38,8 +38,8 @@ type M8 = M Word8
 data S s = S {-# UNPACK #-} !s
     {-# UNPACK #-} !M8 {-# UNPACK #-} !M8 {-# UNPACK #-} !M8
 
-infixl 2 :!:
-data PairS a b = !a :!: !b
+infixl 2 :*:
+data PairS a b = {-# UNPACK #-} !a :*: {-# UNPACK #-} !b
 
 -- | Allow a function over a stream to switch between two states.
 data Switch = S1 | S2

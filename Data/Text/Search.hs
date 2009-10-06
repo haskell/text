@@ -35,6 +35,7 @@ module Data.Text.Search
 import qualified Data.Text.Array as A
 import Data.Word (Word64)
 import Data.Text.Internal (Text(..))
+import Data.Text.Fusion.Internal (PairS(..))
 import Data.Bits ((.|.), (.&.))
 import Data.Text.UnsafeShift (shiftL)
 
@@ -56,9 +57,9 @@ indices _needle@(Text narr noff nlen) _haystack@(Text harr hoff hlen)
     z        = nindex nlast
     nindex k = A.unsafeIndex narr (noff+k)
     hindex k = A.unsafeIndex harr (hoff+k)
-    (mask :: Word64, skip) = buildTable 0 0 (nlen-2)
+    (mask :: Word64) :*: skip  = buildTable 0 0 (nlen-2)
     buildTable !i !msk !skp
-        | i >= nlast           = (msk .|. swizzle z, skp)
+        | i >= nlast           = (msk .|. swizzle z) :*: skp
         | otherwise            = buildTable (i+1) (msk .|. swizzle c) skp'
         where c                = nindex i
               skp' | c == z    = nlen - i - 2
