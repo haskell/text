@@ -144,8 +144,8 @@ module Data.Text
     -- * Searching
     , elem
     , filter
-    , findAll
     , find
+    , findBy
     , partition
 
     -- , findSubstring
@@ -916,14 +916,14 @@ tails t | null t    = [empty]
 -- In (unlikely) bad cases, this function's time complexity
 -- degenerates towards /O(n*m)/.
 split :: Text -> Text -> [Text]
-split pat src@(Text arr _off len)
+split pat src@(Text arr off len)
     | null pat  = emptyError "split"
     | l == 1    = splitWith (== unsafeHead pat) src
-    | otherwise = chomp 0 (indices pat src)
+    | otherwise = go 0 (indices pat src)
   where
-    l              =  length pat
-    chomp s (x:xs) =  textP arr s (x-s) : chomp (x+l) xs
-    chomp s []     = [textP arr s (len-s)]
+    l            =  length pat
+    go !s (x:xs) =  textP arr (s+off) (x-s) : go (x+l) xs
+    go  s _      = [textP arr (s+off) (len-s)]
 {-# INLINE [1] split #-}
 
 {-# RULES
@@ -931,7 +931,7 @@ split pat src@(Text arr _off len)
     split (singleton c) t = splitWith (==c) t
   #-}
 
--- | /O(m*n)/ Break a 'Text' into pieces at most @k@ times,
+-- | /O(m+n)/ Break a 'Text' into pieces at most @k@ times,
 -- treating the first 'Text' argument as the delimiter to break on,
 -- and consuming the delimiter.  The last element of the list contains
 -- the remaining text after the number of times to split has been
@@ -948,25 +948,24 @@ split pat src@(Text arr _off len)
 -- and
 --
 -- > intercalate s . splitTimes k s   == id
+--
+-- In (unlikely) bad cases, this function's time complexity
+-- degenerates towards /O(n*m)/.
 splitTimes :: Int               -- ^ Maximum number of times to split
            -> Text              -- ^ Text to split on
            -> Text              -- ^ Input text
            -> [Text]
-splitTimes k pat src0
-    | k <= 0    = [src0]
+splitTimes k pat src@(Text arr off len)
     | null pat  = emptyError "splitTimes"
-    | otherwise = go k src0
+    | otherwise = go 0 0 (indices pat src)
   where
-    l         = length pat
-    go !i src = search 0 src
-      where
-        search !n !s
-            | i == 0 || null s   = [src]      -- not found or limit reached
-            | pat `isPrefixOf` s = take n src : go (i-1) (drop l s)
-            | otherwise          = search (n+1) (unsafeTail s)
+    go !s !i _  | i >= k = [textP arr (s+off) (len-s)]
+    go !s  _ []          = [textP arr (s+off) (len-s)]
+    go !s !i (x:xs)      =  textP arr (s+off) (x-s) : go (x+l) (i+1) xs
+    l                    =  length pat
 {-# INLINE splitTimes #-}
 
--- | /O(m*n)/ Break a 'Text' into pieces at most @k@ times, like
+-- | /O(m+n)/ Break a 'Text' into pieces at most @k@ times, like
 -- 'splitTimes', but start from the end of the input and work towards
 -- the start.
 --
@@ -974,6 +973,9 @@ splitTimes k pat src0
 --
 -- > splitTimes 2    "::" "a::b::c::d::e" == ["a","b","c::d::e"]
 -- > splitTimesEnd 2 "::" "a::b::c::d::e" == ["a::b::c","d","e"]
+--
+-- In (unlikely) bad cases, this function's time complexity
+-- degenerates towards /O(n*m)/.
 splitTimesEnd :: Int               -- ^ Maximum number of times to split
               -> Text              -- ^ Text to split on
               -> Text              -- ^ Input text
@@ -1025,12 +1027,12 @@ elem c t = S.elem c (stream t)
 -------------------------------------------------------------------------------
 -- ** Searching with a predicate
 
--- | /O(n)/ The 'find' function takes a predicate and a 'Text',
--- and returns the first element in matching the predicate, or 'Nothing'
+-- | /O(n)/ The 'findBy' function takes a predicate and a 'Text', and
+-- returns the first element in matching the predicate, or 'Nothing'
 -- if there is no such element.
-find :: (Char -> Bool) -> Text -> Maybe Char
-find p t = S.find p (stream t)
-{-# INLINE find #-}
+findBy :: (Char -> Bool) -> Text -> Maybe Char
+findBy p t = S.findBy p (stream t)
+{-# INLINE findBy #-}
 
 -- | /O(n)/ The 'partition' function takes a predicate and a 'Text',
 -- and returns the pair of 'Text's with elements which do and do not
@@ -1058,15 +1060,15 @@ filter p t = unstream (S.filter p (stream t))
 --
 -- Examples:
 --
--- > findAll "::" "a::b::c" ==> ("a", ["::b", "::c"])
--- > findAll "/" "foobar"   ==> ("foobar", [])
+-- > find "::" "a::b::c" ==> ("a", ["::b", "::c"])
+-- > find "/" "foobar"   ==> ("foobar", [])
 --
 -- Laws:
 --
 -- > concat (prefix : matches) == haystack
 -- >   where (prefix, matches) = findAll needle haystack
-findAll :: Text -> Text -> (Text, [Text])
-findAll pat@(Text _ _ plen) src@(Text sarr soff slen)
+find :: Text -> Text -> (Text, [Text])
+find pat@(Text _ _ plen) src@(Text sarr soff slen)
     | plen <= 0 = emptyError "findAll"
     | otherwise = (h,t)
   where
@@ -1079,7 +1081,7 @@ findAll pat@(Text _ _ plen) src@(Text sarr soff slen)
       | otherwise          = search (i+d)
       where d = iter_ src i
             s = Text sarr (soff+i) (slen-i)
-{-# INLINE findAll #-}
+{-# INLINE find #-}
 
 -------------------------------------------------------------------------------
 -- ** Indexing 'Text's
