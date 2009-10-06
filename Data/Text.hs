@@ -125,7 +125,6 @@ module Data.Text
     -- ** Breaking into many substrings
     -- $split
     , split
-    , splitTimesEnd
     , splitBy
     , chunksOf
 
@@ -932,58 +931,6 @@ split pat@(Text _ _ l) src@(Text arr off len)
 "TEXT split/singleton -> splitBy/==" [~1] forall c t.
     split (singleton c) t = splitBy (==c) t
   #-}
-
--- | /O(m+n)/ Break a 'Text' into pieces at most @k@ times,
--- treating the first 'Text' argument as the delimiter to break on,
--- and consuming the delimiter.  The last element of the list contains
--- the remaining text after the number of times to split has been
--- reached.  A value of zero or less for @k@ causes no splitting to
--- occur. An empty delimiter is invalid, and will cause an error to be
--- raised.
---
--- Examples:
---
--- > splitTimes 0   "//"  "a//b//c"   == ["a//b//c"]
--- > splitTimes 2   ":"   "a:b:c:d:e" == ["a","b","c:d:e"]
--- > splitTimes 100 "???" "a????b"    == ["a","?b"]
---
--- and
---
--- > intercalate s . splitTimes k s   == id
---
--- In (unlikely) bad cases, this function's time complexity
--- degenerates towards /O(n*m)/.
-splitTimes :: Int               -- ^ Maximum number of times to split
-           -> Text              -- ^ Text to split on
-           -> Text              -- ^ Input text
-           -> [Text]
-splitTimes k pat@(Text _ _ l) src@(Text arr off len)
-    | l <= 0    = emptyError "splitTimes"
-    | otherwise = go 0 0 (indices pat src)
-  where
-    go !s !i _  | i >= k = [textP arr (s+off) (len-s)]
-    go !s  _ []          = [textP arr (s+off) (len-s)]
-    go !s !i (x:xs)      =  textP arr (s+off) (x-s) : go (x+l) (i+1) xs
-{-# INLINE splitTimes #-}
-
--- | /O(m+n)/ Break a 'Text' into pieces at most @k@ times, like
--- 'splitTimes', but start from the end of the input and work towards
--- the start.
---
--- Examples:
---
--- > splitTimes 2    "::" "a::b::c::d::e" == ["a","b","c::d::e"]
--- > splitTimesEnd 2 "::" "a::b::c::d::e" == ["a::b::c","d","e"]
---
--- In (unlikely) bad cases, this function's time complexity
--- degenerates towards /O(n*m)/.
-splitTimesEnd :: Int               -- ^ Maximum number of times to split
-              -> Text              -- ^ Text to split on
-              -> Text              -- ^ Input text
-              -> [Text]
-splitTimesEnd k pat src =
-    L.reverse . L.map reverse $ splitTimes k (reverse pat) (reverse src)
-{-# INLINE splitTimesEnd #-}
 
 -- | /O(n)/ Splits a 'Text' into components delimited by separators,
 -- where the predicate returns True for a separator element.  The

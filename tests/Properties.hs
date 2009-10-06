@@ -402,17 +402,12 @@ tl_inits          = L.inits       `eqP` (map unpackS . TL.inits)
 t_tails           = L.tails       `eqP` (map unpackS . T.tails)
 tl_tails          = L.tails       `eqP` (map unpackS . TL.tails)
 
-findSplit s t = case T.find s t of
-                  (x,xs) -> x : L.map (T.drop (T.length s) . fst) xs
-
-t_findSplit s           = T.split s `eq` findSplit s
+t_findSplit s           = T.split s `eq` splitty
+  where splitty t       = case T.find s t of
+                            (x,xs) -> x : L.map (T.drop (T.length s) . fst) xs
 t_split_split s         = T.split s `eq` Slow.split s
 t_split_i (NotEmpty t)  = id `eq` (T.intercalate t . T.split t)
 tl_split_i (NotEmpty t) = id `eq` (TL.intercalate t . TL.split t)
-t_splitTimesEnd_i k (NotEmpty t) = id `eq` (T.intercalate t . T.splitTimesEnd k t)
-tl_splitTimesEnd_i k (NotEmpty t) = id `eq` (TL.intercalate t . TL.splitTimesEnd k t)
-t_splitTimesEnd_split (NotEmpty t) = T.splitTimesEnd maxBound t `eq` T.split t
-tl_splitTimesEnd_split (NotEmpty t) = TL.splitTimesEnd maxBound t `eq` TL.split t
 
 t_splitBy p       = splitBy p `eqP` (map unpackS . T.splitBy p)
 t_splitBy_count c = (L.length . T.splitBy (==c)) `eq` ((1+) . T.count (T.singleton c))
@@ -791,10 +786,6 @@ tests = [
       testProperty "t_findSplit" t_findSplit,
       testProperty "t_split_split" t_split_split,
       testProperty "t_split_i" t_split_i,
-      testProperty "t_splitTimesEnd_i" t_splitTimesEnd_i,
-      testProperty "tl_splitTimesEnd_i" tl_splitTimesEnd_i,
-      testProperty "t_splitTimesEnd_split" t_splitTimesEnd_split,
-      testProperty "tl_splitTimesEnd_split" tl_splitTimesEnd_split,
       testProperty "tl_split_i" tl_split_i,
       testProperty "t_splitBy" t_splitBy,
       testProperty "t_splitBy_count" t_splitBy_count,
