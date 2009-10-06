@@ -2,7 +2,7 @@
              TypeSynonymInstances #-}
 {-# OPTIONS_GHC -fno-enable-rewrite-rules #-}
 
-import Test.QuickCheck
+import Test.QuickCheck hiding (evaluate)
 import Text.Show.Functions ()
 
 import qualified Data.Bits as Bits (shiftL, shiftR)
@@ -15,7 +15,7 @@ import Data.Word (Word8, Word16, Word32)
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Encoding as E
-import Control.Exception (SomeException, try)
+import Control.Exception (SomeException, evaluate, try)
 import qualified Data.Text.Fusion as S
 import qualified Data.Text.Fusion.Common as S
 import Data.Text.Fusion.Size
@@ -38,8 +38,8 @@ import QuickCheckUtils (NotEmpty(..), small)
 (=^=) :: (Eq a, Show a) => a -> a -> Bool
 {-# NOINLINE (=^=) #-}
 i =^= j = unsafePerformIO $ do
-  x <- try (return $! i)
-  y <- try (return $! j)
+  x <- try (evaluate i)
+  y <- try (evaluate j)
   case (x,y) of
     (Left (_ :: SomeException), Left (_ :: SomeException))
                        -> return True
@@ -398,7 +398,11 @@ tl_inits          = L.inits       `eqP` (map unpackS . TL.inits)
 t_tails           = L.tails       `eqP` (map unpackS . T.tails)
 tl_tails          = L.tails       `eqP` (map unpackS . TL.tails)
 
-t_split_split p     = T.split p `eq` Slow.split p
+findSplit s t = let (x,xs) = T.find s t
+                in x : L.map (T.drop (T.length s)) xs
+
+t_findSplit s           = T.split s `eq` findSplit s
+t_split_split s         = T.split s `eq` Slow.split s
 t_split_i (NotEmpty t)  = id `eq` (T.intercalate t . T.split t)
 tl_split_i (NotEmpty t) = id `eq` (TL.intercalate t . TL.split t)
 t_splitTimes_i k (NotEmpty t) = id `eq` (T.intercalate t . T.splitTimes k t)
@@ -802,6 +806,7 @@ tests = [
     ],
 
     testGroup "breaking many" [
+      testProperty "t_findSplit" t_findSplit,
       testProperty "t_split_split" t_split_split,
       testProperty "t_split_i" t_split_i,
       testProperty "t_splitTimes_i" t_splitTimes_i,

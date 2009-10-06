@@ -1054,7 +1054,7 @@ filter :: (Char -> Bool) -> Text -> Text
 filter p t = unstream (S.filter p (stream t))
 {-# INLINE filter #-}
 
--- /O(n*m)/ Find all non-overlapping instances of @needle@ in
+-- /O(n+m)/ Find all non-overlapping instances of @needle@ in
 -- @haystack@.  The first element of the returned tuple is the prefix
 -- of @haystack@ before any matches of @needle@.  The second element
 -- of the tuple is a list of non-overlapping substrings from
@@ -1071,20 +1071,18 @@ filter p t = unstream (S.filter p (stream t))
 --
 -- > concat (prefix : matches) == haystack
 -- >   where (prefix, matches) = find needle haystack
+--
+-- In (unlikely) bad cases, this function's time complexity
+-- degenerates towards /O(n*m)/.
 find :: Text -> Text -> (Text, [Text])
-find pat@(Text _ _ plen) src@(Text sarr soff slen)
-    | plen <= 0 = emptyError "find"
-    | otherwise = (h,t)
+find pat src@(Text arr off len)
+    | null pat  = emptyError "find"
+    | otherwise = case indices pat src of
+                    []     -> (src, [])
+                    (x:xs) -> (textP arr off x, go x xs)
   where
-    (h:t)       = go 0 (search 0)
-    go k (x:xs) = Text sarr k (x-k) : go x xs
-    go _ []     = []
-    search i
-      | i >= slen          = [slen]      -- not found
-      | pat `isPrefixOf` s = i : search (i+plen)
-      | otherwise          = search (i+d)
-      where d = iter_ src i
-            s = Text sarr (soff+i) (slen-i)
+    go !s (x:xs) =  textP arr (s+off) (x-s) : go x xs
+    go  s _      = [textP arr (s+off) (len-s)]
 {-# INLINE find #-}
 
 -------------------------------------------------------------------------------
