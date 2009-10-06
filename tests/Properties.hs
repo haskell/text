@@ -330,8 +330,6 @@ replicate n l = concat (L.replicate n l)
 
 t_replicate n     = replicate n `eq` (unpackS . T.replicate n . packS)
 tl_replicate n    = replicate n `eq` (unpackS . TL.replicate (fromIntegral n) . packS)
-t_replicateChar n = L.replicate n `eq` (unpackS . T.replicateChar n)
-tl_replicateChar n= L.replicate n `eq` (unpackS . TL.replicateChar (fromIntegral n))
 
 unf :: Int -> Char -> Maybe (Char, Char)
 unf n c | fromEnum c * 100 > n = Nothing
@@ -722,8 +720,6 @@ tests = [
     testGroup "unfolds" [
       testProperty "t_replicate" t_replicate,
       testProperty "tl_replicate" tl_replicate,
-      testProperty "t_replicateChar" t_replicateChar,
-      testProperty "tl_replicateChar" tl_replicateChar,
       testProperty "t_unfoldr" t_unfoldr,
       testProperty "tl_unfoldr" tl_unfoldr,
       testProperty "t_unfoldrN" t_unfoldrN,
