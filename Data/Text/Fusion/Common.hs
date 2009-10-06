@@ -92,9 +92,6 @@ module Data.Text.Fusion.Common
     , findBy
     , indexI
     , findIndexI
-    , findIndicesI
-    , elemIndexI
-    , elemIndicesI
     , countCharI
 
     -- * Zipping and unzipping
@@ -830,27 +827,6 @@ zipWith f (Stream next0 sa0 len1) (Stream next1 sb0 len2) =
                                     Skip sb' -> Skip (sa' :!: sb' :!: J a)
                                     Yield b sb' -> Yield (f a b) (sa' :!: sb' :!: N)
 {-# INLINE [0] zipWith #-}
-
--- | /O(n)/ The 'elemIndexI' function returns the index of the first
--- element in the given stream which is equal to the query
--- element, or 'Nothing' if there is no such element.
-elemIndexI :: Integral a => Char -> Stream Char -> Maybe a
-elemIndexI a s = case elemIndicesI a s of
-                  (i:_) -> Just i
-                  _     -> Nothing
-{-# INLINE [0] elemIndexI #-}
-
--- | /O(n)/ The 'elemIndicesI' function returns the index of every
--- element in the given stream which is equal to the query element.
-elemIndicesI :: Integral a => Char -> Stream Char -> [a]
-elemIndicesI a (Stream next s0 _len) = loop 0 s0
-  where
-    loop !i !s = case next s of
-      Done                   -> []
-      Skip    s'             -> loop i s'
-      Yield x s' | a == x    -> i : loop (i+1) s'
-                 | otherwise -> loop (i+1) s'
-{-# INLINE [0] elemIndicesI #-}
 
 -- | /O(n)/ The 'countCharI' function returns the number of times the
 -- query element appears in the given stream.

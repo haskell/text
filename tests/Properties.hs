@@ -492,18 +492,7 @@ t_index s         = forAll (choose (-l,l*2)) ((s L.!!) `eq` T.index (packS s))
 tl_index s        = forAll (choose (-l,l*2)) ((s L.!!) `eq` (TL.index (packS s) . fromIntegral))
     where l = L.length s
 
-sf_findIndex q p  = (L.findIndex p . L.filter q) `eqP` (S.findIndex p . S.filter q)
 t_findIndex p     = L.findIndex p `eqP` T.findIndex p
-tl_findIndex p    = (fmap fromIntegral . L.findIndex p) `eqP` TL.findIndex p
-sf_findIndices q p= (L.findIndices p . L.filter q) `eqP` (S.findIndices p . S.filter q)
-t_findIndices p   = L.findIndices p `eqP` T.findIndices p
-tl_findIndices p  = (fmap fromIntegral . L.findIndices p) `eqP` TL.findIndices p
-sf_elemIndex p c  = (L.elemIndex c . L.filter p) `eqP` (S.elemIndex c . S.filter p)
-t_elemIndex c     = L.elemIndex c `eqP` T.elemIndex c
-tl_elemIndex c    = (fmap fromIntegral . L.elemIndex c) `eqP` TL.elemIndex c
-sf_elemIndices p c= (L.elemIndices c . L.filter p) `eqP` (S.elemIndices c . S.filter p)
-t_elemIndices c   = L.elemIndices c`eqP` T.elemIndices c
-tl_elemIndices c  = (fmap fromIntegral . L.elemIndices c) `eqP` TL.elemIndices c
 t_count t         = (subtract 1 . L.length . T.split t) `eq` T.count t
 tl_count t        = (subtract 1 . L.genericLength . TL.split t) `eq` TL.count t
 t_zip s           = L.zip s `eqP` T.zip (packS s)
@@ -869,18 +858,7 @@ tests = [
     testProperty "sf_index" sf_index,
     testProperty "t_index" t_index,
     testProperty "tl_index" tl_index,
-    testProperty "sf_findIndex" sf_findIndex,
     testProperty "t_findIndex" t_findIndex,
-    testProperty "tl_findIndex" tl_findIndex,
-    testProperty "sf_findIndices" sf_findIndices,
-    testProperty "t_findIndices" t_findIndices,
-    testProperty "tl_findIndices" tl_findIndices,
-    testProperty "sf_elemIndex" sf_elemIndex,
-    testProperty "t_elemIndex" t_elemIndex,
-    testProperty "tl_elemIndex" tl_elemIndex,
-    testProperty "sf_elemIndices" sf_elemIndices,
-    testProperty "t_elemIndices" t_elemIndices,
-    testProperty "tl_elemIndices" tl_elemIndices,
     testProperty "t_count" t_count,
     testProperty "tl_count" tl_count,
     testProperty "t_indices" t_indices,

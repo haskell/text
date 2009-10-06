@@ -18,10 +18,6 @@ module Data.Text.Lazy.Fusion
     , length
     , unfoldrN
     , index
-    , findIndex
-    , findIndices
-    , elemIndex
-    , elemIndices
     , countChar
     ) where
 
@@ -105,33 +101,6 @@ unfoldrN n = S.unfoldrNI n
 index :: Stream Char -> Int64 -> Char
 index = S.indexI
 {-# INLINE [0] index #-}
-
--- | The 'findIndex' function takes a predicate and a stream and
--- returns the index of the first element in the stream
--- satisfying the predicate.
-findIndex :: (Char -> Bool) -> Stream Char -> Maybe Int64
-findIndex = S.findIndexI
-{-# INLINE [0] findIndex #-}
-
--- | The 'findIndices' function takes a predicate and a stream and
--- returns all indices of the elements in the stream
--- satisfying the predicate.
-findIndices :: (Char -> Bool) -> Stream Char -> [Int64]
-findIndices = S.findIndicesI
-{-# INLINE [0] findIndices #-}
-
--- | /O(n)/ The 'elemIndex' function returns the index of the first
--- element in the given stream which is equal to the query
--- element, or 'Nothing' if there is no such element.
-elemIndex :: Char -> Stream Char -> Maybe Int64
-elemIndex = S.elemIndexI
-{-# INLINE [0] elemIndex #-}
-
--- | /O(n)/ The 'elemIndices' function returns the index of every
--- element in the given stream which is equal to the query element.
-elemIndices :: Char -> Stream Char -> [Int64]
-elemIndices = S.elemIndicesI
-{-# INLINE [0] elemIndices #-}
 
 -- | /O(n)/ The 'count' function returns the number of times the query
 -- element appears in the given stream.

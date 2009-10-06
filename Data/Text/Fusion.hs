@@ -40,10 +40,6 @@ module Data.Text.Fusion
     -- * Indexing
     , index
     , findIndex
-    , findIndices
-    , findIndexOrEnd
-    , elemIndex
-    , elemIndices
     , countChar
     ) where
 
@@ -194,39 +190,6 @@ index = S.indexI
 findIndex :: (Char -> Bool) -> Stream Char -> Maybe Int
 findIndex = S.findIndexI
 {-# INLINE [0] findIndex #-}
-
--- | The 'findIndices' function takes a predicate and a stream and
--- returns all indices of the elements in the stream
--- satisfying the predicate.
-findIndices :: (Char -> Bool) -> Stream Char -> [Int]
-findIndices = S.findIndicesI
-{-# INLINE [0] findIndices #-}
-
--- | The 'findIndexOrEnd' function takes a predicate and a stream and
--- returns the index of the first element in the stream
--- satisfying the predicate.
-findIndexOrEnd :: (Char -> Bool) -> Stream Char -> Int
-findIndexOrEnd p (Stream next s0 _len) = loop_findIndex 0 s0
-  where
-    loop_findIndex !i !s = case next s of
-      Done                   -> i
-      Skip    s'             -> loop_findIndex i     s' -- hmm. not caught by QC
-      Yield x s' | p x       -> i
-                 | otherwise -> loop_findIndex (i+1) s'
-{-# INLINE [0] findIndexOrEnd #-}
-
--- | /O(n)/ The 'elemIndex' function returns the index of the first
--- element in the given stream which is equal to the query
--- element, or 'Nothing' if there is no such element.
-elemIndex :: Char -> Stream Char -> Maybe Int
-elemIndex = S.elemIndexI
-{-# INLINE [0] elemIndex #-}
-
--- | /O(n)/ The 'elemIndices' function returns the index of every
--- element in the given stream which is equal to the query element.
-elemIndices :: Char -> Stream Char -> [Int]
-elemIndices = S.elemIndicesI
-{-# INLINE [0] elemIndices #-}
 
 -- | /O(n)/ The 'count' function returns the number of times the query
 -- element appears in the given stream.

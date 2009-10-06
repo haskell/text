@@ -154,9 +154,6 @@ module Data.Text
     -- $index
     , index
     , findIndex
-    , findIndices
-    , elemIndex
-    , elemIndices
     , count
 
     -- * Zipping and unzipping
@@ -1116,27 +1113,6 @@ index t n = S.index (stream t) n
 findIndex :: (Char -> Bool) -> Text -> Maybe Int
 findIndex p t = S.findIndex p (stream t)
 {-# INLINE findIndex #-}
-
--- | The 'findIndices' function extends 'findIndex', by returning the
--- indices of all elements satisfying the predicate, in ascending
--- order. Subject to fusion.
-findIndices :: (Char -> Bool) -> Text -> [Int]
-findIndices p t = S.findIndices p (stream t)
-{-# INLINE findIndices #-}
-
--- | /O(n)/ The 'elemIndex' function returns the index of the first
--- element in the given 'Text' which is equal to the query element, or
--- 'Nothing' if there is no such element. Subject to fusion.
-elemIndex :: Char -> Text -> Maybe Int
-elemIndex c t = S.elemIndex c (stream t)
-{-# INLINE elemIndex #-}
-
--- | /O(n)/ The 'elemIndices' function returns the index of every
--- element in the given 'Text' which is equal to the query
--- element. Subject to fusion.
-elemIndices :: Char -> Text -> [Int]
-elemIndices c t = S.elemIndices c (stream t)
-{-# INLINE elemIndices #-}
 
 -- | /O(n+m)/ The 'count' function returns the number of times the
 -- query string appears in the given 'Text'. An empty query string is
