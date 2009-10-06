@@ -1051,10 +1051,10 @@ filter :: (Char -> Bool) -> Text -> Text
 filter p t = unstream (S.filter p (stream t))
 {-# INLINE filter #-}
 
--- | /O(n+m)/ Find the first instance of @needle@ in @haystack@.  The
--- first element of the returned tuple is the prefix of @haystack@
--- before @needle@ is matched.  The second is the remainder of
--- @haystack@, starting with the match.
+-- | /O(n+m)/ Find the first instance of @needle@ (which must be
+-- non-'null') in @haystack@.  The first element of the returned tuple
+-- is the prefix of @haystack@ before @needle@ is matched.  The second
+-- is the remainder of @haystack@, starting with the match.
 --
 -- Examples:
 --

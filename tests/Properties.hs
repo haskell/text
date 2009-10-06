@@ -387,6 +387,10 @@ t_splitAt n       = L.splitAt n   `eqP` (unpack2 . T.splitAt n)
 tl_splitAt n      = L.splitAt n   `eqP` (unpack2 . TL.splitAt (fromIntegral n))
 t_spanBy p        = L.span p      `eqP` (unpack2 . T.spanBy p)
 tl_spanBy p       = L.span p      `eqP` (unpack2 . TL.spanBy p)
+
+t_break_id s      = squid `eq` (uncurry T.append . T.break s)
+  where squid t | T.null s  = error "empty"
+                | otherwise = t
 t_breakBy p       = L.break p     `eqP` (unpack2 . T.breakBy p)
 tl_breakBy p      = L.break p     `eqP` (unpack2 . TL.breakBy p)
 t_group           = L.group       `eqP` (map unpackS . T.group)
@@ -770,6 +774,7 @@ tests = [
       testProperty "tl_splitAt" tl_splitAt,
       testProperty "t_spanBy" t_spanBy,
       testProperty "tl_spanBy" tl_spanBy,
+      testProperty "t_break_id" t_break_id,
       testProperty "t_breakBy" t_breakBy,
       testProperty "tl_breakBy" tl_breakBy,
       testProperty "t_group" t_group,
