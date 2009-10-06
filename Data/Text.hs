@@ -1138,21 +1138,17 @@ elemIndices :: Char -> Text -> [Int]
 elemIndices c t = S.elemIndices c (stream t)
 {-# INLINE elemIndices #-}
 
--- | /O(n*m)/ The 'count' function returns the number of times the
+-- | /O(n+m)/ The 'count' function returns the number of times the
 -- query string appears in the given 'Text'. An empty query string is
 -- invalid, and will cause an error to be raised.
+--
+-- In (unlikely) bad cases, this function's time complexity
+-- degenerates towards /O(n*m)/.
 count :: Text -> Text -> Int
-count pat src0
-    | null pat  = emptyError "count"
-    | l == 1    = countChar (unsafeHead pat) src0
-    | otherwise = go 0 src0
-  where
-    l = length pat
-    go !n src = search src
-      where
-        search s | null s             = n
-                 | pat `isPrefixOf` s = go (n+1) (drop l s)
-                 | otherwise          = search (unsafeTail s)
+count pat src
+    | null pat        = emptyError "count"
+    | isSingleton pat = countChar (unsafeHead pat) src
+    | otherwise       = L.length (indices pat src)
 {-# INLINE [1] count #-}
 
 {-# RULES
@@ -1268,13 +1264,15 @@ isSuffixOf a@(Text _aarr _aoff alen) b@(Text barr boff blen) =
            | otherwise = Text barr (boff+d) alen
 {-# INLINE isSuffixOf #-}
 
--- | /O(n)/ The 'isInfixOf' function takes two 'Text's and returns
+-- | /O(n+m)/ The 'isInfixOf' function takes two 'Text's and returns
 -- 'True' iff the first is contained, wholly and intact, anywhere
 -- within the second.
+--
+-- In (unlikely) bad cases, this function's time complexity
+-- degenerates towards /O(n*m)/.
 isInfixOf :: Text -> Text -> Bool
-isInfixOf needle haystack = L.any (isPrefixOf needle) (tails haystack)
+isInfixOf pat src = null pat || (not . L.null $ indices pat src)
 {-# INLINE isInfixOf #-}
--- TODO: a better implementation
 
 emptyError :: String -> a
 emptyError fun = P.error ("Data.Text." ++ fun ++ ": empty input")
