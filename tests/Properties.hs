@@ -399,24 +399,12 @@ t_tails           = L.tails       `eqP` (map unpackS . T.tails)
 tl_tails          = L.tails       `eqP` (map unpackS . TL.tails)
 
 findSplit s t = case T.find s t of
-                  (x,xs) -> x : L.map (T.drop (T.length s)) xs
+                  (x,xs) -> x : L.map (T.drop (T.length s) . fst) xs
 
 t_findSplit s           = T.split s `eq` findSplit s
 t_split_split s         = T.split s `eq` Slow.split s
 t_split_i (NotEmpty t)  = id `eq` (T.intercalate t . T.split t)
 tl_split_i (NotEmpty t) = id `eq` (TL.intercalate t . TL.split t)
-t_splitTimes_i k (NotEmpty t) = id `eq` (T.intercalate t . T.splitTimes k t)
-tl_splitTimes_i k (NotEmpty t) = id `eq` (TL.intercalate t . TL.splitTimes k t)
-t_splitTimes_split k (NotEmpty t) =
-    T.splitTimes k t `eq` \u ->
-        case L.splitAt k (T.split t u) of
-          (a,[]) -> a
-          (a,b)  -> a ++ [T.intercalate t b]
-tl_splitTimes_split k (NotEmpty t) =
-    TL.splitTimes k t `eq` \u ->
-        case L.splitAt (fromIntegral k) (TL.split t u) of
-          (a,[]) -> a
-          (a,b)  -> a ++ [TL.intercalate t b]
 t_splitTimesEnd_i k (NotEmpty t) = id `eq` (T.intercalate t . T.splitTimesEnd k t)
 tl_splitTimesEnd_i k (NotEmpty t) = id `eq` (TL.intercalate t . TL.splitTimesEnd k t)
 t_splitTimesEnd_split (NotEmpty t) = T.splitTimesEnd maxBound t `eq` T.split t
@@ -798,10 +786,6 @@ tests = [
       testProperty "t_findSplit" t_findSplit,
       testProperty "t_split_split" t_split_split,
       testProperty "t_split_i" t_split_i,
-      testProperty "t_splitTimes_i" t_splitTimes_i,
-      testProperty "tl_splitTimes_i" tl_splitTimes_i,
-      testProperty "t_splitTimes_split" t_splitTimes_split,
-      testProperty "tl_splitTimes_split" tl_splitTimes_split,
       testProperty "t_splitTimesEnd_i" t_splitTimesEnd_i,
       testProperty "tl_splitTimesEnd_i" tl_splitTimesEnd_i,
       testProperty "t_splitTimesEnd_split" t_splitTimesEnd_split,

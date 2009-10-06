@@ -115,6 +115,7 @@ module Data.Text
     , stripEnd
     , splitAt
     , spanBy
+    , break
     , breakBy
     , group
     , groupBy
@@ -124,7 +125,6 @@ module Data.Text
     -- ** Breaking into many substrings
     -- $split
     , split
-    , splitTimes
     , splitTimesEnd
     , splitBy
     , chunksOf
@@ -1051,35 +1051,62 @@ filter :: (Char -> Bool) -> Text -> Text
 filter p t = unstream (S.filter p (stream t))
 {-# INLINE filter #-}
 
--- /O(n+m)/ Find all non-overlapping instances of @needle@ in
--- @haystack@.  The first element of the returned tuple is the prefix
--- of @haystack@ before any matches of @needle@.  The second element
--- of the tuple is a list of non-overlapping substrings from
--- @haystack@.  Each begins with @needle@ and ends just before the
--- following match.  If @needle@ is not present in @haystack@, the
--- list will be empty and the prefix will contain @haystack@.
+-- | /O(n+m)/ Find the first instance of @needle@ in @haystack@.  The
+-- first element of the returned tuple is the prefix of @haystack@
+-- before @needle@ is matched.  The second is the remainder of
+-- @haystack@, starting with the match.
 --
 -- Examples:
 --
--- > find "::" "a::b::c" ==> ("a", ["::b", "::c"])
--- > find "/" "foobar"   ==> ("foobar", [])
+-- > break "::" "a::b::c" ==> ("a", "::b::c")
+-- > break "/" "foobar"   ==> ("foobar", "")
 --
 -- Laws:
 --
--- > concat (prefix : matches) == haystack
--- >   where (prefix, matches) = find needle haystack
+-- > append prefix match == haystack
+-- >   where (prefix, match) = break needle haystack
+--
+-- If you need to break a string by a substring repeatedly (e.g. you
+-- want to break on every instance of a substring), use 'find'
+-- instead, as it has lower startup overhead.
 --
 -- In (unlikely) bad cases, this function's time complexity
 -- degenerates towards /O(n*m)/.
-find :: Text -> Text -> (Text, [Text])
+break :: Text -> Text -> (Text, Text)
+break pat src@(Text arr off len)
+    | null pat  = emptyError "break"
+    | otherwise = case indices pat src of
+                    []    -> (src, empty)
+                    (x:_) -> (textP arr off x, textP arr (off+x) (len-x))
+{-# INLINE break #-}
+
+-- | /O(n+m)/ Find all non-overlapping instances of @needle@ in
+-- @haystack@.  The first element of the returned pair is the prefix
+-- of @haystack@ prior to any matches of @needle@.  The second is a
+-- list of pairs.
+--
+-- The first element of each pair in the list is a span from the
+-- beginning of a match to the beginning of the next match, while the
+-- second is a span from the beginning of the match to the end of the
+-- input.
+--
+-- Examples:
+--
+-- > find "::" ""
+-- > ==> ("", [])
+-- > find "/" "a/b/c/d"
+-- > ==> ("a", [("/b","/b/c/d"), ("/c","/c/d"), ("/d","/d")])
+find :: Text -> Text -> (Text, [(Text, Text)])
 find pat src@(Text arr off len)
     | null pat  = emptyError "find"
     | otherwise = case indices pat src of
                     []     -> (src, [])
-                    (x:xs) -> (textP arr off x, go x xs)
+                    (x:xs) -> (chunk 0 x, go x xs)
   where
-    go !s (x:xs) =  textP arr (s+off) (x-s) : go x xs
-    go  s _      = [textP arr (s+off) (len-s)]
+    go !s (x:xs) = (chunk s (x-s), chunk s (len-s)) : go x xs
+    go  s _      = let c = chunk s (len-s)
+                   in [(c,c)]
+    chunk !n !l  = textP arr (n+off) l
 {-# INLINE find #-}
 
 -------------------------------------------------------------------------------
@@ -1099,8 +1126,7 @@ find pat src@(Text arr off len)
 -- For example, suppose you have a string that you want to split on
 -- the substring @\"::\"@, such as @\"foo::bar::quux\"@. Instead of
 -- searching for the index of @\"::\"@ and taking the substrings
--- before and after that index, you would instead use @splitTimes 1
--- "::"@.
+-- before and after that index, you would instead use @find "::"@.
 
 -- | /O(n)/ 'Text' index (subscript) operator, starting from 0.
 index :: Text -> Int -> Char
