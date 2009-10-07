@@ -91,7 +91,7 @@ indices needle@(Chunk n ns) _haystack@(Chunk k ks)
              | otherwise = go (h+1)
              where on = A.unsafeIndex oarr (ooff+h)
     -- | Check whether an attempt to index into the haystack at the
-    -- given offset will fail.
+    -- given offset would fail.
     lackingHay q = go 0
       where
         go p (T.Text _ _ l) ps = p' < q && case ps of
