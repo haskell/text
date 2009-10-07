@@ -13,6 +13,8 @@
 -- Fast substring search for lazy 'Text', based on work by Boyer,
 -- Moore, Horspool, Sunday, and Lundh.  Adapted from the strict
 -- implementation.
+--
+-- /Note/: this is currently too strict!
 
 module Data.Text.Lazy.Search
     (

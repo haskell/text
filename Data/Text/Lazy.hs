@@ -118,6 +118,7 @@ module Data.Text.Lazy
     , stripEnd
     , splitAt
     , spanBy
+    , break
     , breakBy
     , group
     , groupBy
@@ -127,8 +128,6 @@ module Data.Text.Lazy
     -- ** Breaking into many substrings
     -- $split
     , split
-    , splitTimes
-    , splitTimesEnd
     , splitBy
     , chunksOf
     -- , breakSubstring
@@ -166,7 +165,7 @@ module Data.Text.Lazy
 
 import Prelude (Char, Bool(..), Int, Maybe(..), String,
                 Eq(..), Ord(..), Read(..), Show(..),
-                (&&), (||), (+), (-), (.), ($), (++),
+                (&&), (+), (-), (.), ($), (++),
                 div, flip, fromIntegral, not, otherwise)
 import qualified Prelude as P
 import Data.Int (Int64)
@@ -175,11 +174,13 @@ import Data.Char (isSpace)
 import Data.Monoid (Monoid(..))
 import Data.String (IsString(..))
 import qualified Data.Text as T
+import qualified Data.Text.Internal as T
 import qualified Data.Text.Fusion.Common as S
 import qualified Data.Text.Unsafe as T
 import qualified Data.Text.Lazy.Fusion as S
 import Data.Text.Lazy.Fusion (stream, unstream)
-import Data.Text.Lazy.Internal
+import Data.Text.Lazy.Internal (Text(..), chunk, empty, foldlChunks, foldrChunks)
+import Data.Text.Internal (textP)
 import Data.Text.Lazy.Search (indices)
 
 instance Eq Text where
@@ -813,6 +814,42 @@ splitAt = loop
                            in (Chunk t ts', ts'')
              where len = fromIntegral (T.length t)
 
+-- | /O(n+m)/ Find the first instance of @needle@ (which must be
+-- non-'null') in @haystack@.  The first element of the returned tuple
+-- is the prefix of @haystack@ before @needle@ is matched.  The second
+-- is the remainder of @haystack@, starting with the match.
+--
+-- Examples:
+--
+-- > break "::" "a::b::c" ==> ("a", "::b::c")
+-- > break "/" "foobar"   ==> ("foobar", "")
+--
+-- Laws:
+--
+-- > append prefix match == haystack
+-- >   where (prefix, match) = break needle haystack
+--
+-- If you need to break a string by a substring repeatedly (e.g. you
+-- want to break on every instance of a substring), use 'find'
+-- instead, as it has lower startup overhead.
+--
+-- In (unlikely) bad cases, this function's time complexity degrades
+-- towards /O(n*m)/.
+break :: Text -> Text -> (Text, Text)
+break pat src
+    | null pat  = emptyError "break"
+    | otherwise = case indices pat src of
+                    [] -> (src, empty)
+                    (x:_) -> go x src
+  where
+    go _ Empty = (empty, empty)
+    go x (Chunk c@(T.Text arr off len) cs)
+       | y >= len = let (h,t) = go (x-fromIntegral len) cs
+                  in (Chunk c h, t)
+       | otherwise = (chunk (textP arr off y) empty,
+                      chunk (textP arr (off+y) (len-y)) cs)
+       where y = fromIntegral x
+
 -- | /O(n)/ 'breakBy' is like 'spanBy', but the prefix returned is over
 -- elements that fail the predicate @p@.
 breakBy :: (Char -> Bool) -> Text -> (Text, Text)
@@ -912,57 +949,6 @@ split pat src0
 "LAZY TEXT split/singleton -> splitBy/==" [~1] forall c t.
     split (singleton c) t = splitBy (==c) t
   #-}
-
--- | /O(m)*O(n)/ Break a 'Text' into pieces at most @k@ times,
--- treating the first 'Text' argument as the delimiter to break on,
--- and consuming the delimiter.  The last element of the list contains
--- the remaining text after the number of times to split has been
--- reached.  A value of zero or less for @k@ causes no splitting to
--- occur.  An empty delimiter is invalid, and will cause an error to
--- be raised.
---
--- Examples:
---
--- > splitTimes 0   "//"  "a//b//c"   == ["a//b//c"]
--- > splitTimes 2   ":"   "a:b:c:d:e" == ["a","b","c:d:e"]
--- > splitTimes 100 "???" "a????b"    == ["a","?b"]
---
--- and
---
--- > intercalate s . splitTimes k s   == id
-splitTimes :: Int64             -- ^ Maximum number of times to split
-           -> Text              -- ^ Text to split on
-           -> Text              -- ^ Input text
-           -> [Text]
-splitTimes k pat src0
-    | k <= 0    = [src0]
-    | l == 0    = emptyError "splitTimes"
-    | otherwise = go k src0
-  where
-    l         = length pat
-    go !i src = search 0 src
-      where
-        search !n !s
-            | i == 0 || null s   = [src]      -- not found or limit reached
-            | pat `isPrefixOf` s = take n src : go (i-1) (drop l s)
-            | otherwise          = search (n+1) (tail s)
-{-# INLINE splitTimes #-}
-
--- | /O(m)*O(n)/ Break a 'Text' into pieces at most @k@ times, like
--- 'splitTimes', but start from the end of the input and work towards
--- the start.
---
--- Examples:
---
--- > splitTimes 2    "::" "a::b::c::d::e" == ["a","b","c::d::e"]
--- > splitTimesEnd 2 "::" "a::b::c::d::e" == ["a::b::c","d","e"]
-splitTimesEnd :: Int64             -- ^ Maximum number of times to split
-              -> Text              -- ^ Text to split on
-              -> Text              -- ^ Input text
-              -> [Text]
-splitTimesEnd k pat src =
-    L.reverse . L.map reverse $ splitTimes k (reverse pat) (reverse src)
-{-# INLINE splitTimesEnd #-}
 
 -- | /O(n)/ Splits a 'Text' into components delimited by separators,
 -- where the predicate returns True for a separator element.  The

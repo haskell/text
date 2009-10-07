@@ -390,6 +390,13 @@ tl_spanBy p       = L.span p      `eqP` (unpack2 . TL.spanBy p)
 t_break_id s      = squid `eq` (uncurry T.append . T.break s)
   where squid t | T.null s  = error "empty"
                 | otherwise = t
+tl_break_id s     = squid `eq` (uncurry TL.append . TL.break s)
+  where squid t | TL.null s  = error "empty"
+                | otherwise = t
+t_break_start (NotEmpty s) t = let (_,m) = T.break s t
+                               in T.null m || s `T.isPrefixOf` m
+tl_break_start (NotEmpty s) t = let (_,m) = TL.break s t
+                                in TL.null m || s `TL.isPrefixOf` m
 t_breakBy p       = L.break p     `eqP` (unpack2 . T.breakBy p)
 tl_breakBy p      = L.break p     `eqP` (unpack2 . TL.breakBy p)
 t_group           = L.group       `eqP` (map unpackS . T.group)
@@ -770,6 +777,9 @@ tests = [
       testProperty "t_spanBy" t_spanBy,
       testProperty "tl_spanBy" tl_spanBy,
       testProperty "t_break_id" t_break_id,
+      testProperty "tl_break_id" tl_break_id,
+      testProperty "t_break_start" t_break_start,
+      testProperty "tl_break_start" tl_break_start,
       testProperty "t_breakBy" t_breakBy,
       testProperty "tl_breakBy" tl_breakBy,
       testProperty "t_group" t_group,
