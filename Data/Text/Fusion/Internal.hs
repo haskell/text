@@ -40,6 +40,7 @@ data S s = S {-# UNPACK #-} !s
 
 infixl 2 :*:
 data PairS a b = {-# UNPACK #-} !a :*: {-# UNPACK #-} !b
+                 deriving (Eq, Ord, Show)
 
 -- | Allow a function over a stream to switch between two states.
 data Switch = S1 | S2
