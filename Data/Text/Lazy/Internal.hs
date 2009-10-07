@@ -91,6 +91,7 @@ foldlChunks f z = go z
 defaultChunkSize :: Int
 defaultChunkSize = 32 * k - chunkOverhead
    where k = 1024 `div` sizeOf (undefined :: Word16)
+{-# INLINE defaultChunkSize #-}
 
 -- | Currently set to 4k, less the memory management overhead.
 smallChunkSize :: Int

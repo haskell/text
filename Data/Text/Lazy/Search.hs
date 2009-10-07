@@ -13,8 +13,6 @@
 -- Fast substring search for lazy 'Text', based on work by Boyer,
 -- Moore, Horspool, Sunday, and Lundh.  Adapted from the strict
 -- implementation.
---
--- /Note/: this is currently too strict!
 
 module Data.Text.Lazy.Search
     (
@@ -34,23 +32,26 @@ import Data.Text.UnsafeShift (shiftL)
 -- | /O(n+m)/ Find the offsets of all non-overlapping indices of
 -- @needle@ within @haystack@.
 --
+-- This function is strict in @needle@, and lazy (as far as possible)
+-- in the chunks of @haystack@.
+--
 -- In (unlikely) bad cases, this algorithm's complexity degrades
 -- towards /O(n*m)/.
 indices :: Text              -- ^ Substring to search for (@needle@)
         -> Text              -- ^ Text to search in (@haystack@)
         -> [Int64]
-indices needle@(Chunk n ns) haystack@(Chunk k ks)
-    | nlen <= 0 || ldiff < 0 = []
-    | nlen == 1              = scanOne (nindex 0) 0 k ks
-    | otherwise              = scan 0 0 k ks
+indices needle@(Chunk n ns) _haystack@(Chunk k ks)
+    | nlen <= 0  = []
+    | nlen == 1  = scanOne (nindex 0) 0 k ks
+    | otherwise  = scan 0 0 k ks
   where
     scan !g !i x@(T.Text _ _ l) xs
-         | g > ldiff                  = []
-         | i >= m                     = case xs of
-                                          Empty      -> []
-                                          Chunk y ys -> scan g (i-m) y ys
-         | c == z && candidateMatch 0 = g : scan (g+nlen) (i+nlen) x xs
-         | otherwise                  = scan (g+delta) (i+delta) x xs
+         | i >= m = case xs of
+                      Empty           -> []
+                      Chunk y ys      -> scan g (i-m) y ys
+         | lackingHay (i + nlen) x xs  = []
+         | c == z && candidateMatch 0  = g : scan (g+nlen) (i+nlen) x xs
+         | otherwise                   = scan (g+delta) (i+delta) x xs
        where
          m = fromIntegral l
          c = hindex (i + nlast)
@@ -62,8 +63,7 @@ indices needle@(Chunk n ns) haystack@(Chunk k ks)
              | j >= nlast               = True
              | hindex (i+j) /= nindex j = False
              | otherwise                = candidateMatch (j+1)
-         hindex                = index x xs
-    ldiff     = wordLength haystack - nlen
+         hindex                         = index x xs
     nlen      = wordLength needle
     nlast     = nlen - 1
     nindex    = index n ns
@@ -90,6 +90,14 @@ indices needle@(Chunk n ns) haystack@(Chunk k ks)
              | on == c = i + fromIntegral h : go (h+1)
              | otherwise = go (h+1)
              where on = A.unsafeIndex oarr (ooff+h)
+    -- | Check whether an attempt to index into the haystack at the
+    -- given offset will fail.
+    lackingHay q = go 0
+      where
+        go p (T.Text _ _ l) ps = p' < q && case ps of
+                                             Empty      -> True
+                                             Chunk r rs -> go p' r rs
+            where p' = p + fromIntegral l
 indices _ _ = []
 
 -- | Fast index into a partly unpacked 'Text'.  We take into account
@@ -99,8 +107,11 @@ index :: T.Text -> Text -> Int64 -> Word16
 index (T.Text arr off len) xs i
     | j < len   = A.unsafeIndex arr (off+j)
     | otherwise = case xs of
-                    Empty | j == len  -> 0 -- out of bounds, but legal
-                          | otherwise -> emptyError "index"
+                    Empty
+                        -- out of bounds, but legal
+                        | j == len  -> 0
+                        -- should never happen, due to lackingHay above
+                        | otherwise -> emptyError "index"
                     Chunk c cs -> index c cs (i-fromIntegral len)
     where j = fromIntegral i
 
