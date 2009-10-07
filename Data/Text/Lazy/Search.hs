@@ -81,7 +81,19 @@ indices needle@(Chunk n ns) haystack@(Chunk k ks)
     nindex    = index n ns
     z         = foldlChunks fin 0 needle
         where fin _ (T.Text farr foff flen) = A.unsafeIndex farr (foff+flen-1)
-    mask :*: skip = buildTable needle
+    (mask :: Word64) :*: skip = buildTable n ns 0 0 0 (nlen-2)
+    swizzle w = 1 `shiftL` (fromIntegral w .&. 0x3f)
+    buildTable (T.Text xarr xoff xlen) xs = go
+      where
+        go !(g::Int64) !i !msk !skp
+            | i >= xlast = case xs of
+                             Empty      -> (msk .|. swizzle z) :*: skp
+                             Chunk y ys -> buildTable y ys g 0 msk skp
+            | otherwise = go (g+1) (i+1) (msk .|. swizzle c) skp'
+            where c                = A.unsafeIndex xarr (xoff+i)
+                  skp' | c == z    = nlen - fromIntegral g - 2
+                       | otherwise = skp
+                  xlast = xlen - 1
     scanOne c i (T.Text oarr ooff olen) os = go 0
       where
         go h | h >= olen = case os of
@@ -97,32 +109,13 @@ index (T.Text arr off len) xs i
     | j < len   = A.unsafeIndex arr (off+j)
     | otherwise = case xs of
                     Empty | j == len  -> 0
-                          | otherwise -> error "empty"
+                          | otherwise -> emptyError "index"
                     Chunk c cs -> index c cs (i-fromIntegral len)
     where j = fromIntegral i
-
-swizzle :: Word16 -> Word64
-swizzle k = 1 `shiftL` (fromIntegral k .&. 0x3f)
 
 wordLength :: Text -> Int64
 wordLength = foldlChunks sumLength 0
     where sumLength i (T.Text _ _ l) = i + fromIntegral l
 
-buildTable :: Text -> PairS Word64 Int64
-buildTable Empty = 0 :*: 0
-buildTable needle@(Chunk k ks) = outer k ks 0 0 0 (nlen-2)
-  where
-    outer (T.Text xarr xoff xlen) xs = go
-      where
-        go !(g::Int64) !i !mask !skip
-            | i >= xlast = case xs of
-                             Empty      -> (mask .|. swizzle z) :*: skip
-                             Chunk y ys -> outer y ys g 0 mask skip
-            | otherwise = go (g+1) (i+1) (mask .|. swizzle c) skip'
-            where c                 = A.unsafeIndex xarr (xoff+i)
-                  skip' | c == z    = nlen - fromIntegral g - 2
-                        | otherwise = skip
-                  xlast = xlen - 1
-    nlen      = wordLength needle
-    z         = foldlChunks fin 0 needle
-        where fin _ (T.Text farr foff flen) = A.unsafeIndex farr (foff+flen-1)
+emptyError :: String -> a
+emptyError fun = error ("Data.Text.Lazy.Search." ++ fun ++ ": empty input")
