@@ -3,10 +3,13 @@
 module SlowFunctions
     (
       indices
+    , lazyIndices
     , split
     ) where
 
+import Data.Int (Int64)
 import qualified Data.Text as T
+import qualified Data.Text.Lazy as L
 import Data.Text.Internal (Text(..))
 import Data.Text.Unsafe (iter_, unsafeHead, unsafeTail)
 
@@ -22,6 +25,17 @@ indices needle@(Text _narr _noff nlen) haystack@(Text harr hoff hlen)
            | otherwise = scan (i+d)
            where t = Text harr (hoff+i) (hlen-i)
                  d = iter_ haystack i
+
+lazyIndices :: L.Text -> L.Text -> [Int64]
+lazyIndices needle haystack
+    | L.null needle = []
+    | otherwise = scan 0 haystack
+  where
+    scan !i hay
+        | L.null hay                = []
+        | needle `L.isPrefixOf` hay = i : scan (i+n) (L.drop n hay)
+        | otherwise                 = scan (i+1) (L.tail hay)
+    n = L.length needle
 
 split :: Text                   -- ^ Text to split on
       -> Text                   -- ^ Input text
