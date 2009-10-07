@@ -10,22 +10,9 @@
 -- Stability   : experimental
 -- Portability : GHC
 --
--- Fast substring search for 'Text', based on work by Boyer, Moore,
--- Horspool, Sunday, and Lundh.
---
--- References:
--- 
--- * R. S. Boyer, J. S. Moore: A Fast String Searching Algorithm.
---   Communications of the ACM, 20, 10, 762-772 (1977)
---
--- * R. N. Horspool: Practical Fast Searching in Strings.  Software -
---   Practice and Experience 10, 501-506 (1980)
---
--- * D. M. Sunday: A Very Fast Substring Search Algorithm.
---   Communications of the ACM, 33, 8, 132-142 (1990)
---
--- * F. Lundh: The Fast Search Algorithm.
---   <http://effbot.org/zone/stringlib.htm> (2006)
+-- Fast substring search for lazy 'Text', based on work by Boyer,
+-- Moore, Horspool, Sunday, and Lundh.  Adapted from the strict
+-- implementation.
 
 module Data.Text.Lazy.Search
     (
@@ -74,8 +61,7 @@ indices needle@(Chunk n ns) haystack@(Chunk k ks)
              | hindex (i+j) /= nindex j = False
              | otherwise                = candidateMatch (j+1)
          hindex                = index x xs
-    ldiff     = hlen - nlen
-    hlen      = wordLength haystack
+    ldiff     = wordLength haystack - nlen
     nlen      = wordLength needle
     nlast     = nlen - 1
     nindex    = index n ns
@@ -104,15 +90,19 @@ indices needle@(Chunk n ns) haystack@(Chunk k ks)
              where on = A.unsafeIndex oarr (ooff+h)
 indices _ _ = []
 
+-- | Fast index into a partly unpacked 'Text'.  We take into account
+-- the possibility that the caller might try to access one element
+-- past the end.
 index :: T.Text -> Text -> Int64 -> Word16
 index (T.Text arr off len) xs i
     | j < len   = A.unsafeIndex arr (off+j)
     | otherwise = case xs of
-                    Empty | j == len  -> 0
+                    Empty | j == len  -> 0 -- out of bounds, but legal
                           | otherwise -> emptyError "index"
                     Chunk c cs -> index c cs (i-fromIntegral len)
     where j = fromIntegral i
 
+-- | The number of 'Word16' values in a 'Text'.
 wordLength :: Text -> Int64
 wordLength = foldlChunks sumLength 0
     where sumLength i (T.Text _ _ l) = i + fromIntegral l
