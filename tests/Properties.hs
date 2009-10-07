@@ -1,5 +1,5 @@
-{-# LANGUAGE BangPatterns, FlexibleInstances, ScopedTypeVariables,
-             TypeSynonymInstances #-}
+{-# LANGUAGE BangPatterns, FlexibleInstances, OverloadedStrings,
+             ScopedTypeVariables, TypeSynonymInstances #-}
 {-# OPTIONS_GHC -fno-enable-rewrite-rules #-}
 
 import Test.QuickCheck hiding (evaluate)
@@ -487,9 +487,10 @@ sf_zipWith p c s  = (L.zipWith c (L.filter p s) . L.filter p) `eqP` (unpackS . S
 t_zipWith c s     = L.zipWith c s `eqP` (unpackS . T.zipWith c (packS s))
 tl_zipWith c s    = L.zipWith c s `eqP` (unpackS . TL.zipWith c (packS s))
 
-slow_indices = unsquare (\s -> (map fromIntegral . Slow.indices (T.pack s)) `eq` (Slow.lazyIndices (TL.pack s) . TL.fromChunks . (:[])))
 t_indices = unsquare (\s -> Slow.indices s `eq` indices s)
-tl_indices = unsquare (\s -> Slow.lazyIndices s `eq` S.indices s)
+tl_indices = unsquare (\s -> lazyIndices s `eq` S.indices s)
+    where lazyIndices s t = map fromIntegral $ Slow.indices (conc s) (conc t)
+          conc = T.concat . TL.toChunks
 t_indices_occurs t = unsquare (\ts -> let s = T.intercalate t ts
                                       in Slow.indices t s == indices t s)
 
@@ -840,7 +841,6 @@ tests = [
     testProperty "t_findIndex" t_findIndex,
     testProperty "t_count" t_count,
     testProperty "tl_count" tl_count,
-    testProperty "slow_indices" slow_indices,
     testProperty "t_indices" t_indices,
     testProperty "tl_indices" tl_indices,
     testProperty "t_indices_occurs" t_indices_occurs

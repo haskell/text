@@ -38,7 +38,7 @@ import Data.Word (Word16, Word64)
 import qualified Data.Text.Internal as T
 import qualified Data.Text as T
 import Data.Text.Fusion.Internal (PairS(..))
-import Data.Text.Lazy.Internal (Text(..))
+import Data.Text.Lazy.Internal (Text(..), foldlChunks)
 import Data.Bits ((.|.), (.&.))
 import Data.Text.UnsafeShift (shiftL)
 
@@ -79,7 +79,7 @@ indices needle@(Chunk n ns) haystack@(Chunk k ks)
     nlen      = wordLength needle
     nlast     = nlen - 1
     nindex    = index n ns
-    z         = foldChunks fin 0 needle
+    z         = foldlChunks fin 0 needle
         where fin _ (T.Text farr foff flen) = A.unsafeIndex farr (foff+flen-1)
     mask :*: skip = buildTable needle
     scanOne c i (T.Text oarr ooff olen) os = go 0
@@ -104,13 +104,8 @@ index (T.Text arr off len) xs i
 swizzle :: Word16 -> Word64
 swizzle k = 1 `shiftL` (fromIntegral k .&. 0x3f)
 
-foldChunks :: (a -> T.Text -> a) -> a -> Text -> a
-foldChunks _ z Empty        = z
-foldChunks f z (Chunk c cs) = let z' = f z c
-                              in z' `seq` foldChunks f z' cs
-
 wordLength :: Text -> Int64
-wordLength = foldChunks sumLength 0
+wordLength = foldlChunks sumLength 0
     where sumLength i (T.Text _ _ l) = i + fromIntegral l
 
 buildTable :: Text -> PairS Word64 Int64
@@ -129,5 +124,5 @@ buildTable needle@(Chunk k ks) = outer k ks 0 0 0 (nlen-2)
                         | otherwise = skip
                   xlast = xlen - 1
     nlen      = wordLength needle
-    z         = foldChunks fin 0 needle
+    z         = foldlChunks fin 0 needle
         where fin _ (T.Text farr foff flen) = A.unsafeIndex farr (foff+flen-1)
