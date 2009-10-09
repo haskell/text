@@ -699,14 +699,14 @@ take i t0         = take' i t0
 -- length of the 'Text'. Subject to fusion.
 drop :: Int64 -> Text -> Text
 drop i t0
-    | i <= 0 = t0
+    | i <= 0    = t0
     | otherwise = drop' i t0
   where drop' 0 ts           = ts
         drop' _ Empty        = Empty
         drop' n (Chunk t ts) 
-            | n < len = Chunk (T.drop (fromIntegral n) t) ts
+            | n < len   = Chunk (T.drop (fromIntegral n) t) ts
             | otherwise = drop' (n - len) ts
-            where len = fromIntegral (T.length t)
+            where len   = fromIntegral (T.length t)
 {-# INLINE [1] drop #-}
 
 {-# RULES
@@ -860,6 +860,9 @@ splitAtWord x (Chunk c@(T.Text arr off len) cs)
 -- want to break on every instance of a substring), use 'find'
 -- instead, as it has lower startup overhead.
 --
+-- This function is strict in its first argument, and lazy in its
+-- second.
+--
 -- In (unlikely) bad cases, this function's time complexity degrades
 -- towards /O(n*m)/.
 break :: Text -> Text -> (Text, Text)
@@ -948,6 +951,9 @@ tails ts@(Chunk t ts')
 --
 -- > intercalate s . split s         == id
 -- > split (singleton c)             == splitBy (==c)
+--
+-- This function is strict in its first argument, and lazy in its
+-- second.
 --
 -- In (unlikely) bad cases, this function's time complexity degrades
 -- towards /O(n*m)/.
@@ -1058,6 +1064,9 @@ isSuffixOf x y = reverse x `isPrefixOf` reverse y
 -- | /O(n+m)/ The 'isInfixOf' function takes two 'Text's and returns
 -- 'True' iff the first is contained, wholly and intact, anywhere
 -- within the second.
+--
+-- This function is strict in its first argument, and lazy in its
+-- second.
 --
 -- In (unlikely) bad cases, this function's time complexity degrades
 -- towards /O(n*m)/.
