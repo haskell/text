@@ -400,7 +400,7 @@ reverse :: Text -> Text
 reverse t = S.reverse (stream t)
 {-# INLINE reverse #-}
 
--- | /O(m*n)/ Replace every occurrence of one substring with another.
+-- | /O(m+n)/ Replace every occurrence of one substring with another.
 replace :: Text                 -- ^ Text to search for
         -> Text                 -- ^ Replacement text
         -> Text                 -- ^ Input text

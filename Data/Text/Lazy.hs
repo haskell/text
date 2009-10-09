@@ -445,7 +445,7 @@ reverse = rev Empty
   where rev a Empty        = a
         rev a (Chunk t ts) = rev (Chunk (T.reverse t) a) ts
 
--- | /O(m)*O(n)/ Replace every occurrence of one substring with another.
+-- | /O(m+n)/ Replace every occurrence of one substring with another.
 replace :: Text                 -- ^ Text to search for
         -> Text                 -- ^ Replacement text
         -> Text                 -- ^ Input text
