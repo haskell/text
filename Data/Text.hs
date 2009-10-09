@@ -1069,7 +1069,7 @@ find pat src@(Text arr off len)
 -- For example, suppose you have a string that you want to split on
 -- the substring @\"::\"@, such as @\"foo::bar::quux\"@. Instead of
 -- searching for the index of @\"::\"@ and taking the substrings
--- before and after that index, you would instead use @find "::"@.
+-- before and after that index, you would instead use @find \"::\"@.
 
 -- | /O(n)/ 'Text' index (subscript) operator, starting from 0.
 index :: Text -> Int -> Char
