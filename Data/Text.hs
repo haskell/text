@@ -1151,6 +1151,7 @@ lines ps | null ps   = []
     where (h,t) = spanBy (/= '\n') ps
 {-# INLINE lines #-}
 
+{-
 -- | /O(n)/ Portably breaks a 'Text' up into a list of 'Text's at line
 -- boundaries.
 --
@@ -1158,7 +1159,6 @@ lines ps | null ps   = []
 -- return immediately followed by a line feed, or a carriage return.
 -- This accounts for both Unix and Windows line ending conventions,
 -- and for the old convention used on Mac OS 9 and earlier.
-{-
 lines' :: Text -> [Text]
 lines' ps | null ps   = []
           | otherwise = h : case uncons t of
