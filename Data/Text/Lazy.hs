@@ -1034,13 +1034,23 @@ isSuffixOf x y = reverse x `isPrefixOf` reverse y
 {-# INLINE isSuffixOf #-}
 -- TODO: a better implementation
 
--- | /O(n)/ The 'isInfixOf' function takes two 'Text's and returns
+-- | /O(n+m)/ The 'isInfixOf' function takes two 'Text's and returns
 -- 'True' iff the first is contained, wholly and intact, anywhere
 -- within the second.
+--
+-- In (unlikely) bad cases, this function's time complexity degrades
+-- towards /O(n*m)/.
 isInfixOf :: Text -> Text -> Bool
-isInfixOf needle haystack = L.any (isPrefixOf needle) (tails haystack)
-{-# INLINE isInfixOf #-}
--- TODO: a better implementation
+isInfixOf needle haystack
+    | null needle        = True
+    | isSingleton needle = S.elem (head needle) . S.stream $ haystack
+    | otherwise          = not . L.null . indices needle $ haystack
+{-# INLINE [1] isInfixOf #-}
+
+{-# RULES
+"LAZY TEXT isInfixOf/singleton -> S.elem/S.stream" [~1] forall n h.
+    isInfixOf (singleton n) h = S.elem n (S.stream h)
+  #-}
 
 -- | /O(n)/ 'filter', applied to a predicate and a 'Text',
 -- returns a 'Text' containing those characters that satisfy the
@@ -1070,21 +1080,18 @@ index :: Text -> Int64 -> Char
 index t n = S.index (stream t) n
 {-# INLINE index #-}
 
--- | /O(n*m)/ The 'count' function returns the number of times the
+-- | /O(n+m)/ The 'count' function returns the number of times the
 -- query string appears in the given 'Text'. An empty query string is
 -- invalid, and will cause an error to be raised.
+--
+-- In (unlikely) bad cases, this function's time complexity degrades
+-- towards /O(n*m)/.
 count :: Text -> Text -> Int64
-count pat src0
-    | l == 0    = emptyError "count"
-    | l == 1    = countChar (head pat) src0
-    | otherwise = go 0 src0
-  where
-    l = length pat
-    go !n src = search src
-      where
-        search s | null s             = n
-                 | pat `isPrefixOf` s = go (n+1) (drop l s)
-                 | otherwise          = search (tail s)
+count pat src
+    | null pat        = emptyError "count"
+    | otherwise       = len (indices pat src)
+  where len []     = 0
+        len (_:xs) = 1 + len xs
 {-# INLINE [1] count #-}
 
 {-# RULES
