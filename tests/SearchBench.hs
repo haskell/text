@@ -1,14 +1,19 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE BangPatterns, OverloadedStrings #-}
 
 import Criterion.Main
+import Data.Text.Encoding
 import Data.Text.Search
+import qualified Data.ByteString.Char8 as B
 import qualified Data.Text as T
+import qualified SlowFunctions as Slow
 
 main = defaultMain [
          bench "big/fast" $ (length . search indices)
-       , bench "big/slow" $ (length . search slowIndices)
+       , bench "big/slow" $ (length . search Slow.indices)
+       , bench "big/bytestring" $ (length . searchBS)
        , bench "dna/fast" $ (length . searchDNA indices)
-       , bench "dna/slow" $ (length . searchDNA slowIndices)
+       , bench "dna/slow" $ (length . searchDNA Slow.indices)
+       , bench "dna/bytestring" $ (length . searchDNABS)
        ]
 
 search f n = f needle' haystack
@@ -26,7 +31,38 @@ searchDNA f n = f needle haystack
     needle   = T.take 4 . T.drop (n `mod` (T.length dna - 4)) $ dna
     haystack = T.replicate 100 dna
 
-dna = "\
+replicateBS n = B.concat . replicate n
+
+searchBS n = indicesBS needle' haystack
+  where
+    needle'  = B.drop (n `mod` 20) needle
+    needle   = replicateBS 10 "abcdefghijklmnopqrstuvwxyz"
+    haystack = replicateBS 100 $
+               B.concat [ replicateBS 1000 "def"
+                        , needle
+                        , replicateBS 1000 "123"
+                        ]
+                        
+searchDNABS n = indicesBS needle haystack
+  where
+    needle   = B.take 4 . B.drop (n `mod` (B.length bdna - 4)) $ bdna
+    haystack = replicateBS 100 bdna
+
+indicesBS :: B.ByteString -> B.ByteString -> [Int]
+indicesBS pat
+    | B.null pat = error "empty"
+    | otherwise  = go 0
+  where
+    l  = B.length pat
+    go !i src = case B.breakSubstring pat src of
+                  (h,t) | B.null t -> []
+                        | otherwise -> i' : go (i'+l) (B.drop l t)
+                      where i' = i + B.length h
+
+dna = decodeASCII bdna
+
+bdna :: B.ByteString
+bdna = "\
 \CGTAACAAGGTTTCCGTAGGTGAACCTGCGGAAGGATCATTGTTGAGATCACATAATAATTGATCGGGTT\
 \AATCTGGAGGATCTGTTTACTTTGGTCACCCATGAGCATTTGCTGTTGAAGTGACCTAGAATTGCCATCG\
 \AGCCTCCTTGGGAGCTTTCTTGTTGGCGAGATCTAAACCCTTGCCCGGCGCAGTTTTGCTCCAAGTCGTT\

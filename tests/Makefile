@@ -35,7 +35,7 @@ QuickCheckUtils.o: $(lib)
 qc: Properties.o QuickCheckUtils.o SlowFunctions.o
 	$(ghc) $(ghc-flags) -threaded -o $@ $^ $(lib)
 
-sb: SearchBench.o
+sb: SearchBench.o SlowFunctions.o
 	$(ghc) $(ghc-flags) -threaded -o $@ $^ $(lib)
 
 qc-hpc: Properties.hs QuickCheckUtils.hs $(lib-srcs:%=../%)
@@ -52,6 +52,7 @@ qc-hpc-html/hpc_index.html: qc-hpc
 	  --exclude=Data.Text.Fusion.CaseMapping \
 	  --exclude=QuickCheckUtils --srcdir=.. --srcdir=. --destdir=$(dir $@)
 
+SlowFunctions.o: ghc-opt-flags = -O2
 SearchBench.o: ghc-opt-flags = -O
 %.o: %.hs
 	$(ghc) $(ghc-flags) $(ghc-opt-flags) -c -o $@ $<
