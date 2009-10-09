@@ -838,13 +838,13 @@ break :: Text -> Text -> (Text, Text)
 break pat src
     | null pat  = emptyError "break"
     | otherwise = case indices pat src of
-                    [] -> (src, empty)
+                    []    -> (src, empty)
                     (x:_) -> go x src
   where
     go _ Empty = (empty, empty)
     go x (Chunk c@(T.Text arr off len) cs)
-       | y >= len = let (h,t) = go (x-fromIntegral len) cs
-                  in (Chunk c h, t)
+       | y >= len  = let (h,t) = go (x-fromIntegral len) cs
+                     in (Chunk c h, t)
        | otherwise = (chunk (textP arr off y) empty,
                       chunk (textP arr (off+y) (len-y)) cs)
        where y = fromIntegral x
