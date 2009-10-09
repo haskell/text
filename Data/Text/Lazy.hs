@@ -919,8 +919,8 @@ tails ts@(Chunk t ts')
 -- copies to create substrings; they just construct new 'Text's that
 -- are slices of the original.
 
--- | /O(m)*O(n)/ Break a 'Text' into pieces separated by the first
--- 'Text' argument, consuming the delimiter.  An empty delimiter is
+-- | /O(m+n)/ Break a 'Text' into pieces separated by the first
+-- 'Text' argument, consuming the delimiter. An empty delimiter is
 -- invalid, and will cause an error to be raised.
 --
 -- Examples:
@@ -933,21 +933,20 @@ tails ts@(Chunk t ts')
 --
 -- > intercalate s . split s         == id
 -- > split (singleton c)             == splitBy (==c)
+--
+-- In (unlikely) bad cases, this function's time complexity degrades
+-- towards /O(n*m)/.
 split :: Text                   -- ^ Text to split on
       -> Text                   -- ^ Input text
       -> [Text]
-split pat src0
-    | l == 0    = emptyError "split"
-    | l == 1    = splitBy (== (head pat)) src0
-    | otherwise = go src0
+split pat src
+    | null pat        = emptyError "split"
+    | isSingleton pat = splitBy (== head pat) src
+    | otherwise       = go 0 (indices pat src) src
   where
-    l      = length pat
-    go src = search 0 src
-      where
-        search !n !s
-            | null s             = [src]      -- not found
-            | pat `isPrefixOf` s = take n src : go (drop l s)
-            | otherwise          = search (n+1) (tail s)
+    go  _ []     cs = [cs]
+    go !s (x:xs) cs = let h :*: t = splitAtWord (x-s) cs
+                      in  h : go (s+x) xs t
 {-# INLINE [1] split #-}
 
 {-# RULES
