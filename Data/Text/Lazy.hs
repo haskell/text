@@ -145,6 +145,7 @@ module Data.Text.Lazy
 
     -- * Searching
     , filter
+    , find
     , findBy
     , partitionBy
 
@@ -872,6 +873,40 @@ break pat src
                     []    -> (src, empty)
                     (x:_) -> let h :*: t = splitAtWord x src
                              in  (h, t)
+
+-- | /O(n+m)/ Find all non-overlapping instances of @needle@ in
+-- @haystack@.  The first element of the returned pair is the prefix
+-- of @haystack@ prior to any matches of @needle@.  The second is a
+-- list of pairs.
+--
+-- The first element of each pair in the list is a span from the
+-- beginning of a match to the beginning of the next match, while the
+-- second is a span from the beginning of the match to the end of the
+-- input.
+--
+-- Examples:
+--
+-- > find "::" ""
+-- > ==> ("", [])
+-- > find "/" "a/b/c/d"
+-- > ==> ("a", [("/b","/b/c/d"), ("/c","/c/d"), ("/d","/d")])
+--
+-- This function is strict in its first argument, and lazy in its
+-- second.
+--
+-- In (unlikely) bad cases, this function's time complexity degrades
+-- towards /O(n*m)/.
+find :: Text -> Text -> (Text, [(Text, Text)])
+find pat src
+    | null pat  = emptyError "find"
+    | otherwise = case indices pat src of
+                    []     -> (src, [])
+                    (x:xs) -> let h :*: t = splitAtWord x src
+                              in (h, go x xs t)
+  where
+    go !i (x:xs) cs = let h :*: t = splitAtWord (x-i) cs
+                      in (h, cs) : go x xs t
+    go  _ _      cs = [(cs,cs)]
 
 -- | /O(n)/ 'breakBy' is like 'spanBy', but the prefix returned is over
 -- elements that fail the predicate @p@.

@@ -1036,6 +1036,9 @@ break pat src@(Text arr off len)
 -- > ==> ("", [])
 -- > find "/" "a/b/c/d"
 -- > ==> ("a", [("/b","/b/c/d"), ("/c","/c/d"), ("/d","/d")])
+--
+-- In (unlikely) bad cases, this function's time complexity degrades
+-- towards /O(n*m)/.
 find :: Text -> Text -> (Text, [(Text, Text)])
 find pat src@(Text arr off len)
     | null pat  = emptyError "find"

@@ -408,9 +408,14 @@ tl_inits          = L.inits       `eqP` (map unpackS . TL.inits)
 t_tails           = L.tails       `eqP` (map unpackS . T.tails)
 tl_tails          = L.tails       `eqP` (map unpackS . TL.tails)
 
-t_findSplit s           = T.split s `eq` splitty
-  where splitty t       = case T.find s t of
+t_findSplit s t         = (T.split s `eq` splitty) u
+  where splitty v       = case T.find s v  of
                             (x,xs) -> x : L.map (T.drop (T.length s) . fst) xs
+        u = T.concat [t,s,t]
+tl_findSplit s t        = (TL.split s `eq` splitty) u
+  where splitty v       = case TL.find s v of
+                            (x,xs) -> x : L.map (TL.drop (TL.length s) . fst) xs
+        u = TL.concat [t,s,t]
 t_split_split s         = unsquare ((T.split s `eq` Slow.split s) .
                                     T.intercalate s)
 tl_split_split s        = unsquare (((TL.split (chunkify s) . chunkify) `eq`
@@ -798,6 +803,7 @@ tests = [
 
     testGroup "breaking many" [
       testProperty "t_findSplit" t_findSplit,
+      testProperty "tl_findSplit" tl_findSplit,
       testProperty "t_split_split" t_split_split,
       testProperty "tl_split_split" tl_split_split,
       testProperty "t_split_i" t_split_i,
