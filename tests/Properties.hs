@@ -466,8 +466,6 @@ t_isInfixOf s     = L.isInfixOf s `eqP` T.isInfixOf (packS s)
 tl_isInfixOf s    = L.isInfixOf s `eqP` TL.isInfixOf (packS s)
 
 sf_elem p c       = (L.elem c . L.filter p) `eqP` (S.elem c . S.filter p)
-t_elem c          = L.elem c      `eqP` T.elem c
-tl_elem c         = L.elem c      `eqP` TL.elem c
 sf_filter q p     = (L.filter p . L.filter q) `eqP` (unpackS . S.filter p . S.filter q)
 t_filter p        = L.filter p    `eqP` (unpackS . T.filter p)
 tl_filter p       = L.filter p    `eqP` (unpackS . TL.filter p)
@@ -832,8 +830,6 @@ tests = [
 
   testGroup "searching" [
     testProperty "sf_elem" sf_elem,
-    testProperty "t_elem" t_elem,
-    testProperty "tl_elem" tl_elem,
     testProperty "sf_filter" sf_filter,
     testProperty "t_filter" t_filter,
     testProperty "tl_filter" tl_filter,

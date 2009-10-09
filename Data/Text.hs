@@ -140,7 +140,6 @@ module Data.Text
     , isInfixOf
 
     -- * Searching
-    , elem
     , filter
     , find
     , findBy
@@ -967,14 +966,6 @@ chunksOf k = go
 -- * Searching
 
 -------------------------------------------------------------------------------
--- ** Searching by equality
-
--- | /O(n)/ 'elem' is the 'Text' membership predicate.
-elem :: Char -> Text -> Bool
-elem c t = S.elem c (stream t)
-{-# INLINE elem #-}
-
--------------------------------------------------------------------------------
 -- ** Searching with a predicate
 
 -- | /O(n)/ The 'findBy' function takes a predicate and a 'Text', and
@@ -1222,8 +1213,16 @@ isSuffixOf a@(Text _aarr _aoff alen) b@(Text barr boff blen) =
 -- In (unlikely) bad cases, this function's time complexity degrades
 -- towards /O(n*m)/.
 isInfixOf :: Text -> Text -> Bool
-isInfixOf pat src = null pat || (not . L.null $ indices pat src)
-{-# INLINE isInfixOf #-}
+isInfixOf needle haystack
+    | null needle        = True
+    | isSingleton needle = S.elem (unsafeHead needle) . S.stream $ haystack
+    | otherwise          = not . L.null . indices needle $ haystack
+{-# INLINE [1] isInfixOf #-}
+
+{-# RULES
+"TEXT isInfixOf/singleton -> S.elem/S.stream" [~1] forall n h.
+    isInfixOf (singleton n) h = S.elem n (S.stream h)
+  #-}
 
 emptyError :: String -> a
 emptyError fun = P.error ("Data.Text." ++ fun ++ ": empty input")

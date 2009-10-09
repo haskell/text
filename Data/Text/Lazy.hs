@@ -144,7 +144,6 @@ module Data.Text.Lazy
     , isInfixOf
 
     -- * Searching
-    , elem
     , filter
     , findBy
     , partitionBy
@@ -1042,11 +1041,6 @@ isInfixOf :: Text -> Text -> Bool
 isInfixOf needle haystack = L.any (isPrefixOf needle) (tails haystack)
 {-# INLINE isInfixOf #-}
 -- TODO: a better implementation
-
--- | /O(n)/ 'elem' is the 'Text' membership predicate.
-elem :: Char -> Text -> Bool
-elem c t = S.elem c (stream t)
-{-# INLINE elem #-}
 
 -- | /O(n)/ 'filter', applied to a predicate and a 'Text',
 -- returns a 'Text' containing those characters that satisfy the
