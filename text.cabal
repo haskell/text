@@ -12,7 +12,20 @@ copyright:      2008-2009 Tom Harper, 2009 Bryan O'Sullivan
 category:       Data, Text
 build-type:     Simple
 cabal-version:  >= 1.2
-extra-source-files: README
+extra-source-files:
+    README
+    TODO
+    scripts/ApiCompare.hs
+    scripts/Arsec.hs
+    scripts/CaseFolding.hs
+    scripts/CaseFolding.txt
+    scripts/CaseMapping.hs
+    scripts/SpecialCasing.hs
+    scripts/SpecialCasing.txt
+    tests/Makefile
+    tests/Properties.hs
+    tests/QuickCheckUtils.hs
+    tests/SlowFunctions.hs
 
 flag developer
   description: operate in developer mode
