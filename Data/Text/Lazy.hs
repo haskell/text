@@ -716,6 +716,21 @@ drop i t0
     unstream (S.drop n (stream t)) = drop n t
   #-}
 
+-- | /O(n)/ 'dropWords' @n@ returns the suffix with @n@ 'Word16'
+-- values dropped, or the empty 'Text' if @n@ is greater than the
+-- number of 'Word16' values present.
+dropWords :: Int64 -> Text -> Text
+dropWords i t0
+    | i <= 0    = t0
+    | otherwise = drop' i t0
+  where drop' 0 ts           = ts
+        drop' _ Empty        = Empty
+        drop' n (Chunk (T.Text arr off len) ts)
+            | n < len'  = chunk (textP arr (off+n') (len-n')) ts
+            | otherwise = drop' (n - len') ts
+            where len'  = fromIntegral len
+                  n'    = fromIntegral n
+
 -- | /O(n)/ 'takeWhile', applied to a predicate @p@ and a 'Text', returns
 -- the longest prefix (possibly empty) of elements that satisfy @p@.
 -- This function is subject to array fusion.
@@ -945,8 +960,9 @@ split pat src
     | otherwise       = go 0 (indices pat src) src
   where
     go  _ []     cs = [cs]
-    go !s (x:xs) cs = let h :*: t = splitAtWord (x-s) cs
-                      in  h : go (s+x) xs t
+    go !i (x:xs) cs = let h :*: t = splitAtWord (x-i) cs
+                      in  h : go (x+l) xs (dropWords l t)
+    l = foldlChunks (\a (T.Text _ _ b) -> a + fromIntegral b) 0 pat
 {-# INLINE [1] split #-}
 
 {-# RULES

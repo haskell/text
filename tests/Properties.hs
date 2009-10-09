@@ -411,7 +411,11 @@ tl_tails          = L.tails       `eqP` (map unpackS . TL.tails)
 t_findSplit s           = T.split s `eq` splitty
   where splitty t       = case T.find s t of
                             (x,xs) -> x : L.map (T.drop (T.length s) . fst) xs
-t_split_split s         = T.split s `eq` Slow.split s
+t_split_split s         = unsquare ((T.split s `eq` Slow.split s) .
+                                    T.intercalate s)
+tl_split_split s        = unsquare (((TL.split (chunkify s) . chunkify) `eq`
+                                     (map chunkify . T.split s)) .
+                                    T.intercalate s)
 t_split_i (NotEmpty t)  = id `eq` (T.intercalate t . T.split t)
 tl_split_i (NotEmpty t) = id `eq` (TL.intercalate t . TL.split t)
 
@@ -434,7 +438,9 @@ t_chunksOf_same_lengths k = all ((==k) . T.length) . ini . T.chunksOf k
 t_chunksOf_length k t = len == T.length t || (k <= 0 && len == 0)
   where len = L.sum . L.map T.length $ T.chunksOf k t
 
-tl_chunksOf k = T.chunksOf k `eq` (map (T.concat . TL.toChunks) . TL.chunksOf (fromIntegral k) . TL.fromChunks . (:[]))
+chunkify = TL.fromChunks . (:[])
+
+tl_chunksOf k = T.chunksOf k `eq` (map (T.concat . TL.toChunks) . TL.chunksOf (fromIntegral k) . chunkify)
 
 t_lines           = L.lines       `eqP` (map unpackS . T.lines)
 tl_lines          = L.lines       `eqP` (map unpackS . TL.lines)
@@ -793,6 +799,7 @@ tests = [
     testGroup "breaking many" [
       testProperty "t_findSplit" t_findSplit,
       testProperty "t_split_split" t_split_split,
+      testProperty "tl_split_split" tl_split_split,
       testProperty "t_split_i" t_split_i,
       testProperty "tl_split_i" tl_split_i,
       testProperty "t_splitBy" t_splitBy,
