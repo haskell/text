@@ -177,6 +177,7 @@ import qualified Data.Text.Internal as T
 import qualified Data.Text.Fusion.Common as S
 import qualified Data.Text.Unsafe as T
 import qualified Data.Text.Lazy.Fusion as S
+import Data.Text.Fusion.Internal (PairS(..))
 import Data.Text.Lazy.Fusion (stream, unstream)
 import Data.Text.Lazy.Internal (Text(..), chunk, empty, foldlChunks, foldrChunks)
 import Data.Text.Internal (textP)
@@ -813,6 +814,18 @@ splitAt = loop
                            in (Chunk t ts', ts'')
              where len = fromIntegral (T.length t)
 
+-- | /O(n)/ 'splitAtWord' @n t@ returns a strict pair whose first
+-- element is a prefix of @t@ whose chunks contain @n@ 'Word16'
+-- values, and whose second is the remainder of the string.
+splitAtWord :: Int64 -> Text -> PairS Text Text
+splitAtWord _ Empty = empty :*: empty
+splitAtWord x (Chunk c@(T.Text arr off len) cs)
+    | y >= len  = let h :*: t = splitAtWord (x-fromIntegral len) cs
+                  in  Chunk c h :*: t
+    | otherwise = chunk (textP arr off y) empty :*:
+                  chunk (textP arr (off+y) (len-y)) cs
+    where y = fromIntegral x
+
 -- | /O(n+m)/ Find the first instance of @needle@ (which must be
 -- non-'null') in @haystack@.  The first element of the returned tuple
 -- is the prefix of @haystack@ before @needle@ is matched.  The second
@@ -839,15 +852,8 @@ break pat src
     | null pat  = emptyError "break"
     | otherwise = case indices pat src of
                     []    -> (src, empty)
-                    (x:_) -> go x src
-  where
-    go _ Empty = (empty, empty)
-    go x (Chunk c@(T.Text arr off len) cs)
-       | y >= len  = let (h,t) = go (x-fromIntegral len) cs
-                     in (Chunk c h, t)
-       | otherwise = (chunk (textP arr off y) empty,
-                      chunk (textP arr (off+y) (len-y)) cs)
-       where y = fromIntegral x
+                    (x:_) -> let h :*: t = splitAtWord x src
+                             in  (h, t)
 
 -- | /O(n)/ 'breakBy' is like 'spanBy', but the prefix returned is over
 -- elements that fail the predicate @p@.
