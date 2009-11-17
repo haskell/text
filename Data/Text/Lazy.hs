@@ -163,7 +163,7 @@ module Data.Text.Lazy
     -- , sort
     ) where
 
-import Prelude (Char, Bool(..), Int, Maybe(..), String,
+import Prelude (Char, Bool(..), Maybe(..), String,
                 Eq(..), Ord(..), Read(..), Show(..),
                 (&&), (+), (-), (.), ($), (++),
                 div, flip, fromIntegral, not, otherwise)

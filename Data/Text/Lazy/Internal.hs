@@ -31,7 +31,7 @@ module Data.Text.Lazy.Internal
     ) where
 
 import qualified Data.Text.Internal as T
-import qualified Data.Text as T
+import Data.Text ()
 import Data.Typeable (Typeable)
 import Data.Word (Word16)
 import Foreign.Storable (sizeOf)

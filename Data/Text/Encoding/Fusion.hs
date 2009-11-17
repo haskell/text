@@ -32,7 +32,6 @@ module Data.Text.Encoding.Fusion
     ) where
 
 import Control.Exception (assert)
-import Data.ByteString as B
 import Data.ByteString.Internal (ByteString(..), mallocByteString, memcpy)
 import Data.Text.Fusion (Step(..), Stream(..))
 import Data.Text.Fusion.Size

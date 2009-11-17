@@ -56,10 +56,10 @@ if (_k_) < 0 || (_k_) >= (_len_) then error ("Data.Text.Array." ++ (_func_) ++ "
 #if defined(__GLASGOW_HASKELL__)
 #include "MachDeps.h"
 
-import GHC.Base (ByteArray#, MutableByteArray#, Int(..), indexIntArray#,
-                 indexWord16Array#, newByteArray#, readIntArray#,
-                 readWord16Array#, unsafeCoerce#, writeIntArray#,
-                 writeWord16Array#, (+#), (*#))
+import GHC.Base (ByteArray#, MutableByteArray#, Int(..),
+                 indexWord16Array#, newByteArray#,
+                 readWord16Array#, unsafeCoerce#,
+                 writeWord16Array#, (*#))
 import GHC.Prim (Int#)
 import GHC.ST (ST(..), runST)
 import GHC.Word (Word16(..))
@@ -78,7 +78,6 @@ import Hugs.ST (ST(..), runST)
 
 import Control.Exception (assert)
 import Data.Typeable (Typeable1(..), Typeable2(..), TyCon, mkTyCon, mkTyConApp)
-import Data.Word (Word16)
 import Prelude hiding (length, read)
 
 #include "Typeable.h"
@@ -167,7 +166,7 @@ unsafeFreeze :: MArray s e -> ST s (Array e)
 #if defined(__GLASGOW_HASKELL__)
 
 wORD16_SCALE :: Int# -> Int#
-wORD16_SCALE n# = scale# *# n# where I# scale# = SIZEOF_WORD16
+wORD16_SCALE n# = scale# *# n# where !(I# scale#) = SIZEOF_WORD16
 
 -- | Create an uninitialized mutable array.
 unsafeNew :: forall s e. Elt e => Int -> ST s (MArray s e)
