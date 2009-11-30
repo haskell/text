@@ -1,12 +1,15 @@
 {-# LANGUAGE MagicHash #-}
 
-import qualified Data.ByteString.Char8 as B8
+import qualified Data.ByteString.Char8 as BS
+import qualified Data.ByteString.Lazy.Char8 as BL
+import qualified Data.ByteString.Lazy.Internal as BL
 import Control.Exception (evaluate)
 import Control.DeepSeq (NFData(..))
 import Criterion.Main
 import Data.Char
 import qualified Codec.Binary.UTF8.Generic as UTF8
-import qualified Data.Text as T
+import qualified Data.Text as TS
+import qualified Data.Text.Lazy as TL
 import qualified Data.List as L
 import Data.Text.Encoding
 import qualified Criterion.MultiMap as M
@@ -21,161 +24,192 @@ myConfig
                   }
     | otherwise = defaultConfig
 
-instance NFData B8.ByteString
+instance NFData BS.ByteString
+
+instance NFData BL.ByteString where
+    rnf BL.Empty        = ()
+    rnf (BL.Chunk _ ts) = rnf ts
 
 main = do
-  s0 <- B8.readFile "text/test/russian.txt"
-  let !s0l = B8.length s0
-      t0   = decodeUtf8 s0
-      !t0l = T.length t0
-      l0   = UTF8.toString s0
-      !l0l = L.length l0
-      s1   = B8.map toUpper s0
-      !s1l = B8.length s1
-      t1   = T.toUpper t0
-      !t1l = T.length t1
-      l1   = L.map toUpper l0
-      !l1l = L.length l1
-      sl   = B8.lines s0
-      tl   = T.lines t0
-      ll   = L.lines l0
-  evaluate (rnf (sl,tl,ll))
+  bsa <- BS.readFile "text/test/russian.txt"
+  let tsa     = decodeUtf8 bsa
+      tsb     = TS.toUpper tsa
+      tla     = TL.fromChunks (TS.chunksOf 16376 tsa)
+      tlb     = TL.fromChunks (TS.chunksOf 16376 tsb)
+      bsb     = encodeUtf8 tsb
+      bla     = BL.fromChunks (chunksOf 16376 bsa)
+      blb     = BL.fromChunks (chunksOf 16376 bsb)
+      bsa_len = BS.length bsa
+      tsa_len  = TS.length tsa
+      bla_len = BL.length bla
+      tla_len = TL.length tla
+      la    = UTF8.toString bsa
+      la_len  = L.length la
+      tsb_len  = TS.length tsb
+      lb    = TS.unpack tsb
+      bsl    = BS.lines bsa
+      bll    = BL.lines bla
+      tsl    = TS.lines tsa
+      tll   = TL.lines tla
+      ll    = L.lines la
   defaultMainWith myConfig [
       bgroup "append" [
-        bench "text" $ nf (T.append t1) t0
-      , bench "b8" $ nf (B8.append s1) s0
-      , bench "list" $ nf ((++) l1) l0
+        bench "ts" $ nf (TS.append tsb) tsa
+      , bench "tl" $ nf (TL.append tlb) tla
+      , bench "bs" $ nf (BS.append bsb) bsa
+      , bench "bl" $ nf (BL.append blb) bla
+      , bench "l" $ nf ((++) lb) la
       ],
       bgroup "concat" [
-        bench "text" $ nf T.concat tl
-      , bench "b8" $ nf B8.concat sl
-      , bench "list" $ nf L.concat ll
+        bench "ts" $ nf TS.concat tsl
+      , bench "tl" $ nf TL.concat tll
+      , bench "bs" $ nf BS.concat bsl
+      , bench "bl" $ nf BL.concat bll
+      , bench "l" $ nf L.concat ll
       ],
       bgroup "concatMap" [
-        bench "text" $ nf (T.concatMap (T.replicate 3 . T.singleton)) t0
-      , bench "b8" $ nf (B8.concatMap (B8.replicate 3)) s0
-      , bench "list" $ nf (L.concatMap (L.replicate 3 . (:[]))) l0
+        bench "ts" $ nf (TS.concatMap (TS.replicate 3 . TS.singleton)) tsa
+      , bench "tl" $ nf (TL.concatMap (TL.replicate 3 . TL.singleton)) tla
+      , bench "bs" $ nf (BS.concatMap (BS.replicate 3)) bsa
+      , bench "bl" $ nf (BL.concatMap (BL.replicate 3)) bla
+      , bench "l" $ nf (L.concatMap (L.replicate 3 . (:[]))) la
       ],
       bgroup "decode" [
-        bench "text" $ nf decodeUtf8 s0
-      , bench "b8" $ nf B8.unpack s0
-      , bench "utf8-string" $ nf UTF8.toString s0
+        bench "ts" $ nf decodeUtf8 bsa
+      , bench "bs" $ nf BS.unpack bsa
+      , bench "utf8-string" $ nf UTF8.toString bsa
       ],
       bgroup "drop" [
-        bench "text" $ nf (T.drop (t0l `div` 3)) t0
-      , bench "b8" $ nf (B8.drop (s0l `div` 3)) s0
-      , bench "list" $ nf (L.drop (l0l `div` 3)) l0
+        bench "ts" $ nf (TS.drop (tsa_len `div` 3)) tsa
+      , bench "tl" $ nf (TL.drop (tla_len `div` 3)) tla
+      , bench "bs" $ nf (BS.drop (bsa_len `div` 3)) bsa
+      , bench "bl" $ nf (BL.drop (bla_len `div` 3)) bla
+      , bench "l" $ nf (L.drop (la_len `div` 3)) la
       ],
       bgroup "filter" [
-        bench "text" $ nf (T.filter p0) t0
-      , bench "b8" $ nf (B8.filter p0) s0
-      , bench "list" $ nf (L.filter p0) l0
+        bench "ts" $ nf (TS.filter p0) tsa
+      , bench "tl" $ nf (TL.filter p0) tla
+      , bench "bs" $ nf (BS.filter p0) bsa
+      , bench "bl" $ nf (BL.filter p0) bla
+      , bench "l" $ nf (L.filter p0) la
       ],
       bgroup "2filter" [
-        bench "text" $ nf (T.filter p1 . T.filter p0) t0
-      , bench "b8" $ nf (B8.filter p1 . B8.filter p0) s0
-      , bench "list" $ nf (L.filter p1 . L.filter p0) l0
+        bench "ts" $ nf (TS.filter p1 . TS.filter p0) tsa
+      , bench "tl" $ nf (TL.filter p1 . TL.filter p0) tla
+      , bench "bs" $ nf (BS.filter p1 . BS.filter p0) bsa
+      , bench "bl" $ nf (BL.filter p1 . BL.filter p0) bla
+      , bench "l" $ nf (L.filter p1 . L.filter p0) la
       ],
       bgroup "foldl'" [
-        bench "text" $ nf (T.foldl' len 0) t0
-      , bench "b8" $ nf (B8.foldl' len 0) s0
-      , bench "list" $ nf (L.foldl' len 0) l0
+        bench "ts" $ nf (TS.foldl' len 0) tsa
+      , bench "tl" $ nf (TL.foldl' len 0) tla
+      , bench "bs" $ nf (BS.foldl' len 0) bsa
+      , bench "bl" $ nf (BL.foldl' len 0) bla
+      , bench "l" $ nf (L.foldl' len 0) la
       ],
       bgroup "foldr" [
-        bench "text" $ nf (L.length . T.foldr (:) []) t0
-      , bench "b8" $ nf (L.length . B8.foldr (:) []) s0
-      , bench "list" $ nf (L.length . L.foldr (:) []) l0
+        bench "ts" $ nf (L.length . TS.foldr (:) []) tsa
+      , bench "tl" $ nf (L.length . TL.foldr (:) []) tla
+      , bench "bs" $ nf (L.length . BS.foldr (:) []) bsa
+      , bench "bl" $ nf (L.length . BL.foldr (:) []) bla
+      , bench "l" $ nf (L.length . L.foldr (:) []) la
       ],
       bgroup "intercalate" [
-        bench "text" $ nf (T.intercalate tw) tl
-      , bench "b8" $ nf (B8.intercalate sw) sl
-      , bench "list" $ nf (L.intercalate lw) ll
+        bench "ts" $ nf (TS.intercalate tsw) tsl
+      , bench "tl" $ nf (TL.intercalate tlw) tll
+      , bench "bs" $ nf (BS.intercalate bsw) bsl
+      , bench "bl" $ nf (BL.intercalate blw) bll
+      , bench "l" $ nf (L.intercalate lw) ll
       ],
       bgroup "isInfixOf" [
-        bench "text" $ nf (T.isInfixOf tw) t0
-      , bench "b8" $ nf (B8.isInfixOf sw) s0
-      , bench "list" $ nf (L.isInfixOf lw) l0
+        bench "ts" $ nf (TS.isInfixOf tsw) tsa
+      , bench "tl" $ nf (TL.isInfixOf tlw) tla
+      , bench "bs" $ nf (BS.isInfixOf bsw) bsa
+        -- no isInfixOf for lazy bytestrings
+      , bench "l" $ nf (L.isInfixOf lw) la
       ],
       bgroup "last" [
-        bench "text" $ nf T.last t0
-      , bench "b8" $ nf B8.last s0
-      , bench "list" $ nf L.last l0
+        bench "ts" $ nf TS.last tsa
+      , bench "tl" $ nf TL.last tla
+      , bench "bs" $ nf BS.last bsa
+      , bench "bl" $ nf BL.last bla
+      , bench "l" $ nf L.last la
       ],
       bgroup "map" [
-        bench "text" $ nf (T.map f) t0
-      , bench "b8" $ nf (B8.map f) s0
-      , bench "list" $ nf (L.map f) l0
+        bench "ts" $ nf (TS.map f) tsa
+      , bench "bs" $ nf (BS.map f) bsa
+      , bench "l" $ nf (L.map f) la
       ],
       bgroup "2map" [
-        bench "text" $ nf (T.map f . T.map f) t0
-      , bench "b8" $ nf (B8.map f . B8.map f) s0
-      , bench "list" $ nf (L.map f . L.map f) l0
+        bench "ts" $ nf (TS.map f . TS.map f) tsa
+      , bench "bs" $ nf (BS.map f . BS.map f) bsa
+      , bench "l" $ nf (L.map f . L.map f) la
       ],
       bgroup "reverse" [
-        bench "text" $ nf T.reverse t0
-      , bench "b8" $ nf B8.reverse s0
-      , bench "list" $ nf L.reverse l0
+        bench "ts" $ nf TS.reverse tsa
+      , bench "bs" $ nf BS.reverse bsa
+      , bench "l" $ nf L.reverse la
       ],
       bgroup "take" [
-        bench "text" $ nf (T.take (t0l `div` 3)) t0
-      , bench "b8" $ nf (B8.take (s0l `div` 3)) s0
-      , bench "list" $ nf (L.take (l0l `div` 3)) l0
+        bench "ts" $ nf (TS.take (tsa_len `div` 3)) tsa
+      , bench "bs" $ nf (BS.take (bsa_len `div` 3)) bsa
+      , bench "l" $ nf (L.take (la_len `div` 3)) la
       ],
       bgroup "words" [
-        bench "text" $ nf T.words t0
-      , bench "b8" $ nf B8.words s0
-      , bench "list" $ nf L.words l0
+        bench "ts" $ nf TS.words tsa
+      , bench "bs" $ nf BS.words bsa
+      , bench "l" $ nf L.words la
       ],
       bgroup "zipWith" [
-        bench "text" $ nf (T.zipWith min t1) t0
-      , bench "b8" $ nf (B8.zipWith min s1) s0
-      , bench "list" $ nf (L.zipWith min l1) l0
+        bench "ts" $ nf (TS.zipWith min tsb) tsa
+      , bench "bs" $ nf (BS.zipWith min bsb) bsa
+      , bench "l" $ nf (L.zipWith min lb) la
       ],
       bgroup "length" [
         bgroup "decode" [
-          bench "text" $ nf (T.length . decodeUtf8) s0
-        , bench "b8" $ nf (L.length . B8.unpack) s0
-        , bench "utf8-string" $ nf (L.length . UTF8.toString) s0
+          bench "ts" $ nf (TS.length . decodeUtf8) bsa
+        , bench "bs" $ nf (L.length . BS.unpack) bsa
+        , bench "utf8-string" $ nf (L.length . UTF8.toString) bsa
         ],
         bgroup "drop" [
-          bench "text" $ nf (T.length . T.drop (t0l `div` 3)) t0
-        , bench "b8" $ nf (B8.length . B8.drop (s0l `div` 3)) s0
-        , bench "list" $ nf (L.length . L.drop (l0l `div` 3)) l0
+          bench "ts" $ nf (TS.length . TS.drop (tsa_len `div` 3)) tsa
+        , bench "bs" $ nf (BS.length . BS.drop (bsa_len `div` 3)) bsa
+        , bench "l" $ nf (L.length . L.drop (la_len `div` 3)) la
         ],
         bgroup "filter" [
-          bench "text" $ nf (T.length . T.filter p0) t0
-        , bench "b8" $ nf (B8.length . B8.filter p0) s0
-        , bench "list" $ nf (L.length . L.filter p0) l0
+          bench "ts" $ nf (TS.length . TS.filter p0) tsa
+        , bench "bs" $ nf (BS.length . BS.filter p0) bsa
+        , bench "l" $ nf (L.length . L.filter p0) la
         ],
         bgroup "2filter" [
-          bench "text" $ nf (T.length . T.filter p1 . T.filter p0) t0
-        , bench "b8" $ nf (B8.length . B8.filter p1 . B8.filter p0) s0
-        , bench "list" $ nf (L.length . L.filter p1 . L.filter p0) l0
+          bench "ts" $ nf (TS.length . TS.filter p1 . TS.filter p0) tsa
+        , bench "bs" $ nf (BS.length . BS.filter p1 . BS.filter p0) bsa
+        , bench "l" $ nf (L.length . L.filter p1 . L.filter p0) la
         ],
         bgroup "map" [
-          bench "text" $ nf (T.length . T.map f) t0
-        , bench "b8" $ nf (B8.length . B8.map f) s0
-        , bench "list" $ nf (L.length . L.map f) l0
+          bench "ts" $ nf (TS.length . TS.map f) tsa
+        , bench "bs" $ nf (BS.length . BS.map f) bsa
+        , bench "l" $ nf (L.length . L.map f) la
         ],
         bgroup "2map" [
-          bench "text" $ nf (T.length . T.map f . T.map f) t0
-        , bench "b8" $ nf (B8.length . B8.map f . B8.map f) s0
-        , bench "list" $ nf (L.length . L.map f . L.map f) l0
+          bench "ts" $ nf (TS.length . TS.map f . TS.map f) tsa
+        , bench "bs" $ nf (BS.length . BS.map f . BS.map f) bsa
+        , bench "l" $ nf (L.length . L.map f . L.map f) la
         ],
         bgroup "take" [
-          bench "text" $ nf (T.length . T.take (t0l `div` 3)) t0
-        , bench "b8" $ nf (B8.length . B8.take (s0l `div` 3)) s0
-        , bench "list" $ nf (L.length . L.take (l0l `div` 3)) l0
+          bench "ts" $ nf (TS.length . TS.take (tsa_len `div` 3)) tsa
+        , bench "bs" $ nf (BS.length . BS.take (bsa_len `div` 3)) bsa
+        , bench "l" $ nf (L.length . L.take (la_len `div` 3)) la
         ],
         bgroup "words" [
-          bench "text" $ nf (L.length . T.words) t0
-        , bench "b8" $ nf (L.length . B8.words) s0
-        , bench "list" $ nf (L.length . L.words) l0
+          bench "ts" $ nf (L.length . TS.words) tsa
+        , bench "bs" $ nf (L.length . BS.words) bsa
+        , bench "l" $ nf (L.length . L.words) la
         ],
         bgroup "zipWith" [
-          bench "text" $ nf (T.length . T.zipWith min t1) t0
-        , bench "b8" $ nf (L.length . B8.zipWith min s1) s0
-        , bench "list" $ nf (L.length . L.zipWith min l1) l0
+          bench "ts" $ nf (TS.length . TS.zipWith min tsb) tsa
+        , bench "bs" $ nf (L.length . BS.zipWith min bsb) bsa
+        , bench "l" $ nf (L.length . L.zipWith min lb) la
         ]
       ]
     ]
@@ -183,7 +217,16 @@ main = do
     p0 = (== 'й')
     p1 = (/= 'д')
     lw  = "право"
-    sw  = UTF8.fromString lw
-    tw  = T.pack lw
+    bsw  = UTF8.fromString lw
+    blw  = BL.fromChunks [bsw]
+    tsw  = TS.pack lw
+    tlw  = TL.fromChunks [tsw]
     f (C# c#) = C# (chr# (ord# c# +# 1#))
     len l _ = l + (1::Int)
+
+chunksOf :: Int -> BS.ByteString -> [BS.ByteString]
+chunksOf k = go
+  where
+    go t = case BS.splitAt k t of
+             (a,b) | BS.null a -> []
+                   | otherwise -> a : go b
