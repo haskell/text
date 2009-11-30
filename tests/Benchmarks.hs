@@ -81,10 +81,15 @@ main = do
       , bench "b8" $ nf (L.length . B8.foldr (:) []) s0
       , bench "list" $ nf (L.length . L.foldr (:) []) l0
       ],
+      bgroup "intercalate" [
+        bench "text" $ nf (T.intercalate tw) tl
+      , bench "b8" $ nf (B8.intercalate sw) sl
+      , bench "list" $ nf (L.intercalate lw) ll
+      ],
       bgroup "isInfixOf" [
-        bench "text" $ nf (T.isInfixOf (T.pack w)) t0
-      , bench "b8" $ nf (B8.isInfixOf (B8.pack w)) s0
-      , bench "list" $ nf (L.isInfixOf w) l0
+        bench "text" $ nf (T.isInfixOf tw) t0
+      , bench "b8" $ nf (B8.isInfixOf sw) s0
+      , bench "list" $ nf (L.isInfixOf lw) l0
       ],
       bgroup "last" [
         bench "text" $ nf T.last t0
@@ -172,6 +177,8 @@ main = do
   where
     p0 = (== 'й')
     p1 = (/= 'д')
-    w  = "право"
+    lw  = "право"
+    sw  = UTF8.fromString lw
+    tw  = T.pack lw
     f (C# c#) = C# (chr# (ord# c# +# 1#))
     len l _ = l + (1::Int)
