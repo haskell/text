@@ -168,6 +168,7 @@ import Prelude (Char, Bool(..), Maybe(..), String,
                 (&&), (+), (-), (.), ($), (++),
                 div, flip, fromIntegral, not, otherwise)
 import qualified Prelude as P
+import Control.DeepSeq (NFData(..))
 import Data.Int (Int64)
 import qualified Data.List as L
 import Data.Char (isSpace)
@@ -205,6 +206,10 @@ instance Monoid Text where
 
 instance IsString Text where
     fromString = pack
+
+instance NFData Text where
+    rnf Empty        = ()
+    rnf (Chunk _ ts) = rnf ts
 
 -- | /O(n)/ Convert a 'String' into a 'Text'.
 --
