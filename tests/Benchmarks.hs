@@ -1,10 +1,11 @@
-{-# LANGUAGE MagicHash #-}
+{-# LANGUAGE GADTs, MagicHash #-}
 
 import qualified Data.ByteString.Char8 as BS
 import qualified Data.ByteString.Lazy.Char8 as BL
 import qualified Data.ByteString.Lazy.Internal as BL
 import Control.Exception (evaluate)
 import Control.DeepSeq (NFData(..))
+import Control.Parallel.Strategies
 import Criterion.Main
 import Data.Char
 import qualified Codec.Binary.UTF8.Generic as UTF8
@@ -30,6 +31,12 @@ instance NFData BL.ByteString where
     rnf BL.Empty        = ()
     rnf (BL.Chunk _ ts) = rnf ts
 
+data B where
+    B :: NFData a => a -> B
+
+instance NFData B where
+    rnf (B b) = rnf b
+
 main = do
   bsa <- BS.readFile "text/test/russian.txt"
   let tsa     = decodeUtf8 bsa
@@ -40,18 +47,21 @@ main = do
       bla     = BL.fromChunks (chunksOf 16376 bsa)
       blb     = BL.fromChunks (chunksOf 16376 bsb)
       bsa_len = BS.length bsa
-      tsa_len  = TS.length tsa
+      tsa_len = TS.length tsa
       bla_len = BL.length bla
       tla_len = TL.length tla
-      la    = UTF8.toString bsa
+      la      = UTF8.toString bsa
       la_len  = L.length la
-      tsb_len  = TS.length tsb
-      lb    = TS.unpack tsb
-      bsl    = BS.lines bsa
-      bll    = BL.lines bla
-      tsl    = TS.lines tsa
-      tll   = TL.lines tla
-      ll    = L.lines la
+      tsb_len = TS.length tsb
+      lb      = TS.unpack tsb
+      bsl     = BS.lines bsa
+      bll     = BL.lines bla
+      tsl     = TS.lines tsa
+      tll     = TL.lines tla
+      ll      = L.lines la
+  evaluate (rnf [B tsa, B tsb, B tla, B tlb, B bsa, B bsb, B bla, B blb,
+                 B bsa_len, B tsa_len, B bla_len, B tla_len, B la, B la_len,
+                 B tsb_len, B lb, B bsl, B bll, B tsl, B tll, B ll])
   defaultMainWith myConfig [
       bgroup "append" [
         bench "ts" $ nf (TS.append tsb) tsa
@@ -137,32 +147,44 @@ main = do
       ],
       bgroup "map" [
         bench "ts" $ nf (TS.map f) tsa
+      , bench "tl" $ nf (TL.map f) tla
       , bench "bs" $ nf (BS.map f) bsa
+      , bench "bl" $ nf (BL.map f) bla
       , bench "l" $ nf (L.map f) la
       ],
       bgroup "2map" [
         bench "ts" $ nf (TS.map f . TS.map f) tsa
+      , bench "tl" $ nf (TL.map f . TL.map f) tla
       , bench "bs" $ nf (BS.map f . BS.map f) bsa
+      , bench "bl" $ nf (BL.map f . BL.map f) bla
       , bench "l" $ nf (L.map f . L.map f) la
       ],
       bgroup "reverse" [
         bench "ts" $ nf TS.reverse tsa
+      , bench "tl" $ nf TL.reverse tla
       , bench "bs" $ nf BS.reverse bsa
+      , bench "bl" $ nf BL.reverse bla
       , bench "l" $ nf L.reverse la
       ],
       bgroup "take" [
         bench "ts" $ nf (TS.take (tsa_len `div` 3)) tsa
+      , bench "tl" $ nf (TL.take (tla_len `div` 3)) tla
       , bench "bs" $ nf (BS.take (bsa_len `div` 3)) bsa
+      , bench "bl" $ nf (BL.take (bla_len `div` 3)) bla
       , bench "l" $ nf (L.take (la_len `div` 3)) la
       ],
       bgroup "words" [
         bench "ts" $ nf TS.words tsa
+      , bench "tl" $ nf TL.words tla
       , bench "bs" $ nf BS.words bsa
+      , bench "bl" $ nf BL.words bla
       , bench "l" $ nf L.words la
       ],
       bgroup "zipWith" [
         bench "ts" $ nf (TS.zipWith min tsb) tsa
+      , bench "tl" $ nf (TL.zipWith min tlb) tla
       , bench "bs" $ nf (BS.zipWith min bsb) bsa
+      , bench "bl" $ nf (BL.zipWith min blb) bla
       , bench "l" $ nf (L.zipWith min lb) la
       ],
       bgroup "length" [
