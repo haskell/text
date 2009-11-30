@@ -67,7 +67,6 @@ streamUtf8 :: OnDecodeError -> ByteString -> Stream Char
 streamUtf8 onErr bs = Stream next 0 (maxSize l)
     where
       l = B.length bs
-      {-# INLINE next #-}
       next i
           | i >= l = Done
           | U8.validate1 x1 = Yield (unsafeChr8 x1) (i+1)

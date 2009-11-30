@@ -775,7 +775,6 @@ indexI (Stream next s0 _len) n0
 filter :: (Char -> Bool) -> Stream Char -> Stream Char
 filter p (Stream next0 s0 len) = Stream next s0 len -- HINT maybe too high
   where
-    {-# INLINE next #-}
     next !s = case next0 s of
                 Done                   -> Done
                 Skip    s'             -> Skip    s'
@@ -819,7 +818,6 @@ zipWith :: (a -> a -> b) -> Stream a -> Stream a -> Stream b
 zipWith f (Stream next0 sa0 len1) (Stream next1 sb0 len2) =
     Stream next (sa0 :*: sb0 :*: N) (smaller len1 len2)
     where
-      {-# INLINE next #-}
       next (sa :*: sb :*: N) = case next0 sa of
                                  Done -> Done
                                  Skip sa' -> Skip (sa' :*: sb :*: N)
