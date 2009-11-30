@@ -574,12 +574,9 @@ concat ts = Text (A.run go) 0 len
 {-# INLINE concat #-}
 
 -- | /O(n)/ Map a function over a 'Text' that results in a 'Text', and
--- concatenate the results.  Subject to fusion.
---
--- Note: if in 'concatMap' @f@ @t@, @f@ is defined in terms of fusible
--- functions, it will also be fusible.
+-- concatenate the results.
 concatMap :: (Char -> Text) -> Text -> Text
-concatMap f t = unstream (S.concatMap (stream . f) (stream t))
+concatMap f = concat . foldr ((:) . f) []
 {-# INLINE concatMap #-}
 
 -- | /O(n)/ 'any' @p@ @t@ determines whether any character in the

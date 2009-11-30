@@ -51,6 +51,11 @@ main = do
       , bench "b8" $ nf B8.concat sl
       , bench "list" $ nf L.concat ll
       ],
+      bgroup "concatMap" [
+        bench "text" $ nf (T.concatMap (T.replicate 3 . T.singleton)) t0
+      , bench "b8" $ nf (B8.concatMap (B8.replicate 3)) s0
+      , bench "list" $ nf (L.concatMap (L.replicate 3 . (:[]))) l0
+      ],
       bgroup "decode" [
         bench "text" $ nf decodeUtf8 s0
       , bench "b8" $ nf B8.unpack s0
