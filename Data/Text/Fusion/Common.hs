@@ -782,7 +782,7 @@ filter p (Stream next0 s0 len) = Stream next s0 len -- HINT maybe too high
 {-# INLINE [0] filter #-}
 
 {-# RULES
-  "Stream filter/filter fusion" forall p q s.
+  "STREAM filter/filter fusion" forall p q s.
   filter p (filter q s) = filter (\x -> q x && p x) s
   #-}
 
