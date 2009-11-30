@@ -481,11 +481,13 @@ intercalate s = concat . (L.intersperse s)
 -- | /O(n)/ Concatenate a list of streams. Subject to array fusion.
 concat :: [Stream Char] -> Stream Char
 concat = L.foldr append empty
+{-# INLINE [0] concat #-}
 
 -- | Map a function over a stream that results in a stream and concatenate the
 -- results.
 concatMap :: (Char -> Stream Char) -> Stream Char -> Stream Char
 concatMap f = foldr (append . f) empty
+{-# INLINE [0] concatMap #-}
 
 -- | /O(n)/ any @p @xs determines if any character in the stream
 -- @xs@ satisifes the predicate @p@.
