@@ -98,7 +98,7 @@ module Data.Text.Fusion.Common
     , zipWith
     ) where
 
-import Prelude (Bool(..), Char, Either(..), Eq(..), Int, Integral, Maybe(..),
+import Prelude (Bool(..), Char, Eq(..), Int, Integral, Maybe(..),
                 Ord(..), String, (.), ($), (+), (-), (*), (++), (&&),
                 fromIntegral, otherwise)
 import qualified Data.List as L
@@ -157,20 +157,22 @@ snoc (Stream next0 xs0 len) w = Stream next (J xs0) (len+1)
     next N = Done
 {-# INLINE [0] snoc #-}
 
+data E l r = L {-# UNPACK #-} !l
+           | R {-# UNPACK #-} !r
+
 -- | /O(n)/ Appends one Stream to the other.
 append :: Stream Char -> Stream Char -> Stream Char
 append (Stream next0 s01 len1) (Stream next1 s02 len2) =
-    Stream next (Left s01) (len1 + len2)
+    Stream next (L s01) (len1 + len2)
     where
-      {-# INLINE next #-}
-      next (Left s1) = case next0 s1 of
-                         Done        -> Skip    (Right s02)
-                         Skip s1'    -> Skip    (Left s1')
-                         Yield x s1' -> Yield x (Left s1')
-      next (Right s2) = case next1 s2 of
+      next (L s1) = case next0 s1 of
+                         Done        -> Skip    (R s02)
+                         Skip s1'    -> Skip    (L s1')
+                         Yield x s1' -> Yield x (L s1')
+      next (R s2) = case next1 s2 of
                           Done        -> Done
-                          Skip s2'    -> Skip    (Right s2')
-                          Yield x s2' -> Yield x (Right s2')
+                          Skip s2'    -> Skip    (R s2')
+                          Yield x s2' -> Yield x (R s2')
 {-# INLINE [0] append #-}
 
 -- | /O(1)/ Returns the first character of a Text, which must be non-empty.
@@ -283,7 +285,6 @@ isSingleton (Stream next s0 _len) = loop 0 s0
 map :: (Char -> Char) -> Stream Char -> Stream Char
 map f (Stream next0 s0 len) = Stream next s0 len
     where
-      {-# INLINE next #-}
       next !s = case next0 s of
                   Done       -> Done
                   Skip s'    -> Skip s'
