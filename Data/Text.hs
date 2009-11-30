@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns, Rank2Types #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 -- |
@@ -164,10 +164,12 @@ module Data.Text
 import Prelude (Char, Bool(..), Functor(..), Int, Maybe(..), String,
                 Eq(..), Ord(..), (++),
                 Read(..), Show(..),
-                (&&), (||), (+), (-), (.), ($),
+                (&&), (||), (+), (-), (.), ($), (>>),
                 fromIntegral, div, not, return, otherwise)
+import Control.DeepSeq (NFData)
 import Control.Exception (assert)
 import Data.Char (isSpace)
+import Control.Monad (foldM)
 import Control.Monad.ST (ST)
 import qualified Data.Text.Array as A
 import qualified Data.List as L
@@ -212,6 +214,8 @@ instance Monoid Text where
 instance IsString Text where
     fromString = pack
 
+instance NFData Text
+
 -- -----------------------------------------------------------------------------
 -- * Conversion to/from 'Text'
 
@@ -254,15 +258,10 @@ append (Text arr1 off1 len1) (Text arr2 off2 len2) = Text (A.run x) 0 len
     where
       len = len1+len2
       x = do
-        arr <- A.unsafeNew len :: ST s (A.MArray s Word16)
-        copy arr1 off1 (len1+off1) arr 0
-        copy arr2 off2 (len2+off2) arr len1
+        arr <- A.unsafeNew len
+        copy arr 0 arr1 off1 len1
+        copy arr len1 arr2 off2 (len1+len2)
         return arr
-            where
-              copy arr i top arr' j
-                  | i >= top  = return ()
-                  | otherwise = do A.unsafeWrite arr' j (arr `A.unsafeIndex` i)
-                                   copy arr (i+1) top arr' (j+1)
 {-# INLINE append #-}
 
 {-# RULES
@@ -271,6 +270,14 @@ append (Text arr1 off1 len1) (Text arr2 off2 len2) = Text (A.run x) 0 len
 "TEXT append -> unfused" [1] forall t1 t2.
     unstream (S.append (stream t1) (stream t2)) = append t1 t2
  #-}
+
+copy :: forall s. A.MArray s Word16 -> Int -> A.Array Word16 -> Int -> Int
+     -> ST s ()
+copy dest i0 src j0 top = go i0 j0
+  where
+    go i j | i >= top  = return ()
+           | otherwise = do A.unsafeWrite dest i (src `A.unsafeIndex` j)
+                            go (i+1) (j+1)
 
 -- | /O(1)/ Returns the first character of a 'Text', which must be
 -- non-empty.  Subject to fusion.
@@ -555,9 +562,15 @@ foldr1 f t = S.foldr1 f (stream t)
 -- -----------------------------------------------------------------------------
 -- ** Special folds
 
--- | /O(n)/ Concatenate a list of 'Text's. Subject to fusion.
+-- | /O(n)/ Concatenate a list of 'Text's.
 concat :: [Text] -> Text
-concat ts = unstream (S.concat (L.map stream ts))
+concat ts = Text (A.run go) 0 len
+  where
+    len = L.sum (L.map (\(Text _ _ l) -> l) ts)
+    go = do
+      arr <- A.unsafeNew len
+      let step i (Text a o l) = let j = i + l in copy arr i a o j >> return j
+      foldM step 0 ts >> return arr
 {-# INLINE concat #-}
 
 -- | /O(n)/ Map a function over a 'Text' that results in a 'Text', and
