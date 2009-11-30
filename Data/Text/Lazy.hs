@@ -381,7 +381,7 @@ map f t = unstream (S.map f (stream t))
 -- 'Text's and concatenates the list after interspersing the first
 -- argument between each element of the list.
 intercalate :: Text -> [Text] -> Text
-intercalate t ts = unstream (S.intercalate (stream t) (L.map stream ts))
+intercalate t = concat . (L.intersperse t)
 {-# INLINE intercalate #-}
 
 -- | /O(n)/ The 'intersperse' function takes a character and places it
