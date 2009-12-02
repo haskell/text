@@ -121,35 +121,36 @@ streamList s  = Stream next s unknownSize
           next (x:xs)   = Yield x xs
 
 unstreamList :: Stream a -> [a]
-{-# INLINE [0] unstreamList #-}
 unstreamList (Stream next s0 _len) = unfold s0
     where unfold !s = case next s of
                         Done       -> []
                         Skip s'    -> unfold s'
                         Yield x s' -> x : unfold s'
+{-# INLINE [0] unstreamList #-}
 
 {-# RULES "STREAM streamList/unstreamList fusion" forall s. streamList (unstreamList s) = s #-}
 
 -- ----------------------------------------------------------------------------
 -- * Basic stream functions
 
+data C s = C0 !s
+         | C1 !s
+
 -- | /O(n)/ Adds a character to the front of a Stream Char.
 cons :: Char -> Stream Char -> Stream Char
-cons w (Stream next0 s0 len) = Stream next (S2 :*: s0) (len+1)
+cons w (Stream next0 s0 len) = Stream next (C1 s0) (len+1)
     where
-      {-# INLINE next #-}
-      next (S2 :*: s) = Yield w (S1 :*: s)
-      next (S1 :*: s) = case next0 s of
+      next (C1 s) = Yield w (C0 s)
+      next (C0 s) = case next0 s of
                           Done -> Done
-                          Skip s' -> Skip (S1 :*: s')
-                          Yield x s' -> Yield x (S1 :*: s')
+                          Skip s' -> Skip (C0 s')
+                          Yield x s' -> Yield x (C0 s')
 {-# INLINE [0] cons #-}
 
 -- | /O(n)/ Adds a character to the end of a stream.
 snoc :: Stream Char -> Char -> Stream Char
 snoc (Stream next0 xs0 len) w = Stream next (J xs0) (len+1)
   where
-    {-# INLINE next #-}
     next (J xs) = case next0 xs of
       Done        -> Yield w N
       Skip xs'    -> Skip    (J xs')
@@ -182,8 +183,8 @@ head (Stream next s0 _len) = loop_head s0
     where
       loop_head !s = case next s of
                       Yield x _ -> x
-                      Skip s' -> loop_head s'
-                      Done -> streamError "head" "Empty stream"
+                      Skip s'   -> loop_head s'
+                      Done      -> streamError "head" "Empty stream"
 {-# INLINE [0] head #-}
 
 -- | /O(1)/ Returns the first character and remainder of a 'Stream
@@ -215,17 +216,16 @@ last (Stream next s0 _len) = loop0_last s0
 -- | /O(1)/ Returns all characters after the head of a Stream Char, which must
 -- be non-empty.
 tail :: Stream Char -> Stream Char
-tail (Stream next0 s0 len) = Stream next (False :*: s0) (len-1)
+tail (Stream next0 s0 len) = Stream next (C0 s0) (len-1)
     where
-      {-# INLINE next #-}
-      next (False :*: s) = case next0 s of
-                          Done       -> emptyError "tail"
-                          Skip s'    -> Skip (False :*: s')
-                          Yield _ s' -> Skip (True :*: s')
-      next (True :*: s) = case next0 s of
-                          Done       -> Done
-                          Skip s'    -> Skip    (True :*: s')
-                          Yield x s' -> Yield x (True :*: s')
+      next (C0 s) = case next0 s of
+                      Done       -> emptyError "tail"
+                      Skip s'    -> Skip (C0 s')
+                      Yield _ s' -> Skip (C1 s')
+      next (C1 s) = case next0 s of
+                      Done       -> Done
+                      Skip s'    -> Skip    (C1 s')
+                      Yield x s' -> Yield x (C1 s')
 {-# INLINE [0] tail #-}
 
 
@@ -234,7 +234,6 @@ tail (Stream next0 s0 len) = Stream next (False :*: s0) (len-1)
 init :: Stream Char -> Stream Char
 init (Stream next0 s0 len) = Stream next (N :*: s0) (len-1)
     where
-      {-# INLINE next #-}
       next (N :*: s) = case next0 s of
                          Done       -> emptyError "init"
                          Skip s'    -> Skip (N :*: s')
