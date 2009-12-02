@@ -78,6 +78,13 @@ main = do
       , bench "bl" $ nf BL.concat bll
       , bench "l" $ nf L.concat ll
       ],
+      bgroup "cons" [
+        bench "ts" $ nf (TS.cons c) tsa
+      , bench "tl" $ nf (TL.cons c) tla
+      , bench "bs" $ nf (BS.cons c) bsa
+      , bench "bl" $ nf (BL.cons c) bla
+      , bench "l" $ nf (c:) la
+      ],
       bgroup "concatMap" [
         bench "ts" $ nf (TS.concatMap (TS.replicate 3 . TS.singleton)) tsa
       , bench "tl" $ nf (TL.concatMap (TL.replicate 3 . TL.singleton)) tla
@@ -126,6 +133,20 @@ main = do
       , bench "bs" $ nf (L.length . BS.foldr (:) []) bsa
       , bench "bl" $ nf (L.length . BL.foldr (:) []) bla
       , bench "l" $ nf (L.length . L.foldr (:) []) la
+      ],
+      bgroup "head" [
+        bench "ts" $ nf TS.head tsa
+      , bench "tl" $ nf TL.head tla
+      , bench "bs" $ nf BS.head bsa
+      , bench "bl" $ nf BL.head bla
+      , bench "l" $ nf L.head la
+      ],
+      bgroup "init" [
+        bench "ts" $ nf TS.init tsa
+      , bench "tl" $ nf TL.init tla
+      , bench "bs" $ nf BS.init bsa
+      , bench "bl" $ nf BL.init bla
+      , bench "l" $ nf L.init la
       ],
       bgroup "intercalate" [
         bench "ts" $ nf (TS.intercalate tsw) tsl
@@ -183,6 +204,13 @@ main = do
       , bench "bl" $ nf (BL.take (bla_len `div` 3)) bla
       , bench "l" $ nf (L.take (la_len `div` 3)) la
       ],
+      bgroup "tail" [
+        bench "ts" $ nf TS.tail tsa
+      , bench "tl" $ nf TL.tail tla
+      , bench "bs" $ nf BS.tail bsa
+      , bench "bl" $ nf BL.tail bla
+      , bench "l" $ nf L.tail la
+      ],
       bgroup "words" [
         bench "ts" $ nf TS.words tsa
       , bench "tl" $ nf TL.words tla
@@ -198,6 +226,13 @@ main = do
       , bench "l" $ nf (L.zipWith min lb) la
       ],
       bgroup "length" [
+        bgroup "cons" [
+          bench "ts" $ nf (TS.length . TS.cons c) tsa
+        , bench "tl" $ nf (TL.length . TL.cons c) tla
+        , bench "bs" $ nf (BS.length . BS.cons c) bsa
+        , bench "bl" $ nf (BL.length . BL.cons c) bla
+        , bench "l" $ nf (L.length . (:) c) la
+        ],
         bgroup "decode" [
           bench "ts" $ nf (TS.length . TS.decodeUtf8) bsa
         , bench "tl" $ nf (TL.length . TL.decodeUtf8) bla
@@ -225,6 +260,13 @@ main = do
         , bench "bs" $ nf (BS.length . BS.filter p1 . BS.filter p0) bsa
         , bench "bl" $ nf (BL.length . BL.filter p1 . BL.filter p0) bla
         , bench "l" $ nf (L.length . L.filter p1 . L.filter p0) la
+        ],
+        bgroup "init" [
+          bench "ts" $ nf (TS.length . TS.init) tsa
+        , bench "tl" $ nf (TL.length . TL.init) tla
+        , bench "bs" $ nf (BS.length . BS.init) bsa
+        , bench "bl" $ nf (BL.length . BL.init) bla
+        , bench "l" $ nf (L.length . L.init) la
         ],
         bgroup "intercalate" [
           bench "ts" $ nf (TS.length . TS.intercalate tsw) tsl
@@ -259,6 +301,13 @@ main = do
         , bench "bs" $ nf (BS.length . BS.take (bsa_len `div` 3)) bsa
         , bench "bl" $ nf (BL.length . BL.take (bla_len `div` 3)) bla
         , bench "l" $ nf (L.length . L.take (la_len `div` 3)) la
+        ],
+        bgroup "tail" [
+          bench "ts" $ nf (TS.length . TS.tail) tsa
+        , bench "tl" $ nf (TL.length . TL.tail) tla
+        , bench "bs" $ nf (BS.length . BS.tail) bsa
+        , bench "bl" $ nf (BL.length . BL.tail) bla
+        , bench "l" $ nf (L.length . L.tail) la
         ],
         bgroup "words" [
           bench "ts" $ nf (L.length . TS.words) tsa
