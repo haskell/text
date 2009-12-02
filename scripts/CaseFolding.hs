@@ -32,11 +32,11 @@ parseCF name = parse entries name <$> readFile name
 mapCF :: [Fold] -> [String]
 mapCF ms = typ ++ (map nice . filter p $ ms) ++ [last]
   where
-    typ = ["foldMapping :: forall s. Char -> s -> Step (PairS (PairS s Char) Char) Char"
+    typ = ["foldMapping :: forall s. Char -> s -> Step (CC s) Char"
            ,"{-# INLINE foldMapping #-}"]
-    last = "foldMapping c s = Yield (toLower c) (s :!: '\\0' :!: '\\0')"
+    last = "foldMapping c s = Yield (toLower c) (CC s '\\0' '\\0')"
     nice c = "-- " ++ name c ++ "\n" ++
-             "foldMapping " ++ showC (code c) ++ " s = Yield " ++ x ++ " (s :!: " ++ y ++ " :!: " ++ z ++ ")"
+             "foldMapping " ++ showC (code c) ++ " s = Yield " ++ x ++ " (CC s " ++ y ++ " " ++ z ++ ")"
        where [x,y,z] = (map showC . take 3) (mapping c ++ repeat '\0')
     p f = status f `elem` "CF" &&
           mapping f /= [toLower (code f)]

@@ -15,7 +15,8 @@
 
 module Data.Text.Fusion.Internal
     (
-      M(..)
+      CC(..)
+    , M(..)
     , M8
     , PairS(..)
     , S(..)
@@ -27,6 +28,9 @@ module Data.Text.Fusion.Internal
 
 import Data.Text.Fusion.Size
 import Data.Word (Word8)
+
+-- | Specialised tuple for case conversion.
+data CC s = CC !s {-# UNPACK #-} !Char {-# UNPACK #-} !Char
 
 -- | Specialised, strict Maybe-like type.
 data M a = N

@@ -329,17 +329,16 @@ intersperse c (Stream next0 s0 len) = Stream next (I1 s0) len
 -- functions may map one input character to two or three output
 -- characters.
 
-caseConvert :: (forall s. Char -> s -> Step (PairS (PairS s Char) Char) Char)
+caseConvert :: (forall s. Char -> s -> Step (CC s) Char)
             -> Stream Char -> Stream Char
-caseConvert remap (Stream next0 s0 len) = Stream next (s0 :*: '\0' :*: '\0') len
+caseConvert remap (Stream next0 s0 len) = Stream next (CC s0 '\0' '\0') len
   where
-    {-# INLINE next #-}
-    next (s :*: '\0' :*: _) =
+    next (CC s '\0' _) =
         case next0 s of
           Done       -> Done
-          Skip s'    -> Skip (s' :*: '\0' :*: '\0')
+          Skip s'    -> Skip (CC s' '\0' '\0')
           Yield c s' -> remap c s'
-    next (s :*: a :*: b) = Yield a (s :*: b :*: '\0')
+    next (CC s a b)  =  Yield a (CC s b '\0')
 
 -- | /O(n)/ Convert a string to folded case.  This function is mainly
 -- useful for performing caseless (or case insensitive) string
@@ -596,7 +595,6 @@ replicateCharI n c
     | n < 0     = empty
     | otherwise = Stream next 0 (fromIntegral n) -- HINT maybe too low
   where
-    {-# INLINE next #-}
     next i | i >= n    = Done
            | otherwise = Yield c (i + 1)
 {-# INLINE [0] replicateCharI #-}
