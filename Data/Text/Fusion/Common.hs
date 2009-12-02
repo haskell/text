@@ -601,16 +601,18 @@ replicateCharI n c
            | otherwise = Yield c (i + 1)
 {-# INLINE [0] replicateCharI #-}
 
+data RI s = RI !s {-# UNPACK #-} !Int64
+
 replicateI :: Int64 -> Stream Char -> Stream Char
 replicateI n (Stream next0 s0 len) =
-    Stream next (0 :*: s0) (fromIntegral (max 0 n) * len)
+    Stream next (RI s0 0) (fromIntegral (max 0 n) * len)
   where
-    next (k :*: s)
+    next (RI s k)
         | k >= n = Done
         | otherwise = case next0 s of
-                        Done       -> Skip    (k+1 :*: s0)
-                        Skip s'    -> Skip    (k :*: s')
-                        Yield x s' -> Yield x (k :*: s')
+                        Done       -> Skip    (RI s0 (k+1))
+                        Skip s'    -> Skip    (RI s' k)
+                        Yield x s' -> Yield x (RI s' k)
 {-# INLINE [0] replicateI #-}
 
 -- | /O(n)/, where @n@ is the length of the result. The unfoldr function

@@ -644,11 +644,11 @@ mapAccumR f s t = case uncons t of
                               (s', ys) = mapAccumR f s xs
 
 -- | /O(n*m)/ 'replicate' @n@ @t@ is a 'Text' consisting of the input
--- @t@ repeated @n@ times. Subject to fusion.
+-- @t@ repeated @n@ times.
 replicate :: Int64 -> Text -> Text
-replicate n t
-    | isSingleton t = replicateChar n (head t)
-    | otherwise     = unstream (S.replicateI n (S.stream t))
+replicate n t = concat (rep 0)
+    where rep i | i >= n    = []
+                | otherwise = t : rep (i+1)
 {-# INLINE replicate #-}
 
 -- | /O(n)/ 'replicateChar' @n@ @c@ is a 'Text' of length @n@ with @c@ the

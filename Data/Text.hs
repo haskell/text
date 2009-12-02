@@ -164,8 +164,8 @@ module Data.Text
 import Prelude (Char, Bool(..), Functor(..), Int, Maybe(..), String,
                 Eq(..), Ord(..), (++),
                 Read(..), Show(..),
-                (&&), (||), (+), (-), (.), ($), (>>),
-                fromIntegral, div, not, return, otherwise)
+                (&&), (||), (+), (-), (.), ($), (>>), (*),
+                div, not, return, otherwise)
 import Control.DeepSeq (NFData)
 import Control.Exception (assert)
 import Data.Char (isSpace)
@@ -666,11 +666,21 @@ mapAccumR f s t = case uncons t of
 -- ** Generating and unfolding 'Text's
 
 -- | /O(n*m)/ 'replicate' @n@ @t@ is a 'Text' consisting of the input
--- @t@ repeated @n@ times. Subject to fusion.
+-- @t@ repeated @n@ times.
 replicate :: Int -> Text -> Text
-replicate n t
-    | isSingleton t = replicateChar n (unsafeHead t)
-    | otherwise     = unstream (S.replicateI (fromIntegral n) (S.stream t))
+replicate n t@(Text a o l)
+    | n <= 0 || l <= 0 = empty
+    | n == 1           = t
+    | isSingleton t    = replicateChar n (unsafeHead t)
+    | otherwise        = Text (A.run x) 0 len
+  where
+    len = l * n
+    x = do
+      arr <- A.unsafeNew len
+      let loop !d !i | i >= n    = return arr
+                     | otherwise = let m = d + l
+                                   in copy arr d a o m >> loop m (i+1)
+      loop 0 0
 {-# INLINE [1] replicate #-}
 
 {-# RULES

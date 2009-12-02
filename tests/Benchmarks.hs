@@ -190,6 +190,18 @@ main = do
       , bench "bl" $ nf (BL.map f . BL.map f) bla
       , bench "l" $ nf (L.map f . L.map f) la
       ],
+      bgroup "replicate" [
+        bench "ts" $ nf (TS.replicate bsa_len) (TS.singleton c)
+      , bench "tl" $ nf (TL.replicate (fromIntegral bsa_len)) (TL.singleton c)
+      , bench "bs" $ nf (BS.replicate bsa_len) c
+      , bench "bl" $ nf (BL.replicate (fromIntegral bsa_len)) c
+      , bench "l" $ nf (L.replicate bsa_len) c
+      ],
+      bgroup "2replicate" [
+        bench "ts" $ nf (TS.replicate (bsa_len `div` TS.length tsw)) tsw
+      , bench "tl" $ nf (TL.replicate (fromIntegral bsa_len `div` TL.length tlw)) tlw
+      , bench "l" $ nf (replicat (bsa_len `div` TS.length tsw)) lw
+      ],
       bgroup "reverse" [
         bench "ts" $ nf TS.reverse tsa
       , bench "tl" $ nf TL.reverse tla
@@ -295,6 +307,18 @@ main = do
         , bench "bs" $ nf (BS.length . BS.map f . BS.map f) bsa
         , bench "l" $ nf (L.length . L.map f . L.map f) la
         ],
+        bgroup "replicate" [
+          bench "ts" $ nf (TS.length . TS.replicate bsa_len) (TS.singleton c)
+        , bench "tl" $ nf (TL.length . TL.replicate (fromIntegral bsa_len)) (TL.singleton c)
+        , bench "bs" $ nf (BS.length . BS.replicate bsa_len) c
+        , bench "bl" $ nf (BL.length . BL.replicate (fromIntegral bsa_len)) c
+        , bench "l" $ nf (L.length . L.replicate bsa_len) c
+        ],
+        bgroup "2replicate" [
+          bench "ts" $ nf (TS.length . TS.replicate (bsa_len `div` TS.length tsw)) tsw
+        , bench "tl" $ nf (TL.length . TL.replicate (fromIntegral bsa_len `div` TL.length tlw)) tlw
+        , bench "l" $ nf (L.length . replicat (bsa_len `div` TS.length tsw)) lw
+        ],
         bgroup "take" [
           bench "ts" $ nf (TS.length . TS.take (tsa_len `div` 3)) tsa
         , bench "tl" $ nf (TL.length . TL.take (tla_len `div` 3)) tla
@@ -336,6 +360,7 @@ main = do
     tlw  = TL.fromChunks [tsw]
     f (C# c#) = C# (chr# (ord# c# +# 1#))
     len l _ = l + (1::Int)
+    replicat n = concat . L.replicate n
 
 chunksOf :: Int -> BS.ByteString -> [BS.ByteString]
 chunksOf k = go
