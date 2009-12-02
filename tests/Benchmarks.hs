@@ -134,6 +134,13 @@ main = do
       , bench "bl" $ nf (BL.intercalate blw) bll
       , bench "l" $ nf (L.intercalate lw) ll
       ],
+      bgroup "intersperse" [
+        bench "ts" $ nf (TS.intersperse c) tsa
+      , bench "tl" $ nf (TL.intersperse c) tla
+      , bench "bs" $ nf (BS.intersperse c) bsa
+      , bench "bl" $ nf (BL.intersperse c) bla
+      , bench "l" $ nf (L.intersperse c) la
+      ],
       bgroup "isInfixOf" [
         bench "ts" $ nf (TS.isInfixOf tsw) tsa
       , bench "tl" $ nf (TL.isInfixOf tlw) tla
@@ -219,6 +226,20 @@ main = do
         , bench "bl" $ nf (BL.length . BL.filter p1 . BL.filter p0) bla
         , bench "l" $ nf (L.length . L.filter p1 . L.filter p0) la
         ],
+        bgroup "intercalate" [
+          bench "ts" $ nf (TS.length . TS.intercalate tsw) tsl
+        , bench "tl" $ nf (TL.length . TL.intercalate tlw) tll
+        , bench "bs" $ nf (BS.length . BS.intercalate bsw) bsl
+        , bench "bl" $ nf (BL.length . BL.intercalate blw) bll
+        , bench "l" $ nf (L.length . L.intercalate lw) ll
+        ],
+        bgroup "intersperse" [
+          bench "ts" $ nf (TS.length . TS.intersperse c) tsa
+        , bench "tl" $ nf (TL.length . TL.intersperse c) tla
+        , bench "bs" $ nf (BS.length . BS.intersperse c) bsa
+        , bench "bl" $ nf (BL.length . BL.intersperse c) bla
+        , bench "l" $ nf (L.length . L.intersperse c) la
+        ],
         bgroup "map" [
           bench "ts" $ nf (TS.length . TS.map f) tsa
         , bench "tl" $ nf (TL.length . TL.map f) tla
@@ -256,7 +277,8 @@ main = do
       ]
     ]
   where
-    p0 = (== 'й')
+    c  = 'й'
+    p0 = (== c)
     p1 = (/= 'д')
     lw  = "право"
     bsw  = UTF8.fromString lw
