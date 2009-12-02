@@ -223,6 +223,13 @@ main = do
       , bench "bl" $ nf BL.tail bla
       , bench "l" $ nf L.tail la
       ],
+      bgroup "toUpper" [
+        bench "ts" $ nf TS.toUpper tsa
+      , bench "tl" $ nf TL.toUpper tla
+      , bench "bs" $ nf (BS.map toUpper) bsa
+      , bench "bl" $ nf (BL.map toUpper) bla
+      , bench "l" $ nf (L.map toUpper) la
+      ],
       bgroup "words" [
         bench "ts" $ nf TS.words tsa
       , bench "tl" $ nf TL.words tla
@@ -332,6 +339,13 @@ main = do
         , bench "bs" $ nf (BS.length . BS.tail) bsa
         , bench "bl" $ nf (BL.length . BL.tail) bla
         , bench "l" $ nf (L.length . L.tail) la
+        ],
+        bgroup "toUpper" [
+          bench "ts" $ nf (TS.length . TS.toUpper) tsa
+        , bench "tl" $ nf (TL.length . TL.toUpper) tla
+        , bench "bs" $ nf (BS.length . BS.map toUpper) bsa
+        , bench "bl" $ nf (BL.length . BL.map toUpper) bla
+        , bench "l" $ nf (L.length . L.map toUpper) la
         ],
         bgroup "words" [
           bench "ts" $ nf (L.length . TS.words) tsa
