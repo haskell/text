@@ -53,7 +53,6 @@ streamUtf8 :: OnDecodeError -> ByteString -> Stream Char
 streamUtf8 onErr bs0 = Stream next (bs0 :*: empty :*: 0) unknownSize
     where
       empty = S N N N N
-      {-# INLINE next #-}
       next (bs@(Chunk ps _) :*: S N _ _ _ :*: i)
           | i < len && U8.validate1 a =
               Yield (unsafeChr8 a) (bs :*: empty :*: i+1)
@@ -80,7 +79,6 @@ streamUtf8 onErr bs0 = Stream next (bs0 :*: empty :*: 0) unknownSize
             Yield (U8.chr4 a b c d) es
           _ -> consume st
          where es = bs :*: empty :*: i
-      {-# INLINE consume #-}
       consume (bs@(Chunk ps rest) :*: s :*: i)
           | i >= B.length ps = consume (rest :*: s  :*: 0)
           | otherwise =
