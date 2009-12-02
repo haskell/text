@@ -296,22 +296,24 @@ map f (Stream next0 s0 len) = Stream next s0 len
      map f (map g s) = map (\x -> f (g x)) s
  #-}
 
+data I s = I1 !s
+         | I2 !s {-# UNPACK #-} !Char
+         | I3 !s
+
 -- | /O(n)/ Take a character and place it between each of the
 -- characters of a 'Stream Char'.
 intersperse :: Char -> Stream Char -> Stream Char
-intersperse c (Stream next0 s0 len) = Stream next (s0 :*: N :*: S1) len
+intersperse c (Stream next0 s0 len) = Stream next (I1 s0) len
     where
-      {-# INLINE next #-}
-      next (s :*: N :*: S1) = case next0 s of
+      next (I1 s) = case next0 s of
         Done       -> Done
-        Skip s'    -> Skip (s' :*: N :*: S1)
-        Yield x s' -> Skip (s' :*: J x :*: S1)
-      next (s :*: J x :*: S1)  = Yield x (s :*: N :*: S2)
-      next (s :*: N :*: S2) = case next0 s of
+        Skip s'    -> Skip (I1 s')
+        Yield x s' -> Skip (I2 s' x)
+      next (I2 s x)  = Yield x (I3 s)
+      next (I3 s) = case next0 s of
         Done       -> Done
-        Skip s'    -> Skip    (s' :*: N :*: S2)
-        Yield x s' -> Yield c (s' :*: J x :*: S1)
-      next _ = internalError "intersperse"
+        Skip s'    -> Skip    (I3 s')
+        Yield x s' -> Yield c (I2 s' x)
 {-# INLINE [0] intersperse #-}
 
 -- ----------------------------------------------------------------------------
