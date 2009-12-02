@@ -228,20 +228,22 @@ tail (Stream next0 s0 len) = Stream next (C0 s0) (len-1)
                       Yield x s' -> Yield x (C1 s')
 {-# INLINE [0] tail #-}
 
+data Init s = Init0 !s
+            | Init1 {-# UNPACK #-} !Char !s
 
 -- | /O(1)/ Returns all but the last character of a Stream Char, which
 -- must be non-empty.
 init :: Stream Char -> Stream Char
-init (Stream next0 s0 len) = Stream next (N :*: s0) (len-1)
+init (Stream next0 s0 len) = Stream next (Init0 s0) (len-1)
     where
-      next (N :*: s) = case next0 s of
+      next (Init0 s) = case next0 s of
                          Done       -> emptyError "init"
-                         Skip s'    -> Skip (N :*: s')
-                         Yield x s' -> Skip (J x  :*: s')
-      next (J x :*: s)  = case next0 s of
+                         Skip s'    -> Skip (Init0 s')
+                         Yield x s' -> Skip (Init1 x s')
+      next (Init1 x s)  = case next0 s of
                             Done        -> Done
-                            Skip s'     -> Skip    (J x  :*: s')
-                            Yield x' s' -> Yield x (J x' :*: s')
+                            Skip s'     -> Skip    (Init1 x s')
+                            Yield x' s' -> Yield x (Init1 x' s')
 {-# INLINE [0] init #-}
 
 -- | /O(1)/ Tests whether a Stream Char is empty or not.
