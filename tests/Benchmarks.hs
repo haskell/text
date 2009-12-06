@@ -3,8 +3,8 @@
 import qualified Data.ByteString.Char8 as BS
 import qualified Data.ByteString.Lazy.Char8 as BL
 import qualified Data.ByteString.Lazy.Internal as BL
+import Control.Monad.Trans (liftIO)
 import Control.Exception (evaluate)
-import Control.DeepSeq (NFData(..))
 import Control.Parallel.Strategies
 import Criterion.Main
 import Data.Char
@@ -60,10 +60,13 @@ main = do
       tsl     = TS.lines tsa
       tll     = TL.lines tla
       ll      = L.lines la
-  evaluate (rnf [B tsa, B tsb, B tla, B tlb, B bsa, B bsb, B bla, B blb,
-                 B bsa_len, B tsa_len, B bla_len, B tla_len, B la, B la_len,
-                 B tsb_len, B lb, B bsl, B bll, B tsl, B tll, B ll])
-  defaultMainWith myConfig [
+  defaultMainWith
+    myConfig
+    (liftIO . evaluate $
+     rnf [B tsa, B tsb, B tla, B tlb, B bsa, B bsb, B bla, B blb,
+          B bsa_len, B tsa_len, B bla_len, B tla_len, B la, B la_len,
+          B tsb_len, B lb, B bsl, B bll, B tsl, B tll, B ll])
+    [
       bgroup "append" [
         bench "ts" $ nf (TS.append tsb) tsa
       , bench "tl" $ nf (TL.append tlb) tla

@@ -15,7 +15,7 @@ lib-srcs := $(shell grep '^  *Data' ../text.cabal | \
 
 cabal := $(shell which cabal 2>/dev/null)
 
-all: qc coverage
+all: bm qc coverage
 
 lib: $(lib)
 
@@ -52,6 +52,11 @@ qc-hpc-html/hpc_index.html: qc-hpc
 	  --exclude=Data.Text.Fusion.CaseMapping \
 	  --exclude=QuickCheckUtils --srcdir=.. --srcdir=. --destdir=$(dir $@)
 
+Benchmarks.o: ghc-opt-flags = -O
+bm Benchmarks.o: ghc-flags += -hide-package transformers -package utf8-string
+bm: Benchmarks.o
+	$(ghc) $(ghc-flags) -o $@ $^ $(lib)
+
 SlowFunctions.o: ghc-opt-flags = -O2
 SearchBench.o: ghc-opt-flags = -O
 %.o: %.hs
@@ -67,4 +72,4 @@ text-testdata.tar.bz2:
 	curl -O http://projects.haskell.org/text/text-testdata.tar.bz2
 
 clean:
-	-rm -rf *.o *.hi *.tix qc qc-hpc hpcdir .hpc qc-hpc-html
+	-rm -rf *.o *.hi *.tix bm qc qc-hpc hpcdir .hpc qc-hpc-html
