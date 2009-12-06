@@ -2,9 +2,10 @@ version := $(shell awk '/^version:/{print $$2}' ../text.cabal)
 ghc := ghc
 ghc-opt-flags = -O0
 ghc-base-flags := -funbox-strict-fields -package criterion \
-	-package bytestring -package QuickCheck -package test-framework \
-	-package test-framework-quickcheck -ignore-package text \
+	-package bytestring -ignore-package text \
 	-fno-ignore-asserts
+ghc-test-flags := -package QuickCheck -package test-framework \
+	-package test-framework-quickcheck
 ghc-base-flags += -Wall -fno-warn-orphans -fno-warn-missing-signatures
 ghc-flags := $(ghc-base-flags) -i../dist/build -package-name text-$(version)
 ghc-hpc-flags := $(ghc-base-flags) -fhpc -fno-ignore-asserts -odir hpcdir \
@@ -28,6 +29,7 @@ else
 	cd .. && cabal build
 endif
 
+Properties.o qc qc-hpc: ghc-flags += $(ghc-test-flags)
 Properties.o: QuickCheckUtils.o SlowFunctions.o
 
 QuickCheckUtils.o: $(lib)
