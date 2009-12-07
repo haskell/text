@@ -119,6 +119,7 @@ module Data.Text.Lazy
     , splitAt
     , spanBy
     , break
+    , breakEnd
     , breakBy
     , group
     , groupBy
@@ -880,6 +881,18 @@ break pat src
                     []    -> (src, empty)
                     (x:_) -> let h :*: t = splitAtWord x src
                              in  (h, t)
+
+-- | /O(n+m)/ Similar to 'break', but searches from the end of the string.
+--
+-- The first element of the returned tuple is the prefix of @haystack@
+-- up to and including the last match of @needle@.  The second is the
+-- remainder of @haystack@, following the match.
+--
+-- > breakEnd "::" "a::b::c" ==> ("a::b::", "c")
+breakEnd :: Text -> Text -> (Text, Text)
+breakEnd pat src = let (a,b) = break (reverse pat) (reverse src)
+                   in  (reverse b, reverse a)
+{-# INLINE breakEnd #-}
 
 -- | /O(n+m)/ Find all non-overlapping instances of @needle@ in
 -- @haystack@.  The first element of the returned pair is the prefix
