@@ -5,7 +5,6 @@ import qualified Data.ByteString.Lazy.Char8 as BL
 import qualified Data.ByteString.Lazy.Internal as BL
 import Control.Monad.Trans (liftIO)
 import Control.Exception (evaluate)
-import Control.Parallel.Strategies
 import Criterion.Main
 import Data.Char
 import qualified Codec.Binary.UTF8.Generic as UTF8
@@ -116,7 +115,7 @@ main = do
       , bench "bl" $ nf (BL.filter p0) bla
       , bench "l" $ nf (L.filter p0) la
       ],
-      bgroup "2filter" [
+      bgroup "filter.filter" [
         bench "ts" $ nf (TS.filter p1 . TS.filter p0) tsa
       , bench "tl" $ nf (TL.filter p1 . TL.filter p0) tla
       , bench "bs" $ nf (BS.filter p1 . BS.filter p0) bsa
@@ -186,21 +185,21 @@ main = do
       , bench "bl" $ nf (BL.map f) bla
       , bench "l" $ nf (L.map f) la
       ],
-      bgroup "2map" [
+      bgroup "map.map" [
         bench "ts" $ nf (TS.map f . TS.map f) tsa
       , bench "tl" $ nf (TL.map f . TL.map f) tla
       , bench "bs" $ nf (BS.map f . BS.map f) bsa
       , bench "bl" $ nf (BL.map f . BL.map f) bla
       , bench "l" $ nf (L.map f . L.map f) la
       ],
-      bgroup "replicate" [
+      bgroup "replicate char" [
         bench "ts" $ nf (TS.replicate bsa_len) (TS.singleton c)
       , bench "tl" $ nf (TL.replicate (fromIntegral bsa_len)) (TL.singleton c)
       , bench "bs" $ nf (BS.replicate bsa_len) c
       , bench "bl" $ nf (BL.replicate (fromIntegral bsa_len)) c
       , bench "l" $ nf (L.replicate bsa_len) c
       ],
-      bgroup "2replicate" [
+      bgroup "replicate string" [
         bench "ts" $ nf (TS.replicate (bsa_len `div` TS.length tsw)) tsw
       , bench "tl" $ nf (TL.replicate (fromIntegral bsa_len `div` TL.length tlw)) tlw
       , bench "l" $ nf (replicat (bsa_len `div` TS.length tsw)) lw
@@ -283,7 +282,7 @@ main = do
         , bench "bl" $ nf (BL.length . BL.filter p0) bla
         , bench "l" $ nf (L.length . L.filter p0) la
         ],
-        bgroup "2filter" [
+        bgroup "filter.filter" [
           bench "ts" $ nf (TS.length . TS.filter p1 . TS.filter p0) tsa
         , bench "tl" $ nf (TL.length . TL.filter p1 . TL.filter p0) tla
         , bench "bs" $ nf (BS.length . BS.filter p1 . BS.filter p0) bsa
@@ -318,20 +317,20 @@ main = do
         , bench "bl" $ nf (BL.length . BL.map f) bla
         , bench "l" $ nf (L.length . L.map f) la
         ],
-        bgroup "2map" [
+        bgroup "map.map" [
           bench "ts" $ nf (TS.length . TS.map f . TS.map f) tsa
         , bench "tl" $ nf (TL.length . TL.map f . TL.map f) tla
         , bench "bs" $ nf (BS.length . BS.map f . BS.map f) bsa
         , bench "l" $ nf (L.length . L.map f . L.map f) la
         ],
-        bgroup "replicate" [
+        bgroup "replicate char" [
           bench "ts" $ nf (TS.length . TS.replicate bsa_len) (TS.singleton c)
         , bench "tl" $ nf (TL.length . TL.replicate (fromIntegral bsa_len)) (TL.singleton c)
         , bench "bs" $ nf (BS.length . BS.replicate bsa_len) c
         , bench "bl" $ nf (BL.length . BL.replicate (fromIntegral bsa_len)) c
         , bench "l" $ nf (L.length . L.replicate bsa_len) c
         ],
-        bgroup "2replicate" [
+        bgroup "replicate string" [
           bench "ts" $ nf (TS.length . TS.replicate (bsa_len `div` TS.length tsw)) tsw
         , bench "tl" $ nf (TL.length . TL.replicate (fromIntegral bsa_len `div` TL.length tlw)) tlw
         , bench "l" $ nf (L.length . replicat (bsa_len `div` TS.length tsw)) lw
