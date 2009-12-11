@@ -23,6 +23,7 @@ extra-source-files:
     scripts/SpecialCasing.hs
     scripts/SpecialCasing.txt
     tests/Makefile
+    tests/Benchmarks.hs
     tests/Properties.hs
     tests/QuickCheckUtils.hs
     tests/SlowFunctions.hs
