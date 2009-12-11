@@ -51,13 +51,14 @@ groupRows = M.map (sortBy (compare `on` rowName)) . foldr f M.empty
 
 main = do
   args <- getArgs
-  forM_ args $ \arg -> do
-    d <- groupRows `fmap` readCSV arg
-    forM_ (M.toList d) $ \(tdesc,rows) -> do
-        let desc = T.unpack tdesc
-        --renderableToWindow (renderMark desc rows) 400 160
-        renderableToPNGFile (renderMark desc rows) 400 160
-                            (printf "time-%s.png" (map clean desc))
+  groups <- mapM (fmap groupRows . readCSV) args
+  let dd = M.unionsWith (++) . map (M.map (:[])) $ groups
+  forM_ (M.toList dd) $ \(tdesc,rows) -> do
+      let desc = T.unpack tdesc
+      if False
+       then renderableToWindow (renderMark desc rows) 400 160
+       else renderableToPNGFile (renderMark desc rows) 400 160
+                                (printf "time-%s.png" (map clean desc))
   where clean '/' = '-'
         clean c | isSpace c = '-'
                 | otherwise = c
@@ -66,13 +67,14 @@ instance BarsPlotValue LogValue where
     barsReference = LogValue 1e-300
     barsAdd (LogValue a) (LogValue b) = LogValue (a * b)
 
-renderMark :: String -> [Row] -> Renderable ()
+renderMark :: String -> [[Row]] -> Renderable ()
 renderMark desc rows
-  | minimum values * 50 >= maximum values = toRenderable linLayout
-  | otherwise                             = toRenderable logLayout
+  | useLog    = toRenderable linLayout
+  | otherwise = toRenderable logLayout
   where
-    values = map rowMean rows
-    keys   = map git rows
+    useLog = minimum (map minimum values) >= maximum (map maximum values) / 25
+    values = transpose . map (map rowMean) $ rows
+    keys   = map git (head rows)
         where git r = let n = T.unpack . rowName $ r
                       in maybe n id . flip lookup mappings $ n
     mappings = [("bl", "lazy BS"), ("bs", "strict BS"), ("l", "list"),
@@ -101,10 +103,10 @@ renderMark desc rows
     bottomAxis = laxis_generate ^= autoScaledAxis typeAxis
                $ defaultLayoutAxis
 
-    linBars = plot_bars_values ^= (zip [0.5,1.5..] . map (:[]) $ values)
+    linBars = plot_bars_values ^= (zip [0.5,1.5..] values)
             $ defaultPlotBars
 
-    logBars = plot_bars_values ^= (zip [0.5,1.5..] . map ((:[]) . LogValue) $ values)
+    logBars = plot_bars_values ^= (zip [0.5,1.5..] . map (map LogValue) $ values)
             $ defaultPlotBars
 
     typeAxis = la_labelf ^= (ix keys . floor)
