@@ -1,5 +1,5 @@
 name:           text
-version:        0.6
+version:        0.7
 synopsis:       An efficient packed Unicode text type
 description:    An efficient packed Unicode text type.
 license:        BSD3
@@ -38,6 +38,7 @@ library
     Data.Text.Encoding
     Data.Text.Encoding.Error
     Data.Text.Foreign
+    Data.Text.IO
     Data.Text.Lazy
     Data.Text.Lazy.Encoding
   other-modules:
