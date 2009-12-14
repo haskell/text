@@ -48,34 +48,23 @@ import GHC.IO.Handle.Internals (wantWritableHandle)
 import GHC.IO.Handle.Text (commitBuffer')
 import GHC.IO.Handle.Types (BufferList(..), BufferMode(..), Handle__(..),
                             Newline(..))
+import System.IO (IOMode(..), openFile, withFile)
 #endif
 
 -- | The 'readFile' function reads a file and returns the contents of
 -- the file as a string.  The entire file is read strictly, as with
 -- 'getContents'.
 readFile :: FilePath -> IO Text
-#if __GLASGOW_HASKELL__ <= 610
-readFile = fmap decodeUtf8 . B.readFile
-#else
-readFile = undefined
-#endif
+readFile name = openFile name ReadMode >>= hGetContents
 
 -- | Write a string to a file.  The file is truncated to zero length
 -- before writing begins.
 writeFile :: FilePath -> Text -> IO ()
-#if __GLASGOW_HASKELL__ <= 610
-writeFile p = B.writeFile p . encodeUtf8
-#else
-writeFile = undefined
-#endif
+writeFile p = withFile p WriteMode . flip hPutStr
 
 -- | Write a string the end of a file.
 appendFile :: FilePath -> Text -> IO ()
-#if __GLASGOW_HASKELL__ <= 610
-appendFile p = B.appendFile p . encodeUtf8
-#else
-appendFile = undefined
-#endif
+appendFile p = withFile p AppendMode . flip hPutStr
 
 -- | Read the remaining contents of a handle as a string.
 hGetContents :: Handle -> IO Text
@@ -174,11 +163,7 @@ commitBuffer hdl !raw !sz !count flush release =
 
 -- | Write a string to a handle, followed by a newline.
 hPutStrLn :: Handle -> Text -> IO ()
-#if __GLASGOW_HASKELL__ <= 610
-hPutStrLn h t = B.hPutStrLn h (encodeUtf8 t) >> hPutChar h '\n'
-#else
 hPutStrLn h t = hPutStr h t >> hPutChar h '\n'
-#endif
 
 -- | The 'interact' function takes a function of type @Text -> Text@
 -- as its argument. The entire input from the standard input device is
