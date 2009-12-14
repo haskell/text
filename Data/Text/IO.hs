@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE BangPatterns, CPP #-}
 -- |
 -- Module      : Data.Text.IO
 -- Copyright   : (c) Bryan O'Sullivan 2009
@@ -39,7 +39,15 @@ import System.IO (Handle, hPutChar, stdin, stdout)
 import qualified Data.ByteString as B
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 #else
+import Data.IORef (readIORef, writeIORef)
+import Data.Text.Fusion (stream)
+import Data.Text.Fusion.Internal (Step(..), Stream(..))
+import GHC.IO.Buffer (Buffer(..), BufferState(..), CharBufElem, CharBuffer,
+                      RawCharBuffer, emptyBuffer, newCharBuffer, writeCharBuf)
 import GHC.IO.Handle.Internals (wantWritableHandle)
+import GHC.IO.Handle.Text (commitBuffer')
+import GHC.IO.Handle.Types (BufferList(..), BufferMode(..), Handle__(..),
+                            Newline(..))
 #endif
 
 -- | The 'readFile' function reads a file and returns the contents of
@@ -90,7 +98,78 @@ hPutStr :: Handle -> Text -> IO ()
 #if __GLASGOW_HASKELL__ <= 610
 hPutStr h = B.hPutStr h . encodeUtf8
 #else
-hPutStr h t = undefined
+hPutStr h t = do
+  (buffer_mode, nl) <- 
+       wantWritableHandle "hPutStr" h $ \h_ -> do
+                     bmode <- getSpareBuffer h_
+                     return (bmode, haOutputNL h_)
+  let str = stream t
+  case buffer_mode of
+     (NoBuffering, _)        -> hPutChars h str
+     (LineBuffering, buf)    -> writeBlocks h True  nl buf str
+     (BlockBuffering _, buf) -> writeBlocks h False nl buf str
+
+hPutChars :: Handle -> Stream Char -> IO ()
+hPutChars h (Stream next0 s0 _len) = loop s0
+  where
+    loop !s = case next0 s of
+                Done       -> return ()
+                Skip s'    -> loop s'
+                Yield x s' -> hPutChar h x >> loop s'
+
+-- This function is largely lifted from GHC.IO.Handle.Text, but
+-- adapted to a coinductive stream of data instead of an inductive
+-- list.
+writeBlocks :: Handle -> Bool -> Newline -> Buffer CharBufElem -> Stream Char
+            -> IO ()
+writeBlocks h lineBuffered nl buf0 (Stream next0 s0 _len) = outer s0 buf0
+ where
+  outer s1 Buffer{bufRaw=raw, bufSize=len} = inner s1 (0::Int)
+   where
+    inner !s !n =
+      case next0 s of
+        Done -> commit n False{-no flush-} True{-release-} >> return ()
+        Skip s' -> inner s' n
+        Yield x s'
+          | n + 1 >= len -> commit n True{-needs flush-} False >>= outer s
+          | x == '\n'    -> do
+                   n' <- if nl == CRLF
+                         then do n1 <- writeCharBuf raw n '\r'
+                                 writeCharBuf raw n1 '\n'
+                         else writeCharBuf raw n x
+                   if lineBuffered
+                     then commit n' True{-needs flush-} False >>= outer s'
+                     else inner s' n'
+          | otherwise    -> writeCharBuf raw n x >>= inner s'
+    commit = commitBuffer h raw len
+
+-- This function is completely lifted from GHC.IO.Handle.Text.
+getSpareBuffer :: Handle__ -> IO (BufferMode, CharBuffer)
+getSpareBuffer Handle__{haCharBuffer=ref, 
+                        haBuffers=spare_ref,
+                        haBufferMode=mode}
+ = do
+   case mode of
+     NoBuffering -> return (mode, error "no buffer!")
+     _ -> do
+          bufs <- readIORef spare_ref
+          buf  <- readIORef ref
+          case bufs of
+            BufferListCons b rest -> do
+                writeIORef spare_ref rest
+                return ( mode, emptyBuffer b (bufSize buf) WriteBuffer)
+            BufferListNil -> do
+                new_buf <- newCharBuffer (bufSize buf) WriteBuffer
+                return (mode, new_buf)
+
+
+-- This function is completely lifted from GHC.IO.Handle.Text.
+commitBuffer :: Handle -> RawCharBuffer -> Int -> Int -> Bool -> Bool
+             -> IO CharBuffer
+commitBuffer hdl !raw !sz !count flush release = 
+  wantWritableHandle "commitAndReleaseBuffer" hdl $
+     commitBuffer' raw sz count flush release
+{-# NOINLINE commitBuffer #-}
 #endif
 
 -- | Write a string to a handle, followed by a newline.
@@ -98,7 +177,7 @@ hPutStrLn :: Handle -> Text -> IO ()
 #if __GLASGOW_HASKELL__ <= 610
 hPutStrLn h t = B.hPutStrLn h (encodeUtf8 t) >> hPutChar h '\n'
 #else
-hPutStrLn h t = undefined
+hPutStrLn h t = hPutStr h t >> hPutChar h '\n'
 #endif
 
 -- | The 'interact' function takes a function of type @Text -> Text@
