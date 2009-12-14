@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP, MagicHash, UnboxedTuples #-}
 -- |
 -- Module      : Data.Text.Unsafe
 -- Copyright   : (c) Bryan O'Sullivan 2009
@@ -11,7 +12,8 @@
 -- use in heavily tested code.
 module Data.Text.Unsafe
     (
-      iter
+      inlinePerformIO
+    , iter
     , iter_
     , reverseIter
     , unsafeHead
@@ -23,6 +25,14 @@ import Data.Text.Internal (Text(..))
 import Data.Text.UnsafeChar (unsafeChr)
 import Data.Text.Encoding.Utf16 (chr2)
 import qualified Data.Text.Array as A
+#if defined(__GLASGOW_HASKELL__)
+# if __GLASGOW_HASKELL__ >= 611
+import GHC.IO (IO(IO))
+# else
+import GHC.IOBase (IO(IO))
+# endif
+import GHC.Base (realWorld#)
+#endif
 
 -- | /O(1)/ A variant of 'head' for non-empty 'Text'. 'unsafeHead'
 -- omits the check for the empty case, so there is an obligation on
@@ -77,3 +87,16 @@ reverseIter (Text arr off len) i
         j = assert (i >= 0)     $ off + i
         k =                       j - 1
 {-# INLINE reverseIter #-}
+
+-- | Just like unsafePerformIO, but we inline it. Big performance gains as
+-- it exposes lots of things to further inlining. /Very unsafe/. In
+-- particular, you should do no memory allocation inside an
+-- 'inlinePerformIO' block. On Hugs this is just @unsafePerformIO@.
+--
+{-# INLINE inlinePerformIO #-}
+inlinePerformIO :: IO a -> a
+#if defined(__GLASGOW_HASKELL__)
+inlinePerformIO (IO m) = case m realWorld# of (# _, r #) -> r
+#else
+inlinePerformIO = unsafePerformIO
+#endif
