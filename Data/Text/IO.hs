@@ -1,14 +1,14 @@
 {-# LANGUAGE BangPatterns, CPP #-}
 -- |
 -- Module      : Data.Text.IO
--- Copyright   : (c) Bryan O'Sullivan 2009
+-- Copyright   : (c) Bryan O'Sullivan 2009,
+--               (c) Simon Marlow 2009
 -- License     : BSD-style
 -- Maintainer  : bos@serpentine.com
 -- Stability   : experimental
 -- Portability : GHC
 --
 -- Support for text I\/O.
---
 
 module Data.Text.IO
     (
@@ -170,11 +170,7 @@ hPutStrLn h t = hPutStr h t >> hPutChar h '\n'
 -- passed to this function as its argument, and the resulting string
 -- is output on the standard output device.
 interact :: (Text -> Text) -> IO ()
-#if __GLASGOW_HASKELL__ <= 610
-interact f = B.interact (encodeUtf8 . f . decodeUtf8)
-#else
-interact f = undefined
-#endif
+interact f = putStr . f =<< getContents
 
 -- | Read all user input on 'stdin' as a single string.
 getContents :: IO Text
