@@ -35,18 +35,18 @@ import System.IO (Handle)
 import System.IO.Error (isEOFError)
 import qualified Data.Text as T
 
+-- | Read a single line of input from a handle, constructing a list of
+-- decoded chunks as we go.  When we're done, transform them into the
+-- destination type.
 hGetLineWith :: ([Text] -> t) -> Handle -> IO t
 hGetLineWith f h = wantReadableHandle_ "hGetLine" h go
-  where go hh@Handle__{..} = do
-          buf <- readIORef haCharBuffer
-          ts <- hGetLineLoop hh [] buf
-          return (f ts)
+  where
+    go hh@Handle__{..} = readIORef haCharBuffer >>= fmap f . hGetLineLoop hh []
 
 hGetLineLoop :: Handle__ -> [Text] -> CharBuffer -> IO [Text]
 hGetLineLoop hh@Handle__{..} ts buf@Buffer{ bufL=r0, bufR=w, bufRaw=raw0 } = do
-  let findEOL raw r
-          | r == w    = return (False, w)
-          | otherwise = do
+  let findEOL raw r | r == w    = return (False, w)
+                    | otherwise = do
         (c,r') <- readCharBuf raw r
         if c == '\n'
           then return (True, r)
@@ -147,6 +147,8 @@ getSomeCharacters handle_@Handle__{..} buf@Buffer{..} =
     -- buffer has some chars in it already: just return it
     _otherwise -> return buf
 
+-- | Read a single chunk of strict text from a buffer. Used by both
+-- the strict and lazy implementations of hGetContents.
 readChunk :: Handle__ -> CharBuffer -> IO Text
 readChunk hh@Handle__{..} buf = do
   buf'@Buffer{..} <- getSomeCharacters hh buf
