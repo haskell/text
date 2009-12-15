@@ -58,42 +58,42 @@ data T = T {-# UNPACK #-} !ByteString {-# UNPACK #-} !S {-# UNPACK #-} !Int
 -- UTF-8 encoding.
 streamUtf8 :: OnDecodeError -> ByteString -> Stream Char
 streamUtf8 onErr bs0 = Stream next (T bs0 S0 0) unknownSize
-    where
-      next (T bs@(Chunk ps _) S0 i)
-          | i < len && U8.validate1 a =
-              Yield (unsafeChr8 a) (T bs S0 (i+1))
-          | i + 1 < len && U8.validate2 a b =
-              Yield (U8.chr2 a b) (T bs S0 (i+2))
-          | i + 2 < len && U8.validate3 a b c =
-              Yield (U8.chr3 a b c) (T bs S0 (i+3))
-          | i + 4 < len && U8.validate4 a b c d =
-              Yield (U8.chr4 a b c d) (T bs S0 (i+4))
-          where len = B.length ps
-                a = B.unsafeIndex ps i
-                b = B.unsafeIndex ps (i+1)
-                c = B.unsafeIndex ps (i+2)
-                d = B.unsafeIndex ps (i+3)
-      next st@(T bs s i) =
-        case s of
-          S1 a | U8.validate1 a -> Yield (unsafeChr8 a) es
-          S2 a b | U8.validate2 a b -> Yield (U8.chr2 a b) es
-          S3 a b c | U8.validate3 a b c -> Yield (U8.chr3 a b c) es
-          S4 a b c d | U8.validate4 a b c d -> Yield (U8.chr4 a b c d) es
-          _ -> consume st
-         where es = T bs S0 i
-      consume (T bs@(Chunk ps rest) s i)
-          | i >= B.length ps = consume (T rest s 0)
-          | otherwise =
-        case s of
-          S0 -> next (T bs (S1 x) (i+1))
-          S1 a -> next (T bs (S2 a x) (i+1))
-          S2 a b -> next (T bs (S3 a b x) (i+1))
-          S3 a b c -> next (T bs (S4 a b c x) (i+1))
-          S4 a b c d -> decodeError "streamUtf8" "UTF-8" onErr (Just a)
-                           (T bs (S3 b c d) (i+1))
-          where x = B.unsafeIndex ps i
-      consume (T Empty S0 _) = Done
-      consume st = decodeError "streamUtf8" "UTF-8" onErr Nothing st
+  where
+    next (T bs@(Chunk ps _) S0 i)
+      | i < len && U8.validate1 a =
+          Yield (unsafeChr8 a)    (T bs S0 (i+1))
+      | i + 1 < len && U8.validate2 a b =
+          Yield (U8.chr2 a b)     (T bs S0 (i+2))
+      | i + 2 < len && U8.validate3 a b c =
+          Yield (U8.chr3 a b c)   (T bs S0 (i+3))
+      | i + 4 < len && U8.validate4 a b c d =
+          Yield (U8.chr4 a b c d) (T bs S0 (i+4))
+      where len = B.length ps
+            a = B.unsafeIndex ps i
+            b = B.unsafeIndex ps (i+1)
+            c = B.unsafeIndex ps (i+2)
+            d = B.unsafeIndex ps (i+3)
+    next st@(T bs s i) =
+      case s of
+        S1 a       | U8.validate1 a       -> Yield (unsafeChr8 a)    es
+        S2 a b     | U8.validate2 a b     -> Yield (U8.chr2 a b)     es
+        S3 a b c   | U8.validate3 a b c   -> Yield (U8.chr3 a b c)   es
+        S4 a b c d | U8.validate4 a b c d -> Yield (U8.chr4 a b c d) es
+        _ -> consume st
+       where es = T bs S0 i
+    consume (T bs@(Chunk ps rest) s i)
+        | i >= B.length ps = consume (T rest s 0)
+        | otherwise =
+      case s of
+        S0         -> next (T bs (S1 x)       (i+1))
+        S1 a       -> next (T bs (S2 a x)     (i+1))
+        S2 a b     -> next (T bs (S3 a b x)   (i+1))
+        S3 a b c   -> next (T bs (S4 a b c x) (i+1))
+        S4 a b c d -> decodeError "streamUtf8" "UTF-8" onErr (Just a)
+                           (T bs (S3 b c d)   (i+1))
+        where x = B.unsafeIndex ps i
+    consume (T Empty S0 _) = Done
+    consume st             = decodeError "streamUtf8" "UTF-8" onErr Nothing st
 {-# INLINE [0] streamUtf8 #-}
 
 -- | /O(n)/ Convert a 'Stream' 'Word8' to a lazy 'ByteString'.
