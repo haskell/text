@@ -13,8 +13,8 @@
 module Data.Text.IO.Internal
     (
 #if __GLASGOW_HASKELL__ >= 612
-      hGetLineLoop
-    , getSomeCharacters
+      getSomeCharacters
+    , hGetLineWith
     , unpack
     , unpack_nl
 #endif
@@ -23,7 +23,6 @@ module Data.Text.IO.Internal
 #if __GLASGOW_HASKELL__ >= 612
 import Control.Exception (throw)
 import Data.IORef (readIORef, writeIORef)
-import qualified Data.Text as T
 import Data.Text (Text)
 import Data.Text.Fusion (stream, unstream)
 import Data.Text.Fusion.Internal (Step(..), Stream(..))
@@ -40,7 +39,16 @@ import GHC.IO.Handle.Internals (augmentIOError, ioe_EOF, readTextDevice,
 import GHC.IO.Handle.Text (commitBuffer')
 import GHC.IO.Handle.Types (BufferList(..), BufferMode(..), Handle__(..),
                             Newline(..))
+import System.IO (Handle)
 import System.IO.Error (isEOFError)
+import qualified Data.Text as T
+
+hGetLineWith :: ([Text] -> t) -> Handle -> IO t
+hGetLineWith f h = wantReadableHandle_ "hGetLine" h go
+  where go hh@Handle__{..} = do
+          buf <- readIORef haCharBuffer
+          ts <- hGetLineLoop hh [] buf
+          return (f ts)
 
 hGetLineLoop :: Handle__ -> [Text] -> CharBuffer -> IO [Text]
 hGetLineLoop hh@Handle__{..} ts buf@Buffer{ bufL=r0, bufR=w, bufRaw=raw0 } = do

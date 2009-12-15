@@ -46,7 +46,7 @@ import qualified Data.Text as T
 import Data.Text.Fusion (stream, unstream)
 import Data.Text.Fusion.Internal (Step(..), Stream(..))
 import Data.Text.Fusion.Size (exactSize, maxSize)
-import Data.Text.IO.Internal (getSomeCharacters, hGetLineLoop, unpack, unpack_nl)
+import Data.Text.IO.Internal (getSomeCharacters, hGetLineWith, unpack, unpack_nl)
 import Data.Text.Unsafe (inlinePerformIO)
 import Foreign.Storable (peekElemOff)
 import GHC.IO.Buffer (Buffer(..), BufferState(..), CharBufElem, CharBuffer,
@@ -121,11 +121,7 @@ hGetLine :: Handle -> IO Text
 #if __GLASGOW_HASKELL__ <= 610
 hGetLine = fmap decodeUtf8 . B.hGetLine
 #else
-hGetLine h = wantReadableHandle_ "hGetLine" h go
-  where go hh@Handle__{..} = do
-          buf <- readIORef haCharBuffer
-          ts <- hGetLineLoop hh [] buf
-          return $! T.concat ts
+hGetLine = hGetLineWith T.concat
 #endif
 
 -- | Write a string to a handle.

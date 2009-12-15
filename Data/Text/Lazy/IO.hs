@@ -41,6 +41,8 @@ import Data.Text.Lazy.Encoding (decodeUtf8, encodeUtf8)
 import qualified Data.ByteString.Char8 as S8
 import qualified Data.ByteString.Lazy.Char8 as L8
 #else
+import Data.Text.IO.Internal (getSomeCharacters, hGetLineWith, unpack, unpack_nl)
+import qualified Data.Text.Lazy as L
 #endif
 
 -- | The 'readFile' function reads a file and returns the contents of
@@ -70,7 +72,7 @@ hGetLine :: Handle -> IO Text
 #if __GLASGOW_HASKELL__ <= 610
 hGetLine = fmap decodeUtf8 . S8.hGetLine
 #else
-hGetLine h = undefined
+hGetLine = hGetLineWith L.fromChunks
 #endif
 
 -- | Write a string to a handle.
