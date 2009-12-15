@@ -46,7 +46,7 @@ import qualified Data.Text as T
 import Data.Text.Fusion (stream, unstream)
 import Data.Text.Fusion.Internal (Step(..), Stream(..))
 import Data.Text.Fusion.Size (exactSize, maxSize)
-import Data.Text.IO.Internal (getSomeCharacters, hGetLineWith, unpack, unpack_nl)
+import Data.Text.IO.Internal (hGetLineWith, readChunk)
 import Data.Text.Unsafe (inlinePerformIO)
 import Foreign.Storable (peekElemOff)
 import GHC.IO.Buffer (Buffer(..), BufferState(..), CharBufElem, CharBuffer,
@@ -99,12 +99,7 @@ hGetContents h = wantReadableHandle "hGetContents" h $ \hh -> do
   readAll hh@Handle__{..} = do
     buf <- readIORef haCharBuffer
     let readChunks = do
-          buf'@Buffer{..} <- getSomeCharacters hh buf
-          (t,r) <- if haInputNL == CRLF
-                   then unpack_nl bufRaw bufL bufR
-                   else do t <- unpack bufRaw bufL bufR
-                           return (t,bufR)
-          writeIORef haCharBuffer (bufferAdjustL r buf')
+          t <- readChunk hh buf
           (hh',ts) <- readAll hh
           return (hh', t:ts)
     readChunks `catch` \e -> do
@@ -115,7 +110,7 @@ hGetContents h = wantReadableHandle "hGetContents" h $ \hh -> do
                       else (hh', [T.singleton '\r'])
         else throw (augmentIOError e "hGetContents" h)
 #endif
-
+  
 -- | Read a single line from a handle.
 hGetLine :: Handle -> IO Text
 #if __GLASGOW_HASKELL__ <= 610

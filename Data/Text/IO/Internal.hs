@@ -13,10 +13,8 @@
 module Data.Text.IO.Internal
     (
 #if __GLASGOW_HASKELL__ >= 612
-      getSomeCharacters
-    , hGetLineWith
-    , unpack
-    , unpack_nl
+      hGetLineWith
+    , readChunk
 #endif
     ) where
 
@@ -154,6 +152,16 @@ getSomeCharacters handle_@Handle__{..} buf@Buffer{..} =
 
     -- buffer has some chars in it already: just return it
     _otherwise -> return buf
+
+readChunk :: Handle__ -> CharBuffer -> IO Text
+readChunk hh@Handle__{..} buf = do
+  buf'@Buffer{..} <- getSomeCharacters hh buf
+  (t,r) <- if haInputNL == CRLF
+           then unpack_nl bufRaw bufL bufR
+           else do t <- unpack bufRaw bufL bufR
+                   return (t,bufR)
+  writeIORef haCharBuffer (bufferAdjustL r buf')
+  return t
 
 sizeError :: String -> a
 sizeError loc = error $ "Data.Text.IO." ++ loc ++ ": bad internal buffer size"

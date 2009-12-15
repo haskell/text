@@ -43,7 +43,7 @@ import Data.Text.Lazy.Encoding (decodeUtf8, encodeUtf8)
 import qualified Data.ByteString.Char8 as S8
 import qualified Data.ByteString.Lazy.Char8 as L8
 #else
-import Data.Text.IO.Internal (getSomeCharacters, hGetLineWith, unpack, unpack_nl)
+import Data.Text.IO.Internal (hGetLineWith)
 #endif
 
 -- | The 'readFile' function reads a file and returns the contents of
