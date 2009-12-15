@@ -36,13 +36,14 @@ import Prelude hiding (appendFile, getContents, getLine, interact, putStr,
                        putStrLn, readFile, writeFile)
 import System.IO (Handle, IOMode(..), hPutChar, openFile, stdin, stdout,
                   withFile)
+import qualified Data.Text.IO as T
+import qualified Data.Text.Lazy as L
 #if __GLASGOW_HASKELL__ <= 610
 import Data.Text.Lazy.Encoding (decodeUtf8, encodeUtf8)
 import qualified Data.ByteString.Char8 as S8
 import qualified Data.ByteString.Lazy.Char8 as L8
 #else
 import Data.Text.IO.Internal (getSomeCharacters, hGetLineWith, unpack, unpack_nl)
-import qualified Data.Text.Lazy as L
 #endif
 
 -- | The 'readFile' function reads a file and returns the contents of
@@ -70,18 +71,14 @@ hGetContents = undefined
 -- | Read a single line from a handle.
 hGetLine :: Handle -> IO Text
 #if __GLASGOW_HASKELL__ <= 610
-hGetLine = fmap decodeUtf8 . S8.hGetLine
+hGetLine = fmap (decodeUtf8 . L8.fromChunks . (:[])) . S8.hGetLine
 #else
 hGetLine = hGetLineWith L.fromChunks
 #endif
 
 -- | Write a string to a handle.
 hPutStr :: Handle -> Text -> IO ()
-#if __GLASGOW_HASKELL__ <= 610
-hPutStr h = L8.hPut h . encodeUtf8
-#else
-hPutStr h = undefined
-#endif
+hPutStr h = mapM_ (T.hPutStr h) . L.toChunks
 
 -- | Write a string to a handle, followed by a newline.
 hPutStrLn :: Handle -> Text -> IO ()
