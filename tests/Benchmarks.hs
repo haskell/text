@@ -9,11 +9,14 @@ import Criterion.Main
 import Data.Char
 import qualified Codec.Binary.UTF8.Generic as UTF8
 import qualified Data.Text as TS
+import qualified Data.Text.IO as TS
 import qualified Data.Text.Lazy as TL
+import qualified Data.Text.Lazy.IO as TL
 import qualified Data.List as L
 import qualified Data.Text.Encoding as TS
 import qualified Data.Text.Lazy.Encoding as TL
 import qualified Criterion.MultiMap as M
+import Control.DeepSeq
 import Criterion.Config
 import GHC.Base
 
@@ -38,7 +41,8 @@ instance NFData B where
     rnf (B b) = rnf b
 
 main = do
-  bsa <- BS.readFile "text/test/russian.txt"
+  let dataFile = "text/test/russian.txt"
+  bsa <- BS.readFile dataFile
   let tsa     = TS.decodeUtf8 bsa
       tsb     = TS.toUpper tsa
       tla     = TL.fromChunks (TS.chunksOf 16376 tsa)
@@ -191,6 +195,13 @@ main = do
       , bench "bs" $ nf (BS.map f . BS.map f) bsa
       , bench "bl" $ nf (BL.map f . BL.map f) bla
       , bench "l" $ nf (L.map f . L.map f) la
+      ],
+      bgroup "readFile" [
+        bench "ts" $ TS.readFile dataFile
+      , bench "tl" $ nfIO (TL.readFile dataFile)
+      , bench "bs" $ BS.readFile dataFile
+      , bench "bl" $ nfIO (BL.length `fmap` BL.readFile dataFile)
+      , bench "l" $ nfIO (length `fmap` readFile dataFile)
       ],
       bgroup "replicate char" [
         bench "ts" $ nf (TS.replicate bsa_len) (TS.singleton c)
