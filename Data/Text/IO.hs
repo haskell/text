@@ -8,7 +8,7 @@
 -- Stability   : experimental
 -- Portability : GHC
 --
--- Support for text I\/O.
+-- Efficient locale-sensitive support for text I\/O.
 
 module Data.Text.IO
     (
@@ -31,15 +31,16 @@ module Data.Text.IO
     , putStrLn
     ) where
 
-import Debug.Trace
 import Data.Text (Text)
 import Prelude hiding (appendFile, getContents, getLine, interact, putStr,
                        putStrLn, readFile, writeFile)
-import System.IO (Handle, hPutChar, stdin, stdout)
+import System.IO (Handle, IOMode(..), hPutChar, openFile, stdin, stdout,
+                  withFile)
 #if __GLASGOW_HASKELL__ <= 610
 import qualified Data.ByteString as B
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 #else
+import Control.Exception (throw)
 import Data.IORef (readIORef, writeIORef)
 import qualified Data.Text as T
 import Data.Text.Fusion (stream, unstream)
@@ -48,14 +49,15 @@ import Data.Text.Fusion.Size (exactSize, maxSize)
 import Data.Text.Unsafe (inlinePerformIO)
 import Foreign.Storable (peekElemOff)
 import GHC.IO.Buffer (Buffer(..), BufferState(..), CharBufElem, CharBuffer,
-                      RawCharBuffer, bufferAdjustL, bufferElems, charSize, emptyBuffer, isEmptyBuffer, newCharBuffer, readCharBuf, withRawBuffer,
-                      writeCharBuf)
-import GHC.IO.Handle.Internals (ioe_EOF, readTextDevice, wantReadableHandle_,
-                                wantWritableHandle)
+                      RawCharBuffer, bufferAdjustL, bufferElems, charSize,
+                      emptyBuffer, isEmptyBuffer, newCharBuffer, readCharBuf,
+                      withRawBuffer, writeCharBuf)
+import GHC.IO.Handle.Internals (augmentIOError, ioe_EOF, readTextDevice,
+                                wantReadableHandle_, hClose_help,
+                                wantReadableHandle, wantWritableHandle)
 import GHC.IO.Handle.Text (commitBuffer')
 import GHC.IO.Handle.Types (BufferList(..), BufferMode(..), Handle__(..),
                             Newline(..))
-import System.IO (IOMode(..), openFile, withFile)
 import System.IO.Error (isEOFError)
 #endif
 
@@ -74,12 +76,43 @@ writeFile p = withFile p WriteMode . flip hPutStr
 appendFile :: FilePath -> Text -> IO ()
 appendFile p = withFile p AppendMode . flip hPutStr
 
--- | Read the remaining contents of a handle as a string.
+-- | Read the remaining contents of a 'Handle' as a string.  The
+-- 'Handle' is closed once the contents have been read, or if an
+-- exception is thrown.
+--
+-- Internally, this function reads a chunk at a time from the
+-- lower-level buffering abstraction, and concatenates the chunks into
+-- a single string once the entire file has been read.
+--
+-- As a result, it requires approximately twice as much memory as its
+-- result to construct its result.  For files more than a half of
+-- available RAM in size, this may result in memory exhaustion.
 hGetContents :: Handle -> IO Text
 #if __GLASGOW_HASKELL__ <= 610
 hGetContents = fmap decodeUtf8 . B.hGetContents
 #else
-hGetContents = undefined
+hGetContents h = wantReadableHandle "hGetContents" h $ \hh -> do
+                   (hh',ts) <- readAll hh
+                   return (hh',T.concat ts)
+ where
+  readAll hh@Handle__{..} = do
+    buf <- readIORef haCharBuffer
+    let readChunks = do
+          buf'@Buffer{..} <- getSomeCharacters hh buf
+          (t,r) <- if haInputNL == CRLF
+                   then unpack_nl bufRaw bufL bufR
+                   else do t <- unpack bufRaw bufL bufR
+                           return (t,bufR)
+          writeIORef haCharBuffer (bufferAdjustL r buf')
+          (hh',ts) <- readAll hh
+          return (hh', t:ts)
+    readChunks `catch` \e -> do
+      (hh', _) <- hClose_help hh
+      if isEOFError e
+        then return $ if isEmptyBuffer buf
+                      then (hh', [])
+                      else (hh', [T.singleton '\r'])
+        else throw (augmentIOError e "hGetContents" h)
 #endif
 
 -- | Read a single line from a handle.
@@ -117,7 +150,6 @@ hGetLineLoop hh@Handle__{..} ts buf@Buffer{ bufL=r0, bufR=w, bufRaw=raw0 } = do
               -- we reached EOF.  There might be a lone \r left
               -- in the buffer, so check for that and
               -- append it to the line if necessary.
-              -- 
               let pre | isEmptyBuffer buf1 = T.empty
                       | otherwise          = T.singleton '\r'
               writeIORef haCharBuffer buf1{ bufL=0, bufR=0 }
@@ -125,8 +157,7 @@ hGetLineLoop hh@Handle__{..} ts buf@Buffer{ bufL=r0, bufR=w, bufRaw=raw0 } = do
               if T.null str
                 then ioe_EOF
                 else return str
-         Just new_buf ->
-              hGetLineLoop hh (t:ts) new_buf
+         Just new_buf -> hGetLineLoop hh (t:ts) new_buf
 
 -- This function is lifted almost verbatim from GHC.IO.Handle.Text.
 maybeFillReadBuffer :: Handle__ -> CharBuffer -> IO (Maybe CharBuffer)
@@ -139,19 +170,19 @@ maybeFillReadBuffer handle_ buf
 unpack :: RawCharBuffer -> Int -> Int -> IO Text
 unpack !buf !r !w
  | charSize /= 4 = sizeError "unpack"
- | r == w        = return T.empty
+ | r >= w        = return T.empty
  | otherwise     = withRawBuffer buf go
  where
   go pbuf = return $! unstream (Stream next r (exactSize (w-r)))
    where
     next !i | i >= w    = Done
-            | otherwise = Yield (let c = ix i in trace (show (w,i,c)) c) (i+1)
+            | otherwise = Yield (ix i) (i+1)
     ix i = inlinePerformIO $ peekElemOff pbuf i
 
 unpack_nl :: RawCharBuffer -> Int -> Int -> IO (Text, Int)
 unpack_nl !buf !r !w
  | charSize /= 4 = sizeError "unpack_nl"
- | r == w        = return (T.empty, 0)
+ | r >= w        = return (T.empty, 0)
  | otherwise     = withRawBuffer buf $ go
  where
   go pbuf = do
@@ -198,8 +229,7 @@ getSomeCharacters handle_@Handle__{..} buf@Buffer{..} =
                  return buf
 
     -- buffer has some chars in it already: just return it
-    _otherwise ->
-      return buf
+    _otherwise -> return buf
 #endif
 
 -- | Write a string to a handle.
@@ -311,12 +341,26 @@ putStrLn = hPutStrLn stdout
 
 -- $locale
 --
--- Under GHC 6.10 and earlier, the system I\/O libraries do not
--- support locale-sensitive I\/O.  All data read by functions in this
--- module is decoded as UTF-8, and before data is written, it is first
--- encoded as UTF-8.  If you must use a non-UTF-8 locale on an older
--- version of GHC, you will have to perform the transcoding yourself,
--- e.g. as follows:
+-- /Note/: The behaviour of functions in this module depends on the
+-- version of GHC you are using.
+--
+-- Beginning with GHC 6.12, text I\/O is performed using the system or
+-- handle's current locale and line ending conventions.
+--
+-- Under GHC 6.10 and earlier, the system I\/O libraries /do not
+-- support/ locale-sensitive I\/O or line ending conversion.  On these
+-- versions of GHC, functions in this library all use UTF-8.  What
+-- does this mean in practice?
+--
+-- * All data that is read will be decoded as UTF-8.
+--
+-- * Before data is written, it is first encoded as UTF-8.
+--
+-- * On both reading and writing, the platform's native newline
+--   conversion is performed.
+--
+-- If you must use a non-UTF-8 locale on an older version of GHC, you
+-- will have to perform the transcoding yourself, e.g. as follows:
 --
 -- > import qualified Data.ByteString as B
 -- > import Data.Text (Text)
@@ -324,6 +368,3 @@ putStrLn = hPutStrLn stdout
 -- >
 -- > putStr_Utf16LE :: Text -> IO ()
 -- > putStr_Utf16LE t = B.putStr (encodeUtf16LE t)
---
--- Beginning with GHC 6.12, text I\/O is performed using the system or
--- handle's current locale.
