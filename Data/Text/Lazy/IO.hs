@@ -31,7 +31,7 @@ module Data.Text.Lazy.IO
     , putStrLn
     ) where
 
-import Data.Text.Lazy (Text)
+import Data.Text.Lazy.Internal (Text(..))
 import Prelude hiding (appendFile, getContents, getLine, interact, putStr,
                        putStrLn, readFile, writeFile)
 import System.IO (Handle, IOMode(..), hPutChar, openFile, stdin, stdout,
@@ -43,7 +43,23 @@ import Data.Text.Lazy.Encoding (decodeUtf8, encodeUtf8)
 import qualified Data.ByteString.Char8 as S8
 import qualified Data.ByteString.Lazy.Char8 as L8
 #else
-import Data.Text.IO.Internal (hGetLineWith)
+import Control.Exception (throw)
+import Data.IORef (readIORef, writeIORef)
+import Data.Text.IO.Internal (hGetLineWith, readChunk)
+import GHC.IO.Buffer (Buffer(..), BufferState(..), CharBufElem, CharBuffer,
+                      RawCharBuffer, bufferAdjustL, bufferElems, charSize,
+                      emptyBuffer, isEmptyBuffer, newCharBuffer, readCharBuf,
+                      withRawBuffer, writeCharBuf)
+import GHC.IO.Exception (IOException(..), IOErrorType(..), ioException)
+import GHC.IO.Handle.Internals (augmentIOError, ioe_EOF, readTextDevice,
+                                wantReadableHandle_, hClose_help,
+                                wantReadableHandle, wantWritableHandle,
+                                withHandle)
+import GHC.IO.Handle.Text (commitBuffer')
+import GHC.IO.Handle.Types (BufferList(..), BufferMode(..), Handle__(..),
+                            HandleType(..), Newline(..))
+import System.IO.Error (isEOFError)
+import System.IO.Unsafe (unsafeInterleaveIO)
 #endif
 
 -- | The 'readFile' function reads a file and returns the contents of
@@ -65,7 +81,33 @@ hGetContents :: Handle -> IO Text
 #if __GLASGOW_HASKELL__ <= 610
 hGetContents = fmap decodeUtf8 . L8.hGetContents
 #else
-hGetContents = undefined
+hGetContents h =
+    wantReadableHandle "hGetContents" h $ \hh -> do
+      ts <- lazyRead h
+      return (hh{haType=SemiClosedHandle}, ts)
+
+lazyRead :: Handle -> IO Text
+lazyRead h = unsafeInterleaveIO $
+  withHandle "hGetContents" h $ \hh -> do
+    case haType hh of
+      ClosedHandle     -> return (hh, L.empty)
+      SemiClosedHandle -> lazyReadBuffered h hh
+      _                -> ioException 
+                          (IOError (Just h) IllegalOperation "hGetContents"
+                           "illegal handle type" Nothing Nothing)
+
+lazyReadBuffered :: Handle -> Handle__ -> IO (Handle__, Text)
+lazyReadBuffered h hh@Handle__{..} = do
+   buf <- readIORef haCharBuffer
+   (do t <- readChunk hh buf
+       ts <- lazyRead h
+       return (hh, Chunk t ts)) `catch` \e -> do
+         (hh', _) <- hClose_help hh
+         if isEOFError e
+           then return $ if isEmptyBuffer buf
+                         then (hh', Empty)
+                         else (hh', L.singleton '\r')
+           else throw (augmentIOError e "hGetContents" h)
 #endif
 
 -- | Read a single line from a handle.
