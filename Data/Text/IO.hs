@@ -37,7 +37,7 @@ import Prelude hiding (appendFile, getContents, getLine, interact, putStr,
 import System.IO (Handle, IOMode(..), hPutChar, openFile, stdin, stdout,
                   withFile)
 #if __GLASGOW_HASKELL__ <= 610
-import qualified Data.ByteString as B
+import qualified Data.ByteString.Char8 as B
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 #else
 import Control.Exception (throw)
