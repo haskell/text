@@ -8,7 +8,7 @@
 -- Stability   : experimental
 -- Portability : GHC
 --
--- Efficient locale-sensitive support for text I\/O.
+-- Efficient locale-sensitive support for lazy text I\/O.
 
 module Data.Text.Lazy.IO
     (
@@ -56,9 +56,8 @@ import System.IO.Error (isEOFError)
 import System.IO.Unsafe (unsafeInterleaveIO)
 #endif
 
--- | The 'readFile' function reads a file and returns the contents of
--- the file as a string.  The entire file is read strictly, as with
--- 'getContents'.
+-- | Read a file and return its contents as a string.  The file is
+-- read lazily, as with 'getContents'.
 readFile :: FilePath -> IO Text
 readFile name = openFile name ReadMode >>= hGetContents
 
@@ -71,6 +70,8 @@ writeFile p = withFile p WriteMode . flip hPutStr
 appendFile :: FilePath -> Text -> IO ()
 appendFile p = withFile p AppendMode . flip hPutStr
 
+-- | Lazily read the remaining contents of a 'Handle'.  The 'Handle'
+-- will be closed after the read completes, or on error.
 hGetContents :: Handle -> IO Text
 #if __GLASGOW_HASKELL__ <= 610
 hGetContents = fmap decodeUtf8 . L8.hGetContents
@@ -122,12 +123,12 @@ hPutStrLn h t = hPutStr h t >> hPutChar h '\n'
 
 -- | The 'interact' function takes a function of type @Text -> Text@
 -- as its argument. The entire input from the standard input device is
--- passed to this function as its argument, and the resulting string
--- is output on the standard output device.
+-- passed (lazily) to this function as its argument, and the resulting
+-- string is output on the standard output device.
 interact :: (Text -> Text) -> IO ()
 interact f = putStr . f =<< getContents
 
--- | Read all user input on 'stdin' as a single string.
+-- | Lazily read all user input on 'stdin' as a single string.
 getContents :: IO Text
 getContents = hGetContents stdin
 
