@@ -31,7 +31,7 @@ module Data.Text.Lazy.IO
     , putStrLn
     ) where
 
-import Data.Text.Lazy.Internal (Text(..))
+import Data.Text.Lazy (Text)
 import Prelude hiding (appendFile, getContents, getLine, interact, putStr,
                        putStrLn, readFile, writeFile)
 import System.IO (Handle, IOMode(..), hPutChar, openFile, stdin, stdout,
@@ -39,13 +39,14 @@ import System.IO (Handle, IOMode(..), hPutChar, openFile, stdin, stdout,
 import qualified Data.Text.IO as T
 import qualified Data.Text.Lazy as L
 #if __GLASGOW_HASKELL__ <= 610
-import Data.Text.Lazy.Encoding (decodeUtf8, encodeUtf8)
+import Data.Text.Lazy.Encoding (decodeUtf8)
 import qualified Data.ByteString.Char8 as S8
 import qualified Data.ByteString.Lazy.Char8 as L8
 #else
 import Control.Exception (throw)
 import Data.IORef (readIORef)
 import Data.Text.IO.Internal (hGetLineWith, readChunk)
+import Data.Text.Lazy.Internal (chunk, empty)
 import GHC.IO.Buffer (isEmptyBuffer)
 import GHC.IO.Exception (IOException(..), IOErrorType(..), ioException)
 import GHC.IO.Handle.Internals (augmentIOError, hClose_help,
@@ -94,11 +95,11 @@ lazyReadBuffered h hh@Handle__{..} = do
    buf <- readIORef haCharBuffer
    (do t <- readChunk hh buf
        ts <- lazyRead h
-       return (hh, Chunk t ts)) `catch` \e -> do
+       return (hh, chunk t ts)) `catch` \e -> do
          (hh', _) <- hClose_help hh
          if isEOFError e
            then return $ if isEmptyBuffer buf
-                         then (hh', Empty)
+                         then (hh', empty)
                          else (hh', L.singleton '\r')
            else throw (augmentIOError e "hGetContents" h)
 #endif
