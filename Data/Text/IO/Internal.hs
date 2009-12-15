@@ -19,24 +19,18 @@ module Data.Text.IO.Internal
     ) where
 
 #if __GLASGOW_HASKELL__ >= 612
-import Control.Exception (throw)
 import Data.IORef (readIORef, writeIORef)
 import Data.Text (Text)
-import Data.Text.Fusion (stream, unstream)
+import Data.Text.Fusion (unstream)
 import Data.Text.Fusion.Internal (Step(..), Stream(..))
 import Data.Text.Fusion.Size (exactSize, maxSize)
 import Data.Text.Unsafe (inlinePerformIO)
 import Foreign.Storable (peekElemOff)
-import GHC.IO.Buffer (Buffer(..), BufferState(..), CharBufElem, CharBuffer,
-                      RawCharBuffer, bufferAdjustL, bufferElems, charSize,
-                      emptyBuffer, isEmptyBuffer, newCharBuffer, readCharBuf,
+import GHC.IO.Buffer (Buffer(..), CharBuffer, RawCharBuffer, bufferAdjustL,
+                      bufferElems, charSize, isEmptyBuffer, readCharBuf,
                       withRawBuffer, writeCharBuf)
-import GHC.IO.Handle.Internals (augmentIOError, ioe_EOF, readTextDevice,
-                                wantReadableHandle_, hClose_help,
-                                wantReadableHandle, wantWritableHandle)
-import GHC.IO.Handle.Text (commitBuffer')
-import GHC.IO.Handle.Types (BufferList(..), BufferMode(..), Handle__(..),
-                            Newline(..))
+import GHC.IO.Handle.Internals (ioe_EOF, readTextDevice, wantReadableHandle_)
+import GHC.IO.Handle.Types (Handle__(..), Newline(..))
 import System.IO (Handle)
 import System.IO.Error (isEOFError)
 import qualified Data.Text as T

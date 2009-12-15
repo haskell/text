@@ -44,20 +44,13 @@ import qualified Data.ByteString.Char8 as S8
 import qualified Data.ByteString.Lazy.Char8 as L8
 #else
 import Control.Exception (throw)
-import Data.IORef (readIORef, writeIORef)
+import Data.IORef (readIORef)
 import Data.Text.IO.Internal (hGetLineWith, readChunk)
-import GHC.IO.Buffer (Buffer(..), BufferState(..), CharBufElem, CharBuffer,
-                      RawCharBuffer, bufferAdjustL, bufferElems, charSize,
-                      emptyBuffer, isEmptyBuffer, newCharBuffer, readCharBuf,
-                      withRawBuffer, writeCharBuf)
+import GHC.IO.Buffer (isEmptyBuffer)
 import GHC.IO.Exception (IOException(..), IOErrorType(..), ioException)
-import GHC.IO.Handle.Internals (augmentIOError, ioe_EOF, readTextDevice,
-                                wantReadableHandle_, hClose_help,
-                                wantReadableHandle, wantWritableHandle,
-                                withHandle)
-import GHC.IO.Handle.Text (commitBuffer')
-import GHC.IO.Handle.Types (BufferList(..), BufferMode(..), Handle__(..),
-                            HandleType(..), Newline(..))
+import GHC.IO.Handle.Internals (augmentIOError, hClose_help,
+                                wantReadableHandle, withHandle)
+import GHC.IO.Handle.Types (Handle__(..), HandleType(..))
 import System.IO.Error (isEOFError)
 import System.IO.Unsafe (unsafeInterleaveIO)
 #endif

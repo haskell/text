@@ -43,19 +43,14 @@ import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import Control.Exception (throw)
 import Data.IORef (readIORef, writeIORef)
 import qualified Data.Text as T
-import Data.Text.Fusion (stream, unstream)
+import Data.Text.Fusion (stream)
 import Data.Text.Fusion.Internal (Step(..), Stream(..))
-import Data.Text.Fusion.Size (exactSize, maxSize)
 import Data.Text.IO.Internal (hGetLineWith, readChunk)
-import Data.Text.Unsafe (inlinePerformIO)
-import Foreign.Storable (peekElemOff)
 import GHC.IO.Buffer (Buffer(..), BufferState(..), CharBufElem, CharBuffer,
-                      RawCharBuffer, bufferAdjustL, bufferElems, charSize,
-                      emptyBuffer, isEmptyBuffer, newCharBuffer, readCharBuf,
-                      withRawBuffer, writeCharBuf)
-import GHC.IO.Handle.Internals (augmentIOError, ioe_EOF, readTextDevice,
-                                wantReadableHandle_, hClose_help,
-                                wantReadableHandle, wantWritableHandle)
+                      RawCharBuffer, emptyBuffer, isEmptyBuffer, newCharBuffer,
+                      writeCharBuf)
+import GHC.IO.Handle.Internals (augmentIOError, hClose_help, wantReadableHandle,
+                                wantWritableHandle)
 import GHC.IO.Handle.Text (commitBuffer')
 import GHC.IO.Handle.Types (BufferList(..), BufferMode(..), Handle__(..),
                             Newline(..))
