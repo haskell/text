@@ -11,7 +11,7 @@ maintainer:     Bryan O'Sullivan <bos@serpentine.com>
 copyright:      2008-2009 Tom Harper, 2009 Bryan O'Sullivan
 category:       Data, Text
 build-type:     Simple
-cabal-version:  >= 1.2
+cabal-version:  >= 1.2.3
 extra-source-files:
     README
     TODO
@@ -74,7 +74,7 @@ library
     cpp-options: -DHAVE_DEEPSEQ
   else
     build-depends: extensible-exceptions
-    ghc-options: -XPatternSignatures
+    extensions: PatternSignatures
 
   -- gather extensive profiling data for now
   ghc-prof-options: -auto-all
