@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE CPP, DeriveDataTypeable #-}
 -- |
 -- Module      : Data.Text.Encoding.Error
 -- Copyright   : (c) Bryan O'Sullivan 2009
@@ -35,7 +35,11 @@ module Data.Text.Encoding.Error
     , replace
     ) where
 
+#if __GLASGOW_HASKELL__ >= 610
 import Control.Exception (Exception, throw)
+#else
+import Control.Exception.Extensible (Exception, throw)
+#endif
 import Data.Typeable (Typeable)
 import Data.Word (Word8)
 import Numeric (showHex)

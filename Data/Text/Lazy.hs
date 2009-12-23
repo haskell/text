@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns, CPP #-}
 -- |
 -- Module      : Data.Text.Lazy
 -- Copyright   : (c) Bryan O'Sullivan 2009
@@ -169,7 +169,9 @@ import Prelude (Char, Bool(..), Maybe(..), String,
                 (&&), (+), (-), (.), ($), (++),
                 div, flip, fromIntegral, not, otherwise)
 import qualified Prelude as P
+#if defined(HAVE_DEEPSEQ)
 import Control.DeepSeq (NFData(..))
+#endif
 import Data.Int (Int64)
 import qualified Data.List as L
 import Data.Char (isSpace)
@@ -208,9 +210,11 @@ instance Monoid Text where
 instance IsString Text where
     fromString = pack
 
+#if defined(HAVE_DEEPSEQ)
 instance NFData Text where
     rnf Empty        = ()
     rnf (Chunk _ ts) = rnf ts
+#endif
 
 -- | /O(n)/ Convert a 'String' into a 'Text'.
 --

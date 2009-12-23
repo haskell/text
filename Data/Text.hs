@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, Rank2Types #-}
+{-# LANGUAGE BangPatterns, CPP, Rank2Types #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 -- |
@@ -167,7 +167,9 @@ import Prelude (Char, Bool(..), Functor(..), Int, Maybe(..), String,
                 Read(..), Show(..),
                 (&&), (||), (+), (-), (.), ($), (>>), (*),
                 div, not, return, otherwise)
+#if defined(HAVE_DEEPSEQ)
 import Control.DeepSeq (NFData)
+#endif
 import Control.Exception (assert)
 import Data.Char (isSpace)
 import Control.Monad (foldM)
@@ -215,7 +217,9 @@ instance Monoid Text where
 instance IsString Text where
     fromString = pack
 
+#if defined(HAVE_DEEPSEQ)
 instance NFData Text
+#endif
 
 -- -----------------------------------------------------------------------------
 -- * Conversion to/from 'Text'
