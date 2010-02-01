@@ -166,12 +166,13 @@ import Prelude (Char, Bool(..), Functor(..), Int, Maybe(..), String,
                 Eq(..), Ord(..), (++),
                 Read(..), Show(..),
                 (&&), (||), (+), (-), (.), ($), (>>), (*),
-                div, not, return, otherwise)
+                div, error, not, return, otherwise)
 #if defined(HAVE_DEEPSEQ)
 import Control.DeepSeq (NFData)
 #endif
 import Control.Exception (assert)
 import Data.Char (isSpace)
+import Data.Data (Data(gfoldl, toConstr, gunfold, dataTypeOf), mkNoRepType)
 import Control.Monad (foldM)
 import Control.Monad.ST (ST)
 import qualified Data.Text.Array as A
@@ -220,6 +221,24 @@ instance IsString Text where
 #if defined(HAVE_DEEPSEQ)
 instance NFData Text
 #endif
+
+-- This instance preserves data abstraction at the cost of inefficiency.
+-- We omit reflection services for the sake of data abstraction.
+-- 
+-- This instance was created by copying the behavior of Data.Set and
+-- Data.Map. If you feel a mistake has been made, please feel free to
+-- submit improvements.
+--
+-- Original discussion is archived here:
+
+--  "could we get a Data instance for Data.Text.Text?"
+--  http://groups.google.com/group/haskell-cafe/browse_thread/thread/b5bbb1b28a7e525d/0639d46852575b93
+--
+instance Data Text where
+  gfoldl f z txt = z pack `f` (unpack txt)
+  toConstr _     = error "Data.Text.Text:toConstr"
+  gunfold _ _    = error "Data.Text.Text:gunfold"
+  dataTypeOf _   = mkNoRepType "Data.Text.Text"
 
 -- -----------------------------------------------------------------------------
 -- * Conversion to/from 'Text'
