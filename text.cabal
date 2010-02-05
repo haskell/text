@@ -1,5 +1,5 @@
 name:           text
-version:        0.7.0.1
+version:        0.7.1.0
 synopsis:       An efficient packed Unicode text type
 description:    An efficient packed Unicode text type.
 license:        BSD3
