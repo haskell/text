@@ -172,7 +172,12 @@ import Control.DeepSeq (NFData)
 #endif
 import Control.Exception (assert)
 import Data.Char (isSpace)
-import Data.Data (Data(gfoldl, toConstr, gunfold, dataTypeOf), mkNorepType)
+import Data.Data (Data(gfoldl, toConstr, gunfold, dataTypeOf))
+#if __GLASGOW_HASKELL__ >= 612
+import Data.Data (mkNoRepType)
+#else
+import Data.Data (mkNorepType)
+#endif
 import Control.Monad (foldM)
 import Control.Monad.ST (ST)
 import qualified Data.Text.Array as A
@@ -233,15 +238,16 @@ instance NFData Text
 
 --  "could we get a Data instance for Data.Text.Text?"
 --  http://groups.google.com/group/haskell-cafe/browse_thread/thread/b5bbb1b28a7e525d/0639d46852575b93
---
--- NOTE: we used the mispelled version of mkNoRepType for
--- compatibility with GHC 6.10. Eventually this should be updated:
---   http://hackage.haskell.org/trac/ghc/ticket/2760
+
 instance Data Text where
   gfoldl f z txt = z pack `f` (unpack txt)
-  toConstr _     = error "Data.Text.Text:toConstr"
-  gunfold _ _    = error "Data.Text.Text:gunfold"
+  toConstr _     = error "Data.Text.Text.toConstr"
+  gunfold _ _    = error "Data.Text.Text.gunfold"
+#if __GLASGOW_HASKELL__ >= 612
+  dataTypeOf _   = mkNoRepType "Data.Text.Text"
+#else
   dataTypeOf _   = mkNorepType "Data.Text.Text"
+#endif
 
 -- -----------------------------------------------------------------------------
 -- * Conversion to/from 'Text'
