@@ -167,7 +167,7 @@ module Data.Text.Lazy
 import Prelude (Char, Bool(..), Maybe(..), String,
                 Eq(..), Ord(..), Read(..), Show(..),
                 (&&), (+), (-), (.), ($), (++),
-                div, flip, fromIntegral, not, otherwise)
+                div, error, flip, fromIntegral, not, otherwise)
 import qualified Prelude as P
 #if defined(HAVE_DEEPSEQ)
 import Control.DeepSeq (NFData(..))
@@ -175,6 +175,12 @@ import Control.DeepSeq (NFData(..))
 import Data.Int (Int64)
 import qualified Data.List as L
 import Data.Char (isSpace)
+import Data.Data (Data(gfoldl, toConstr, gunfold, dataTypeOf))
+#if __GLASGOW_HASKELL__ >= 612
+import Data.Data (mkNoRepType)
+#else
+import Data.Data (mkNorepType)
+#endif
 import Data.Monoid (Monoid(..))
 import Data.String (IsString(..))
 import qualified Data.Text as T
@@ -214,6 +220,16 @@ instance IsString Text where
 instance NFData Text where
     rnf Empty        = ()
     rnf (Chunk _ ts) = rnf ts
+#endif
+
+instance Data Text where
+  gfoldl f z txt = z pack `f` (unpack txt)
+  toConstr _     = error "Data.Text.Lazy.Text.toConstr"
+  gunfold _ _    = error "Data.Text.Lazy.Text.gunfold"
+#if __GLASGOW_HASKELL__ >= 612
+  dataTypeOf _   = mkNoRepType "Data.Text.Lazy.Text"
+#else
+  dataTypeOf _   = mkNorepType "Data.Text.Lazy.Text"
 #endif
 
 -- | /O(n)/ Convert a 'String' into a 'Text'.
