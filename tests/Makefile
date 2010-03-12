@@ -5,7 +5,8 @@ ghc-base-flags := -funbox-strict-fields -package criterion \
 	-package bytestring -ignore-package text \
 	-fno-ignore-asserts
 ghc-test-flags := -package QuickCheck -package test-framework \
-	-package test-framework-quickcheck
+	-package test-framework-quickcheck -package test-framework-hunit \
+	-package HUnit
 ghc-base-flags += -Wall -fno-warn-orphans -fno-warn-missing-signatures
 ghc-flags := $(ghc-base-flags) -i../dist/build -package-name text-$(version)
 ghc-hpc-flags := $(ghc-base-flags) -fhpc -fno-ignore-asserts -odir hpcdir \
@@ -16,7 +17,7 @@ lib-srcs := $(shell grep '^  *Data' ../text.cabal | \
 
 cabal := $(shell which cabal 2>/dev/null)
 
-all: bm qc coverage
+all: bm qc coverage regressions
 
 lib: $(lib)
 
@@ -45,6 +46,9 @@ qc-hpc: Properties.hs QuickCheckUtils.hs $(lib-srcs:%=../%)
 	@rm -f $@.tix
 	$(ghc) $(ghc-hpc-flags) $(ghc-opt-flags) -ihpcdir \
 	  --make -threaded -o $@ $<
+
+regressions: Regressions.o
+	$(ghc) $(ghc-test-flags) -o $@ $^ $(lib)
 
 coverage: qc-hpc-html/hpc_index.html
 

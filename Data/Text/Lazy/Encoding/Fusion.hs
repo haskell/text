@@ -100,19 +100,17 @@ streamUtf8 onErr bs0 = Stream next (T bs0 S0 0) unknownSize
 unstreamChunks :: Int -> Stream Word8 -> ByteString
 unstreamChunks chunkSize (Stream next s0 len0) = chunk s0 (upperBound 4 len0)
   where chunk s1 len1 = unsafePerformIO $ do
-          let len = min len1 chunkSize
+          let len = max 4 (min len1 chunkSize)
           mallocByteString len >>= loop len 0 s1
           where
             loop !n !off !s fp = case next s of
                 Done | off == 0 -> return Empty
-                     | otherwise -> do
-                      bs <- trimUp fp off
-                      return $! Chunk bs Empty
+                     | otherwise -> return $! Chunk (trimUp fp off) Empty
                 Skip s' -> loop n off s' fp
                 Yield x s'
                     | off == chunkSize -> do
-                      bs <- trimUp fp off
-                      return (Chunk bs (chunk s (n - B.length bs)))
+                      let !newLen = n - off
+                      return $! Chunk (trimUp fp off) (chunk s newLen)
                     | off == n -> realloc fp n off s' x
                     | otherwise -> do
                       withForeignPtr fp $ \p -> pokeByteOff p off x
@@ -123,8 +121,7 @@ unstreamChunks chunkSize (Stream next s0 len0) = chunk s0 (upperBound 4 len0)
               fp' <- copy0 fp n n'
               withForeignPtr fp' $ \p -> pokeByteOff p off x
               loop n' (off+1) s fp'
-            {-# NOINLINE trimUp #-}
-            trimUp fp off = return $! B.PS fp 0 off
+            trimUp fp off = B.PS fp 0 off
             copy0 :: ForeignPtr Word8 -> Int -> Int -> IO (ForeignPtr Word8)
             copy0 !src !srcLen !destLen = assert (srcLen <= destLen) $ do
                 dest <- mallocByteString destLen
