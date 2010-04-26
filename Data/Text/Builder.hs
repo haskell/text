@@ -28,6 +28,7 @@ module Data.Text.Builder
    , flush
    ) where
 
+import Control.Exception (assert)
 import Control.Monad.ST
 import Data.Bits ((.&.))
 import Data.Char (ord)
@@ -111,9 +112,7 @@ copyLimit =  128
 fromText :: S.Text -> Builder
 fromText t@(Text arr off l)
     | S.null t       = empty
-    | l <= copyLimit = writeN l $ \marr o ->
-          sequence_ [A.unsafeWrite marr (o+i) (A.unsafeIndex arr (off+i)) |
-                     i <- [0..l-1]]
+    | l <= copyLimit = writeN l $ \marr o -> unsafeCopy arr off marr o l
     | otherwise      = flush `append` mapBuilder (t :)
 {-# INLINE fromText #-}
 
@@ -220,3 +219,19 @@ inlineInterleaveST :: ST s a -> ST s a
 inlineInterleaveST (ST m) = ST $ \ s ->
     let r = case m s of (# _, res #) -> res in (# s, r #)
 {-# INLINE inlineInterleaveST #-}
+
+------------------------------------------------------------------------
+
+-- | Unsafely copy the elements of an array.
+unsafeCopy :: A.Elt e =>
+              A.Array e -> Int -> A.MArray s e -> Int -> Int -> ST s ()
+unsafeCopy src sidx dest didx count =
+    assert (sidx + count <= A.length src) .
+    assert (didx + count <= A.length dest) $
+    copy_loop sidx didx 0
+    where
+      copy_loop !i !j !c
+          | c >= count  = return ()
+          | otherwise = do A.unsafeWrite dest j (A.unsafeIndex src i)
+                           copy_loop (i+1) (j+1) (c+1)
+{-# INLINE unsafeCopy #-}
