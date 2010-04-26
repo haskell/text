@@ -44,6 +44,7 @@ library
     Data.Text.Lazy.IO
   other-modules:
     Data.Text.Array
+    Data.Text.Builder
     Data.Text.Encoding.Fusion
     Data.Text.Encoding.Fusion.Common
     Data.Text.Encoding.Utf16
