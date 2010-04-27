@@ -1,4 +1,4 @@
-{-# LANGUAGE GADTs, MagicHash #-}
+{-# LANGUAGE BangPatterns, GADTs, MagicHash #-}
 
 import qualified Data.ByteString.Char8 as BS
 import qualified Data.ByteString.Lazy.Char8 as BL
@@ -7,8 +7,10 @@ import Control.Monad.Trans (liftIO)
 import Control.Exception (evaluate)
 import Criterion.Main
 import Data.Char
+import Data.Monoid (mappend, mempty)
 import qualified Codec.Binary.UTF8.Generic as UTF8
 import qualified Data.Text as TS
+import qualified Data.Text.Builder as TB
 import qualified Data.Text.IO as TS
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.IO as TL
@@ -388,6 +390,10 @@ main = do
         , bench "bl" $ nf (L.length . BL.zipWith min blb) bla
         , bench "l" $ nf (L.length . L.zipWith min lb) la
         ]
+      ],
+      bgroup "builder" [
+        bench "mappend char" $ nf (TL.length . TB.toLazyText . mappendNChar 'a') 10000,
+        bench "mappend text" $ nf (TL.length . TB.toLazyText . mappendNText short) 10000
       ]
     ]
   where
@@ -402,6 +408,7 @@ main = do
     f (C# c#) = C# (chr# (ord# c# +# 1#))
     len l _ = l + (1::Int)
     replicat n = concat . L.replicate n
+    short = TS.pack "short"
 
 chunksOf :: Int -> BS.ByteString -> [BS.ByteString]
 chunksOf k = go
@@ -409,3 +416,17 @@ chunksOf k = go
     go t = case BS.splitAt k t of
              (a,b) | BS.null a -> []
                    | otherwise -> a : go b
+
+mappendNChar :: Char -> Int -> TB.Builder
+mappendNChar c n = go 0 mempty
+  where
+    go i !acc
+      | i < n     = go (i+1) (acc `mappend` TB.singleton c)
+      | otherwise = acc
+
+mappendNText :: TS.Text -> Int -> TB.Builder
+mappendNText t n = go 0 mempty
+  where
+    go i !acc
+      | i < n     = go (i+1) (acc `mappend` TB.fromText t)
+      | otherwise = acc

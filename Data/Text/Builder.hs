@@ -229,9 +229,9 @@ unsafeCopy src sidx dest didx count =
     assert (sidx + count <= A.length src) .
     assert (didx + count <= A.length dest) $
     copy_loop sidx didx 0
-    where
-      copy_loop !i !j !c
-          | c >= count  = return ()
-          | otherwise = do A.unsafeWrite dest j (A.unsafeIndex src i)
-                           copy_loop (i+1) (j+1) (c+1)
+  where
+    copy_loop !i !j !c
+        | c >= count  = return ()
+        | otherwise = do A.unsafeWrite dest j (A.unsafeIndex src i)
+                         copy_loop (i+1) (j+1) (c+1)
 {-# INLINE unsafeCopy #-}
