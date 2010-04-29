@@ -29,15 +29,15 @@ module Data.Text.Lazy.Builder
    ) where
 
 import Control.Exception (assert)
-import Control.Monad.ST
+import Control.Monad.ST (ST, runST)
 import Data.Bits ((.&.))
 import Data.Char (ord)
 import Data.Monoid (Monoid(..))
 import Data.Text.Internal (Text(..))
 import Data.Text.Lazy.Internal (defaultChunkSize)
+import Data.Text.Unsafe (inlineInterleaveST)
 import Data.Text.UnsafeShift (shiftR)
-import Data.Word
-import GHC.ST (ST(..))
+import Data.Word (Word16)
 import Prelude hiding (map, putChar)
 
 import qualified Data.Text as S
@@ -214,13 +214,6 @@ newBuffer size = do
     arr <- A.unsafeNew size
     return $! Buffer arr 0 0 size
 {-# INLINE newBuffer #-}
-
-inlineInterleaveST :: ST s a -> ST s a
-inlineInterleaveST (ST m) = ST $ \ s ->
-    let r = case m s of (# _, res #) -> res in (# s, r #)
-{-# INLINE inlineInterleaveST #-}
-
-------------------------------------------------------------------------
 
 -- | Unsafely copy the elements of an array.
 unsafeCopy :: A.Elt e =>

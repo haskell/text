@@ -12,7 +12,8 @@
 -- use in heavily tested code.
 module Data.Text.Unsafe
     (
-      inlinePerformIO
+      inlineInterleaveST
+    , inlinePerformIO
     , iter
     , iter_
     , reverseIter
@@ -21,9 +22,10 @@ module Data.Text.Unsafe
     ) where
      
 import Control.Exception (assert)
+import Data.Text.Encoding.Utf16 (chr2)
 import Data.Text.Internal (Text(..))
 import Data.Text.UnsafeChar (unsafeChr)
-import Data.Text.Encoding.Utf16 (chr2)
+import GHC.ST (ST(..))
 import qualified Data.Text.Array as A
 #if defined(__GLASGOW_HASKELL__)
 # if __GLASGOW_HASKELL__ >= 611
@@ -100,3 +102,17 @@ inlinePerformIO (IO m) = case m realWorld# of (# _, r #) -> r
 #else
 inlinePerformIO = unsafePerformIO
 #endif
+
+-- | Allow an 'ST' computation to be deferred lazily. When passed an
+-- action of type 'ST' @s@ @a@, the action will only be performed when
+-- the value of @a@ is demanded.
+--
+-- This function is identical to the normal unsafeInterleaveST, but is
+-- inlined and hence faster.
+--
+-- /Note/: This operation is highly unsafe, as it can introduce
+-- externally visible non-determinism into an 'ST' action.
+inlineInterleaveST :: ST s a -> ST s a
+inlineInterleaveST (ST m) = ST $ \ s ->
+    let r = case m s of (# _, res #) -> res in (# s, r #)
+{-# INLINE inlineInterleaveST #-}
