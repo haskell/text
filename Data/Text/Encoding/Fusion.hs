@@ -7,7 +7,7 @@
 --               (c) Duncan Coutts 2009
 --
 -- License     : BSD-style
--- Maintainer  : rtharper@aftereternity.co.uk, bos@serpentine.com,
+-- Maintainer  : bos@serpentine.com, rtomharper@googlemail.com,
 --               duncan@haskell.org
 -- Stability   : experimental
 -- Portability : portable
