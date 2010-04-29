@@ -2,7 +2,7 @@
 
 -----------------------------------------------------------------------------
 -- |
--- Module      : Data.Text.Builder
+-- Module      : Data.Text.Lazy.Builder
 -- Copyright   : Johan Tibell
 -- License     : BSD3-style (see LICENSE)
 -- 
@@ -14,7 +14,7 @@
 --
 -----------------------------------------------------------------------------
 
-module Data.Text.Builder
+module Data.Text.Lazy.Builder
    ( -- * The Builder type
      Builder
    , toLazyText
