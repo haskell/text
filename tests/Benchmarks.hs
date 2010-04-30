@@ -10,9 +10,9 @@ import Data.Char
 import Data.Monoid (mappend, mempty)
 import qualified Codec.Binary.UTF8.Generic as UTF8
 import qualified Data.Text as TS
-import qualified Data.Text.Builder as TB
 import qualified Data.Text.IO as TS
 import qualified Data.Text.Lazy as TL
+import qualified Data.Text.Lazy.Builder as TB
 import qualified Data.Text.Lazy.IO as TL
 import qualified Data.List as L
 import qualified Data.Text.Encoding as TS

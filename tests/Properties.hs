@@ -13,8 +13,8 @@ import Debug.Trace (trace)
 import Control.Arrow ((***), second)
 import Data.Word (Word8, Word16, Word32)
 import qualified Data.Text as T
-import qualified Data.Text.Builder as TB
 import qualified Data.Text.Lazy as TL
+import qualified Data.Text.Lazy.Builder as TB
 import qualified Data.Text.Encoding as E
 import Control.Exception (SomeException, evaluate, try)
 import qualified Data.Text.Fusion as S
