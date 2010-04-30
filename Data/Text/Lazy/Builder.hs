@@ -156,11 +156,11 @@ flush = Builder $ \ k buf@(Buffer p o u l) ->
 ------------------------------------------------------------------------
 
 -- | Sequence an ST operation on the buffer
-unsafeLiftST :: (forall s. Buffer s -> ST s (Buffer s)) -> Builder
-unsafeLiftST f = Builder $ \k buf -> inlineInterleaveST $ do
+withBuffer :: (forall s. Buffer s -> ST s (Buffer s)) -> Builder
+withBuffer f = Builder $ \k buf -> do
     buf' <- f buf
     k buf'
-{-# INLINE unsafeLiftST #-}
+{-# INLINE withBuffer #-}
 
 -- | Get the size of the buffer
 withSize :: (Int -> Builder) -> Builder
@@ -193,13 +193,13 @@ ensureFree :: Int -> Builder
 ensureFree n = n `seq` withSize $ \ l ->
     if n <= l
     then empty
-    else flush `append` unsafeLiftST (const (newBuffer (max n defaultChunkSize)))
+    else flush `append` withBuffer (const (newBuffer (max n defaultChunkSize)))
 {-# INLINE ensureFree #-}
 
 -- | Ensure that @n@ many elements are available, and then use @f@ to
 -- write some elements into the memory.
 writeN :: Int -> (forall s. A.MArray s Word16 -> Int -> ST s ()) -> Builder
-writeN n f = ensureFree 1 `append` unsafeLiftST (writeNBuffer n f)
+writeN n f = ensureFree 1 `append` withBuffer (writeNBuffer n f)
 {-# INLINE writeN #-}
 
 writeNBuffer :: Int -> (A.MArray s Word16 -> Int -> ST s ()) -> (Buffer s)
