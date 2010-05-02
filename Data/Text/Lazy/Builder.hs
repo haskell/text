@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, Rank2Types, UnboxedTuples #-}
+{-# LANGUAGE BangPatterns, Rank2Types #-}
 
 -----------------------------------------------------------------------------
 -- |
