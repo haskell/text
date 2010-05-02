@@ -165,9 +165,7 @@ flush = Builder $ \ k buf@(Buffer p o u l) ->
 
 -- | Sequence an ST operation on the buffer
 withBuffer :: (forall s. Buffer s -> ST s (Buffer s)) -> Builder
-withBuffer f = Builder $ \k buf -> do
-    buf' <- f buf
-    k buf'
+withBuffer f = Builder $ \k buf -> f buf >>= k
 {-# INLINE withBuffer #-}
 
 -- | Get the size of the buffer
@@ -198,7 +196,7 @@ putChar c
 
 -- | Ensure that there are at least @n@ many elements available.
 ensureFree :: Int -> Builder
-ensureFree n = n `seq` withSize $ \ l ->
+ensureFree !n = withSize $ \ l ->
     if n <= l
     then empty
     else flush `append` withBuffer (const (newBuffer (max n defaultChunkSize)))
