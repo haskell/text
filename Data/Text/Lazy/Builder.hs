@@ -18,6 +18,7 @@ module Data.Text.Lazy.Builder
    ( -- * The Builder type
      Builder
    , toLazyText
+   , toLazyTextWith
 
      -- * Constructing Builders
    , singleton
@@ -134,14 +135,21 @@ data Buffer s = Buffer {-# UNPACK #-} !(A.MArray s Word16)
 
 ------------------------------------------------------------------------
 
--- | /O(n)./ Extract a lazy 'L.T' from a 'Builder'.  The construction
--- work takes place if and when the relevant part of the lazy 'L.T' is
--- demanded.
---
+-- | /O(n)./ Extract a lazy 'L.Text' from a 'Builder' with a default
+-- buffer size.  The construction work takes place if and when the
+-- relevant part of the lazy 'L.Text' is demanded.
 toLazyText :: Builder -> L.Text
-toLazyText m = L.fromChunks $ runST $ do
-    buf <- newBuffer defaultChunkSize
-    runBuilder (m `append` flush) (const (return [])) buf
+toLazyText = toLazyTextWith defaultChunkSize
+
+-- | /O(n)./ Extract a lazy 'L.Text' from a 'Builder', using the given
+-- size for the initial buffer.  The construction work takes place if
+-- and when the relevant part of the lazy 'L.Text' is demanded.
+--
+-- If the initial buffer is too small to hold all data, subsequent
+-- buffers will be the default buffer size.
+toLazyTextWith :: Int -> Builder -> L.Text
+toLazyTextWith chunkSize m = L.fromChunks . runST $
+  newBuffer chunkSize >>= runBuilder (m `append` flush) (const (return []))
 
 -- | /O(1)./ Pop the 'S.Text' we have constructed so far, if any,
 -- yielding a new chunk in the result lazy 'L.Text'.
