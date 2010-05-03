@@ -158,8 +158,10 @@ flush = Builder $ \ k buf@(Buffer p o u l) ->
     if u == 0
         then k buf
         else do arr  <- A.unsafeFreeze p
-                buf' <- inlineInterleaveST (k (Buffer p (o+u) 0 l))
-                return (Text arr o u : buf')
+                let !b = Buffer p (o+u) 0 l
+                    !t = Text arr o u
+                buf' <- inlineInterleaveST (k b)
+                return $! t : buf'
 
 ------------------------------------------------------------------------
 
@@ -175,8 +177,7 @@ withSize f = Builder $ \ k buf@(Buffer _ _ _ l) ->
 
 -- | Map the resulting list of texts.
 mapBuilder :: ([S.Text] -> [S.Text]) -> Builder
-mapBuilder f = Builder $ \ k buf -> do txt <- k buf
-                                       return (f txt)
+mapBuilder f = Builder (fmap f .)
 
 ------------------------------------------------------------------------
 
@@ -212,7 +213,7 @@ writeNBuffer :: Int -> (A.MArray s Word16 -> Int -> ST s ()) -> (Buffer s)
              -> ST s (Buffer s)
 writeNBuffer n f (Buffer p o u l) = do
     f p (o+u)
-    return (Buffer p o (u+n) (l-n))
+    return $! Buffer p o (u+n) (l-n)
 {-# INLINE writeNBuffer #-}
 
 newBuffer :: Int -> ST s (Buffer s)
