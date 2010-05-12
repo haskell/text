@@ -200,13 +200,13 @@ ensureFree :: Int -> Builder
 ensureFree !n = withSize $ \ l ->
     if n <= l
     then empty
-    else flush `append` withBuffer (const (newBuffer (max n defaultChunkSize)))
+    else flush `append'` withBuffer (const (newBuffer (max n defaultChunkSize)))
 {-# INLINE [1] ensureFree #-}
 
 -- | Ensure that @n@ many elements are available, and then use @f@ to
 -- write some elements into the memory.
 writeN :: Int -> (forall s. A.MArray s Word16 -> Int -> ST s ()) -> Builder
-writeN n f = ensureFree 1 `append` withBuffer (writeNBuffer n f)
+writeN n f = ensureFree 1 `append'` withBuffer (writeNBuffer n f)
 {-# INLINE [1] writeN #-}
 
 writeNBuffer :: Int -> (A.MArray s Word16 -> Int -> ST s ()) -> (Buffer s)
@@ -238,6 +238,13 @@ unsafeCopy src sidx dest didx count =
 
 ------------------------------------------------------------------------
 -- Some nice rules for Builder
+
+-- This function makes GHC understand that 'writeN' and 'ensureFree'
+-- are *not* recursive in the precense of the rewrite rules below.
+-- This is not needed with GHC 6.14+.
+append' :: Builder -> Builder -> Builder
+append' (Builder f) (Builder g) = Builder (f . g)
+{-# INLINE append' #-}
 
 {-# RULES
 
