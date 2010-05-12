@@ -97,7 +97,7 @@ singleton c = putChar c
 --
 append :: Builder -> Builder -> Builder
 append (Builder f) (Builder g) = Builder (f . g)
-{-# INLINE append #-}
+{-# INLINE [1] append #-}
 
 -- TODO: Experiment to find the right threshold.
 copyLimit :: Int
@@ -201,13 +201,13 @@ ensureFree !n = withSize $ \ l ->
     if n <= l
     then empty
     else flush `append` withBuffer (const (newBuffer (max n defaultChunkSize)))
-{-# INLINE ensureFree #-}
+{-# INLINE [1] ensureFree #-}
 
 -- | Ensure that @n@ many elements are available, and then use @f@ to
 -- write some elements into the memory.
 writeN :: Int -> (forall s. A.MArray s Word16 -> Int -> ST s ()) -> Builder
 writeN n f = ensureFree 1 `append` withBuffer (writeNBuffer n f)
-{-# INLINE writeN #-}
+{-# INLINE [1] writeN #-}
 
 writeNBuffer :: Int -> (A.MArray s Word16 -> Int -> ST s ()) -> (Buffer s)
              -> ST s (Buffer s)
@@ -235,3 +235,21 @@ unsafeCopy src sidx dest didx count =
         | otherwise = do A.unsafeWrite dest j (A.unsafeIndex src i)
                          copy_loop (i+1) (j+1) (c+1)
 {-# INLINE unsafeCopy #-}
+
+------------------------------------------------------------------------
+-- Some nice rules for Builder
+
+{-# RULES
+
+"writeN/combine" forall a b (f::forall s. A.MArray s Word16 -> Int -> ST s ())
+                            (g::forall s. A.MArray s Word16 -> Int -> ST s ()).
+        append (writeN a f) (writeN b g) =
+        (writeN (a+b) (\marr o -> f marr o >> g marr (o+a)))
+
+"ensureFree/combine" forall a b .
+        append (ensureFree a) (ensureFree b) = ensureFree (max a b)
+
+"flush/combine"
+        append flush flush = flush
+
+ #-}

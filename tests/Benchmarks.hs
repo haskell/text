@@ -393,6 +393,7 @@ main = do
       ],
       bgroup "builder" [
         bench "mappend char" $ nf (TL.length . TB.toLazyText . mappendNChar 'a') 10000,
+        bench "mappend 8 char" $ nf (TL.length . TB.toLazyText . mappend8Char) 'a',
         bench "mappend text" $ nf (TL.length . TB.toLazyText . mappendNText short) 10000
       ]
     ]
@@ -423,6 +424,14 @@ mappendNChar c n = go 0 mempty
     go i !acc
       | i < n     = go (i+1) (acc `mappend` TB.singleton c)
       | otherwise = acc
+
+-- Gives more opportunity for inlining and elimination of unnecesary
+-- bounds checks.
+mappend8Char :: Char -> TB.Builder
+mappend8Char c = TB.singleton c `mappend` TB.singleton c `mappend`
+                 TB.singleton c `mappend` TB.singleton c `mappend`
+                 TB.singleton c `mappend` TB.singleton c `mappend`
+                 TB.singleton c `mappend` TB.singleton c
 
 mappendNText :: TS.Text -> Int -> TB.Builder
 mappendNText t n = go 0 mempty
