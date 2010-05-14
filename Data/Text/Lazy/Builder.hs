@@ -206,7 +206,7 @@ ensureFree !n = withSize $ \ l ->
 -- | Ensure that @n@ many elements are available, and then use @f@ to
 -- write some elements into the memory.
 writeN :: Int -> (forall s. A.MArray s Word16 -> Int -> ST s ()) -> Builder
-writeN n f = ensureFree 1 `append'` withBuffer (writeNBuffer n f)
+writeN n f = ensureFree n `append'` withBuffer (writeNBuffer n f)
 {-# INLINE [1] writeN #-}
 
 writeNBuffer :: Int -> (A.MArray s Word16 -> Int -> ST s ()) -> (Buffer s)
@@ -251,7 +251,7 @@ append' (Builder f) (Builder g) = Builder (f . g)
 "writeN/combine" forall a b (f::forall s. A.MArray s Word16 -> Int -> ST s ())
                             (g::forall s. A.MArray s Word16 -> Int -> ST s ()).
         append (writeN a f) (writeN b g) =
-        (writeN (a+b) (\marr o -> f marr o >> g marr (o+a)))
+            writeN (a+b) (\marr o -> f marr o >> g marr (o+a))
 
 "ensureFree/combine" forall a b .
         append (ensureFree a) (ensureFree b) = ensureFree (max a b)
