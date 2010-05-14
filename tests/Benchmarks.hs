@@ -419,11 +419,11 @@ chunksOf k = go
                    | otherwise -> a : go b
 
 mappendNChar :: Char -> Int -> TB.Builder
-mappendNChar c n = go 0 mempty
+mappendNChar c n = go 0
   where
-    go i !acc
-      | i < n     = go (i+1) (acc `mappend` TB.singleton c)
-      | otherwise = acc
+    go i
+      | i < n     = TB.singleton c `mappend` go (i+1)
+      | otherwise = mempty
 
 -- Gives more opportunity for inlining and elimination of unnecesary
 -- bounds checks.
@@ -434,8 +434,8 @@ mappend8Char c = TB.singleton c `mappend` TB.singleton c `mappend`
                  TB.singleton c `mappend` TB.singleton c
 
 mappendNText :: TS.Text -> Int -> TB.Builder
-mappendNText t n = go 0 mempty
+mappendNText t n = go 0
   where
-    go i !acc
-      | i < n     = go (i+1) (acc `mappend` TB.fromText t)
-      | otherwise = acc
+    go i
+      | i < n     = TB.fromText t `mappend` go (i+1)
+      | otherwise = mempty
