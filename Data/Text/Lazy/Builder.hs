@@ -156,12 +156,12 @@ toLazyTextWith chunkSize m = L.fromChunks . runST $
 flush :: Builder
 flush = Builder $ \ k buf@(Buffer p o u l) ->
     if u == 0
-        then k buf
-        else do arr  <- A.unsafeFreeze p
-                let !b = Buffer p (o+u) 0 l
-                    !t = Text arr o u
-                buf' <- inlineInterleaveST (k b)
-                return $! t : buf'
+    then k buf
+    else do arr <- A.unsafeFreeze p
+            let !b = Buffer p (o+u) 0 l
+                !t = Text arr o u
+            ts <- inlineInterleaveST (k b)
+            return $! t : ts
 
 ------------------------------------------------------------------------
 
