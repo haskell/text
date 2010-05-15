@@ -248,15 +248,20 @@ append' (Builder f) (Builder g) = Builder (f . g)
 
 {-# RULES
 
-"writeN/combine" forall a b (f::forall s. A.MArray s Word16 -> Int -> ST s ())
-                            (g::forall s. A.MArray s Word16 -> Int -> ST s ()).
+"append/writeN" forall a b (f::forall s. A.MArray s Word16 -> Int -> ST s ())
+                           (g::forall s. A.MArray s Word16 -> Int -> ST s ()) ws.
+        append (writeN a f) (append (writeN b g) ws) =
+            append (writeN (a+b) (\marr o -> f marr o >> g marr (o+a))) ws
+
+"writeN/writeN" forall a b (f::forall s. A.MArray s Word16 -> Int -> ST s ())
+                           (g::forall s. A.MArray s Word16 -> Int -> ST s ()).
         append (writeN a f) (writeN b g) =
             writeN (a+b) (\marr o -> f marr o >> g marr (o+a))
 
-"ensureFree/combine" forall a b .
+"ensureFree/ensureFree" forall a b .
         append (ensureFree a) (ensureFree b) = ensureFree (max a b)
 
-"flush/combine"
+"flush/flush"
         append flush flush = flush
 
  #-}
