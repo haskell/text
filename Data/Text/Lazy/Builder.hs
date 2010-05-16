@@ -115,7 +115,32 @@ fromText t@(Text arr off l)
     | S.null t       = empty
     | l <= copyLimit = writeN l $ \marr o -> unsafeCopy arr off marr o l
     | otherwise      = flush `append` mapBuilder (t :)
-{-# INLINE fromText #-}
+{-# INLINE [1] fromText #-}
+
+{-# RULES
+"fromText/pack" forall s .
+        fromText (S.pack s) = fromString s
+ #-}
+
+-- | /O(1)./ A Builder taking a 'String', satisfying
+--
+--  * @'toLazyText' ('fromString' s) = 'L.fromChunks' [S.pack s]@
+--
+fromString :: String -> Builder
+fromString str = Builder $ \k (Buffer p0 o0 u0 l0) ->
+    let loop marr !o !u !l [] = k (Buffer marr o u l)
+        loop marr o u l s@(c:cs)
+            | l <= 1 = do
+                arr <- A.unsafeFreeze marr
+                let !t = Text arr o u
+                marr' <- A.unsafeNew defaultChunkSize
+                ts <- inlineInterleaveST (loop marr' 0 0 defaultChunkSize s)
+                return $ t : ts
+            | otherwise = do
+                n <- unsafeWrite marr (o+u) c
+                loop marr o (u+n) (l-n) cs
+    in loop p0 o0 u0 l0 str
+{-# INLINE fromString #-}
 
 -- | /O(1)./ A Builder taking a lazy 'L.Text', satisfying
 --
@@ -235,6 +260,25 @@ unsafeCopy src sidx dest didx count =
         | otherwise = do A.unsafeWrite dest j (A.unsafeIndex src i)
                          copy_loop (i+1) (j+1) (c+1)
 {-# INLINE unsafeCopy #-}
+
+-- Write a character to the array, starting at the specified offset
+-- @i@.  Returns the number of elements written.
+unsafeWrite :: A.MArray s Word16 -> Int -> Char -> ST s Int
+unsafeWrite marr i c
+    | n < 0x10000 = do
+        assert (i >= 0) . assert (i < A.length marr) $
+          A.unsafeWrite marr i (fromIntegral n)
+        return 1
+    | otherwise = do
+        assert (i >= 0) . assert (i < A.length marr - 1) $
+          A.unsafeWrite marr i lo
+        A.unsafeWrite marr (i+1) hi
+        return 2
+    where n = ord c
+          m = n - 0x10000
+          lo = fromIntegral $ (m `shiftR` 10) + 0xD800
+          hi = fromIntegral $ (m .&. 0x3FF) + 0xDC00
+{-# INLINE unsafeWrite #-}
 
 ------------------------------------------------------------------------
 -- Some nice rules for Builder
