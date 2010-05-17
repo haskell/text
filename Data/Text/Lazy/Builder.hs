@@ -97,7 +97,7 @@ singleton c = putChar c
 --
 append :: Builder -> Builder -> Builder
 append (Builder f) (Builder g) = Builder (f . g)
-{-# INLINE [1] append #-}
+{-# INLINE [0] append #-}
 
 -- TODO: Experiment to find the right threshold.
 copyLimit :: Int
@@ -226,13 +226,13 @@ ensureFree !n = withSize $ \ l ->
     if n <= l
     then empty
     else flush `append'` withBuffer (const (newBuffer (max n defaultChunkSize)))
-{-# INLINE [1] ensureFree #-}
+{-# INLINE [0] ensureFree #-}
 
 -- | Ensure that @n@ many elements are available, and then use @f@ to
 -- write some elements into the memory.
 writeN :: Int -> (forall s. A.MArray s Word16 -> Int -> ST s ()) -> Builder
 writeN n f = ensureFree n `append'` withBuffer (writeNBuffer n f)
-{-# INLINE [1] writeN #-}
+{-# INLINE [0] writeN #-}
 
 writeNBuffer :: Int -> (A.MArray s Word16 -> Int -> ST s ()) -> (Buffer s)
              -> ST s (Buffer s)
