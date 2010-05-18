@@ -128,7 +128,7 @@ fromText t@(Text arr off l)
 --
 fromString :: String -> Builder
 fromString str = Builder $ \k (Buffer p0 o0 u0 l0) ->
-    let loop marr !o !u !l [] = k (Buffer marr o u l)
+    let loop !marr !o !u !l [] = k (Buffer marr o u l)
         loop marr o u l s@(c:cs)
             | l <= 1 = do
                 arr <- A.unsafeFreeze marr
