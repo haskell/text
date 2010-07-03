@@ -915,38 +915,33 @@ breakEnd pat src = let (a,b) = break (reverse pat) (reverse src)
 {-# INLINE breakEnd #-}
 
 -- | /O(n+m)/ Find all non-overlapping instances of @needle@ in
--- @haystack@.  The first element of the returned pair is the prefix
--- of @haystack@ prior to any matches of @needle@.  The second is a
--- list of pairs.
+-- @haystack@.  Each element of the returned list consists of a triple:
 --
--- The first element of each pair in the list is a span from the
--- beginning of a match to the beginning of the next match, while the
--- second is a span from the beginning of the match to the end of the
--- input.
+-- * The entire string prior to the /k/th match
+--
+-- * The /k/th match
+--
+-- * The entire string following the /k/th match
 --
 -- Examples:
 --
 -- > find "::" ""
--- > ==> ("", [])
--- > find "/" "a/b/c/d"
--- > ==> ("a", [("/b","/b/c/d"), ("/c","/c/d"), ("/d","/d")])
+-- > ==> []
+-- > find "/" "a/b/c/"
+-- > ==> [("a", "/", "b/c/"), ("a/b", "/", "c/"), ("a/b/c", "/", "")]
 --
 -- This function is strict in its first argument, and lazy in its
 -- second.
 --
 -- In (unlikely) bad cases, this function's time complexity degrades
 -- towards /O(n*m)/.
-find :: Text -> Text -> (Text, [(Text, Text)])
+find :: Text -> Text -> [(Text, Text, Text)]
 find pat src
     | null pat  = emptyError "find"
-    | otherwise = case indices pat src of
-                    []     -> (src, [])
-                    (x:xs) -> let h :*: t = splitAtWord x src
-                              in (h, go x xs t)
+    | otherwise = L.map step (indices pat src)
   where
-    go !i (x:xs) cs = let h :*: t = splitAtWord (x-i) cs
-                      in (h, cs) : go x xs t
-    go  _ _      cs = [(cs,cs)]
+    step x = (take x src, pat, drop (x + l) pat)
+    l      = length pat
 
 -- | /O(n)/ 'breakBy' is like 'spanBy', but the prefix returned is over
 -- elements that fail the predicate @p@.

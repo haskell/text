@@ -408,13 +408,13 @@ t_inits           = L.inits       `eqP` (map unpackS . T.inits)
 tl_inits          = L.inits       `eqP` (map unpackS . TL.inits)
 t_tails           = L.tails       `eqP` (map unpackS . T.tails)
 tl_tails          = L.tails       `eqP` (map unpackS . TL.tails)
-t_findConcat (NotEmpty s) t  = all (==t) $ map conc (T.find s t)
+t_findConcat (NotEmpty s) t = all (==t) $ map conc (T.find s t)
     where conc (a,b,c) = T.concat [a,b,c]
 t_findCount s     = (L.length . T.find s) `eq` T.count s
-tl_findSplit s t        = (TL.split s `eq` splitty) u
-  where splitty v       = case TL.find s v of
-                            (x,xs) -> x : L.map (TL.drop (TL.length s) . fst) xs
-        u = TL.concat [t,s,t]
+tl_findConcat (NotEmpty s) t = all (==t) $ map conc (TL.find s t)
+    where conc (a,b,c) = TL.concat [a,b,c]
+tl_findCount s    = (L.genericLength . TL.find s) `eq` TL.count s
+
 t_split_split s         = unsquare ((T.split s `eq` Slow.split s) .
                                     T.intercalate s)
 tl_split_split s        = unsquare (((TL.split (chunkify s) . chunkify) `eq`
@@ -812,7 +812,8 @@ tests = [
     testGroup "breaking many" [
       testProperty "t_findConcat" t_findConcat,
       testProperty "t_findCount" t_findCount,
-      testProperty "tl_findSplit" tl_findSplit,
+      testProperty "tl_findConcat" tl_findConcat,
+      testProperty "tl_findCount" tl_findCount,
       testProperty "t_split_split" t_split_split,
       testProperty "tl_split_split" tl_split_split,
       testProperty "t_split_i" t_split_i,
