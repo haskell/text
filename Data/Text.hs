@@ -1086,34 +1086,30 @@ breakEnd pat src = let (a,b) = break (reverse pat) (reverse src)
 {-# INLINE breakEnd #-}
 
 -- | /O(n+m)/ Find all non-overlapping instances of @needle@ in
--- @haystack@.  The first element of the returned pair is the prefix
--- of @haystack@ prior to any matches of @needle@.  The second is a
--- list of pairs.
+-- @haystack@.  Each element of the returned list consists of a triple:
 --
--- The first element of each pair in the list is a span from the
--- beginning of a match to the beginning of the next match, while the
--- second is a span from the beginning of the match to the end of the
--- input.
+-- * The entire string prior to the /k/th match
+--
+-- * The /k/th match
+--
+-- * The entire string following the /k/th match
 --
 -- Examples:
 --
 -- > find "::" ""
--- > ==> ("", [])
--- > find "/" "a/b/c/d"
--- > ==> ("a", [("/b","/b/c/d"), ("/c","/c/d"), ("/d","/d")])
+-- > ==> []
+-- > find "/" "a/b/c/"
+-- > ==> [("a", "/", "b/c/"), ("a/b", "/", "c/"), ("a/b/c", "/", "")]
 --
 -- In (unlikely) bad cases, this function's time complexity degrades
 -- towards /O(n*m)/.
-find :: Text -> Text -> (Text, [(Text, Text)])
-find pat src@(Text arr off len)
+find :: Text -> Text -> [(Text, Text, Text)]
+find pat@(Text _ _ plen) src@(Text arr off slen)
     | null pat  = emptyError "find"
-    | otherwise = case indices pat src of
-                    []     -> (src, [])
-                    (x:xs) -> (chunk 0 x, go x xs)
+    | otherwise = L.map step (indices pat src)
   where
-    go !s (x:xs) = (chunk s (x-s), chunk s (len-s)) : go x xs
-    go  s _      = let c = chunk s (len-s)
-                   in [(c,c)]
+    step       x = (chunk 0 x, chunk x plen, chunk (x+plen) (stop-x))
+    stop         = slen - plen
     chunk !n !l  = textP arr (n+off) l
 {-# INLINE find #-}
 
