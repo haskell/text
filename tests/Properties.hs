@@ -195,7 +195,7 @@ tl_null           = null   `eqP` TL.null
 s_length          = length `eqP` S.length
 sf_length p       = (length . L.filter p) `eqP` (S.length . S.filter p)
 t_length          = length `eqP` T.length
-tl_length         = length `eqP` (fromIntegral . TL.length)
+tl_length         = L.genericLength `eqP` TL.length
 
 s_map f           = map f  `eqP` (unpackS . S.map f)
 s_map_s f         = map f  `eqP` (unpackS . S.unstream . S.map f)
