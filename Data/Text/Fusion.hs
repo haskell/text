@@ -65,8 +65,7 @@ default(Int)
 stream :: Text -> Stream Char
 stream (Text arr off len) = Stream next off (maxSize len)
     where
-      end = off+len
-      {-# INLINE next #-}
+      !end = off+len
       next !i
           | i >= end                   = Done
           | n >= 0xD800 && n <= 0xDBFF = Yield (U16.chr2 n n2) (i + 2)
