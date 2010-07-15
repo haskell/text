@@ -40,6 +40,7 @@ library
     Data.Text.Foreign
     Data.Text.IO
     Data.Text.Lazy
+    Data.Text.Lazy.Builder
     Data.Text.Lazy.Encoding
     Data.Text.Lazy.IO
   other-modules:
@@ -56,7 +57,6 @@ library
     Data.Text.Fusion.Size
     Data.Text.IO.Internal
     Data.Text.Internal
-    Data.Text.Lazy.Builder
     Data.Text.Lazy.Encoding.Fusion
     Data.Text.Lazy.Fusion
     Data.Text.Lazy.Internal
