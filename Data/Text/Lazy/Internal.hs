@@ -32,8 +32,8 @@ module Data.Text.Lazy.Internal
 
 import qualified Data.Text.Internal as T
 import Data.Text ()
+import Data.Text.UnsafeShift
 import Data.Typeable (Typeable)
-import Data.Word (Word16)
 import Foreign.Storable (sizeOf)
 
 data Text = Empty
@@ -87,17 +87,17 @@ foldlChunks f z = go z
         go !a (Chunk c cs) = go (f a c) cs
 {-# INLINE foldlChunks #-}
 
--- | Currently set to 32k, less the memory management overhead.
+-- | Currently set to 32KB, less the memory management overhead.
 defaultChunkSize :: Int
-defaultChunkSize = 32 * k - chunkOverhead
-   where k = 1024 `div` sizeOf (undefined :: Word16)
+defaultChunkSize = 16384 - chunkOverhead
 {-# INLINE defaultChunkSize #-}
 
--- | Currently set to 4k, less the memory management overhead.
+-- | Currently set to 256 bytes, less the memory management overhead.
 smallChunkSize :: Int
-smallChunkSize = 4 * k - chunkOverhead
-   where k = 1024 `div` sizeOf (undefined :: Word16)
+smallChunkSize = 128 - chunkOverhead
+{-# INLINE smallChunkSize #-}
 
 -- | The memory management overhead. Currently this is tuned for GHC only.
 chunkOverhead :: Int
-chunkOverhead = 2 * sizeOf (undefined :: Int)
+chunkOverhead = sizeOf (undefined :: Int) `shiftL` 1
+{-# INLINE chunkOverhead #-}
