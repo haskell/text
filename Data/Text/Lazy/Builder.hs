@@ -72,7 +72,7 @@ instance Monoid Builder where
    {-# INLINE mappend #-}
 
 instance String.IsString Builder where
-    fromString = fromLazyText . L.pack
+    fromString = fromString
     {-# INLINE fromString #-}
 
 instance Show Builder where
