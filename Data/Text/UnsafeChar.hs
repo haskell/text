@@ -48,12 +48,12 @@ unsafeWrite marr i c
     | n < 0x10000 = do
         assert (i >= 0) . assert (i < A.length marr) $
           A.unsafeWrite marr i (fromIntegral n)
-        return (i+1)
+        return $! i+1
     | otherwise = do
         assert (i >= 0) . assert (i < A.length marr - 1) $
           A.unsafeWrite marr i lo
         A.unsafeWrite marr (i+1) hi
-        return (i+2)
+        return $! i+2
     where n = ord c
           m = n - 0x10000
           lo = fromIntegral $ (m `shiftR` 10) + 0xD800
