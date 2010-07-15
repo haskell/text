@@ -41,6 +41,7 @@ import Data.Text.UnsafeShift (shiftR)
 import Data.Word (Word16)
 import Prelude hiding (map, putChar)
 
+import qualified Data.String as String
 import qualified Data.Text as S
 import qualified Data.Text.Array as A
 import qualified Data.Text.Lazy as L
@@ -69,6 +70,13 @@ instance Monoid Builder where
    {-# INLINE mempty #-}
    mappend = append
    {-# INLINE mappend #-}
+
+instance String.IsString Builder where
+    fromString = fromLazyText . L.pack
+    {-# INLINE fromString #-}
+
+instance Show Builder where
+    show = L.unpack . toLazyText
 
 ------------------------------------------------------------------------
 
