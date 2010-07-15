@@ -35,7 +35,7 @@ import Data.Bits ((.&.))
 import Data.Char (ord)
 import Data.Monoid (Monoid(..))
 import Data.Text.Internal (Text(..))
-import Data.Text.Lazy.Internal (defaultChunkSize)
+import Data.Text.Lazy.Internal (smallChunkSize)
 import Data.Text.Unsafe (inlineInterleaveST)
 import Data.Text.UnsafeShift (shiftR)
 import Data.Word (Word16)
@@ -133,13 +133,15 @@ fromString str = Builder $ \k (Buffer p0 o0 u0 l0) ->
             | l <= 1 = do
                 arr <- A.unsafeFreeze marr
                 let !t = Text arr o u
-                marr' <- A.unsafeNew defaultChunkSize
-                ts <- inlineInterleaveST (loop marr' 0 0 defaultChunkSize s)
+                marr' <- A.unsafeNew chunkSize
+                ts <- inlineInterleaveST (loop marr' 0 0 chunkSize s)
                 return $ t : ts
             | otherwise = do
                 n <- unsafeWrite marr (o+u) c
                 loop marr o (u+n) (l-n) cs
     in loop p0 o0 u0 l0 str
+  where
+    chunkSize = smallChunkSize
 {-# INLINE fromString #-}
 
 -- | /O(1)./ A Builder taking a lazy 'L.Text', satisfying
@@ -164,7 +166,7 @@ data Buffer s = Buffer {-# UNPACK #-} !(A.MArray s Word16)
 -- buffer size.  The construction work takes place if and when the
 -- relevant part of the lazy 'L.Text' is demanded.
 toLazyText :: Builder -> L.Text
-toLazyText = toLazyTextWith defaultChunkSize
+toLazyText = toLazyTextWith smallChunkSize
 
 -- | /O(n)./ Extract a lazy 'L.Text' from a 'Builder', using the given
 -- size for the initial buffer.  The construction work takes place if
@@ -225,7 +227,7 @@ ensureFree :: Int -> Builder
 ensureFree !n = withSize $ \ l ->
     if n <= l
     then empty
-    else flush `append'` withBuffer (const (newBuffer (max n defaultChunkSize)))
+    else flush `append'` withBuffer (const (newBuffer (max n smallChunkSize)))
 {-# INLINE [0] ensureFree #-}
 
 -- | Ensure that @n@ many elements are available, and then use @f@ to
