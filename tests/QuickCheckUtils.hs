@@ -49,7 +49,10 @@ instance Arbitrary TL.Text where
     arbitrary     = TL.pack `fmap` arbitrary
 
 newtype NotEmpty a = NotEmpty { notEmpty :: a }
-    deriving (Eq, Ord, Show)
+    deriving (Eq, Ord)
+
+instance Show a => Show (NotEmpty a) where
+    show (NotEmpty a) = show a
 
 instance Functor NotEmpty where
     fmap f (NotEmpty a) = NotEmpty (f a)
