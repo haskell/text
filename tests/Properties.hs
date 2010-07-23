@@ -252,14 +252,21 @@ tl_toUpper_upper t = p (TL.toUpper t) >= p t
 justifyLeft k c s  = s ++ L.replicate (k - length s) c
 justifyRight m n s = L.replicate (m - length s) n ++ s
 
-s_justifyLeft k c = justifyLeft k c `eqP` (unpackS . S.justifyLeftI k c)
-s_justifyLeft_s k c = justifyLeft k c `eqP` (unpackS . S.unstream . S.justifyLeftI k c)
-sf_justifyLeft p k c =
-    (justifyLeft k c . L.filter p) `eqP` (unpackS . S.justifyLeftI k c . S.filter p)
-t_justifyLeft k c = justifyLeft k c `eqP` (unpackS . T.justifyLeft k c)
-tl_justifyLeft k c = justifyLeft k c `eqP` (unpackS . TL.justifyLeft (fromIntegral k) c)
-t_justifyRight k c = justifyRight k c `eqP` (unpackS . T.justifyRight k c)
-tl_justifyRight k c = justifyRight k c `eqP` (unpackS . TL.justifyRight (fromIntegral k) c)
+s_justifyLeft k c = justifyLeft j c `eqP` (unpackS . S.justifyLeftI j c)
+    where j = fromIntegral (k :: Word8)
+s_justifyLeft_s k c = justifyLeft j c `eqP` (unpackS . S.unstream . S.justifyLeftI j c)
+    where j = fromIntegral (k :: Word8)
+sf_justifyLeft p k c = (justifyLeft j c . L.filter p) `eqP`
+                       (unpackS . S.justifyLeftI j c . S.filter p)
+    where j = fromIntegral (k :: Word8)
+t_justifyLeft k c = justifyLeft j c `eqP` (unpackS . T.justifyLeft j c)
+    where j = fromIntegral (k :: Word8)
+tl_justifyLeft k c = justifyLeft j c `eqP` (unpackS . TL.justifyLeft (fromIntegral j) c)
+    where j = fromIntegral (k :: Word8)
+t_justifyRight k c = justifyRight j c `eqP` (unpackS . T.justifyRight j c)
+    where j = fromIntegral (k :: Word8)
+tl_justifyRight k c = justifyRight j c `eqP` (unpackS . TL.justifyRight (fromIntegral j) c)
+    where j = fromIntegral (k :: Word8)
 
 sf_foldl p f z     = (L.foldl f z . L.filter p)  `eqP` (S.foldl f z . S.filter p)
     where _types  = f :: Char -> Char -> Char
@@ -330,19 +337,27 @@ tl_mapAccumR f z   = unsquare (L.mapAccumR f z `eqP` (second unpackS . TL.mapAcc
 
 replicate n l = concat (L.replicate n l)
 
-t_replicate n     = replicate n `eq` (unpackS . T.replicate n . packS)
-tl_replicate n    = replicate n `eq` (unpackS . TL.replicate (fromIntegral n) . packS)
+t_replicate n     = replicate m `eq` (unpackS . T.replicate m . packS)
+    where m = fromIntegral (n :: Word8)
+tl_replicate n    = replicate m `eq` (unpackS . TL.replicate (fromIntegral m) . packS)
+    where m = fromIntegral (n :: Word8)
 
 unf :: Int -> Char -> Maybe (Char, Char)
 unf n c | fromEnum c * 100 > n = Nothing
         | otherwise            = Just (c, succ c)
 
-t_unfoldr n       = L.unfoldr (unf n) `eq` (unpackS . T.unfoldr (unf n))
-tl_unfoldr n      = L.unfoldr (unf n) `eq` (unpackS . TL.unfoldr (unf n))
-t_unfoldrN n m    = (L.take n . L.unfoldr (unf m)) `eq`
-                         (unpackS . T.unfoldrN n (unf m))
-tl_unfoldrN n m   = (L.take n . L.unfoldr (unf m)) `eq`
-                         (unpackS . TL.unfoldrN (fromIntegral n) (unf m))
+t_unfoldr n       = L.unfoldr (unf m) `eq` (unpackS . T.unfoldr (unf m))
+    where m = fromIntegral (n :: Word16)
+tl_unfoldr n      = L.unfoldr (unf m) `eq` (unpackS . TL.unfoldr (unf m))
+    where m = fromIntegral (n :: Word16)
+t_unfoldrN n m    = (L.take i . L.unfoldr (unf j)) `eq`
+                         (unpackS . T.unfoldrN i (unf j))
+    where i = fromIntegral (n :: Word16)
+          j = fromIntegral (m :: Word16)
+tl_unfoldrN n m   = (L.take i . L.unfoldr (unf j)) `eq`
+                         (unpackS . TL.unfoldrN (fromIntegral i) (unf j))
+    where i = fromIntegral (n :: Word16)
+          j = fromIntegral (m :: Word16)
 
 unpack2 :: (Stringy s) => (s,s) -> (String,String)
 unpack2 = unpackS *** unpackS
