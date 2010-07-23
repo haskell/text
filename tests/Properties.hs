@@ -2,7 +2,7 @@
              ScopedTypeVariables, TypeSynonymInstances #-}
 {-# OPTIONS_GHC -fno-enable-rewrite-rules #-}
 
-import Test.QuickCheck hiding (evaluate)
+import Test.QuickCheck
 import Text.Show.Functions ()
 
 import qualified Data.Bits as Bits (shiftL, shiftR)
@@ -27,7 +27,7 @@ import qualified Data.List as L
 import Prelude hiding (replicate)
 import System.IO.Unsafe (unsafePerformIO)
 import Test.Framework (defaultMain, testGroup)
-import Test.Framework.Providers.QuickCheck (testProperty)
+import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Data.Text.Search (indices)
 import qualified Data.Text.Lazy.Search as S (indices)
 import qualified SlowFunctions as Slow

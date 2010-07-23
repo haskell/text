@@ -5,7 +5,7 @@ ghc-base-flags := -funbox-strict-fields -package criterion \
 	-package bytestring -ignore-package text \
 	-fno-ignore-asserts
 ghc-test-flags := -package QuickCheck -package test-framework \
-	-package test-framework-quickcheck -package test-framework-hunit \
+	-package test-framework-quickcheck2 -package test-framework-hunit \
 	-package HUnit
 ghc-base-flags += -Wall -fno-warn-orphans -fno-warn-missing-signatures
 ghc-flags := $(ghc-base-flags) -i../dist/build -package-name text-$(version)

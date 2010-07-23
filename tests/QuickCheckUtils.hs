@@ -17,7 +17,6 @@ instance Random Int64 where
 
 instance Arbitrary Int64 where
     arbitrary     = choose (minBound,maxBound)
-    coarbitrary c = variant (fromEnum c `rem` 4)
 
 instance Random Word8 where
     randomR = integralRandomR
@@ -25,11 +24,9 @@ instance Random Word8 where
 
 instance Arbitrary Word8 where
     arbitrary     = choose (minBound,maxBound)
-    coarbitrary c = variant (fromEnum c `rem` 4)
 
 instance Arbitrary B.ByteString where
     arbitrary     = B.pack `fmap` arbitrary
-    coarbitrary s = coarbitrary (B.unpack s)
 
 instance Random Word16 where
     randomR = integralRandomR
@@ -37,7 +34,6 @@ instance Random Word16 where
 
 instance Arbitrary Word16 where
     arbitrary     = choose (minBound,maxBound)
-    coarbitrary c = variant (fromEnum c `rem` 4)
 
 instance Random Word32 where
     randomR = integralRandomR
@@ -45,19 +41,12 @@ instance Random Word32 where
 
 instance Arbitrary Word32 where
     arbitrary     = choose (minBound,maxBound)
-    coarbitrary c = variant (fromEnum c `rem` 4)
-
-instance Arbitrary Char where
-    arbitrary     = oneof [choose ('\0','\55295'), choose ('\57344','\1114111')]
-    coarbitrary c = variant (fromEnum c `rem` 4)
 
 instance Arbitrary T.Text where
     arbitrary     = T.pack `fmap` arbitrary
-    coarbitrary s = coarbitrary (T.unpack s)
 
 instance Arbitrary TL.Text where
     arbitrary     = TL.pack `fmap` arbitrary
-    coarbitrary s = coarbitrary (TL.unpack s)
 
 newtype NotEmpty a = NotEmpty { notEmpty :: a }
     deriving (Eq, Ord, Show)
@@ -67,19 +56,15 @@ instance Functor NotEmpty where
 
 instance Arbitrary a => Arbitrary (NotEmpty [a]) where
     arbitrary   = sized (\n -> NotEmpty `fmap` (choose (1,n+1) >>= vector))
-    coarbitrary = coarbitrary . notEmpty
 
 instance Arbitrary (NotEmpty T.Text) where
     arbitrary   = (fmap T.pack) `fmap` arbitrary
-    coarbitrary = coarbitrary . notEmpty
 
 instance Arbitrary (NotEmpty TL.Text) where
     arbitrary   = (fmap TL.pack) `fmap` arbitrary
-    coarbitrary = coarbitrary . notEmpty
 
 instance Arbitrary (NotEmpty B.ByteString) where
     arbitrary   = (fmap B.pack) `fmap` arbitrary
-    coarbitrary = coarbitrary . notEmpty
 
 data Small = S0  | S1  | S2  | S3  | S4  | S5  | S6  | S7
            | S8  | S9  | S10 | S11 | S12 | S13 | S14 | S15
@@ -120,7 +105,6 @@ instance Random Small where
 
 instance Arbitrary Small where
     arbitrary     = choose (minBound,maxBound)
-    coarbitrary c = variant (fromEnum c `rem` 4)
 
 integralRandomR :: (Integral a, RandomGen g) => (a,a) -> g -> (a,g)
 integralRandomR  (a,b) g = case randomR (fromIntegral a :: Integer,
