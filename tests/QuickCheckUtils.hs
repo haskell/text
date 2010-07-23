@@ -8,7 +8,7 @@ import Data.Word (Word8, Word16, Word32)
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import System.Random (Random(..), RandomGen)
-import Test.QuickCheck (Arbitrary(..), choose, oneof, sized, variant, vector)
+import Test.QuickCheck (Arbitrary(..), choose, sized, vector)
 import qualified Data.ByteString as B
 
 instance Random Int64 where
