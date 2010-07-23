@@ -3,7 +3,6 @@
 import Control.Exception (bracket)
 import System.Directory (removeFile)
 import System.IO (hClose, openTempFile)
-import Test.HUnit (Assertion)
 import qualified Data.ByteString.Lazy as LB
 import qualified Data.Text.Lazy as LT
 import qualified Data.Text.Lazy.Encoding as LE
