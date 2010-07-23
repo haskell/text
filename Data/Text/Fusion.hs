@@ -132,7 +132,7 @@ reverse (Stream next s len0)
               where j = i + 1
           Skip s1    -> loop s1 i len marr
           Yield x s1 | i < least -> do
-                       let newLen = len * 2
+                       let newLen = len `shiftL` 1
                        marr' <- A.unsafeNew newLen
                        A.unsafeCopy marr 0 marr' (newLen-len) len
                        write s1 (len+i) newLen marr'
