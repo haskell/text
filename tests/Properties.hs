@@ -423,8 +423,12 @@ t_inits           = L.inits       `eqP` (map unpackS . T.inits)
 tl_inits          = L.inits       `eqP` (map unpackS . TL.inits)
 t_tails           = L.tails       `eqP` (map unpackS . T.tails)
 tl_tails          = L.tails       `eqP` (map unpackS . TL.tails)
-t_findAppendId (NotEmpty s) t = all (==t) $ map (uncurry T.append) (T.find s t)
-tl_findAppendId (NotEmpty s) t = all (==t) $ map (uncurry TL.append) (TL.find s t)
+t_findAppendId (NotEmpty s) = unsquare $ \ts ->
+    let t = T.intercalate s ts
+    in all (==t) $ map (uncurry T.append) (T.find s t)
+tl_findAppendId (NotEmpty s) = unsquare $ \ts ->
+    let t = TL.intercalate s ts
+    in all (==t) $ map (uncurry TL.append) (TL.find s t)
 t_findContains (NotEmpty s) = unsquare (all (T.isPrefixOf s . snd) . T.find s .
                                         T.intercalate s)
 tl_findContains (NotEmpty s) = unsquare (all (TL.isPrefixOf s . snd) .
