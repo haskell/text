@@ -940,10 +940,12 @@ find :: Text                    -- ^ @needle@ to search for
      -> [(Text, Text)]
 find pat src
     | null pat  = emptyError "find"
-    | otherwise = L.map step (indices pat src)
+    | otherwise = go 0 empty src (indices pat src)
   where
-    step x = let h :*: t = splitAtWord x src
-             in (h, t)
+    go !n p s (x:xs) = let h :*: t = splitAtWord (x-n) s
+                           h'      = append p h
+                       in (h',t) : go x h' t xs
+    go _  _ _ _      = []
 
 -- | /O(n)/ 'breakBy' is like 'spanBy', but the prefix returned is over
 -- elements that fail the predicate @p@.
