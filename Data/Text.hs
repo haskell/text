@@ -1106,7 +1106,7 @@ breakEnd pat src = let (a,b) = break (reverse pat) (reverse src)
 find :: Text                    -- ^ @needle@ to search for
      -> Text                    -- ^ @haystack@ in which to search
      -> [(Text, Text)]
-find pat@(Text _ _ plen) src@(Text arr off slen)
+find pat src@(Text arr off slen)
     | null pat  = emptyError "find"
     | otherwise = L.map step (indices pat src)
   where
