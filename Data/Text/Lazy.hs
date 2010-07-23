@@ -915,33 +915,35 @@ breakEnd pat src = let (a,b) = break (reverse pat) (reverse src)
 {-# INLINE breakEnd #-}
 
 -- | /O(n+m)/ Find all non-overlapping instances of @needle@ in
--- @haystack@.  Each element of the returned list consists of a triple:
+-- @haystack@.  Each element of the returned list consists of a pair:
 --
--- * The entire string prior to the /k/th match
+-- * The entire string prior to the /k/th match (i.e. the prefix)
 --
--- * The /k/th match
---
--- * The entire string following the /k/th match
+-- * The /k/th match, followed by the remainder of the string
 --
 -- Examples:
 --
 -- > find "::" ""
 -- > ==> []
 -- > find "/" "a/b/c/"
--- > ==> [("a", "/", "b/c/"), ("a/b", "/", "c/"), ("a/b/c", "/", "")]
+-- > ==> [("a", "/b/c/"), ("a/b", "/c/"), ("a/b/c", "/")]
 --
 -- This function is strict in its first argument, and lazy in its
 -- second.
 --
 -- In (unlikely) bad cases, this function's time complexity degrades
 -- towards /O(n*m)/.
-find :: Text -> Text -> [(Text, Text, Text)]
+--
+-- The @needle@ parameter may not be empty.
+find :: Text                    -- ^ @needle@ to search for
+     -> Text                    -- ^ @haystack@ in which to search
+     -> [(Text, Text)]
 find pat src
     | null pat  = emptyError "find"
     | otherwise = L.map step (indices pat src)
   where
-    step x = (take x src, pat, drop (x + l) pat)
-    l      = length pat
+    step x = let h :*: t = splitAtWord x src
+             in (h, t)
 
 -- | /O(n)/ 'breakBy' is like 'spanBy', but the prefix returned is over
 -- elements that fail the predicate @p@.

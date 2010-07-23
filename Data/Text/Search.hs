@@ -40,7 +40,8 @@ import Data.Bits ((.|.), (.&.))
 import Data.Text.UnsafeShift (shiftL)
 
 -- | /O(n+m)/ Find the offsets of all non-overlapping indices of
--- @needle@ within @haystack@.
+-- @needle@ within @haystack@.  The offsets returned represent
+-- locations in the low-level array.
 --
 -- In (unlikely) bad cases, this algorithm's complexity degrades
 -- towards /O(n*m)/.

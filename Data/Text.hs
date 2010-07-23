@@ -1086,30 +1086,31 @@ breakEnd pat src = let (a,b) = break (reverse pat) (reverse src)
 {-# INLINE breakEnd #-}
 
 -- | /O(n+m)/ Find all non-overlapping instances of @needle@ in
--- @haystack@.  Each element of the returned list consists of a triple:
+-- @haystack@.  Each element of the returned list consists of a pair:
 --
--- * The entire string prior to the /k/th match
+-- * The entire string prior to the /k/th match (i.e. the prefix)
 --
--- * The /k/th match
---
--- * The entire string following the /k/th match
+-- * The /k/th match, followed by the remainder of the string
 --
 -- Examples:
 --
 -- > find "::" ""
 -- > ==> []
 -- > find "/" "a/b/c/"
--- > ==> [("a", "/", "b/c/"), ("a/b", "/", "c/"), ("a/b/c", "/", "")]
+-- > ==> [("a", "/b/c/"), ("a/b", "/c/"), ("a/b/c", "/")]
 --
 -- In (unlikely) bad cases, this function's time complexity degrades
 -- towards /O(n*m)/.
-find :: Text -> Text -> [(Text, Text, Text)]
+--
+-- The @needle@ parameter may not be empty.
+find :: Text                    -- ^ @needle@ to search for
+     -> Text                    -- ^ @haystack@ in which to search
+     -> [(Text, Text)]
 find pat@(Text _ _ plen) src@(Text arr off slen)
     | null pat  = emptyError "find"
     | otherwise = L.map step (indices pat src)
   where
-    step       x = (chunk 0 x, chunk x plen, chunk (x+plen) (stop-x))
-    stop         = slen - plen
+    step       x = (chunk 0 x, chunk x (slen-x))
     chunk !n !l  = textP arr (n+off) l
 {-# INLINE find #-}
 

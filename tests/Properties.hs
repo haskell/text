@@ -408,11 +408,13 @@ t_inits           = L.inits       `eqP` (map unpackS . T.inits)
 tl_inits          = L.inits       `eqP` (map unpackS . TL.inits)
 t_tails           = L.tails       `eqP` (map unpackS . T.tails)
 tl_tails          = L.tails       `eqP` (map unpackS . TL.tails)
-t_findConcat (NotEmpty s) t = all (==t) $ map conc (T.find s t)
-    where conc (a,b,c) = T.concat [a,b,c]
+t_findAppendId (NotEmpty s) t = all (==t) $ map (uncurry T.append) (T.find s t)
+tl_findAppendId (NotEmpty s) t = all (==t) $ map (uncurry TL.append) (TL.find s t)
+t_findContains (NotEmpty s) = unsquare (all (T.isPrefixOf s . snd) . T.find s .
+                                        T.intercalate s)
+tl_findContains (NotEmpty s) = unsquare (all (TL.isPrefixOf s . snd) .
+                                         TL.find s . TL.intercalate s)
 t_findCount s     = (L.length . T.find s) `eq` T.count s
-tl_findConcat (NotEmpty s) t = all (==t) $ map conc (TL.find s t)
-    where conc (a,b,c) = TL.concat [a,b,c]
 tl_findCount s    = (L.genericLength . TL.find s) `eq` TL.count s
 
 t_split_split s         = unsquare ((T.split s `eq` Slow.split s) .
@@ -810,9 +812,11 @@ tests = [
     ],
 
     testGroup "breaking many" [
-      testProperty "t_findConcat" t_findConcat,
+      testProperty "t_findAppendId" t_findAppendId,
+      testProperty "tl_findAppendId" tl_findAppendId,
+      testProperty "t_findContains" t_findContains,
+      testProperty "tl_findContains" tl_findContains,
       testProperty "t_findCount" t_findCount,
-      testProperty "tl_findConcat" tl_findConcat,
       testProperty "tl_findCount" tl_findCount,
       testProperty "t_split_split" t_split_split,
       testProperty "tl_split_split" tl_split_split,
