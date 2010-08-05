@@ -724,8 +724,8 @@ take i t0         = take' i t0
   #-}
 
 -- | /O(n)/ 'drop' @n@, applied to a 'Text', returns the suffix of the
--- 'Text' of length @n@, or the empty 'Text' if @n@ is greater than the
--- length of the 'Text'. Subject to fusion.
+-- 'Text' after the first @n@ characters, or the empty 'Text' if @n@
+-- is greater than the length of the 'Text'. Subject to fusion.
 drop :: Int64 -> Text -> Text
 drop i t0
     | i <= 0    = t0

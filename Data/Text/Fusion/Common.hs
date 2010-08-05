@@ -662,8 +662,8 @@ take n0 (Stream next0 s0 len) =
 {-# INLINE [0] take #-}
 
 -- | /O(n)/ drop n, applied to a stream, returns the suffix of the
--- stream of length @n@, or the empty stream if @n@ is greater than the
--- length of the stream.
+-- stream after the first @n@ characters, or the empty stream if @n@
+-- is greater than the length of the stream.
 drop :: Integral a => a -> Stream Char -> Stream Char
 drop n0 (Stream next0 s0 len) =
     Stream next (J n0 :*: s0) (len - fromIntegral (max 0 n0))
