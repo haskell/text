@@ -103,7 +103,7 @@ indices _ _ = []
 -- the possibility that the caller might try to access one element
 -- past the end.
 index :: T.Text -> Text -> Int64 -> Word16
-index (T.Text arr off len) xs i
+index (T.Text arr off len) xs !i
     | j < len   = A.unsafeIndex arr (off+j)
     | otherwise = case xs of
                     Empty
