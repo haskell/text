@@ -144,6 +144,10 @@ module Data.Text.Lazy
     , isSuffixOf
     , isInfixOf
 
+    -- ** View patterns
+    , prefixed
+    , suffixed
+
     -- * Searching
     , filter
     , find
@@ -1155,6 +1159,55 @@ isInfixOf needle haystack
 "LAZY TEXT isInfixOf/singleton -> S.elem/S.stream" [~1] forall n h.
     isInfixOf (singleton n) h = S.elem n (S.stream h)
   #-}
+
+-------------------------------------------------------------------------------
+-- * View patterns
+
+-- | /O(n)/ Returns the suffix of the second string if its prefix
+-- matches the first.
+--
+-- Examples:
+--
+-- > prefixed "foo" "foobar" == Just "bar"
+-- > prefixed "foo" "quux"   == Nothing
+--
+-- This is particularly useful with the @ViewPatterns@ extension to
+-- GHC, as follows:
+--
+-- > {-# LANGUAGE ViewPatterns #-}
+-- > import Data.Text as T
+-- >
+-- > fnordLength :: Text -> Int
+-- > fnordLength (prefixed "fnord" -> Just suf) = T.length suf
+-- > fnordLength _                              = -1
+prefixed :: Text -> Text -> Maybe Text
+-- Yes, this could be much more efficient.
+prefixed p t
+    | p `isPrefixOf` t = Just (drop (length p) t)
+    | otherwise        = Nothing
+
+-- | /O(n)/ Returns the prefix of the second string if its suffix
+-- matches the first.
+--
+-- Examples:
+--
+-- > suffixed "bar" "foobar" == Just "foo"
+-- > suffixed "foo" "quux"   == Nothing
+--
+-- This is particularly useful with the @ViewPatterns@ extension to
+-- GHC, as follows:
+--
+-- > {-# LANGUAGE ViewPatterns #-}
+-- > import Data.Text as T
+-- >
+-- > quuxLength :: Text -> Int
+-- > quuxLength (suffixed "quux" -> Just pre) = T.length pre
+-- > quuxLength _                             = -1
+suffixed :: Text -> Text -> Maybe Text
+-- Yes, this could be much more efficient.
+suffixed p t
+    | p `isSuffixOf` t = Just (take (length t - length p) t)
+    | otherwise        = Nothing
 
 -- | /O(n)/ 'filter', applied to a predicate and a 'Text',
 -- returns a 'Text' containing those characters that satisfy the

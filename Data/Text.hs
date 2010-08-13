@@ -140,6 +140,10 @@ module Data.Text
     , isSuffixOf
     , isInfixOf
 
+    -- ** View patterns
+    , prefixed
+    , suffixed
+
     -- * Searching
     , filter
     , find
@@ -165,7 +169,7 @@ module Data.Text
 import Prelude (Char, Bool(..), Functor(..), Int, Maybe(..), String,
                 Eq(..), Ord(..), (++),
                 Read(..), Show(..),
-                (&&), (||), (+), (-), (.), ($), (>>), (*),
+                (&&), (||), (+), (-), (.), ($), ($!), (>>), (*),
                 div, error, not, return, otherwise)
 #if defined(HAVE_DEEPSEQ)
 import Control.DeepSeq (NFData)
@@ -1288,6 +1292,53 @@ isInfixOf needle haystack
 "TEXT isInfixOf/singleton -> S.elem/S.stream" [~1] forall n h.
     isInfixOf (singleton n) h = S.elem n (S.stream h)
   #-}
+
+-------------------------------------------------------------------------------
+-- * View patterns
+
+-- | /O(n)/ Returns the suffix of the second string if its prefix
+-- matches the first.
+--
+-- Examples:
+--
+-- > prefixed "foo" "foobar" == Just "bar"
+-- > prefixed "foo" "quux"   == Nothing
+--
+-- This is particularly useful with the @ViewPatterns@ extension to
+-- GHC, as follows:
+--
+-- > {-# LANGUAGE ViewPatterns #-}
+-- > import Data.Text as T
+-- >
+-- > fnordLength :: Text -> Int
+-- > fnordLength (prefixed "fnord" -> Just suf) = T.length suf
+-- > fnordLength _                              = -1
+prefixed :: Text -> Text -> Maybe Text
+prefixed p@(Text _arr _off plen) t@(Text arr off len)
+    | p `isPrefixOf` t = Just $! textP arr (off+plen) (len-plen)
+    | otherwise        = Nothing
+
+-- | /O(n)/ Returns the prefix of the second string if its suffix
+-- matches the first.
+--
+-- Examples:
+--
+-- > suffixed "bar" "foobar" == Just "foo"
+-- > suffixed "foo" "quux"   == Nothing
+--
+-- This is particularly useful with the @ViewPatterns@ extension to
+-- GHC, as follows:
+--
+-- > {-# LANGUAGE ViewPatterns #-}
+-- > import Data.Text as T
+-- >
+-- > quuxLength :: Text -> Int
+-- > quuxLength (suffixed "quux" -> Just pre) = T.length pre
+-- > quuxLength _                             = -1
+suffixed :: Text -> Text -> Maybe Text
+suffixed p@(Text _arr _off plen) t@(Text arr off len)
+    | p `isSuffixOf` t = Just $! textP arr off (len-plen)
+    | otherwise        = Nothing
 
 emptyError :: String -> a
 emptyError fun = P.error ("Data.Text." ++ fun ++ ": empty input")
