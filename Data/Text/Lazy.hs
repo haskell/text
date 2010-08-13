@@ -1246,9 +1246,9 @@ index t n = S.index (stream t) n
 count :: Text -> Text -> Int64
 count pat src
     | null pat        = emptyError "count"
-    | otherwise       = len (indices pat src)
-  where len []     = 0
-        len (_:xs) = 1 + len xs
+    | otherwise       = go 0 (indices pat src)
+  where go !n []     = n
+        go !n (_:xs) = go (n+1) xs
 {-# INLINE [1] count #-}
 
 {-# RULES
