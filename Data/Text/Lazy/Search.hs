@@ -41,7 +41,7 @@ indices :: Text              -- ^ Substring to search for (@needle@)
         -> [Int64]
 indices needle@(Chunk n ns) _haystack@(Chunk k ks)
     | nlen <= 0  = []
-    | nlen == 1  = scanOne (nindex 0) 0 k ks
+    | nlen == 1  = indicesOne (nindex 0) 0 k ks
     | otherwise  = scan 0 0 k ks
   where
     scan !g !i x@(T.Text _ _ l) xs
@@ -81,14 +81,6 @@ indices needle@(Chunk n ns) _haystack@(Chunk k ks)
                   skp' | c == z    = nlen - fromIntegral g - 2
                        | otherwise = skp
                   xlast = xlen - 1
-    scanOne c i (T.Text oarr ooff olen) os = go 0
-      where
-        go h | h >= olen = case os of
-                             Empty      -> []
-                             Chunk y ys -> scanOne c (i+fromIntegral olen) y ys
-             | on == c = i + fromIntegral h : go (h+1)
-             | otherwise = go (h+1)
-             where on = A.unsafeIndex oarr (ooff+h)
     -- | Check whether an attempt to index into the haystack at the
     -- given offset would fail.
     lackingHay q = go 0
@@ -113,6 +105,19 @@ index (T.Text arr off len) xs !i
                         | otherwise -> emptyError "index"
                     Chunk c cs -> index c cs (i-fromIntegral len)
     where j = fromIntegral i
+
+-- | A variant of 'indices' that scans linearly for a single 'Word16'.
+indicesOne :: Word16 -> Int64 -> T.Text -> Text -> [Int64]
+indicesOne c = chunk
+  where
+    chunk !i (T.Text oarr ooff olen) os = go 0
+      where
+        go h | h >= olen = case os of
+                             Empty      -> []
+                             Chunk y ys -> chunk (i+fromIntegral olen) y ys
+             | on == c = i + fromIntegral h : go (h+1)
+             | otherwise = go (h+1)
+             where on = A.unsafeIndex oarr (ooff+h)
 
 -- | The number of 'Word16' values in a 'Text'.
 wordLength :: Text -> Int64
