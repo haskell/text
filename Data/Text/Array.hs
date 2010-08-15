@@ -88,9 +88,6 @@ instance IArray (MArray s) where
     length (MArray len _ba) = len
     {-# INLINE length #-}
 
--- | Freeze a mutable array. Do not mutate the 'MArray' afterwards!
-unsafeFreeze :: MArray s -> ST s (Array)
-
 -- | Create an uninitialized mutable array.
 unsafeNew :: forall s. Int -> ST s (MArray s)
 unsafeNew n =
@@ -107,6 +104,8 @@ unsafeNew n =
            (# s2#, marr# #) -> (# s2#, MArray n marr# #)
 {-# INLINE unsafeNew #-}
 
+-- | Freeze a mutable array. Do not mutate the 'MArray' afterwards!
+unsafeFreeze :: MArray s -> ST s (Array)
 unsafeFreeze (MArray len mba#) = ST $ \s# ->
                                  (# s#, Array len (unsafeCoerce# mba#) #)
 {-# INLINE unsafeFreeze #-}
