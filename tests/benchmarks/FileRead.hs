@@ -12,13 +12,19 @@ string :: FilePath -> IO ()
 string file = readFile file >>= print . length
 
 text :: FilePath -> IO ()
-text file = T.readFile file >>= print . T.length
+text file = do
+  t <- {-# SCC "T.readFile" #-} T.readFile file
+  print (T.length t)
 
 textBS :: FilePath -> IO ()
-textBS file = B.readFile file >>= print . T.length . T.decodeUtf8
+textBS file = do
+  bs <- {-# SCC "B.readFile" #-} B.readFile file
+  print . T.length . T.decodeUtf8 $ bs
 
 bytestring :: FilePath -> IO ()
-bytestring file = B.readFile file >>= print . B.length
+bytestring file = do
+  bs <- {-# SCC "B.readFile" #-}B.readFile file
+  print (B.length bs)
 
 main = do
   (name : file : _) <- getArgs
