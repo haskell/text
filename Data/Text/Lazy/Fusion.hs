@@ -90,9 +90,9 @@ length = S.lengthI
 {-# RULES "LAZY STREAM stream/unstream fusion" forall s.
     stream (unstream s) = s #-}
 
--- | /O(n)/ Like 'unfoldr', 'unfoldrN64' builds a stream from a seed
+-- | /O(n)/ Like 'unfoldr', 'unfoldrN' builds a stream from a seed
 -- value. However, the length of the result is limited by the
--- first argument to 'unfoldrN64'. This function is more efficient than
+-- first argument to 'unfoldrN'. This function is more efficient than
 -- 'unfoldr' when the length of the result is known.
 unfoldrN :: Int64 -> (a -> Maybe (Char,a)) -> a -> Stream Char
 unfoldrN n = S.unfoldrNI n
