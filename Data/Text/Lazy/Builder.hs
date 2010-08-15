@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, Rank2Types #-}
+{-# LANGUAGE BangPatterns, CPP, Rank2Types #-}
 
 -----------------------------------------------------------------------------
 -- |
@@ -29,7 +29,9 @@ module Data.Text.Lazy.Builder
    , flush
    ) where
 
+#if defined(ASSERTS)
 import Control.Exception (assert)
+#endif
 import Control.Monad.ST (ST, runST)
 import Data.Bits ((.&.))
 import Data.Char (ord)
@@ -259,8 +261,10 @@ newBuffer size = do
 -- | Unsafely copy the elements of an array.
 unsafeCopy :: A.Array -> Int -> A.MArray s -> Int -> Int -> ST s ()
 unsafeCopy src sidx dest didx count =
+#if defined(ASSERTS)
     assert (sidx + count <= A.length src) .
     assert (didx + count <= A.length dest) $
+#endif
     copy_loop sidx didx 0
   where
     copy_loop !i !j !c
@@ -274,12 +278,16 @@ unsafeCopy src sidx dest didx count =
 unsafeWrite :: A.MArray s -> Int -> Char -> ST s Int
 unsafeWrite marr i c
     | n < 0x10000 = do
-        assert (i >= 0) . assert (i < A.length marr) $
-          A.unsafeWrite marr i (fromIntegral n)
+#if defined(ASSERTS)
+        assert (i >= 0) . assert (i < A.length marr) $ return ()
+#endif
+        A.unsafeWrite marr i (fromIntegral n)
         return 1
     | otherwise = do
-        assert (i >= 0) . assert (i < A.length marr - 1) $
-          A.unsafeWrite marr i lo
+#if defined(ASSERTS)
+        assert (i >= 0) . assert (i < A.length marr - 1) $ return ()
+#endif
+        A.unsafeWrite marr i lo
         A.unsafeWrite marr (i+1) hi
         return 2
     where n = ord c

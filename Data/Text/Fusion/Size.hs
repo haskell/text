@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# OPTIONS_GHC -fno-warn-missing-methods #-}
 -- |
 -- Module      : Data.Text.Fusion.Internal
@@ -26,7 +27,9 @@ module Data.Text.Fusion.Size
     , isEmpty
     ) where
 
+#if defined(ASSERTS)
 import Control.Exception (assert)
+#endif
 
 data Size = Exact {-# UNPACK #-} !Int -- ^ Exact size.
           | Max   {-# UNPACK #-} !Int -- ^ Upper bound on size.
@@ -34,11 +37,19 @@ data Size = Exact {-# UNPACK #-} !Int -- ^ Exact size.
             deriving (Eq, Show)
 
 exactSize :: Int -> Size
-exactSize n = assert (n >= 0) Exact n
+exactSize n =
+#if defined(ASSERTS)
+    assert (n >= 0)
+#endif
+    Exact n
 {-# INLINE exactSize #-}
 
 maxSize :: Int -> Size
-maxSize n = assert (n >= 0) Max n
+maxSize n =
+#if defined(ASSERTS)
+    assert (n >= 0)
+#endif
+    Max n
 {-# INLINE maxSize #-}
 
 unknownSize :: Size

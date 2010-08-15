@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE CPP, DeriveDataTypeable #-}
 
 -- |
 -- Module      : Data.Text.Internal
@@ -28,7 +28,9 @@ module Data.Text.Internal
     , showText
     ) where
 
+#if defined(ASSERTS)
 import Control.Exception (assert)
+#endif
 import qualified Data.Text.Array as A
 import Data.Typeable (Typeable)
 
@@ -42,13 +44,15 @@ data Text = Text
 -- | Smart constructor.
 text :: A.Array -> Int -> Int -> Text
 text arr off len =
-    assert (len >= 0) .
-    assert (off >= 0) .
-    assert (alen == 0 || len == 0 || off < alen) .
-    assert (len == 0 || c < 0xDC00 || c > 0xDFFF) $
-    Text arr off len
-  where c    = A.unsafeIndex arr off
-        alen = A.length arr
+#if defined(ASSERTS)
+  let c    = A.unsafeIndex arr off
+      alen = A.length arr
+  in assert (len >= 0) .
+     assert (off >= 0) .
+     assert (alen == 0 || len == 0 || off < alen) .
+     assert (len == 0 || c < 0xDC00 || c > 0xDFFF) $
+#endif
+     Text arr off len
 {-# INLINE text #-}
 
 -- | /O(1)/ The empty 'Text'.

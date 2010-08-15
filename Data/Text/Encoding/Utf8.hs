@@ -1,4 +1,4 @@
-{-# LANGUAGE MagicHash #-}
+{-# LANGUAGE CPP, MagicHash #-}
 
 -- |
 -- Module      : Data.Text.Encoding.Utf16
@@ -30,9 +30,11 @@ module Data.Text.Encoding.Utf8
     , validate4
     ) where
 
+#if defined(ASSERTS)
 import Control.Exception (assert)
-import Data.Char (ord)
+#endif
 import Data.Bits ((.&.))
+import Data.Text.UnsafeChar (ord)
 import Data.Text.UnsafeShift (shiftR)
 import GHC.Exts
 import GHC.Word (Word8(..))
@@ -47,14 +49,22 @@ between x y z = x >= y && x <= z
 {-# INLINE between #-}
 
 ord2   :: Char -> (Word8,Word8)
-ord2 c = assert (n >= 0x80 && n <= 0x07ff) (x1,x2)
+ord2 c =
+#if defined(ASSERTS)
+    assert (n >= 0x80 && n <= 0x07ff)
+#endif
+    (x1,x2)
     where
       n  = ord c
       x1 = fromIntegral $ (n `shiftR` 6) + 0xC0
       x2 = fromIntegral $ (n .&. 0x3F)   + 0x80
 
 ord3   :: Char -> (Word8,Word8,Word8)
-ord3 c = assert (n >= 0x0800 && n <= 0xffff) (x1,x2,x3)
+ord3 c =
+#if defined(ASSERTS)
+    assert (n >= 0x0800 && n <= 0xffff)
+#endif
+    (x1,x2,x3)
     where
       n  = ord c
       x1 = fromIntegral $ (n `shiftR` 12) + 0xE0
@@ -62,7 +72,11 @@ ord3 c = assert (n >= 0x0800 && n <= 0xffff) (x1,x2,x3)
       x3 = fromIntegral $ (n .&. 0x3F) + 0x80
 
 ord4   :: Char -> (Word8,Word8,Word8,Word8)
-ord4 c = assert (n >= 0x10000) (x1,x2,x3,x4)
+ord4 c =
+#if defined(ASSERTS)
+    assert (n >= 0x10000)
+#endif
+    (x1,x2,x3,x4)
     where
       n  = ord c
       x1 = fromIntegral $ (n `shiftR` 18) + 0xF0

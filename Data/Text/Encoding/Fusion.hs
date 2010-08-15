@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, Rank2Types #-}
+{-# LANGUAGE BangPatterns, CPP, Rank2Types #-}
 
 -- |
 -- Module      : Data.Text.Encoding.Fusion
@@ -31,7 +31,9 @@ module Data.Text.Encoding.Fusion
     , module Data.Text.Encoding.Fusion.Common
     ) where
 
+#if defined(ASSERTS)
 import Control.Exception (assert)
+#endif
 import Data.ByteString.Internal (ByteString(..), mallocByteString, memcpy)
 import Data.Text.Fusion (Step(..), Stream(..))
 import Data.Text.Fusion.Size
@@ -182,7 +184,11 @@ unstream (Stream next s0 len) = unsafePerformIO $ do
       {-# NOINLINE trimUp #-}
       trimUp fp _ off = return $! PS fp 0 off
       copy0 :: ForeignPtr Word8 -> Int -> Int -> IO (ForeignPtr Word8)
-      copy0 !src !srcLen !destLen = assert (srcLen <= destLen) $ do
+      copy0 !src !srcLen !destLen =
+#if defined(ASSERTS)
+        assert (srcLen <= destLen) $
+#endif
+        do
           dest <- mallocByteString destLen
           withForeignPtr src  $ \src'  ->
               withForeignPtr dest $ \dest' ->

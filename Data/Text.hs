@@ -174,7 +174,9 @@ import Prelude (Char, Bool(..), Functor(..), Int, Maybe(..), String,
 #if defined(HAVE_DEEPSEQ)
 import Control.DeepSeq (NFData)
 #endif
+#if defined(ASSERTS)
 import Control.Exception (assert)
+#endif
 import Data.Char (isSpace)
 import Data.Data (Data(gfoldl, toConstr, gunfold, dataTypeOf))
 #if __GLASGOW_HASKELL__ >= 612
@@ -395,7 +397,11 @@ init (Text arr off len) | len <= 0                   = emptyError "init"
 -- | /O(1)/ Tests whether a 'Text' is empty or not.  Subject to
 -- fusion.
 null :: Text -> Bool
-null (Text _arr _off len) = assert (len >= 0) $ len <= 0
+null (Text _arr _off len) =
+#if defined(ASSERTS)
+    assert (len >= 0) $
+#endif
+    len <= 0
 {-# INLINE [1] null #-}
 
 {-# RULES

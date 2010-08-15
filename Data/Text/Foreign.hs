@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns, CPP #-}
 -- |
 -- Module      : Data.Text.Foreign
 -- Copyright   : (c) Bryan O'Sullivan 2009
@@ -25,7 +25,9 @@ module Data.Text.Foreign
     , unsafeCopyToPtr
     ) where
 
+#if defined(ASSERTS)
 import Control.Exception (assert)
+#endif
 import Control.Monad.ST (unsafeIOToST)
 import Data.Text.Internal (Text(..), empty)
 import qualified Data.Text.Array as A
@@ -53,7 +55,11 @@ fromPtr :: Ptr Word16           -- ^ source array
         -> Int                  -- ^ length of source array (in 'Word16' units)
         -> IO Text
 fromPtr _   0   = return empty
-fromPtr ptr len = assert (len > 0) $ return (Text arr 0 len)
+fromPtr ptr len =
+#if defined(ASSERTS)
+    assert (len > 0) $
+#endif
+    return $! Text arr 0 len
   where
     arr = A.run (A.unsafeNew len >>= copy)
     copy marr = loop ptr 0
@@ -68,6 +74,7 @@ fromPtr ptr len = assert (len > 0) $ return (Text arr 0 len)
 -- 'unsafeCopyToPtr'.
 lengthWord16 :: Text -> Int
 lengthWord16 (Text _arr _off len) = len
+{-# INLINE lengthWord16 #-}
 
 -- | /O(n)/ Copy a 'Text' to an array.  The array is assumed to be big
 -- enough to hold the contents of the entire 'Text'.

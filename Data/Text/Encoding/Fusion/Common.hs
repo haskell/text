@@ -28,9 +28,9 @@ module Data.Text.Encoding.Fusion.Common
     ) where
 
 import Data.Bits ((.&.))
-import Data.Char (ord)
 import Data.Text.Fusion (Step(..), Stream(..))
 import Data.Text.Fusion.Internal (M(..), S(..))
+import Data.Text.UnsafeChar (ord)
 import Data.Text.UnsafeShift (shiftR)
 import Data.Word (Word8)
 import qualified Data.Text.Encoding.Utf8 as U8

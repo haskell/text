@@ -42,19 +42,20 @@ module Data.Text.Array
     , unsafeWrite
     ) where
 
-#if 0
-#define BOUNDS_CHECKING
+#if defined(ASSERTS)
 -- This fugly hack is brought by GHC's apparent reluctance to deal
 -- with MagicHash and UnboxedTuples when inferring types. Eek!
-#define CHECK_BOUNDS(_func_,_len_,_k_) \
+# define CHECK_BOUNDS(_func_,_len_,_k_) \
 if (_k_) < 0 || (_k_) >= (_len_) then error ("Data.Text.Array." ++ (_func_) ++ ": bounds error, offset " ++ show (_k_) ++ ", length " ++ show (_len_)) else
 #else
-#define CHECK_BOUNDS(_func_,_len_,_k_)
+# define CHECK_BOUNDS(_func_,_len_,_k_)
 #endif
 
 #include "MachDeps.h"
 
+#if defined(ASSERTS)
 import Control.Exception (assert)
+#endif
 import Data.Text.UnsafeShift (shiftL)
 import GHC.Base (ByteArray#, MutableByteArray#, Int(..),
                  indexWord16Array#, newByteArray#,
@@ -92,10 +93,14 @@ unsafeFreeze :: MArray s -> ST s (Array)
 
 -- | Create an uninitialized mutable array.
 unsafeNew :: forall s. Int -> ST s (MArray s)
-unsafeNew n = assert (n >= 0) . ST $ \s1# ->
-   case bytesInArray n of
-     len@(I# len#) ->
-#if defined(BOUNDS_CHECKING)
+unsafeNew n =
+#if defined(ASSERTS)
+    assert (n >= 0) .
+#endif
+    ST $ \s1# ->
+    case bytesInArray n of
+      len@(I# len#) ->
+#if defined(ASSERTS)
          if len < 0 then error (show ("unsafeNew",len)) else
 #endif
          case newByteArray# len# s1# of
@@ -181,8 +186,10 @@ copy src dest
 -- | Unsafely copy the elements of an array.
 unsafeCopy :: MArray s -> Int -> MArray s -> Int -> Int -> ST s ()
 unsafeCopy src sidx dest didx count =
+#if defined(ASSERTS)
     assert (sidx + count <= length src) .
     assert (didx + count <= length dest) $
+#endif
     copy_loop sidx didx 0
     where
       copy_loop !i !j !c

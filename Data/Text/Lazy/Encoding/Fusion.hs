@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, Rank2Types #-}
+{-# LANGUAGE BangPatterns, CPP, Rank2Types #-}
 
 -- |
 -- Module      : Data.Text.Lazy.Encoding.Fusion
@@ -43,7 +43,9 @@ import System.IO.Unsafe (unsafePerformIO)
 import Foreign.ForeignPtr (withForeignPtr, ForeignPtr)
 import Foreign.Storable (pokeByteOff)
 import Data.ByteString.Internal (mallocByteString, memcpy)
+#if defined(ASSERTS)
 import Control.Exception (assert)
+#endif
 import qualified Data.ByteString.Internal as B
 
 data S = S0
@@ -123,7 +125,11 @@ unstreamChunks chunkSize (Stream next s0 len0) = chunk s0 (upperBound 4 len0)
               loop n' (off+1) s fp'
             trimUp fp off = B.PS fp 0 off
             copy0 :: ForeignPtr Word8 -> Int -> Int -> IO (ForeignPtr Word8)
-            copy0 !src !srcLen !destLen = assert (srcLen <= destLen) $ do
+            copy0 !src !srcLen !destLen =
+#if defined(ASSERTS)
+              assert (srcLen <= destLen) $
+#endif
+              do
                 dest <- mallocByteString destLen
                 withForeignPtr src  $ \src'  ->
                     withForeignPtr dest $ \dest' ->

@@ -1,4 +1,4 @@
-{-# LANGUAGE MagicHash #-}
+{-# LANGUAGE CPP, MagicHash #-}
 
 -- |
 -- Module      : Data.Text.UnsafeChar
@@ -15,21 +15,27 @@
 -- Fast character manipulation functions.
 module Data.Text.UnsafeChar
     (
-      unsafeChr
+      ord
+    , unsafeChr
     , unsafeChr8
     , unsafeChr32
     , unsafeWrite
     -- , unsafeWriteRev
     ) where
 
+#ifdef ASSERTS
 import Control.Exception (assert)
+#endif
 import Control.Monad.ST (ST)
 import Data.Bits ((.&.))
-import Data.Char (ord)
 import Data.Text.UnsafeShift (shiftR)
-import GHC.Exts (Char(..), chr#, word2Int#)
+import GHC.Exts (Char(..), Int(..), chr#, ord#, word2Int#)
 import GHC.Word (Word8(..), Word16(..), Word32(..))
 import qualified Data.Text.Array as A
+
+ord :: Char -> Int
+ord (C# c#) = I# (ord# c#)
+{-# INLINE ord #-}
 
 unsafeChr :: Word16 -> Char
 unsafeChr (W16# w#) = C# (chr# (word2Int# w#))
@@ -46,12 +52,16 @@ unsafeChr32 (W32# w#) = C# (chr# (word2Int# w#))
 unsafeWrite :: A.MArray s -> Int -> Char -> ST s Int
 unsafeWrite marr i c
     | n < 0x10000 = do
-        assert (i >= 0) . assert (i < A.length marr) $
-          A.unsafeWrite marr i (fromIntegral n)
+#if defined(ASSERTS)
+        assert (i >= 0) . assert (i < A.length marr) $ return ()
+#endif
+        A.unsafeWrite marr i (fromIntegral n)
         return $! i+1
     | otherwise = do
-        assert (i >= 0) . assert (i < A.length marr - 1) $
-          A.unsafeWrite marr i lo
+#if defined(ASSERTS)
+        assert (i >= 0) . assert (i < A.length marr - 1) $ return ()
+#endif
+        A.unsafeWrite marr i lo
         A.unsafeWrite marr (i+1) hi
         return $! i+2
     where n = ord c

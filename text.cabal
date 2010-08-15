@@ -85,3 +85,4 @@ library
     ghc-options: -fwarn-tabs
   if flag(developer)
     ghc-options: -Werror
+    cpp-options: -DASSERTS
