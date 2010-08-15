@@ -1,7 +1,9 @@
 version := $(shell awk '/^version:/{print $$2}' ../text.cabal)
 ghc := ghc
 ghc-opt-flags = -O0
-ghc-base-flags := -funbox-strict-fields -package criterion -package deepseq \
+ghc-base-flags := -funbox-strict-fields -hide-all-packages \
+	-package base -package mtl -package random -package directory \
+	-package criterion -package deepseq \
 	-package bytestring -ignore-package text \
 	-fno-ignore-asserts
 ghc-test-flags := -package QuickCheck -package test-framework -package deepseq \
@@ -30,7 +32,7 @@ else
 	cd .. && cabal build
 endif
 
-Properties.o qc qc-hpc: ghc-flags += $(ghc-test-flags)
+Properties.o Regressions.o qc qc-hpc: ghc-flags += $(ghc-test-flags)
 Properties.o: QuickCheckUtils.o SlowFunctions.o
 
 QuickCheckUtils.o: $(lib)
@@ -44,7 +46,7 @@ sb: SearchBench.o SlowFunctions.o
 qc-hpc: Properties.hs QuickCheckUtils.hs $(lib-srcs:%=../%)
 	-mkdir -p hpcdir
 	@rm -f $@.tix
-	$(ghc) $(ghc-hpc-flags) $(ghc-opt-flags) -ihpcdir \
+	$(ghc) $(ghc-hpc-flags) $(ghc-test-flags) $(ghc-opt-flags) -ihpcdir \
 	  --make -threaded -o $@ $<
 
 regressions: Regressions.o
@@ -59,7 +61,7 @@ qc-hpc-html/hpc_index.html: qc-hpc
 	  --exclude=QuickCheckUtils --srcdir=.. --srcdir=. --destdir=$(dir $@)
 
 Benchmarks.o: ghc-opt-flags = -O
-bm Benchmarks.o: ghc-flags += -hide-package transformers -package utf8-string
+bm Benchmarks.o: ghc-flags += -package utf8-string
 bm: Benchmarks.o
 	$(ghc) $(ghc-flags) -o $@ $^ $(lib)
 
