@@ -1,10 +1,10 @@
 {-# LANGUAGE CPP, MagicHash #-}
 
 -- |
--- Module      : Data.Text.Encoding.Utf16
--- Copyright   : (c) Tom Harper 2008-2009,
---               (c) Bryan O'Sullivan 2009,
---               (c) Duncan Coutts 2009
+-- Module      : Data.Text.Encoding.Utf8
+-- Copyright   : (c) 2008, 2009 Tom Harper,
+--               (c) 2009, 2010 Bryan O'Sullivan,
+--               (c) 2009 Duncan Coutts
 --
 -- License     : BSD-style
 -- Maintainer  : bos@serpentine.com, rtomharper@googlemail.com,

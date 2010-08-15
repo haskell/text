@@ -1,8 +1,8 @@
 {-# LANGUAGE BangPatterns, CPP, RecordWildCards #-}
 -- |
 -- Module      : Data.Text.IO.Internal
--- Copyright   : (c) Bryan O'Sullivan 2009,
---               (c) Simon Marlow 2009
+-- Copyright   : (c) 2009, 2010 Bryan O'Sullivan,
+--               (c) 2009 Simon Marlow
 -- License     : BSD-style
 -- Maintainer  : bos@serpentine.com
 -- Stability   : experimental

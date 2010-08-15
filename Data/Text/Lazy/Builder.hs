@@ -3,7 +3,7 @@
 -----------------------------------------------------------------------------
 -- |
 -- Module      : Data.Text.Lazy.Builder
--- Copyright   : Johan Tibell
+-- Copyright   : (c) 2010 Johan Tibell
 -- License     : BSD3-style (see LICENSE)
 -- 
 -- Maintainer  : Johan Tibell <johan.tibell@gmail.com>

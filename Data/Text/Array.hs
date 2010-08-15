@@ -2,7 +2,7 @@
 {-# OPTIONS_GHC -fno-warn-unused-matches #-}
 -- |
 -- Module      : Data.Text.Array
--- Copyright   : (c) Bryan O'Sullivan 2009
+-- Copyright   : (c) 2009, 2010 Bryan O'Sullivan
 --
 -- License     : BSD-style
 -- Maintainer  : bos@serpentine.com, rtomharper@googlemail.com,

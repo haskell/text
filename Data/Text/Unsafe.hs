@@ -1,7 +1,7 @@
 {-# LANGUAGE CPP, MagicHash, UnboxedTuples #-}
 -- |
 -- Module      : Data.Text.Unsafe
--- Copyright   : (c) Bryan O'Sullivan 2009
+-- Copyright   : (c) 2009, 2010 Bryan O'Sullivan
 -- License     : BSD-style
 -- Maintainer  : bos@serpentine.com, rtomharper@googlemail.com,
 --               duncan@haskell.org
