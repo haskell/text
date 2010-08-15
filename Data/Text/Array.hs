@@ -203,7 +203,6 @@ copy dest@(MArray dlen _) src@(MArray slen _)
           | i >= slen = return ()
           | otherwise = do unsafeRead src i >>= unsafeWrite dest i
                            copy_loop (i+1)
-{-# INLINE copy #-}
 
 -- | Copy some elements of a mutable array.
 partialCopyM :: MArray s -> Int -> MArray s -> Int -> Int -> ST s ()
