@@ -94,18 +94,22 @@ unstream :: Stream Char -> Text
 unstream (Stream next0 s0 len) = I.textP (P.fst a) 0 (P.snd a)
     where
       mlen = upperBound 4 len
-      a = A.run2 (A.unsafeNew mlen >>= (\arr -> loop arr mlen s0 0))
-      loop arr !top !s !i
-          | i + 1 >= top = case next0 s of
-                            Done -> return (arr, i)
-                            _    -> do
-                              let top' = (top `shiftL` 1) + 1
-                              arr' <- A.unsafeNew top'
-                              A.copy arr arr' >> loop arr' top' s i
-          | otherwise = case next0 s of
-               Done       -> return (arr, i)
-               Skip s'    -> loop arr top s' i
-               Yield x s' -> unsafeWrite arr i x >>= loop arr top s'
+      a = A.run2 (A.unsafeNew mlen >>= (\arr -> outer arr mlen s0 0))
+      outer arr top = loop
+        where
+          loop !s !i
+            | i + 1 >= top = {-# SCC "unstream/resize" #-}
+                             case next0 s of
+                              Done    -> return (arr, i)
+                              Skip s' -> loop s' i
+                              _       -> do
+                                let top' = (top + 1) `shiftL` 1
+                                arr' <- A.unsafeNew top'
+                                A.copy arr arr' >> outer arr' top' s i
+            | otherwise = case next0 s of
+                 Done       -> return (arr, i)
+                 Skip s'    -> loop s' i
+                 Yield x s' -> unsafeWrite arr i x >>= loop s'
 {-# INLINE [0] unstream #-}
 {-# RULES "STREAM stream/unstream fusion" forall s. stream (unstream s) = s #-}
 
