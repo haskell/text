@@ -31,17 +31,16 @@ module Data.Text.Internal
 import Control.Exception (assert)
 import qualified Data.Text.Array as A
 import Data.Typeable (Typeable)
-import Data.Word (Word16)
 
 -- | A space efficient, packed, unboxed Unicode text type.
 data Text = Text
-    {-# UNPACK #-} !(A.Array Word16) -- payload
+    {-# UNPACK #-} !A.Array          -- payload
     {-# UNPACK #-} !Int              -- offset
     {-# UNPACK #-} !Int              -- length
     deriving (Typeable)
 
 -- | Smart constructor.
-text :: A.Array Word16 -> Int -> Int -> Text
+text :: A.Array -> Int -> Int -> Text
 text arr off len =
     assert (len >= 0) .
     assert (off >= 0) .
@@ -59,7 +58,7 @@ empty = Text A.empty 0 0
 
 -- | Construct a 'Text' without invisibly pinning its byte array in
 -- memory if its length has dwindled to zero.
-textP :: A.Array Word16 -> Int -> Int -> Text
+textP :: A.Array -> Int -> Int -> Text
 textP arr off len | len == 0  = empty
                   | otherwise = text arr off len
 {-# INLINE textP #-}

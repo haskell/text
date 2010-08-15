@@ -43,7 +43,7 @@ unsafeChr32 :: Word32 -> Char
 unsafeChr32 (W32# w#) = C# (chr# (word2Int# w#))
 {-# INLINE unsafeChr32 #-}
 
-unsafeWrite :: A.MArray s Word16 -> Int -> Char -> ST s Int
+unsafeWrite :: A.MArray s -> Int -> Char -> ST s Int
 unsafeWrite marr i c
     | n < 0x10000 = do
         assert (i >= 0) . assert (i < A.length marr) $

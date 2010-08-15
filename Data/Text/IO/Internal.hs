@@ -127,7 +127,7 @@ getSomeCharacters :: Handle__ -> CharBuffer -> IO CharBuffer
 getSomeCharacters handle_@Handle__{..} buf@Buffer{..} =
   case bufferElems buf of
     -- buffer empty: read some more
-    0 -> readTextDevice handle_ buf
+    0 -> {-# SCC "readTextDevice" #-} readTextDevice handle_ buf
 
     -- if the buffer has a single '\r' in it and we're doing newline
     -- translation: read some more
@@ -145,7 +145,7 @@ getSomeCharacters handle_@Handle__{..} buf@Buffer{..} =
                  return buf
 
     -- buffer has some chars in it already: just return it
-    _otherwise -> return buf
+    _otherwise -> {-# SCC "otherwise" #-} return buf
 
 -- | Read a single chunk of strict text from a buffer. Used by both
 -- the strict and lazy implementations of hGetContents.

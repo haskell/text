@@ -187,7 +187,6 @@ import Control.Monad.ST (ST)
 import qualified Data.Text.Array as A
 import qualified Data.List as L
 import Data.Monoid (Monoid(..))
-import Data.Word (Word16)
 import Data.String (IsString(..))
 import qualified Data.Text.Fusion as S
 import qualified Data.Text.Fusion.Common as S
@@ -308,7 +307,7 @@ append (Text arr1 off1 len1) (Text arr2 off2 len2) = Text (A.run x) 0 len
     unstream (S.append (stream t1) (stream t2)) = append t1 t2
  #-}
 
-copy :: forall s. A.MArray s Word16 -> Int -> A.Array Word16 -> Int -> Int
+copy :: forall s. A.MArray s -> Int -> A.Array -> Int -> Int
      -> ST s ()
 copy dest i0 src j0 top = go i0 j0
   where

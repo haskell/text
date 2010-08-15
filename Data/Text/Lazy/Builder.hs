@@ -38,7 +38,6 @@ import Data.Text.Internal (Text(..))
 import Data.Text.Lazy.Internal (smallChunkSize)
 import Data.Text.Unsafe (inlineInterleaveST)
 import Data.Text.UnsafeShift (shiftR)
-import Data.Word (Word16)
 import Prelude hiding (map, putChar)
 
 import qualified Data.String as String
@@ -163,7 +162,7 @@ fromLazyText ts = flush `append` mapBuilder (L.toChunks ts ++)
 ------------------------------------------------------------------------
 
 -- Our internal buffer type
-data Buffer s = Buffer {-# UNPACK #-} !(A.MArray s Word16)
+data Buffer s = Buffer {-# UNPACK #-} !(A.MArray s)
                        {-# UNPACK #-} !Int  -- offset
                        {-# UNPACK #-} !Int  -- used units
                        {-# UNPACK #-} !Int  -- length left
@@ -240,11 +239,11 @@ ensureFree !n = withSize $ \ l ->
 
 -- | Ensure that @n@ many elements are available, and then use @f@ to
 -- write some elements into the memory.
-writeN :: Int -> (forall s. A.MArray s Word16 -> Int -> ST s ()) -> Builder
+writeN :: Int -> (forall s. A.MArray s -> Int -> ST s ()) -> Builder
 writeN n f = ensureFree n `append'` withBuffer (writeNBuffer n f)
 {-# INLINE [0] writeN #-}
 
-writeNBuffer :: Int -> (A.MArray s Word16 -> Int -> ST s ()) -> (Buffer s)
+writeNBuffer :: Int -> (A.MArray s -> Int -> ST s ()) -> (Buffer s)
              -> ST s (Buffer s)
 writeNBuffer n f (Buffer p o u l) = do
     f p (o+u)
@@ -258,8 +257,7 @@ newBuffer size = do
 {-# INLINE newBuffer #-}
 
 -- | Unsafely copy the elements of an array.
-unsafeCopy :: A.Elt e =>
-              A.Array e -> Int -> A.MArray s e -> Int -> Int -> ST s ()
+unsafeCopy :: A.Array -> Int -> A.MArray s -> Int -> Int -> ST s ()
 unsafeCopy src sidx dest didx count =
     assert (sidx + count <= A.length src) .
     assert (didx + count <= A.length dest) $
@@ -273,7 +271,7 @@ unsafeCopy src sidx dest didx count =
 
 -- Write a character to the array, starting at the specified offset
 -- @i@.  Returns the number of elements written.
-unsafeWrite :: A.MArray s Word16 -> Int -> Char -> ST s Int
+unsafeWrite :: A.MArray s -> Int -> Char -> ST s Int
 unsafeWrite marr i c
     | n < 0x10000 = do
         assert (i >= 0) . assert (i < A.length marr) $
@@ -302,13 +300,13 @@ append' (Builder f) (Builder g) = Builder (f . g)
 
 {-# RULES
 
-"append/writeN" forall a b (f::forall s. A.MArray s Word16 -> Int -> ST s ())
-                           (g::forall s. A.MArray s Word16 -> Int -> ST s ()) ws.
+"append/writeN" forall a b (f::forall s. A.MArray s -> Int -> ST s ())
+                           (g::forall s. A.MArray s -> Int -> ST s ()) ws.
         append (writeN a f) (append (writeN b g) ws) =
             append (writeN (a+b) (\marr o -> f marr o >> g marr (o+a))) ws
 
-"writeN/writeN" forall a b (f::forall s. A.MArray s Word16 -> Int -> ST s ())
-                           (g::forall s. A.MArray s Word16 -> Int -> ST s ()).
+"writeN/writeN" forall a b (f::forall s. A.MArray s -> Int -> ST s ())
+                           (g::forall s. A.MArray s -> Int -> ST s ()).
         append (writeN a f) (writeN b g) =
             writeN (a+b) (\marr o -> f marr o >> g marr (o+a))
 
