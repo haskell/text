@@ -14,6 +14,7 @@ module Data.Text.Unsafe
     (
       inlineInterleaveST
     , inlinePerformIO
+    , Iter(..)
     , iter
     , iter_
     , reverseIter
@@ -61,13 +62,15 @@ unsafeTail t@(Text arr off len) =
   where d = iter_ t 0
 {-# INLINE unsafeTail #-}
 
+data Iter = Iter {-# UNPACK #-} !Char {-# UNPACK #-} !Int
+
 -- | /O(1)/ Iterate (unsafely) one step forwards through a UTF-16
 -- array, returning the current character and the delta to add to give
 -- the next offset to iterate at.
-iter :: Text -> Int -> (Char,Int)
+iter :: Text -> Int -> Iter
 iter (Text arr off _len) i
-    | m < 0xD800 || m > 0xDBFF = (unsafeChr m, 1)
-    | otherwise                = (chr2 m n,    2)
+    | m < 0xD800 || m > 0xDBFF = Iter (unsafeChr m) 1
+    | otherwise                = Iter (chr2 m n) 2
   where m = A.unsafeIndex arr j
         n = A.unsafeIndex arr k
         j = off + i

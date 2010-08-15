@@ -195,7 +195,7 @@ import qualified Data.Text.Fusion.Common as S
 import Data.Text.Fusion (stream, reverseStream, unstream)
 import Data.Text.Internal (Text(..), empty, text, textP)
 import qualified Prelude as P
-import Data.Text.Unsafe (iter, iter_, reverseIter, unsafeHead, unsafeTail)
+import Data.Text.Unsafe (Iter(..), iter, iter_, reverseIter, unsafeHead, unsafeTail)
 import Data.Text.UnsafeChar (unsafeChr)
 import qualified Data.Text.Encoding.Utf16 as U16
 import Data.Text.Search (indices)
@@ -329,7 +329,7 @@ uncons :: Text -> Maybe (Char, Text)
 uncons t@(Text arr off len)
     | len <= 0  = Nothing
     | otherwise = Just (c, textP arr (off+d) (len-d))
-    where (c,d) = iter t 0
+    where Iter c d = iter t 0
 {-# INLINE [1] uncons #-}
 
 -- | Lifted from Control.Arrow and specialized.
@@ -811,7 +811,7 @@ takeWhile p t@(Text arr off len) = loop 0
   where loop !i | i >= len    = t
                 | p c         = loop (i+d)
                 | otherwise   = textP arr off i
-            where (c,d)       = iter t i
+            where Iter c d    = iter t i
 {-# INLINE [1] takeWhile #-}
 
 {-# RULES
@@ -828,7 +828,7 @@ dropWhile p t@(Text arr off len) = loop 0 0
   where loop !i !l | l >= len  = empty
                    | p c       = loop (i+d) (l+d)
                    | otherwise = Text arr (off+i) (len-l)
-            where (c,d)        = iter t i
+            where Iter c d     = iter t i
 {-# INLINE [1] dropWhile #-}
 
 {-# RULES
@@ -912,7 +912,7 @@ spanBy p t@(Text arr off len) = (textP arr off k, textP arr (off+k) (len-k))
   where k = loop 0
         loop !i | i >= len || not (p c) = i
                 | otherwise             = loop (i+d)
-            where (c,d)                 = iter t i
+            where Iter c d              = iter t i
 {-# INLINE spanBy #-}
 
 -- | /O(n)/ 'breakBy' is like 'spanBy', but the prefix returned is
@@ -928,7 +928,7 @@ groupBy p = loop
     loop t@(Text arr off len)
         | null t    = []
         | otherwise = text arr off n : loop (text arr (off+n) (len-n))
-        where (c,d) = iter t 0
+        where Iter c d = iter t 0
               n     = d + findAIndexOrEnd (not . p c) (Text arr (off+d) (len-d))
 
 -- | Returns the /array/ index (in units of 'Word16') at which a
@@ -938,7 +938,7 @@ findAIndexOrEnd :: (Char -> Bool) -> Text -> Int
 findAIndexOrEnd q t@(Text _arr _off len) = go 0
     where go !i | i >= len || q c       = i
                 | otherwise             = go (i+d)
-                where (c,d)             = iter t i
+                where Iter c d          = iter t i
     
 -- | /O(n)/ Group characters in a string by equality.
 group :: Text -> [Text]
@@ -1209,7 +1209,7 @@ words t@(Text arr off len) = loop 0 0
             then loop (start+1) (start+1)
             else Text arr (start+off) (n-start) : loop (n+d) (n+d)
         | otherwise = loop start (n+d)
-        where (c,d) = iter t n
+        where Iter c d = iter t n
 {-# INLINE words #-}
 
 -- | /O(n)/ Breaks a 'Text' up into a list of 'Text's at

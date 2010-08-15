@@ -30,7 +30,7 @@ import qualified Data.Text.Internal as I
 import qualified Data.Text.Array as A
 import Data.Text.UnsafeChar (unsafeWrite)
 import Data.Text.UnsafeShift (shiftL)
-import Data.Text.Unsafe (iter)
+import Data.Text.Unsafe (Iter(..), iter)
 import Data.Int (Int64)
 
 default(Int64)
@@ -43,7 +43,7 @@ stream text = Stream next (text :*: 0) 4 -- random HINT
     next (txt@(Chunk t@(I.Text _ _ len) ts) :*: i)
         | i >= len  = next (ts :*: 0)
         | otherwise = Yield c (txt :*: i+d)
-        where (c,d) = iter t i
+        where Iter c d = iter t i
 {-# INLINE [0] stream #-}
 
 -- | /O(n)/ Convert a 'Stream Char' into a 'Text', using the given
