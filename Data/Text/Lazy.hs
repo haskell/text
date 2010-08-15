@@ -253,6 +253,8 @@ unpack :: Text -> String
 unpack t = S.unstreamList (stream t)
 {-# INLINE [1] unpack #-}
 
+-- | /O(1)/ Convert a character into a Text.
+-- Subject to fusion.
 singleton :: Char -> Text
 singleton c = Chunk (T.singleton c) Empty
 {-# INLINE [1] singleton #-}
@@ -272,14 +274,22 @@ fromChunks cs = L.foldr chunk Empty cs
 toChunks :: Text -> [T.Text]
 toChunks cs = foldrChunks (:) [] cs
 
+-- | /O(n)/ Convert a lazy 'Text' into a strict 'T.Text'.
 toStrict :: Text -> T.Text
 toStrict t = T.concat (toChunks t)
 {-# INLINE [1] toStrict #-}
 
+-- | /O(c)/ Convert a strict 'T.Text' into a lazy 'Text'.
 fromStrict :: T.Text -> Text
 fromStrict t = chunk t Empty
 {-# INLINE [1] fromStrict #-}
 
+-- -----------------------------------------------------------------------------
+-- * Basic functions
+
+-- | /O(n)/ Adds a character to the front of a 'Text'.  This function
+-- is more costly than its 'List' counterpart because it requires
+-- copying a new array.  Subject to fusion.
 cons :: Char -> Text -> Text
 cons c t = Chunk (T.singleton c) t
 {-# INLINE [1] cons #-}
@@ -291,6 +301,8 @@ cons c t = Chunk (T.singleton c) t
     unstream (S.cons c (stream t)) = cons c t
  #-}
 
+-- | /O(n)/ Adds a character to the end of a 'Text'.  This copies the
+-- entire array in the process, unless fused.  Subject to fusion.
 snoc :: Text -> Char -> Text
 snoc t c = foldrChunks Chunk (singleton c) t
 {-# INLINE [1] snoc #-}
@@ -396,6 +408,8 @@ last (Chunk t ts) = go t ts
     S.last (stream t) = last t
   #-}
 
+-- | /O(n)/ Returns the number of characters in a 'Text'.
+-- Subject to fusion.
 length :: Text -> Int64
 length = foldlChunks go 0
     where go l t = l + fromIntegral (T.length t)
