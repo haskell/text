@@ -277,7 +277,7 @@ toStrict t = T.concat (toChunks t)
 {-# INLINE [1] toStrict #-}
 
 fromStrict :: T.Text -> Text
-fromStrict t = Chunk t Empty
+fromStrict t = chunk t Empty
 {-# INLINE [1] fromStrict #-}
 
 cons :: Char -> Text -> Text
