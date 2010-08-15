@@ -87,12 +87,12 @@ foldlChunks f z = go z
         go !a (Chunk c cs) = go (f a c) cs
 {-# INLINE foldlChunks #-}
 
--- | Currently set to 32KB, less the memory management overhead.
+-- | Currently set to 16 KiB, less the memory management overhead.
 defaultChunkSize :: Int
 defaultChunkSize = 16384 - chunkOverhead
 {-# INLINE defaultChunkSize #-}
 
--- | Currently set to 256 bytes, less the memory management overhead.
+-- | Currently set to 128 bytes, less the memory management overhead.
 smallChunkSize :: Int
 smallChunkSize = 128 - chunkOverhead
 {-# INLINE smallChunkSize #-}
