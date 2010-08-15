@@ -3,7 +3,7 @@
 -- |
 -- Module      : Data.Text.Fusion
 -- Copyright   : (c) Tom Harper 2008-2009,
---               (c) Bryan O'Sullivan 2009,
+--               (c) Bryan O'Sullivan 2009-2010,
 --               (c) Duncan Coutts 2009
 --
 -- License     : BSD-style
