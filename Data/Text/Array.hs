@@ -31,11 +31,11 @@ module Data.Text.Array
 
     -- * Functions
     , copy
+    , partialCopyM
     , empty
     , run
     , run2
     , toList
-    , unsafeCopy
     , unsafeFreeze
     , unsafeIndex
     , unsafeNew
@@ -204,9 +204,9 @@ copy dest@(MArray dlen _) src@(MArray slen _)
                            copy_loop (i+1)
 {-# INLINE copy #-}
 
--- | Unsafely copy the elements of an array.
-unsafeCopy :: MArray s -> Int -> MArray s -> Int -> Int -> ST s ()
-unsafeCopy dest didx src sidx count =
+-- | Copy some elements of a mutable array.
+partialCopyM :: MArray s -> Int -> MArray s -> Int -> Int -> ST s ()
+partialCopyM dest didx src sidx count =
 #if defined(ASSERTS)
     assert (sidx + count <= length src) .
     assert (didx + count <= length dest) $
@@ -217,4 +217,4 @@ unsafeCopy dest didx src sidx count =
           | c >= count  = return ()
           | otherwise = do unsafeRead src i >>= unsafeWrite dest j
                            copy_loop (i+1) (j+1) (c+1)
-{-# INLINE unsafeCopy #-}
+{-# INLINE partialCopyM #-}
