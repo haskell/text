@@ -56,13 +56,13 @@ if (_k_) < 0 || (_k_) >= (_len_) then error ("Data.Text.Array." ++ (_func_) ++ "
 #if defined(ASSERTS)
 import Control.Exception (assert)
 #endif
-import Data.Text.UnsafeShift (shiftL)
+import Data.Text.UnsafeShift (shiftL, shiftR)
 import GHC.Base (ByteArray#, MutableByteArray#, Int(..),
                  indexWord16Array#, newByteArray#,
-                 readWord16Array#, unsafeCoerce#,
-                 writeWord16Array#)
+                 readWord16Array#, readWordArray#, unsafeCoerce#,
+                 writeWord16Array#, writeWordArray#)
 import GHC.ST (ST(..), runST)
-import GHC.Word (Word16(..))
+import GHC.Word (Word16(..), Word(..))
 import Prelude hiding (length, read)
 
 -- | Immutable array type.
@@ -143,6 +143,24 @@ unsafeWrite (MArray len marr#) i@(I# i#) (W16# e#) = ST $ \s1# ->
     s2# -> (# s2#, () #)
 {-# INLINE unsafeWrite #-}
 
+-- | Unchecked read of a mutable array.  May return garbage or
+-- crash on an out-of-bounds access.
+unsafeReadWord :: MArray s -> Int -> ST s Word
+unsafeReadWord (MArray len mba#) i@(I# i#) = ST $ \s# ->
+  CHECK_BOUNDS("unsafeRead64",len,i)
+  case readWordArray# mba# i# s# of
+    (# s2#, r# #) -> (# s2#, W# r# #)
+{-# INLINE unsafeReadWord #-}
+
+-- | Unchecked write of a mutable array.  May return garbage or crash
+-- on an out-of-bounds access.
+unsafeWriteWord :: MArray s -> Int -> Word -> ST s ()
+unsafeWriteWord (MArray len marr#) i@(I# i#) (W# e#) = ST $ \s1# ->
+  CHECK_BOUNDS("unsafeWriteWord",len,i)
+  case writeWordArray# marr# i# e# s1# of
+    s2# -> (# s2#, () #)
+{-# INLINE unsafeWriteWord #-}
+
 -- | Convert an immutable array to a list.
 toList :: Array -> [Word16]
 toList a = loop 0
@@ -172,13 +190,17 @@ run2 k = runST (do
 copy :: MArray s     -- ^ source array
      -> MArray s     -- ^ destination array
      -> ST s ()
-copy src dest
-    | length dest >= length src = copy_loop 0
-    | otherwise                 = fail "Data.Text.Array.copy: array too small"
+copy src@(MArray slen _) dest@(MArray dlen _)
+    | dlen >= slen = fast_loop 0
+    | otherwise    = fail "Data.Text.Array.copy: array too small"
     where
-      len = length src
-      copy_loop i
-          | i >= len  = return ()
+      nwds = slen `div` (SIZEOF_HSWORD `shiftR` 1)
+      fast_loop !i
+          | i >= nwds = copy_loop (i * (SIZEOF_HSWORD `shiftR` 1))
+          | otherwise = do unsafeReadWord src i >>= unsafeWriteWord dest i
+                           fast_loop (i+1)
+      copy_loop !i
+          | i >= slen = return ()
           | otherwise = do unsafeRead src i >>= unsafeWrite dest i
                            copy_loop (i+1)
 {-# INLINE copy #-}
