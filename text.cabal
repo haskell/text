@@ -4,9 +4,9 @@ synopsis:       An efficient packed Unicode text type
 description:    An efficient packed Unicode text type.
 license:        BSD3
 license-file:   LICENSE
-author:         Tom Harper <rtharper@aftereternity.co.uk>
+author:         Tom Harper <rtomharper@googlemail.com>
 maintainer:     Bryan O'Sullivan <bos@serpentine.com>
-                Tom Harper <rtharper@aftereternity.co.uk>
+                Tom Harper <rrtomharper@googlemail.com>
                 Duncan Coutts <duncan@haskell.org>
 copyright:      2008-2009 Tom Harper, 2009-2010 Bryan O'Sullivan
 category:       Data, Text
