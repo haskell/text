@@ -136,7 +136,7 @@ reverse (Stream next s len0)
           Yield x s1 | i < least -> {-# SCC "reverse/resize" #-} do
                        let newLen = len `shiftL` 1
                        marr' <- A.unsafeNew newLen
-                       A.unsafeCopy marr 0 marr' (newLen-len) len
+                       A.unsafeCopy marr' (newLen-len) marr 0 len
                        write s1 (len+i) newLen marr'
                      | otherwise -> write s1 i len marr
             where n = ord x

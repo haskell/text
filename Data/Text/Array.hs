@@ -206,7 +206,7 @@ copy src@(MArray slen _) dest@(MArray dlen _)
 
 -- | Unsafely copy the elements of an array.
 unsafeCopy :: MArray s -> Int -> MArray s -> Int -> Int -> ST s ()
-unsafeCopy src sidx dest didx count =
+unsafeCopy dest didx src sidx count =
 #if defined(ASSERTS)
     assert (sidx + count <= length src) .
     assert (didx + count <= length dest) $
