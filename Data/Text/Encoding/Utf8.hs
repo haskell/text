@@ -119,7 +119,7 @@ chr4 (W8# x1#) (W8# x2#) (W8# x3#) (W8# x4#) =
 {-# INLINE chr4 #-}
 
 validate1    :: Word8 -> Bool
-validate1 x1 = between x1 0x00 0x7F
+validate1 x1 = x1 <= 0x7F
 {-# INLINE validate1 #-}
 
 validate2       :: Word8 -> Word8 -> Bool
