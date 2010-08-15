@@ -65,9 +65,13 @@ t_ascii t           = E.decodeASCII (E.encodeUtf8 a) == a
 t_utf8              = forAll genUnicode $ (E.decodeUtf8 . E.encodeUtf8) `eq` id
 tl_utf8             = forAll genUnicode $ (EL.decodeUtf8 . EL.encodeUtf8) `eq` id
 t_utf16LE           = forAll genUnicode $ (E.decodeUtf16LE . E.encodeUtf16LE) `eq` id
+tl_utf16LE          = forAll genUnicode $ (EL.decodeUtf16LE . EL.encodeUtf16LE) `eq` id
 t_utf16BE           = forAll genUnicode $ (E.decodeUtf16BE . E.encodeUtf16BE) `eq` id
+tl_utf16BE          = forAll genUnicode $ (EL.decodeUtf16BE . EL.encodeUtf16BE) `eq` id
 t_utf32LE           = forAll genUnicode $ (E.decodeUtf32LE . E.encodeUtf32LE) `eq` id
+tl_utf32LE          = forAll genUnicode $ (EL.decodeUtf32LE . EL.encodeUtf32LE) `eq` id
 t_utf32BE           = forAll genUnicode $ (E.decodeUtf32BE . E.encodeUtf32BE) `eq` id
+tl_utf32BE          = forAll genUnicode $ (EL.decodeUtf32BE . EL.encodeUtf32BE) `eq` id
 
 class Stringy s where
     packS    :: String -> s
@@ -600,9 +604,13 @@ tests = [
     testProperty "t_utf8" t_utf8,
     testProperty "tl_utf8" tl_utf8,
     testProperty "t_utf16LE" t_utf16LE,
+    testProperty "tl_utf16LE" tl_utf16LE,
     testProperty "t_utf16BE" t_utf16BE,
+    testProperty "tl_utf16BE" tl_utf16BE,
     testProperty "t_utf32LE" t_utf32LE,
-    testProperty "t_utf32BE" t_utf32BE
+    testProperty "tl_utf32LE" tl_utf32LE,
+    testProperty "t_utf32BE" t_utf32BE,
+    testProperty "tl_utf32BE" tl_utf32BE
   ],
 
   testGroup "instances" [

@@ -17,11 +17,11 @@ module Data.Text.Lazy.Encoding.Fusion
     (
     -- * Streaming
     --  streamASCII
-     streamUtf8
-    --, streamUtf16LE
-    --, streamUtf16BE
-    --, streamUtf32LE
-    --, streamUtf32BE
+      streamUtf8
+    , streamUtf16LE
+    , streamUtf16BE
+    , streamUtf32LE
+    , streamUtf32BE
 
     -- * Unstreaming
     , unstream
@@ -36,9 +36,12 @@ import Data.Text.Encoding.Fusion.Common
 import Data.Text.Encoding.Error
 import Data.Text.Fusion (Step(..), Stream(..))
 import Data.Text.Fusion.Size
-import Data.Text.UnsafeChar (unsafeChr8)
-import Data.Word (Word8)
+import Data.Text.UnsafeChar (unsafeChr, unsafeChr8, unsafeChr32)
+import Data.Text.UnsafeShift (shiftL)
+import Data.Word (Word8, Word16, Word32)
 import qualified Data.Text.Encoding.Utf8 as U8
+import qualified Data.Text.Encoding.Utf16 as U16
+import qualified Data.Text.Encoding.Utf32 as U32
 import System.IO.Unsafe (unsafePerformIO)
 import Foreign.ForeignPtr (withForeignPtr, ForeignPtr)
 import Foreign.Storable (pokeByteOff)
@@ -97,6 +100,174 @@ streamUtf8 onErr bs0 = Stream next (T bs0 S0 0) unknownSize
     consume (T Empty S0 _) = Done
     consume st             = decodeError "streamUtf8" "UTF-8" onErr Nothing st
 {-# INLINE [0] streamUtf8 #-}
+
+-- | /O(n)/ Convert a 'ByteString' into a 'Stream Char', using little
+-- endian UTF-16 encoding.
+streamUtf16LE :: OnDecodeError -> ByteString -> Stream Char
+streamUtf16LE onErr bs0 = Stream next (T bs0 S0 0) unknownSize
+  where
+    next (T bs@(Chunk ps _) S0 i)
+      | i + 1 < len && U16.validate1 x1 =
+          Yield (unsafeChr x1)         (T bs S0 (i+2))
+      | i + 3 < len && U16.validate2 x1 x2 =
+          Yield (U16.chr2 x1 x2)       (T bs S0 (i+4))
+      where len = B.length ps
+            x1   = c (idx  i)      (idx (i + 1))
+            x2   = c (idx (i + 2)) (idx (i + 3))
+            c w1 w2 = w1 + (w2 `shiftL` 8)
+            idx = fromIntegral . B.unsafeIndex ps :: Int -> Word16
+    next st@(T bs s i) =
+      case s of
+        S2 w1 w2       | U16.validate1 (c w1 w2)           ->
+          Yield (unsafeChr (c w1 w2))   es
+        S4 w1 w2 w3 w4 | U16.validate2 (c w1 w2) (c w3 w4) ->
+          Yield (U16.chr2 (c w1 w2) (c w3 w4)) es
+        _ -> consume st
+       where es = T bs S0 i
+             c :: Word8 -> Word8 -> Word16
+             c w1 w2 = fromIntegral w1 + (fromIntegral w2 `shiftL` 8)
+    consume (T bs@(Chunk ps rest) s i)
+        | i >= B.length ps = consume (T rest s 0)
+        | otherwise =
+      case s of
+        S0             -> next (T bs (S1 x)          (i+1))
+        S1 w1          -> next (T bs (S2 w1 x)       (i+1))
+        S2 w1 w2       -> next (T bs (S3 w1 w2 x)    (i+1))
+        S3 w1 w2 w3    -> next (T bs (S4 w1 w2 w3 x) (i+1))
+        S4 w1 w2 w3 w4 -> decodeError "streamUtf16LE" "UTF-16LE" onErr (Just w1)
+                           (T bs (S3 w2 w3 w4)       (i+1))
+        where x = B.unsafeIndex ps i
+    consume (T Empty S0 _) = Done
+    consume st             = decodeError "streamUtf16LE" "UTF-16LE" onErr Nothing st
+{-# INLINE [0] streamUtf16LE #-}
+
+-- | /O(n)/ Convert a 'ByteString' into a 'Stream Char', using big
+-- endian UTF-16 encoding.
+streamUtf16BE :: OnDecodeError -> ByteString -> Stream Char
+streamUtf16BE onErr bs0 = Stream next (T bs0 S0 0) unknownSize
+  where
+    next (T bs@(Chunk ps _) S0 i)
+      | i + 1 < len && U16.validate1 x1 =
+          Yield (unsafeChr x1)         (T bs S0 (i+2))
+      | i + 3 < len && U16.validate2 x1 x2 =
+          Yield (U16.chr2 x1 x2)       (T bs S0 (i+4))
+      where len = B.length ps
+            x1   = c (idx  i)      (idx (i + 1))
+            x2   = c (idx (i + 2)) (idx (i + 3))
+            c w1 w2 = (w1 `shiftL` 8) + w2
+            idx = fromIntegral . B.unsafeIndex ps :: Int -> Word16
+    next st@(T bs s i) =
+      case s of
+        S2 w1 w2       | U16.validate1 (c w1 w2)           ->
+          Yield (unsafeChr (c w1 w2))   es
+        S4 w1 w2 w3 w4 | U16.validate2 (c w1 w2) (c w3 w4) ->
+          Yield (U16.chr2 (c w1 w2) (c w3 w4)) es
+        _ -> consume st
+       where es = T bs S0 i
+             c :: Word8 -> Word8 -> Word16
+             c w1 w2 = (fromIntegral w1 `shiftL` 8) + fromIntegral w2
+    consume (T bs@(Chunk ps rest) s i)
+        | i >= B.length ps = consume (T rest s 0)
+        | otherwise =
+      case s of
+        S0             -> next (T bs (S1 x)          (i+1))
+        S1 w1          -> next (T bs (S2 w1 x)       (i+1))
+        S2 w1 w2       -> next (T bs (S3 w1 w2 x)    (i+1))
+        S3 w1 w2 w3    -> next (T bs (S4 w1 w2 w3 x) (i+1))
+        S4 w1 w2 w3 w4 -> decodeError "streamUtf16BE" "UTF-16BE" onErr (Just w1)
+                           (T bs (S3 w2 w3 w4)       (i+1))
+        where x = B.unsafeIndex ps i
+    consume (T Empty S0 _) = Done
+    consume st             = decodeError "streamUtf16BE" "UTF-16BE" onErr Nothing st
+{-# INLINE [0] streamUtf16BE #-}
+
+-- | /O(n)/ Convert a 'ByteString' into a 'Stream Char', using big
+-- endian UTF-32 encoding.
+streamUtf32BE :: OnDecodeError -> ByteString -> Stream Char
+streamUtf32BE onErr bs0 = Stream next (T bs0 S0 0) unknownSize
+  where
+    next (T bs@(Chunk ps _) S0 i)
+      | i + 3 < len && U32.validate x =
+          Yield (unsafeChr32 x)       (T bs S0 (i+4))
+      where len = B.length ps
+            x = shiftL x1 24 + shiftL x2 16 + shiftL x3 8 + x4
+            x1    = idx i
+            x2    = idx (i+1)
+            x3    = idx (i+2)
+            x4    = idx (i+3)
+            idx = fromIntegral . B.unsafeIndex ps :: Int -> Word32
+    next st@(T bs s i) =
+      case s of
+        S4 w1 w2 w3 w4 | U32.validate (c w1 w2 w3 w4) ->
+          Yield (unsafeChr32 (c w1 w2 w3 w4)) es
+        _ -> consume st
+       where es = T bs S0 i
+             c :: Word8 -> Word8 -> Word8 -> Word8 -> Word32
+             c w1 w2 w3 w4 = shifted
+              where
+               shifted = shiftL x1 24 + shiftL x2 16 + shiftL x3 8 + x4
+               x1 = fromIntegral w1
+               x2 = fromIntegral w2
+               x3 = fromIntegral w3
+               x4 = fromIntegral w4
+    consume (T bs@(Chunk ps rest) s i)
+        | i >= B.length ps = consume (T rest s 0)
+        | otherwise =
+      case s of
+        S0             -> next (T bs (S1 x)          (i+1))
+        S1 w1          -> next (T bs (S2 w1 x)       (i+1))
+        S2 w1 w2       -> next (T bs (S3 w1 w2 x)    (i+1))
+        S3 w1 w2 w3    -> next (T bs (S4 w1 w2 w3 x) (i+1))
+        S4 w1 w2 w3 w4 -> decodeError "streamUtf32BE" "UTF-32BE" onErr (Just w1)
+                           (T bs (S3 w2 w3 w4)       (i+1))
+        where x = B.unsafeIndex ps i
+    consume (T Empty S0 _) = Done
+    consume st             = decodeError "streamUtf32BE" "UTF-32BE" onErr Nothing st
+{-# INLINE [0] streamUtf32BE #-}
+
+-- | /O(n)/ Convert a 'ByteString' into a 'Stream Char', using little
+-- endian UTF-32 encoding.
+streamUtf32LE :: OnDecodeError -> ByteString -> Stream Char
+streamUtf32LE onErr bs0 = Stream next (T bs0 S0 0) unknownSize
+  where
+    next (T bs@(Chunk ps _) S0 i)
+      | i + 3 < len && U32.validate x =
+          Yield (unsafeChr32 x)       (T bs S0 (i+4))
+      where len = B.length ps
+            x = shiftL x4 24 + shiftL x3 16 + shiftL x2 8 + x1
+            x1    = idx i
+            x2    = idx (i+1)
+            x3    = idx (i+2)
+            x4    = idx (i+3)
+            idx = fromIntegral . B.unsafeIndex ps :: Int -> Word32
+    next st@(T bs s i) =
+      case s of
+        S4 w1 w2 w3 w4 | U32.validate (c w1 w2 w3 w4) ->
+          Yield (unsafeChr32 (c w1 w2 w3 w4)) es
+        _ -> consume st
+       where es = T bs S0 i
+             c :: Word8 -> Word8 -> Word8 -> Word8 -> Word32
+             c w1 w2 w3 w4 = shifted
+              where
+               shifted = shiftL x4 24 + shiftL x3 16 + shiftL x2 8 + x1
+               x1 = fromIntegral w1
+               x2 = fromIntegral w2
+               x3 = fromIntegral w3
+               x4 = fromIntegral w4
+    consume (T bs@(Chunk ps rest) s i)
+        | i >= B.length ps = consume (T rest s 0)
+        | otherwise =
+      case s of
+        S0             -> next (T bs (S1 x)          (i+1))
+        S1 w1          -> next (T bs (S2 w1 x)       (i+1))
+        S2 w1 w2       -> next (T bs (S3 w1 w2 x)    (i+1))
+        S3 w1 w2 w3    -> next (T bs (S4 w1 w2 w3 x) (i+1))
+        S4 w1 w2 w3 w4 -> decodeError "streamUtf32LE" "UTF-32LE" onErr (Just w1)
+                           (T bs (S3 w2 w3 w4)       (i+1))
+        where x = B.unsafeIndex ps i
+    consume (T Empty S0 _) = Done
+    consume st             = decodeError "streamUtf32LE" "UTF-32LE" onErr Nothing st
+{-# INLINE [0] streamUtf32LE #-}
 
 -- | /O(n)/ Convert a 'Stream' 'Word8' to a lazy 'ByteString'.
 unstreamChunks :: Int -> Stream Word8 -> ByteString
