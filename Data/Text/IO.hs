@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, CPP, RecordWildCards #-}
+{-# LANGUAGE BangPatterns, CPP, RecordWildCards, ScopedTypeVariables #-}
 -- |
 -- Module      : Data.Text.IO
 -- Copyright   : (c) Bryan O'Sullivan 2009,
@@ -32,15 +32,16 @@ module Data.Text.IO
     ) where
 
 import Data.Text (Text)
-import Prelude hiding (appendFile, getContents, getLine, interact, putStr,
-                       putStrLn, readFile, writeFile)
+import Prelude hiding (appendFile, catch, getContents, getLine, interact,
+                       putStr, putStrLn, readFile, writeFile)
 import System.IO (Handle, IOMode(..), hPutChar, openFile, stdin, stdout,
                   withFile)
 #if __GLASGOW_HASKELL__ <= 610
 import qualified Data.ByteString.Char8 as B
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 #else
-import Control.Exception (throw)
+import Control.Exception (catch, throw)
+import Control.Monad (liftM2, when)
 import Data.IORef (readIORef, writeIORef)
 import qualified Data.Text as T
 import Data.Text.Fusion (stream)
@@ -49,11 +50,13 @@ import Data.Text.IO.Internal (hGetLineWith, readChunk)
 import GHC.IO.Buffer (Buffer(..), BufferState(..), CharBufElem, CharBuffer,
                       RawCharBuffer, emptyBuffer, isEmptyBuffer, newCharBuffer,
                       writeCharBuf)
+import GHC.IO.Exception (IOException(ioe_type), IOErrorType(InappropriateType))
 import GHC.IO.Handle.Internals (augmentIOError, hClose_help, wantReadableHandle,
                                 wantWritableHandle)
 import GHC.IO.Handle.Text (commitBuffer')
 import GHC.IO.Handle.Types (BufferList(..), BufferMode(..), Handle__(..),
                             Newline(..))
+import System.IO (hGetBuffering, hFileSize, hSetBuffering, hTell)
 import System.IO.Error (isEOFError)
 #endif
 
@@ -87,7 +90,9 @@ hGetContents :: Handle -> IO Text
 #if __GLASGOW_HASKELL__ <= 610
 hGetContents = fmap decodeUtf8 . B.hGetContents
 #else
-hGetContents h = wantReadableHandle "hGetContents" h $ \hh -> do
+hGetContents h = do
+  chooseGoodBuffering h
+  wantReadableHandle "hGetContents" h $ \hh -> do
                    (hh',ts) <- readAll hh
                    return (hh',T.concat ts)
  where
@@ -106,6 +111,23 @@ hGetContents h = wantReadableHandle "hGetContents" h $ \hh -> do
         else throw (augmentIOError e "hGetContents" h)
 #endif
   
+-- | Use a more efficient buffer size if we're reading in
+-- block-buffered mode with the default buffer size.  When we can
+-- determine the size of the handle we're reading, set the buffer size
+-- to that, so that we can read the entire file in one chunk.
+-- Otherwise, use a buffer size of at least 16KB.
+chooseGoodBuffering :: Handle -> IO ()
+chooseGoodBuffering h = do
+  bufMode <- hGetBuffering h
+  case bufMode of
+    BlockBuffering Nothing -> do
+      d <- catch (liftM2 (-) (hFileSize h) (hTell h)) $ \(e::IOException) ->
+           if ioe_type e == InappropriateType
+           then return 16384 -- faster than the 2KB default
+           else throw e
+      when (d > 0) . hSetBuffering h . BlockBuffering . Just . fromIntegral $ d
+    _ -> return ()
+
 -- | Read a single line from a handle.
 hGetLine :: Handle -> IO Text
 #if __GLASGOW_HASKELL__ <= 610

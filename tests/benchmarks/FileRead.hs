@@ -47,7 +47,6 @@ bytestring h = do
 main = do
   (name : file : _) <- getArgs
   h <- openFile file ReadMode
-  hSetBuffering h (BlockBuffering (Just 16384))
   case name of
     "bs" -> bytestring h
     "lbs" -> lbytestring h

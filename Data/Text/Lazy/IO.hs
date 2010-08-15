@@ -44,6 +44,7 @@ import qualified Data.ByteString.Char8 as S8
 import qualified Data.ByteString.Lazy.Char8 as L8
 #else
 import Control.Exception (throw)
+import Control.Monad (when)
 import Data.IORef (readIORef)
 import Data.Text.IO.Internal (hGetLineWith, readChunk)
 import Data.Text.Lazy.Internal (chunk, empty)
@@ -52,6 +53,7 @@ import GHC.IO.Exception (IOException(..), IOErrorType(..), ioException)
 import GHC.IO.Handle.Internals (augmentIOError, hClose_help,
                                 wantReadableHandle, withHandle)
 import GHC.IO.Handle.Types (Handle__(..), HandleType(..))
+import System.IO (BufferMode(..), hGetBuffering, hSetBuffering)
 import System.IO.Error (isEOFError)
 import System.IO.Unsafe (unsafeInterleaveIO)
 #endif
@@ -76,10 +78,19 @@ hGetContents :: Handle -> IO Text
 #if __GLASGOW_HASKELL__ <= 610
 hGetContents = fmap decodeUtf8 . L8.hGetContents
 #else
-hGetContents h =
-    wantReadableHandle "hGetContents" h $ \hh -> do
-      ts <- lazyRead h
-      return (hh{haType=SemiClosedHandle}, ts)
+hGetContents h = do
+  chooseGoodBuffering h
+  wantReadableHandle "hGetContents" h $ \hh -> do
+    ts <- lazyRead h
+    return (hh{haType=SemiClosedHandle}, ts)
+
+-- | Use a more efficient buffer size if we're reading in
+-- block-buffered mode with the default buffer size.
+chooseGoodBuffering :: Handle -> IO ()
+chooseGoodBuffering h = do
+  bufMode <- hGetBuffering h
+  when (bufMode == BlockBuffering Nothing) $
+    hSetBuffering h (BlockBuffering (Just 16384))
 
 lazyRead :: Handle -> IO Text
 lazyRead h = unsafeInterleaveIO $
