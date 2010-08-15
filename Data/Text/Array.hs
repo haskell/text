@@ -189,7 +189,7 @@ run2 k = runST (do
 copy :: MArray s     -- ^ source array
      -> MArray s     -- ^ destination array
      -> ST s ()
-copy src@(MArray slen _) dest@(MArray dlen _)
+copy dest@(MArray dlen _) src@(MArray slen _)
     | dlen >= slen = fast_loop 0
     | otherwise    = fail "Data.Text.Array.copy: array too small"
     where
