@@ -39,6 +39,10 @@ module Data.Text.Lazy
     , empty
     , fromChunks
     , toChunks
+    , toStrict
+    , fromStrict
+    , foldrChunks
+    , foldlChunks
 
     -- * Basic interface
     , cons
@@ -267,6 +271,14 @@ fromChunks cs = L.foldr chunk Empty cs
 -- | /O(n)/ Convert a lazy 'Text' into a list of strict 'T.Text's.
 toChunks :: Text -> [T.Text]
 toChunks cs = foldrChunks (:) [] cs
+
+toStrict :: Text -> T.Text
+toStrict t = T.concat (toChunks t)
+{-# INLINE [1] toStrict #-}
+
+fromStrict :: T.Text -> Text
+fromStrict t = Chunk t Empty
+{-# INLINE [1] fromStrict #-}
 
 cons :: Char -> Text -> Text
 cons c t = Chunk (T.singleton c) t
