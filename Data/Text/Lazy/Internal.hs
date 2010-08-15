@@ -21,9 +21,12 @@ module Data.Text.Lazy.Internal
     , foldrChunks
     , foldlChunks
     -- * Data type invariant and abstraction functions
-    , invariant
-    , checkInvariant
+
+    -- $invariant
+    , strictInvariant
+    , lazyInvariant
     , showStructure
+
     -- * Chunk allocation sizes
     , defaultChunkSize
     , smallChunkSize
@@ -40,26 +43,34 @@ data Text = Empty
           | Chunk {-# UNPACK #-} !T.Text Text
             deriving (Typeable)
 
--- | The data type invariant: Every 'Text' is either 'Empty' or
+-- $invariant
+--
+-- The data type invariant for lazy 'Text': Every 'Text' is either 'Empty' or
 -- consists of non-null 'T.Text's.  All functions must preserve this,
 -- and the QC properties must check this.
-invariant :: Text -> Bool
-invariant Empty                       = True
-invariant (Chunk (T.Text _ _ len) cs) = len > 0 && invariant cs
 
+-- | Check the invariant strictly.
+strictInvariant :: Text -> Bool
+strictInvariant Empty = True
+strictInvariant x@(Chunk (T.Text _ _ len) cs)
+    | len > 0   = strictInvariant cs
+    | otherwise = error $ "Data.Text.Lazy: invariant violation: "
+                  ++ showStructure x
+
+-- | Check the invariant lazily.
+lazyInvariant :: Text -> Text
+lazyInvariant Empty = Empty
+lazyInvariant x@(Chunk c@(T.Text _ _ len) cs)
+    | len > 0   = Chunk c (lazyInvariant cs)
+    | otherwise = error $ "Data.Text.Lazy: invariant violation: "
+                  ++ showStructure x
+
+-- | Display the internal structure of a lazy 'Text'.
 showStructure :: Text -> String
 showStructure Empty           = "Empty"
 showStructure (Chunk t Empty) = "Chunk " ++ show t ++ " Empty"
 showStructure (Chunk t ts)    =
     "Chunk " ++ show t ++ " (" ++ showStructure ts ++ ")"
-
--- | In a form that checks the invariant lazily.
-checkInvariant :: Text -> Text
-checkInvariant Empty = Empty
-checkInvariant (Chunk c@(T.Text _ _ len) cs)
-    | len > 0   = Chunk c (checkInvariant cs)
-    | otherwise = error $ "Data.Text.Lazy: invariant violation: "
-               ++ showStructure (Chunk c cs)
 
 -- | Smart constructor for 'Chunk'. Guarantees the data type invariant.
 chunk :: T.Text -> Text -> Text
