@@ -68,7 +68,7 @@ streamUtf8 onErr bs0 = Stream next (T bs0 S0 0) unknownSize
           Yield (U8.chr2 a b)     (T bs S0 (i+2))
       | i + 2 < len && U8.validate3 a b c =
           Yield (U8.chr3 a b c)   (T bs S0 (i+3))
-      | i + 4 < len && U8.validate4 a b c d =
+      | i + 3 < len && U8.validate4 a b c d =
           Yield (U8.chr4 a b c d) (T bs S0 (i+4))
       where len = B.length ps
             a = B.unsafeIndex ps i
