@@ -32,7 +32,7 @@ import Data.Text.Search (indices)
 import qualified Data.Text.Lazy.Search as S (indices)
 import qualified SlowFunctions as Slow
 
-import QuickCheckUtils (NotEmpty(..), small)
+import QuickCheckUtils (NotEmpty(..), small, genUnicode)
 
 -- Ensure that two potentially bottom values (in the sense of crashing
 -- for some inputs, not looping infinitely) either both crash, or both
@@ -62,12 +62,12 @@ tl_chunk_unchunk    = (TL.fromChunks . TL.toChunks) `eq` id
 
 t_ascii t           = E.decodeASCII (E.encodeUtf8 a) == a
     where a              = T.map (\c -> chr (ord c `mod` 128)) t
-t_utf8              = (E.decodeUtf8 . E.encodeUtf8) `eq` id
-tl_utf8             = (EL.decodeUtf8 . EL.encodeUtf8) `eq` id
-t_utf16LE           = (E.decodeUtf16LE . E.encodeUtf16LE) `eq` id
-t_utf16BE           = (E.decodeUtf16BE . E.encodeUtf16BE) `eq` id
-t_utf32LE           = (E.decodeUtf32LE . E.encodeUtf32LE) `eq` id
-t_utf32BE           = (E.decodeUtf32BE . E.encodeUtf32BE) `eq` id
+t_utf8              = forAll genUnicode $ (E.decodeUtf8 . E.encodeUtf8) `eq` id
+tl_utf8             = forAll genUnicode $ (EL.decodeUtf8 . EL.encodeUtf8) `eq` id
+t_utf16LE           = forAll genUnicode $ (E.decodeUtf16LE . E.encodeUtf16LE) `eq` id
+t_utf16BE           = forAll genUnicode $ (E.decodeUtf16BE . E.encodeUtf16BE) `eq` id
+t_utf32LE           = forAll genUnicode $ (E.decodeUtf32LE . E.encodeUtf32LE) `eq` id
+t_utf32BE           = forAll genUnicode $ (E.decodeUtf32BE . E.encodeUtf32BE) `eq` id
 
 class Stringy s where
     packS    :: String -> s

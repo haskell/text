@@ -3,12 +3,15 @@
 module QuickCheckUtils where
 
 import Control.Arrow (first)
+import Data.Char (chr)
+import Data.Bits ((.&.))
 import Data.Int (Int64)
 import Data.Word (Word8, Word16, Word32)
+import Data.String (IsString, fromString)
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import System.Random (Random(..), RandomGen)
-import Test.QuickCheck (Arbitrary(..), choose, sized, vector)
+import Test.QuickCheck (Gen, Arbitrary(..), choose, sized, vector, oneof)
 import qualified Data.ByteString as B
 
 instance Random Int64 where
@@ -41,6 +44,56 @@ instance Random Word32 where
 
 instance Arbitrary Word32 where
     arbitrary     = choose (minBound,maxBound)
+
+genUnicode :: IsString a => Gen a
+genUnicode = fmap fromString string where
+    string = sized $ \n ->
+        do k <- choose (0,n)
+           sequence [ char | _ <- [1..k] ]
+    
+    excluding :: [a -> Bool] -> Gen a -> Gen a
+    excluding bad gen = loop
+      where
+        loop = do
+          x <- gen
+          if or (map ($ x) bad)
+            then loop
+            else return x
+    
+    reserved = [lowSurrogate, highSurrogate, noncharacter]
+    lowSurrogate c = c >= 0xDC00 && c <= 0xDFFF
+    highSurrogate c = c >= 0xD800 && c <= 0xDBFF
+    noncharacter c = masked == 0xFFFE || masked == 0xFFFF
+      where
+        masked = c .&. 0xFFFF 
+    
+    ascii = choose (0,0x7F)
+    plane0 = choose (0xF0, 0xFFFF)
+    plane1 = oneof [ choose (0x10000, 0x10FFF)
+                   , choose (0x11000, 0x11FFF)
+                   , choose (0x12000, 0x12FFF)
+                   , choose (0x13000, 0x13FFF)
+                   , choose (0x1D000, 0x1DFFF)
+                   , choose (0x1F000, 0x1FFFF)
+                   ]
+    plane2 = oneof [ choose (0x20000, 0x20FFF)
+                   , choose (0x21000, 0x21FFF)
+                   , choose (0x22000, 0x22FFF)
+                   , choose (0x23000, 0x23FFF)
+                   , choose (0x24000, 0x24FFF)
+                   , choose (0x25000, 0x25FFF)
+                   , choose (0x26000, 0x26FFF)
+                   , choose (0x27000, 0x27FFF)
+                   , choose (0x28000, 0x28FFF)
+                   , choose (0x29000, 0x29FFF)
+                   , choose (0x2A000, 0x2AFFF)
+                   , choose (0x2B000, 0x2BFFF)
+                   , choose (0x2F000, 0x2FFFF)
+                   ]
+    plane14 = choose (0xE0000, 0xE0FFF)
+    planes = [ascii, plane0, plane1, plane2, plane14]
+    
+    char = chr `fmap` excluding reserved (oneof planes)
 
 instance Arbitrary T.Text where
     arbitrary     = T.pack `fmap` arbitrary
