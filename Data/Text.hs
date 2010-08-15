@@ -185,7 +185,6 @@ import Data.Data (mkNoRepType)
 import Data.Data (mkNorepType)
 #endif
 import Control.Monad (foldM)
-import Control.Monad.ST (ST)
 import qualified Data.Text.Array as A
 import qualified Data.List as L
 import Data.Monoid (Monoid(..))
@@ -297,8 +296,8 @@ append (Text arr1 off1 len1) (Text arr2 off2 len2) = Text (A.run x) 0 len
       len = len1+len2
       x = do
         arr <- A.unsafeNew len
-        copy arr 0 arr1 off1 len1
-        copy arr len1 arr2 off2 (len1+len2)
+        A.partialCopyI arr 0 arr1 off1 len1
+        A.partialCopyI arr len1 arr2 off2 (len1+len2)
         return arr
 {-# INLINE append #-}
 
@@ -308,14 +307,6 @@ append (Text arr1 off1 len1) (Text arr2 off2 len2) = Text (A.run x) 0 len
 "TEXT append -> unfused" [1] forall t1 t2.
     unstream (S.append (stream t1) (stream t2)) = append t1 t2
  #-}
-
-copy :: forall s. A.MArray s -> Int -> A.Array -> Int -> Int
-     -> ST s ()
-copy dest i0 src j0 top = go i0 j0
-  where
-    go i j | i >= top  = return ()
-           | otherwise = do A.unsafeWrite dest i (src `A.unsafeIndex` j)
-                            go (i+1) (j+1)
 
 -- | /O(1)/ Returns the first character of a 'Text', which must be
 -- non-empty.  Subject to fusion.
@@ -611,7 +602,7 @@ concat ts = Text (A.run go) 0 len
     len = L.sum (L.map (\(Text _ _ l) -> l) ts)
     go = do
       arr <- A.unsafeNew len
-      let step i (Text a o l) = let j = i + l in copy arr i a o j >> return j
+      let step i (Text a o l) = let j = i + l in A.partialCopyI arr i a o j >> return j
       foldM step 0 ts >> return arr
 {-# INLINE concat #-}
 
@@ -721,7 +712,7 @@ replicate n t@(Text a o l)
       arr <- A.unsafeNew len
       let loop !d !i | i >= n    = return arr
                      | otherwise = let m = d + l
-                                   in copy arr d a o m >> loop m (i+1)
+                                   in A.partialCopyI arr d a o m >> loop m (i+1)
       loop 0 0
 {-# INLINE [1] replicate #-}
 

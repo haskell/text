@@ -32,6 +32,7 @@ module Data.Text.Array
     -- * Functions
     , copy
     , partialCopyM
+    , partialCopyI
     , empty
     , run
     , run2
@@ -217,4 +218,11 @@ partialCopyM dest didx src sidx count =
           | c >= count  = return ()
           | otherwise = do unsafeRead src i >>= unsafeWrite dest j
                            copy_loop (i+1) (j+1) (c+1)
-{-# INLINE partialCopyM #-}
+
+-- | Copy some elements of an immutable array.
+partialCopyI :: MArray s -> Int -> Array -> Int -> Int -> ST s ()
+partialCopyI dest i0 src j0 top = go i0 j0
+  where
+    go !i !j | i >= top  = return ()
+             | otherwise = do unsafeWrite dest i (src `unsafeIndex` j)
+                              go (i+1) (j+1)
