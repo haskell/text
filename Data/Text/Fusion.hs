@@ -92,24 +92,23 @@ reverseStream (Text arr off len) = Stream next (off+len-1) (maxSize len)
 -- | /O(n)/ Convert a 'Stream Char' into a 'Text'.
 unstream :: Stream Char -> Text
 unstream (Stream next0 s0 len) = I.textP (P.fst a) 0 (P.snd a)
-    where
-      mlen = upperBound 4 len
-      a = A.run2 (A.unsafeNew mlen >>= (\arr -> outer arr mlen s0 0))
-      outer arr top = loop
-        where
-          loop !s !i
-            | i + 1 >= top = {-# SCC "unstream/resize" #-}
-                             case next0 s of
-                              Done    -> return (arr, i)
-                              Skip s' -> loop s' i
-                              _       -> do
-                                let top' = (top + 1) `shiftL` 1
-                                arr' <- A.unsafeNew top'
-                                A.copy arr arr' >> outer arr' top' s i
-            | otherwise = case next0 s of
-                 Done       -> return (arr, i)
-                 Skip s'    -> loop s' i
-                 Yield x s' -> unsafeWrite arr i x >>= loop s'
+  where
+    a = A.run2 (A.unsafeNew mlen >>= \arr -> outer arr mlen s0 0)
+      where mlen = upperBound 4 len
+    outer arr top = loop
+      where
+        loop !s !i =
+            case next0 s of
+              Done          -> return (arr, i)
+              Skip s'       -> loop s' i
+              Yield x s'
+                | j >= top  -> {-# SCC "unstream/resize" #-} do
+                               let top' = (top + 1) `shiftL` 1
+                               arr' <- A.unsafeNew top'
+                               A.copy arr arr' >> outer arr' top' s i
+                | otherwise -> unsafeWrite arr i x >>= loop s'
+                where j | ord x < 0x10000 = i
+                        | otherwise       = i + 1
 {-# INLINE [0] unstream #-}
 {-# RULES "STREAM stream/unstream fusion" forall s. stream (unstream s) = s #-}
 
