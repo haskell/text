@@ -122,7 +122,7 @@ copyLimit =  128
 fromText :: S.Text -> Builder
 fromText t@(Text arr off l)
     | S.null t       = empty
-    | l <= copyLimit = writeN l $ \marr o -> A.partialCopyI marr o arr off l
+    | l <= copyLimit = writeN l $ \marr o -> A.partialCopyI marr o arr off (l+o)
     | otherwise      = flush `append` mapBuilder (t :)
 {-# INLINE [1] fromText #-}
 
