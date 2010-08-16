@@ -122,7 +122,7 @@ copyLimit =  128
 fromText :: S.Text -> Builder
 fromText t@(Text arr off l)
     | S.null t       = empty
-    | l <= copyLimit = writeN l $ \marr o -> unsafeCopy arr off marr o l
+    | l <= copyLimit = writeN l $ \marr o -> A.partialCopyI marr o arr off l
     | otherwise      = flush `append` mapBuilder (t :)
 {-# INLINE [1] fromText #-}
 
@@ -257,21 +257,6 @@ newBuffer size = do
     arr <- A.unsafeNew size
     return $! Buffer arr 0 0 size
 {-# INLINE newBuffer #-}
-
--- | Unsafely copy the elements of an array.
-unsafeCopy :: A.Array -> Int -> A.MArray s -> Int -> Int -> ST s ()
-unsafeCopy src sidx dest didx count =
-#if defined(ASSERTS)
-    assert (sidx + count <= A.length src) .
-    assert (didx + count <= A.length dest) $
-#endif
-    copy_loop sidx didx 0
-  where
-    copy_loop !i !j !c
-        | c >= count  = return ()
-        | otherwise = do A.unsafeWrite dest j (A.unsafeIndex src i)
-                         copy_loop (i+1) (j+1) (c+1)
-{-# INLINE unsafeCopy #-}
 
 -- Write a character to the array, starting at the specified offset
 -- @i@.  Returns the number of elements written.
