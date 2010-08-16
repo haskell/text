@@ -49,6 +49,8 @@ unsafeChr32 :: Word32 -> Char
 unsafeChr32 (W32# w#) = C# (chr# (word2Int# w#))
 {-# INLINE unsafeChr32 #-}
 
+-- | Write a character into the array at the given offset.  Returns
+-- the number of 'Word16's written.
 unsafeWrite :: A.MArray s -> Int -> Char -> ST s Int
 unsafeWrite marr i c
     | n < 0x10000 = do
@@ -56,14 +58,14 @@ unsafeWrite marr i c
         assert (i >= 0) . assert (i < A.length marr) $ return ()
 #endif
         A.unsafeWrite marr i (fromIntegral n)
-        return $! i+1
+        return 1
     | otherwise = do
 #if defined(ASSERTS)
         assert (i >= 0) . assert (i < A.length marr - 1) $ return ()
 #endif
         A.unsafeWrite marr i lo
         A.unsafeWrite marr (i+1) hi
-        return $! i+2
+        return 2
     where n = ord c
           m = n - 0x10000
           lo = fromIntegral $ (m `shiftR` 10) + 0xD800

@@ -106,7 +106,8 @@ unstream (Stream next0 s0 len) = I.textP (P.fst a) 0 (P.snd a)
                                let top' = (top + 1) `shiftL` 1
                                arr' <- A.unsafeNew top'
                                A.copy arr' arr >> outer arr' top' s i
-                | otherwise -> unsafeWrite arr i x >>= loop s'
+                | otherwise -> do d <- unsafeWrite arr i x
+                                  loop s' (i+d)
                 where j | ord x < 0x10000 = i
                         | otherwise       = i + 1
 {-# INLINE [0] unstream #-}

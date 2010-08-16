@@ -34,11 +34,11 @@ import Control.Exception (assert)
 #endif
 import Control.Monad.ST (ST, runST)
 import Data.Bits ((.&.))
-import Data.Char (ord)
 import Data.Monoid (Monoid(..))
 import Data.Text.Internal (Text(..))
 import Data.Text.Lazy.Internal (smallChunkSize)
 import Data.Text.Unsafe (inlineInterleaveST)
+import Data.Text.UnsafeChar (ord, unsafeWrite)
 import Data.Text.UnsafeShift (shiftR)
 import Prelude hiding (map, putChar)
 
@@ -257,29 +257,6 @@ newBuffer size = do
     arr <- A.unsafeNew size
     return $! Buffer arr 0 0 size
 {-# INLINE newBuffer #-}
-
--- Write a character to the array, starting at the specified offset
--- @i@.  Returns the number of elements written.
-unsafeWrite :: A.MArray s -> Int -> Char -> ST s Int
-unsafeWrite marr i c
-    | n < 0x10000 = do
-#if defined(ASSERTS)
-        assert (i >= 0) . assert (i < A.length marr) $ return ()
-#endif
-        A.unsafeWrite marr i (fromIntegral n)
-        return 1
-    | otherwise = do
-#if defined(ASSERTS)
-        assert (i >= 0) . assert (i < A.length marr - 1) $ return ()
-#endif
-        A.unsafeWrite marr i lo
-        A.unsafeWrite marr (i+1) hi
-        return 2
-    where n = ord c
-          m = n - 0x10000
-          lo = fromIntegral $ (m `shiftR` 10) + 0xD800
-          hi = fromIntegral $ (m .&. 0x3FF) + 0xDC00
-{-# INLINE unsafeWrite #-}
 
 ------------------------------------------------------------------------
 -- Some nice rules for Builder

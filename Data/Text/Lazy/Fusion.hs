@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 -- |
 -- Module      : Data.Text.Lazy.Fusion
 -- Copyright   : (c) 2009, 2010 Bryan O'Sullivan
@@ -59,10 +60,9 @@ unstreamChunks chunkSize (Stream next s0 len0)
                 Yield x s' -> I.Text arr 0 len `chunk` outer s''
                   where (arr,(s'',len)) = A.run2 fill
                         fill = do a <- A.unsafeNew unknownLength
-                                  i <- unsafeWrite a 0 x
-                                  inner a unknownLength s' i
+                                  unsafeWrite a 0 x >>= inner a unknownLength s'
                         unknownLength = 4
-    inner marr len s i
+    inner marr len s !i
         | i + 1 >= chunkSize = return (marr, (s,i))
         | i + 1 >= len       = do
             let newLen = min (len `shiftL` 1) chunkSize
@@ -73,7 +73,8 @@ unstreamChunks chunkSize (Stream next s0 len0)
             case next s of
               Done        -> return (marr,(s,i))
               Skip s'     -> inner marr len s' i
-              Yield x s'  -> unsafeWrite marr i x >>= inner marr len s'
+              Yield x s'  -> do d <- unsafeWrite marr i x
+                                inner marr len s' (i+d)
 {-# INLINE [0] unstreamChunks #-}
 
 -- | /O(n)/ Convert a 'Stream Char' into a 'Text', using
