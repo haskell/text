@@ -57,9 +57,10 @@ if (_k_) < 0 || (_k_) >= (_len_) then error ("Data.Text.Array." ++ (_func_) ++ "
 #if defined(ASSERTS)
 import Control.Exception (assert)
 #endif
+import Data.Bits ((.&.))
 import Data.Text.UnsafeShift (shiftL, shiftR)
 import GHC.Base (ByteArray#, MutableByteArray#, Int(..),
-                 indexWord16Array#, newByteArray#,
+                 indexWord16Array#, indexWordArray#, newByteArray#,
                  readWord16Array#, readWordArray#, unsafeCoerce#,
                  writeWord16Array#, writeWordArray#)
 import GHC.ST (ST(..), runST)
@@ -125,6 +126,14 @@ unsafeIndex (Array len ba#) i@(I# i#) =
     case indexWord16Array# ba# i# of r# -> (W16# r#)
 {-# INLINE unsafeIndex #-}
 
+-- | Unchecked read of an immutable array.  May return garbage or
+-- crash on an out-of-bounds access.
+unsafeIndexWord :: Array -> Int -> Word
+unsafeIndexWord (Array len ba#) i@(I# i#) =
+  CHECK_BOUNDS("unsafeIndexWord",len,i)
+    case indexWordArray# ba# i# of r# -> (W# r#)
+{-# INLINE unsafeIndexWord #-}
+
 -- | Unchecked read of a mutable array.  May return garbage or
 -- crash on an out-of-bounds access.
 unsafeRead :: MArray s -> Int -> ST s Word16
@@ -185,6 +194,15 @@ run2 k = runST (do
                  arr <- unsafeFreeze marr
                  return (arr,b))
 
+-- | The amount to divide or multiply by to switch between units of
+-- 'Word16' and units of 'Word'.
+wordFactor :: Int
+wordFactor = SIZEOF_HSWORD `shiftR` 1
+
+-- | Indicate whether an offset is word-aligned.
+wordAligned :: Int -> Bool
+wordAligned i = i .&. (wordFactor - 1) == 0
+
 -- | Copy an array in its entirety. The destination array must be at
 -- least as big as the source.
 copy :: MArray s     -- ^ source array
@@ -194,9 +212,9 @@ copy dest@(MArray dlen _) src@(MArray slen _)
     | dlen >= slen = fast_loop 0
     | otherwise    = fail "Data.Text.Array.copy: array too small"
     where
-      nwds = slen `div` (SIZEOF_HSWORD `shiftR` 1)
+      nwds = slen `div` wordFactor
       fast_loop !i
-          | i >= nwds = copy_loop (i * (SIZEOF_HSWORD `shiftR` 1))
+          | i >= nwds = copy_loop (i * wordFactor)
           | otherwise = do unsafeReadWord src i >>= unsafeWriteWord dest i
                            fast_loop (i+1)
       copy_loop !i
@@ -205,7 +223,12 @@ copy dest@(MArray dlen _) src@(MArray slen _)
                            copy_loop (i+1)
 
 -- | Copy some elements of a mutable array.
-partialCopyM :: MArray s -> Int -> MArray s -> Int -> Int -> ST s ()
+partialCopyM :: MArray s        -- ^ Destination
+             -> Int             -- ^ Destination offset
+             -> MArray s        -- ^ Source
+             -> Int             -- ^ Source offset
+             -> Int             -- ^ Count
+             -> ST s ()
 partialCopyM dest didx src sidx count =
 #if defined(ASSERTS)
     assert (sidx + count <= length src) .
@@ -219,9 +242,23 @@ partialCopyM dest didx src sidx count =
                            copy_loop (i+1) (j+1) (c+1)
 
 -- | Copy some elements of an immutable array.
-partialCopyI :: MArray s -> Int -> Array -> Int -> Int -> ST s ()
-partialCopyI dest i0 src j0 top = go i0 j0
+partialCopyI :: MArray s        -- ^ Destination
+             -> Int             -- ^ Destination offset
+             -> Array           -- ^ Source
+             -> Int             -- ^ Source offset
+             -> Int             -- ^ First offset in source /not/ to
+                                -- copy (i.e. /not/ length)
+             -> ST s ()
+partialCopyI dest i0 src j0 top
+    | wordAligned i0 && wordAligned j0 = fast (i0 `div` wordFactor) (j0 `div` wordFactor)
+    | otherwise = slow i0 j0
   where
-    go !i !j | i >= top  = return ()
-             | otherwise = do unsafeWrite dest i (src `unsafeIndex` j)
-                              go (i+1) (j+1)
+    topwds = top `div` wordFactor
+    fast !i !j
+        | i >= topwds = slow (i * wordFactor) (j * wordFactor)
+        | otherwise   = do unsafeWriteWord dest i (src `unsafeIndexWord` j)
+                           fast (i+1) (j+1)
+    slow !i !j
+        | i >= top  = return ()
+        | otherwise = do unsafeWrite dest i (src `unsafeIndex` j)
+                         slow (i+1) (j+1)
