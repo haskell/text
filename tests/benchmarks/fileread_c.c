@@ -75,7 +75,7 @@ void string(const char *name)
 int main(int argc, char **argv)
 {
     if (argc != 3) {
-	fprintf(stderr, "Usage: fileread handler filename\n");
+	fprintf(stderr, "Usage: %s handler filename\n", argv[0]);
 	exit(1);
     }
 
