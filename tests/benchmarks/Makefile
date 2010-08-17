@@ -1,5 +1,5 @@
 CC := $(shell icu-config --cc)
-CFLAGS := $(shell icu-config --cflags)
+CFLAGS := -g $(shell icu-config --cflags)
 CPPFLAGS := $(shell icu-config --cppflags)
 LDFLAGS := $(CFLAGS) $(shell icu-config --ldflags --ldflags-icuio)
 
