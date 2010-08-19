@@ -8,7 +8,7 @@ import Control.Exception (evaluate)
 import Criterion.Main
 import Data.Char
 import Data.Monoid (mappend, mempty)
-import qualified Codec.Binary.UTF8.Generic as UTF8
+import qualified Data.ByteString.UTF8 as UTF8
 import qualified Data.Text as TS
 import qualified Data.Text.IO as TS
 import qualified Data.Text.Lazy as TL
@@ -113,6 +113,13 @@ main = do
       , bench "bs" $ nf (BS.drop (bsa_len `div` 3)) bsa
       , bench "bl" $ nf (BL.drop (bla_len `div` 3)) bla
       , bench "l" $ nf (L.drop (la_len `div` 3)) la
+      ],
+      bgroup "encode" [
+        bench "ts" $ nf TS.encodeUtf8 tsa
+      , bench "tl" $ nf TL.encodeUtf8 tla
+      , bench "bs" $ nf BS.pack la
+      , bench "bl" $ nf BL.pack la
+      , bench "l" $ nf UTF8.fromString la
       ],
       bgroup "filter" [
         bench "ts" $ nf (TS.filter p0) tsa
