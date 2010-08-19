@@ -33,7 +33,6 @@ flag developer
   default: False
 
 library
-  c-sources: cbits/utf8d.c
   exposed-modules:
     Data.Text
     Data.Text.Encoding

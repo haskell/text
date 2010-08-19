@@ -39,8 +39,10 @@ module Data.Text.Array
     , toList
     , unsafeFreeze
     , unsafeIndex
+    , unsafeIndexWord8
     , unsafeNew
     , unsafeWrite
+    , unsafeWriteWord8
     ) where
 
 #if defined(ASSERTS)
@@ -60,11 +62,11 @@ import Control.Exception (assert)
 import Data.Bits ((.&.))
 import Data.Text.UnsafeShift (shiftL, shiftR)
 import GHC.Base (ByteArray#, MutableByteArray#, Int(..),
-                 indexWord16Array#, indexWordArray#, newByteArray#,
+                 indexWord16Array#, indexWord8Array#, indexWordArray#, newByteArray#,
                  readWord16Array#, readWordArray#, unsafeCoerce#,
-                 writeWord16Array#, writeWordArray#)
+                 writeWord16Array#, writeWord8Array#, writeWordArray#)
 import GHC.ST (ST(..), runST)
-import GHC.Word (Word16(..), Word(..))
+import GHC.Word (Word16(..), Word8(..), Word(..))
 import Prelude hiding (length, read)
 
 -- | Immutable array type.
@@ -134,6 +136,14 @@ unsafeIndexWord (Array len ba#) i@(I# i#) =
     case indexWordArray# ba# i# of r# -> (W# r#)
 {-# INLINE unsafeIndexWord #-}
 
+-- | Unchecked read of an immutable array.  May return garbage or
+-- crash on an out-of-bounds access.
+unsafeIndexWord8 :: Array -> Int -> Word8
+unsafeIndexWord8 (Array len ba#) i@(I# i#) =
+  CHECK_BOUNDS("unsafeIndexWord8",len,i)
+    case indexWord8Array# ba# i# of r# -> (W8# r#)
+{-# INLINE unsafeIndexWord8 #-}
+
 -- | Unchecked read of a mutable array.  May return garbage or
 -- crash on an out-of-bounds access.
 unsafeRead :: MArray s -> Int -> ST s Word16
@@ -169,6 +179,15 @@ unsafeWriteWord (MArray len marr#) i@(I# i#) (W# e#) = ST $ \s1# ->
   case writeWordArray# marr# i# e# s1# of
     s2# -> (# s2#, () #)
 {-# INLINE unsafeWriteWord #-}
+
+-- | Unchecked write of a mutable array.  May return garbage or crash
+-- on an out-of-bounds access.
+unsafeWriteWord8 :: MArray s -> Int -> Word8 -> ST s ()
+unsafeWriteWord8 (MArray len marr#) i@(I# i#) (W8# e#) = ST $ \s1# ->
+  CHECK_BOUNDS("unsafeWriteWord8",len,i)
+  case writeWord8Array# marr# i# e# s1# of
+    s2# -> (# s2#, () #)
+{-# INLINE unsafeWriteWord8 #-}
 
 -- | Convert an immutable array to a list.
 toList :: Array -> [Word16]

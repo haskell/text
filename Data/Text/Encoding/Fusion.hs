@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, CPP, ForeignFunctionInterface, Rank2Types #-}
+{-# LANGUAGE BangPatterns, CPP, Rank2Types #-}
 
 -- |
 -- Module      : Data.Text.Encoding.Fusion
@@ -36,18 +36,17 @@ import Control.Exception (assert)
 #endif
 import Data.Bits ((.&.), (.|.))
 import Data.ByteString.Internal (ByteString(..), mallocByteString, memcpy)
+import Control.Monad.ST
+import Data.Text.Array
 import Data.Text.Fusion (Step(..), Stream(..))
 import Data.Text.Fusion.Size
 import Data.Text.Encoding.Error
 import Data.Text.Encoding.Fusion.Common
-import Data.Text.Unsafe (inlinePerformIO)
 import Data.Text.UnsafeChar (unsafeChr, unsafeChr8, unsafeChr32)
 import Data.Text.UnsafeShift (shiftL, shiftR)
 import Data.Word (Word8, Word16, Word32)
 import Foreign.ForeignPtr (withForeignPtr, ForeignPtr)
-import Foreign.Ptr (Ptr, plusPtr)
-import GHC.Ptr (Ptr(..))
-import Foreign.Storable (peek, pokeByteOff)
+import Foreign.Storable (pokeByteOff)
 import System.IO.Unsafe (unsafePerformIO)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Unsafe as B
@@ -108,7 +107,7 @@ streamUtf8 onErr bs = Stream next (S8 accept 0 0) (maxSize l)
             byte = B.unsafeIndex bs i
             word = fromIntegral byte
             peeku :: Int -> Word32
-            peeku n = fromIntegral (inlinePerformIO (peek (utf8d `plusPtr` n) :: IO Word8))
+            peeku n = fromIntegral (unsafeIndexWord8 utf8d n)
             !kind = peeku (fromIntegral word)
             !code' | state /= accept = (word .&. 0x3f) .|. (code `shiftL` 6)
                   | otherwise = (0xff `shiftR` fromIntegral kind) .&. word
@@ -234,8 +233,17 @@ decodeError func kind onErr mb i =
     where desc = "Data.Text.Encoding.Fusion." ++ func ++ ": Invalid " ++
                  kind ++ " stream"
 
-utf8d :: Ptr Word8
-utf8d@(Ptr _) = hs_utf8d
+utf8d :: Array
 {-# NOINLINE utf8d #-}
-
-foreign import ccall unsafe "__hs_utf8d" hs_utf8d :: Ptr Word8
+utf8d = runST fill where
+    fill = do
+      ary <- unsafeNew . (`div` 2) . sum . map fst $ xs
+      mapM_ (uncurry (unsafeWriteWord8 ary))
+            (zip [0..] (concatMap (uncurry replicate) xs))
+      unsafeFreeze ary
+    xs = [(128,0),(16,1),(16,9),(32,7),(2,8),(30,2),(1,10),(12,3),(1,4),(2,3),
+          (1,11),(3,6),(1,5),(11,8),(1,0),(1,12),(1,24),(1,36),(1,60),(1,96),
+          (1,84),(3,12),(1,48),(1,72),(13,12),(1,0),(5,12),(1,0),(1,12),(1,0),
+          (3,12),(1,24),(5,12),(1,24),(1,12),(1,24),(9,12),(1,24),(5,12),(1,24),
+          (7,12),(1,24),(9,12),(1,36),(1,12),(1,36),(3,12),(1,36),(5,12),(1,36),
+          (1,12),(1,36),(3,12),(1,36),(10,12)]
