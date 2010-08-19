@@ -75,9 +75,8 @@ streamUtf8 onErr bs = Stream next 0 (maxSize l)
           | i+1 < l && U8.validate2 x1 x2 = Yield (U8.chr2 x1 x2) (i+2)
           | i+2 < l && U8.validate3 x1 x2 x3 = Yield (U8.chr3 x1 x2 x3) (i+3)
           | i+3 < l && U8.validate4 x1 x2 x3 x4 = Yield (U8.chr4 x1 x2 x3 x4) (i+4)
-          | otherwise = decodeError "streamUtf8" "UTF-8" onErr mx (i+1)
+          | otherwise = decodeError "streamUtf8" "UTF-8" onErr (Just x1) (i+1)
           where
-            mx = if i >= l then Nothing else Just x1
             x1 = idx i
             x2 = idx (i + 1)
             x3 = idx (i + 2)
