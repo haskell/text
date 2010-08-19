@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, CPP, Rank2Types #-}
+{-# LANGUAGE BangPatterns, CPP, ForeignFunctionInterface, Rank2Types #-}
 
 -- |
 -- Module      : Data.Text.Encoding.Fusion
@@ -34,16 +34,20 @@ module Data.Text.Encoding.Fusion
 #if defined(ASSERTS)
 import Control.Exception (assert)
 #endif
+import Data.Bits ((.&.), (.|.))
 import Data.ByteString.Internal (ByteString(..), mallocByteString, memcpy)
 import Data.Text.Fusion (Step(..), Stream(..))
 import Data.Text.Fusion.Size
 import Data.Text.Encoding.Error
 import Data.Text.Encoding.Fusion.Common
+import Data.Text.Unsafe (inlinePerformIO)
 import Data.Text.UnsafeChar (unsafeChr, unsafeChr8, unsafeChr32)
 import Data.Text.UnsafeShift (shiftL, shiftR)
 import Data.Word (Word8, Word16, Word32)
 import Foreign.ForeignPtr (withForeignPtr, ForeignPtr)
-import Foreign.Storable (pokeByteOff)
+import Foreign.Ptr (Ptr, plusPtr)
+import GHC.Ptr (Ptr(..))
+import Foreign.Storable (peek, pokeByteOff)
 import System.IO.Unsafe (unsafePerformIO)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Unsafe as B
@@ -65,8 +69,8 @@ streamASCII bs = Stream next 0 (maxSize l)
 
 -- | /O(n)/ Convert a 'ByteString' into a 'Stream Char', using UTF-8
 -- encoding.
-streamUtf8 :: OnDecodeError -> ByteString -> Stream Char
-streamUtf8 onErr bs = Stream next 0 (maxSize l)
+streamUtf8' :: OnDecodeError -> ByteString -> Stream Char
+streamUtf8' onErr bs = Stream next 0 (maxSize l)
     where
       l = B.length bs
       next i
@@ -83,6 +87,33 @@ streamUtf8 onErr bs = Stream next 0 (maxSize l)
             x4 = idx (i + 3)
             idx = B.unsafeIndex bs
 {-# INLINE [0] streamUtf8 #-}
+
+accept, reject :: Word32
+accept = 0
+reject = 12
+
+data S8 = S8 {-# UNPACK #-} !Word32 {-# UNPACK #-} !Int {-# UNPACK #-} !Word32
+
+streamUtf8 :: OnDecodeError -> ByteString -> Stream Char
+streamUtf8 onErr bs = Stream next (S8 accept 0 0) (maxSize l)
+  where
+    l = B.length bs
+    next (S8 state i code)
+      | i >= l = Done
+      | state' == accept = Yield (unsafeChr32 code') (s' accept)
+      | state' /= reject = Skip (s' state')
+      | otherwise        = decodeError "streamUtf8" "UTF-8" onErr
+                           (Just byte) (s' accept)
+      where s' s = S8 s (i+1) code'
+            byte = B.unsafeIndex bs i
+            word = fromIntegral byte
+            peeku :: Int -> Word32
+            peeku n = fromIntegral (inlinePerformIO (peek (utf8d `plusPtr` n) :: IO Word8))
+            !kind = peeku (fromIntegral word)
+            !code' | state /= accept = (word .&. 0x3f) .|. (code `shiftL` 6)
+                  | otherwise = (0xff `shiftR` fromIntegral kind) .&. word
+            !state' = peeku (256 + fromIntegral (state + kind))
+
 
 -- | /O(n)/ Convert a 'ByteString' into a 'Stream Char', using little
 -- endian UTF-16 encoding.
@@ -202,3 +233,9 @@ decodeError func kind onErr mb i =
       Just c  -> Yield c i
     where desc = "Data.Text.Encoding.Fusion." ++ func ++ ": Invalid " ++
                  kind ++ " stream"
+
+utf8d :: Ptr Word8
+utf8d@(Ptr _) = hs_utf8d
+{-# NOINLINE utf8d #-}
+
+foreign import ccall unsafe "__hs_utf8d" hs_utf8d :: Ptr Word8
