@@ -10,9 +10,9 @@ import System.Environment (getArgs)
 
 bytestring file s e = do
   t <- B.readFile file
-  B.putStr (cut s e t)
+  B.putStr (cut t)
   where
-    cut s e = B.unlines . map (B.take (e - s) . B.drop s) . B.lines
+    cut = B.unlines . map (B.take (e - s) . B.drop s) . B.lines
 
 lazyBytestring file s e = do
   t <- BL.readFile file
@@ -28,9 +28,9 @@ lazyText file s e = do
 
 text file s e = do
   t <- T.readFile file
-  T.putStr (cut s e t)
+  T.putStr (cut t)
   where
-    cut s e = T.unlines . map (T.take (e - s) . T.drop s) . T.lines
+    cut = T.unlines . map (T.take (e - s) . T.drop s) . T.lines
 
 main = do
   (name : ss : es : file : _) <- getArgs
