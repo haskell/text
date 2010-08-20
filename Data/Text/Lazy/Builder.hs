@@ -210,6 +210,7 @@ withBuffer f = Builder $ \k buf -> f buf >>= k
 withSize :: (Int -> Builder) -> Builder
 withSize f = Builder $ \ k buf@(Buffer _ _ _ l) ->
     runBuilder (f l) k buf
+{-# INLINE withSize #-}
 
 -- | Map the resulting list of texts.
 mapBuilder :: ([S.Text] -> [S.Text]) -> Builder
