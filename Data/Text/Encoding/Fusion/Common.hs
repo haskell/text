@@ -25,46 +25,16 @@ module Data.Text.Encoding.Fusion.Common
     , restreamUtf16BE
     , restreamUtf32LE
     , restreamUtf32BE
-    , istreamUtf8
     ) where
 
-import Control.Monad.ST
-import Data.Bits ((.&.), (.|.))
-import Data.Text.Array
+import Data.Bits ((.&.))
 import Data.Text.Fusion (Step(..), Stream(..))
 import Data.Text.Fusion.Internal (M(..), S(..))
-import Data.Text.UnsafeChar (ord, unsafeChr32)
-import Data.Text.UnsafeShift (shiftL, shiftR)
-import Data.Word (Word8, Word32)
+import Data.Text.UnsafeChar (ord)
+import Data.Text.UnsafeShift (shiftR)
+import Data.Word (Word8)
 import qualified Data.Text.Encoding.Utf8 as U8
 
-accept, reject :: Word32
-accept = 0
-reject = 12
-
-data S8 s = S8 !s {-# UNPACK #-} !Word32 {-# UNPACK #-} !Word32
-
-istreamUtf8 :: Stream Word8 -> Stream Char
-istreamUtf8 (Stream next0 s0 len) =
-    Stream next (S8 s0 accept 0) len
-  where
-    next (S8 s state code) =
-      case next0 s of
-        Done -> Done
-        Skip s' -> Skip (S8 s' state code)
-        Yield w s'
-          | state' == accept -> Yield (unsafeChr32 code') (S8 s' accept code')
-          | state' /= reject -> Skip (S8 s' state' code')
-            where
-              word = fromIntegral w
-              peeku :: Int -> Word32
-              peeku n = fromIntegral (unsafeIndexWord8 utf8d n)
-              !kind = peeku (fromIntegral word)
-              !code' | state /= accept = (word .&. 0x3f) .|. (code `shiftL` 6)
-                     | otherwise = (0xff `shiftR` fromIntegral kind) .&. word
-              !state' = peeku (256 + fromIntegral (state + kind))
-               
-                                                           
 -- | /O(n)/ Convert a Stream Char into a UTF-8 encoded Stream Word8.
 restreamUtf8 :: Stream Char -> Stream Word8
 restreamUtf8 (Stream next0 s0 len) =
@@ -190,18 +160,3 @@ restreamUtf32LE (Stream next0 s0 len) =
 internalError :: String -> a
 internalError func =
     error $ "Data.Text.Encoding.Fusion.Common." ++ func ++ ": internal error"
-
-utf8d :: Array
-{-# NOINLINE utf8d #-}
-utf8d = runST fill where
-    fill = do
-      ary <- unsafeNew . (`div` 2) . sum . map fst $ xs
-      mapM_ (uncurry (unsafeWriteWord8 ary))
-            (zip [0..] (concatMap (uncurry replicate) xs))
-      unsafeFreeze ary
-    xs = [(128,0),(16,1),(16,9),(32,7),(2,8),(30,2),(1,10),(12,3),(1,4),(2,3),
-          (1,11),(3,6),(1,5),(11,8),(1,0),(1,12),(1,24),(1,36),(1,60),(1,96),
-          (1,84),(3,12),(1,48),(1,72),(13,12),(1,0),(5,12),(1,0),(1,12),(1,0),
-          (3,12),(1,24),(5,12),(1,24),(1,12),(1,24),(9,12),(1,24),(5,12),(1,24),
-          (7,12),(1,24),(9,12),(1,36),(1,12),(1,36),(3,12),(1,36),(5,12),(1,36),
-          (1,12),(1,36),(3,12),(1,36),(10,12)]

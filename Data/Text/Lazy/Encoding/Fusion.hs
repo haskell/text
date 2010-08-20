@@ -57,26 +57,12 @@ data S = S0
        | S3 {-# UNPACK #-} !Word8 {-# UNPACK #-} !Word8 {-# UNPACK #-} !Word8
        | S4 {-# UNPACK #-} !Word8 {-# UNPACK #-} !Word8 {-# UNPACK #-} !Word8 {-# UNPACK #-} !Word8
 
-data SS = SS ByteString {-# UNPACK #-} !Int
-
-streamBytes :: ByteString -> Stream Word8
-streamBytes bs0 = Stream next (SS bs0 0) unknownSize
-  where
-    next (SS bs@(Chunk s ss) i)
-        | i < len = Yield (B.unsafeIndex s i) (SS bs (i+1))
-        | otherwise = next (SS ss 0)
-        where len = B.length s
-    next _ = Done
-
 data T = T {-# UNPACK #-} !ByteString {-# UNPACK #-} !S {-# UNPACK #-} !Int
 
 -- | /O(n)/ Convert a lazy 'ByteString' into a 'Stream Char', using
 -- UTF-8 encoding.
 streamUtf8 :: OnDecodeError -> ByteString -> Stream Char
-streamUtf8 onErr = istreamUtf8 . streamBytes
-
-streamUtf8' :: OnDecodeError -> ByteString -> Stream Char
-streamUtf8' onErr bs0 = Stream next (T bs0 S0 0) unknownSize
+streamUtf8 onErr bs0 = Stream next (T bs0 S0 0) unknownSize
   where
     next (T bs@(Chunk ps _) S0 i)
       | i < len && U8.validate1 a =

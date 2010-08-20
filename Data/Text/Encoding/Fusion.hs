@@ -34,10 +34,7 @@ module Data.Text.Encoding.Fusion
 #if defined(ASSERTS)
 import Control.Exception (assert)
 #endif
-import Data.Bits ((.&.), (.|.))
 import Data.ByteString.Internal (ByteString(..), mallocByteString, memcpy)
-import Control.Monad.ST
-import Data.Text.Array
 import Data.Text.Fusion (Step(..), Stream(..))
 import Data.Text.Fusion.Size
 import Data.Text.Encoding.Error
@@ -68,8 +65,8 @@ streamASCII bs = Stream next 0 (maxSize l)
 
 -- | /O(n)/ Convert a 'ByteString' into a 'Stream Char', using UTF-8
 -- encoding.
-streamUtf8' :: OnDecodeError -> ByteString -> Stream Char
-streamUtf8' onErr bs = Stream next 0 (maxSize l)
+streamUtf8 :: OnDecodeError -> ByteString -> Stream Char
+streamUtf8 onErr bs = Stream next 0 (maxSize l)
     where
       l = B.length bs
       next i
@@ -86,33 +83,6 @@ streamUtf8' onErr bs = Stream next 0 (maxSize l)
             x4 = idx (i + 3)
             idx = B.unsafeIndex bs
 {-# INLINE [0] streamUtf8 #-}
-
-accept, reject :: Word32
-accept = 0
-reject = 12
-
-data S8 = S8 {-# UNPACK #-} !Word32 {-# UNPACK #-} !Int {-# UNPACK #-} !Word32
-
-streamUtf8 :: OnDecodeError -> ByteString -> Stream Char
-streamUtf8 onErr bs = Stream next (S8 accept 0 0) (maxSize l)
-  where
-    l = B.length bs
-    next (S8 state i code)
-      | i >= l = Done
-      | state' == accept = Yield (unsafeChr32 code') (s' accept)
-      | state' /= reject = Skip (s' state')
-      | otherwise        = decodeError "streamUtf8" "UTF-8" onErr
-                           (Just byte) (s' accept)
-      where s' s = S8 s (i+1) code'
-            byte = B.unsafeIndex bs i
-            word = fromIntegral byte
-            peeku :: Int -> Word32
-            peeku n = fromIntegral (unsafeIndexWord8 utf8d n)
-            !kind = peeku (fromIntegral word)
-            !code' | state /= accept = (word .&. 0x3f) .|. (code `shiftL` 6)
-                  | otherwise = (0xff `shiftR` fromIntegral kind) .&. word
-            !state' = peeku (256 + fromIntegral (state + kind))
-
 
 -- | /O(n)/ Convert a 'ByteString' into a 'Stream Char', using little
 -- endian UTF-16 encoding.
@@ -232,18 +202,3 @@ decodeError func kind onErr mb i =
       Just c  -> Yield c i
     where desc = "Data.Text.Encoding.Fusion." ++ func ++ ": Invalid " ++
                  kind ++ " stream"
-
-utf8d :: Array
-{-# NOINLINE utf8d #-}
-utf8d = runST fill where
-    fill = do
-      ary <- unsafeNew . (`div` 2) . sum . map fst $ xs
-      mapM_ (uncurry (unsafeWriteWord8 ary))
-            (zip [0..] (concatMap (uncurry replicate) xs))
-      unsafeFreeze ary
-    xs = [(128,0),(16,1),(16,9),(32,7),(2,8),(30,2),(1,10),(12,3),(1,4),(2,3),
-          (1,11),(3,6),(1,5),(11,8),(1,0),(1,12),(1,24),(1,36),(1,60),(1,96),
-          (1,84),(3,12),(1,48),(1,72),(13,12),(1,0),(5,12),(1,0),(1,12),(1,0),
-          (3,12),(1,24),(5,12),(1,24),(1,12),(1,24),(9,12),(1,24),(5,12),(1,24),
-          (7,12),(1,24),(9,12),(1,36),(1,12),(1,36),(3,12),(1,36),(5,12),(1,36),
-          (1,12),(1,36),(3,12),(1,36),(10,12)]
