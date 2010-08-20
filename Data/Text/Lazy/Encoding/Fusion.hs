@@ -57,7 +57,7 @@ data S = S0
        | S3 {-# UNPACK #-} !Word8 {-# UNPACK #-} !Word8 {-# UNPACK #-} !Word8
        | S4 {-# UNPACK #-} !Word8 {-# UNPACK #-} !Word8 {-# UNPACK #-} !Word8 {-# UNPACK #-} !Word8
 
-data T = T {-# UNPACK #-} !ByteString {-# UNPACK #-} !S {-# UNPACK #-} !Int
+data T = T !ByteString {-# UNPACK #-} !S {-# UNPACK #-} !Int
 
 -- | /O(n)/ Convert a lazy 'ByteString' into a 'Stream Char', using
 -- UTF-8 encoding.
