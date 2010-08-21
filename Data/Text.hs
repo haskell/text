@@ -47,6 +47,7 @@ module Data.Text
     , init
     , null
     , length
+    , compareLength
 
     -- * Transformations
     , map
@@ -167,7 +168,7 @@ module Data.Text
     ) where
 
 import Prelude (Char, Bool(..), Functor(..), Int, Maybe(..), String,
-                Eq(..), Ord(..), (++),
+                Eq(..), Ord(..), Ordering(..), (++),
                 Read(..), Show(..),
                 (&&), (||), (+), (-), (.), ($), ($!), (>>), (*),
                 div, error, not, return, otherwise)
@@ -414,6 +415,51 @@ length :: Text -> Int
 length t = S.length (stream t)
 {-# INLINE length #-}
 
+-- | /O(n)/ Compare the count of characters in a 'Text' to a number.
+-- Subject to fusion.
+--
+-- This function gives the same answer as comparing against the result
+-- of 'length', but can short circuit if the count of characters is
+-- greater than the number, and hence be more efficient.
+compareLength :: Text -> Int -> Ordering
+compareLength t n = S.compareLengthI (stream t) n
+{-# INLINE [1] compareLength #-}
+
+{-# RULES
+"TEXT compareN/length -> compareLength" [~1] forall t n.
+    compare (length t) n = compareLength t n
+  #-}
+
+{-# RULES
+"TEXT ==N/length -> compareLength/==EQ" [~1] forall t n.
+    (==) (length t) n = compareLength t n == EQ
+  #-}
+
+{-# RULES
+"TEXT /=N/length -> compareLength//=EQ" [~1] forall t n.
+    (/=) (length t) n = compareLength t n /= EQ
+  #-}
+
+{-# RULES
+"TEXT <N/length -> compareLength/==LT" [~1] forall t n.
+    (<) (length t) n = compareLength t n == LT
+  #-}
+
+{-# RULES
+"TEXT <=N/length -> compareLength//=GT" [~1] forall t n.
+    (<=) (length t) n = compareLength t n /= GT
+  #-}
+
+{-# RULES
+"TEXT >N/length -> compareLength/==GT" [~1] forall t n.
+    (>) (length t) n = compareLength t n == GT
+  #-}
+
+{-# RULES
+"TEXT >=N/length -> compareLength//=LT" [~1] forall t n.
+    (>=) (length t) n = compareLength t n /= LT
+  #-}
+
 -- -----------------------------------------------------------------------------
 -- * Transformations
 -- | /O(n)/ 'map' @f@ @t@ is the 'Text' obtained by applying @f@ to
@@ -461,6 +507,12 @@ replace s d = intercalate d . split s
 -- case conversion rules.  As a result, these functions may map one
 -- input character to two or three output characters. For examples,
 -- see the documentation of each function.
+--
+-- /Note/: In some languages, case conversion is a locale- and
+-- context-dependent operation. The case conversion functions in this
+-- module are /not/ locale sensitive. Programs that require locale
+-- sensitivity should use appropriate versions of the case mapping
+-- functions from the @text-icu@ package.
 
 -- | /O(n)/ Convert a string to folded case.  This function is mainly
 -- useful for performing caseless (also known as case insensitive)

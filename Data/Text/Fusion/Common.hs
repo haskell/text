@@ -29,6 +29,7 @@ module Data.Text.Fusion.Common
     , init
     , null
     , lengthI
+    , compareLengthI
     , isSingleton
 
     -- * Transformations
@@ -99,8 +100,8 @@ module Data.Text.Fusion.Common
     ) where
 
 import Prelude (Bool(..), Char, Eq(..), Int, Integral, Maybe(..),
-                Ord(..), String, (.), ($), (+), (-), (*), (++), (&&),
-                fromIntegral, otherwise)
+                Ord(..), Ordering(..), String, (.), ($), (+), (-), (*), (++),
+                (&&), fromIntegral, otherwise)
 import qualified Data.List as L
 import qualified Prelude as P
 import Data.Int (Int64)
@@ -265,6 +266,25 @@ lengthI (Stream next s0 _len) = loop_length 0 s0
                            Skip    s' -> loop_length z s'
                            Yield _ s' -> loop_length (z + 1) s'
 {-# INLINE[0] lengthI #-}
+
+-- | /O(n)/ Compares the count of characters in a string to a number.
+-- Subject to fusion.
+--
+-- This function gives the same answer as comparing against the result
+-- of 'lengthI', but can short circuit if the count of characters is
+-- greater than the number, and hence be more efficient.
+compareLengthI :: Integral a => Stream Char -> a -> Ordering
+compareLengthI (Stream next s0 len) n = 
+    case exactly len of
+      Nothing -> loop_cmp 0 s0
+      Just i  -> compare (fromIntegral i) n
+    where
+      loop_cmp !z s  = case next s of
+                         Done       -> compare z n
+                         Skip    s' -> loop_cmp z s'
+                         Yield _ s' | z > n     -> GT
+                                    | otherwise -> loop_cmp (z + 1) s'
+{-# INLINE[0] compareLengthI #-}
 
 -- | /O(n)/ Indicate whether a string contains exactly one element.
 isSingleton :: Stream Char -> Bool

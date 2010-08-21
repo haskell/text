@@ -16,6 +16,7 @@
 module Data.Text.Fusion.Size
     (
       Size
+    , exactly
     , exactSize
     , maxSize
     , unknownSize
@@ -35,6 +36,11 @@ data Size = Exact {-# UNPACK #-} !Int -- ^ Exact size.
           | Max   {-# UNPACK #-} !Int -- ^ Upper bound on size.
           | Unknown                   -- ^ Unknown size.
             deriving (Eq, Show)
+
+exactly :: Size -> Maybe Int
+exactly (Exact n) = Just n
+exactly _         = Nothing
+{-# INLINE exactly #-}
 
 exactSize :: Int -> Size
 exactSize n =

@@ -200,6 +200,8 @@ s_length          = length `eqP` S.length
 sf_length p       = (length . L.filter p) `eqP` (S.length . S.filter p)
 t_length          = length `eqP` T.length
 tl_length         = L.genericLength `eqP` TL.length
+t_compareLength t = (compare (T.length t)) `eq` T.compareLength t
+tl_compareLength t= (compare (TL.length t)) `eq` TL.compareLength t
 
 s_map f           = map f  `eqP` (unpackS . S.map f)
 s_map_s f         = map f  `eqP` (unpackS . S.unstream . S.map f)
@@ -676,7 +678,9 @@ tests = [
     testProperty "s_length" s_length,
     testProperty "sf_length" sf_length,
     testProperty "t_length" t_length,
-    testProperty "tl_length" tl_length
+    testProperty "tl_length" tl_length,
+    testProperty "t_compareLength" t_compareLength,
+    testProperty "tl_compareLength" tl_compareLength
   ],
 
   testGroup "transformations" [

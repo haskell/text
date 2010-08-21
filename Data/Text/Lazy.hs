@@ -55,6 +55,7 @@ module Data.Text.Lazy
     , init
     , null
     , length
+    , compareLength
 
     -- * Transformations
     , map
@@ -173,7 +174,7 @@ module Data.Text.Lazy
     ) where
 
 import Prelude (Char, Bool(..), Maybe(..), String,
-                Eq(..), Ord(..), Read(..), Show(..),
+                Eq(..), Ord(..), Ordering, Read(..), Show(..),
                 (&&), (+), (-), (.), ($), (++),
                 div, error, flip, fromIntegral, not, otherwise)
 import qualified Prelude as P
@@ -421,6 +422,20 @@ length = foldlChunks go 0
 "LAZY TEXT length -> unfused" [1] forall t.
     S.length (stream t) = length t
  #-}
+
+-- | /O(n)/ Compare the count of characters in a 'Text' to a number.
+-- Subject to fusion.
+--
+-- This function gives the same answer as comparing against the result
+-- of 'length', but can short circuit if the count of characters is
+-- greater than the number, and hence be more efficient.
+compareLength :: Text -> Int64 -> Ordering
+compareLength t n = S.compareLengthI (stream t) n
+{-# INLINE [1] compareLength #-}
+
+-- We don't apply those otherwise appealing length-to-compareLength
+-- rewrite rules here, because they can change the strictness
+-- properties of code.
 
 -- | /O(n)/ 'map' @f@ @t@ is the 'Text' obtained by applying @f@ to
 -- each element of @t@.  Subject to array fusion.
