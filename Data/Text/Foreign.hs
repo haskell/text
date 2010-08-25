@@ -23,6 +23,9 @@ module Data.Text.Foreign
     -- * Unsafe conversion code
     , lengthWord16
     , unsafeCopyToPtr
+    -- * Low-level manipulation
+    , dropWord16
+    , takeWord16
     ) where
 
 #if defined(ASSERTS)
@@ -75,6 +78,38 @@ fromPtr ptr len =
 lengthWord16 :: Text -> Int
 lengthWord16 (Text _arr _off len) = len
 {-# INLINE lengthWord16 #-}
+
+-- | /O(1)/ Return the prefix of the 'Text' of @n@ 'Word16' units in
+-- length.
+--
+-- If @n@ would cause the 'Text' to end inside a surrogate pair, the
+-- end of the prefix will be advanced by one additional 'Word16' unit
+-- to maintain its validity.
+takeWord16 :: Int -> Text -> Text
+takeWord16 n t@(Text arr off len)
+    | n <= 0               = empty
+    | n >= len || m >= len = t
+    | otherwise            = Text arr off m
+  where
+    m | w < 0xDB00 || w > 0xD8FF = n
+      | otherwise                = n+1
+    w = A.unsafeIndex arr (off+n-1)
+
+-- | /O(1)/ Return the suffix of the 'Text', with @n@ 'Word16' units
+-- dropped from its beginning.
+--
+-- If @n@ would cause the 'Text' to begin inside a surrogate pair, the
+-- beginning of the suffix will be advanced by one additional 'Word16'
+-- unit to maintain its validity.
+dropWord16 :: Int -> Text -> Text
+dropWord16 n t@(Text arr off len)
+    | n <= 0               = t
+    | n >= len || m >= len = empty
+    | otherwise            = Text arr (off+m) (len-m)
+  where
+    m | w < 0xD800 || w > 0xDBFF = n
+      | otherwise                = n+1
+    w = A.unsafeIndex arr (off+n-1)
 
 -- | /O(n)/ Copy a 'Text' to an array.  The array is assumed to be big
 -- enough to hold the contents of the entire 'Text'.
