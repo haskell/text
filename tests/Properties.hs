@@ -17,6 +17,7 @@ import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Builder as TB
 import qualified Data.Text.Encoding as E
 import Control.Exception (SomeException, evaluate, try)
+import Data.Text.Foreign
 import qualified Data.Text.Fusion as S
 import qualified Data.Text.Fusion.Common as S
 import Data.Text.Fusion.Size
@@ -573,6 +574,13 @@ t_builderAssociative s1 s2 s3 = TB.toLazyText (b1 `mappend` (b2 `mappend` b3)) =
           b2 = TB.fromText (packS s2)
           b3 = TB.fromText (packS s3)
 
+-- Low-level.
+
+t_dropWord16 m t = dropWord16 m t `T.isSuffixOf` t
+t_takeWord16 m t = takeWord16 m t `T.isPrefixOf` t
+t_take_drop_16 m t = T.append (takeWord16 n t) (dropWord16 n t) == t
+  where n = small m
+
 -- Regression tests.
 s_filter_eq s = S.filter p t == S.streamList (filter p s)
     where p = (/= S.last t)
@@ -955,5 +963,11 @@ tests = [
     testProperty "t_builderSingleton" t_builderSingleton,
     testProperty "t_builderFromText" t_builderFromText,
     testProperty "t_builderAssociative" t_builderAssociative
+  ],
+
+  testGroup "lowlevel" [
+    testProperty "t_dropWord16" t_dropWord16,
+    testProperty "t_takeWord16" t_takeWord16,
+    testProperty "t_take_drop_16" t_take_drop_16
   ]
  ]

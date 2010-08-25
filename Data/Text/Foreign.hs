@@ -24,6 +24,7 @@ module Data.Text.Foreign
     , lengthWord16
     , unsafeCopyToPtr
     -- * Low-level manipulation
+    -- $lowlevel
     , dropWord16
     , takeWord16
     ) where
@@ -78,6 +79,13 @@ fromPtr ptr len =
 lengthWord16 :: Text -> Int
 lengthWord16 (Text _arr _off len) = len
 {-# INLINE lengthWord16 #-}
+
+-- $lowlevel
+--
+-- Foreign functions that use UTF-16 internally may return indices in
+-- units of 'Word16' instead of characters.  These functions may
+-- safely be used with such indices, as they will adjust offsets if
+-- necessary to preserve the validity of a Unicode string.
 
 -- | /O(1)/ Return the prefix of the 'Text' of @n@ 'Word16' units in
 -- length.
