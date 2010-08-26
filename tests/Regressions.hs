@@ -1,6 +1,8 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 -- Regression tests for specific bugs.
 
-import Control.Exception (bracket)
+import Control.Exception (SomeException, bracket, handle)
 import Control.Monad (when)
 import System.Directory (removeFile)
 import System.IO
@@ -11,6 +13,7 @@ import qualified Data.Text.Lazy as LT
 import qualified Data.Text.Lazy.Encoding as LE
 import qualified Test.Framework as F
 import qualified Test.Framework.Providers.HUnit as F
+import Test.HUnit (assertFailure)
 
 withTempFile = bracket (openTempFile "." "crashy.txt") cleanupTemp . uncurry
   where
@@ -29,11 +32,11 @@ lazy_encode_crash = withTempFile $ \ _ h ->
 -- encoded file can result in a crash in the RTS (i.e. not merely an
 -- exception).
 hGetContents_crash = withTempFile $ \ path h -> do
-  B.hPut h (B.pack [0x78, 0xc4 ,0x0a])
-  hClose h
+  B.hPut h (B.pack [0x78, 0xc4 ,0x0a]) >> hClose h
   h' <- openFile path ReadMode
-  --hSetEncoding h' utf8
-  T.hGetContents h' >>= print
+  hSetEncoding h' utf8
+  handle (\(_::SomeException) -> return ()) $
+    T.hGetContents h' >> assertFailure "T.hGetContents should crash"
 
 tests :: F.Test
 tests = F.testGroup "crashers" [
