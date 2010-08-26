@@ -92,24 +92,25 @@ hGetContents = fmap decodeUtf8 . B.hGetContents
 #else
 hGetContents h = do
   chooseGoodBuffering h
-  wantReadableHandle "hGetContents" h $ \hh -> do
-                   (hh',ts) <- readAll hh
-                   return (hh'{haType=ClosedHandle},T.concat ts)
+  wantReadableHandle "hGetContents" h readAll
  where
   readAll hh@Handle__{..} = do
-    let readChunks = do
-          t <- readChunk hh =<< readIORef haCharBuffer
-          (hh',ts) <- readChunks
-          return (hh', t:ts)
-    readChunks `catch` \e -> do
-      if isEOFError e
-        then do
-          (hh', _) <- hClose_help hh
+    let catchError e
+          | isEOFError e = do
+              buf <- readIORef haCharBuffer
+              return $ if isEmptyBuffer buf
+                       then T.empty
+                       else T.singleton '\r'
+          | otherwise = throw (augmentIOError e "hGetContents" h)
+        readChunks = do
           buf <- readIORef haCharBuffer
-          return $ if isEmptyBuffer buf
-                      then (hh', [])
-                      else (hh', [T.singleton '\r'])
-        else throw (augmentIOError e "hGetContents" h)
+          t <- readChunk hh buf `catch` catchError
+          if T.null t
+            then return [t]
+            else (t:) `fmap` readChunks
+    ts <- readChunks
+    (hh', _) <- hClose_help hh
+    return (hh'{haType=ClosedHandle}, T.concat ts)
 #endif
   
 -- | Use a more efficient buffer size if we're reading in
