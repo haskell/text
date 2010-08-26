@@ -2,9 +2,7 @@
 
 -- Regression tests for specific bugs.
 
-import Control.Exception (SomeException, bracket, handle)
-import Control.Monad (when)
-import System.Directory (removeFile)
+import Control.Exception (SomeException, handle)
 import System.IO
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as LB
@@ -14,13 +12,7 @@ import qualified Data.Text.Lazy.Encoding as LE
 import qualified Test.Framework as F
 import qualified Test.Framework.Providers.HUnit as F
 import Test.HUnit (assertFailure)
-
-withTempFile = bracket (openTempFile "." "crashy.txt") cleanupTemp . uncurry
-  where
-    cleanupTemp (path,h) = do
-      open <- hIsOpen h
-      when open (hClose h)
-      removeFile path
+import TestUtils (withTempFile)
 
 -- Reported by Michael Snoyman: UTF-8 encoding a large lazy bytestring
 -- caused either a segfault or attempt to allocate a negative number

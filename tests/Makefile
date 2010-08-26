@@ -49,7 +49,9 @@ qc-hpc: Properties.hs QuickCheckUtils.hs $(lib-srcs:%=../%)
 	$(ghc) $(ghc-hpc-flags) $(ghc-test-flags) $(ghc-opt-flags) -ihpcdir \
 	  --make -threaded -o $@ $<
 
-regressions: Regressions.o
+Regressions.o: TestUtils.o
+
+regressions: Regressions.o TestUtils.o
 	$(ghc) $(ghc-test-flags) -o $@ $^ $(lib)
 
 coverage: qc-hpc-html/hpc_index.html
