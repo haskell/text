@@ -650,14 +650,18 @@ foldr1 f t = S.foldr1 f (stream t)
 
 -- | /O(n)/ Concatenate a list of 'Text's.
 concat :: [Text] -> Text
-concat ts = Text (A.run go) 0 len
+concat ts = case ts' of
+              [] -> empty
+              [t] -> t
+              _ -> Text (A.run go) 0 len
   where
-    len = L.sum (L.map (\(Text _ _ l) -> l) ts)
+    ts' = L.filter (not . null) ts
+    len = L.sum $ L.map lengthWord16 ts'
     go = do
       arr <- A.unsafeNew len
-      let step i (Text a o l) = let j = i + l in A.partialCopyI arr i a o j >> return j
-      foldM step 0 ts >> return arr
-{-# INLINE concat #-}
+      let step i (Text a o l) =
+            let !j = i + l in A.partialCopyI arr i a o j >> return j
+      foldM step 0 ts' >> return arr
 
 -- | /O(n)/ Map a function over a 'Text' that results in a 'Text', and
 -- concatenate the results.
