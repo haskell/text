@@ -581,13 +581,17 @@ t_builderAssociative s1 s2 s3 = TB.toLazyText (b1 `mappend` (b2 `mappend` b3)) =
 
 -- Input and output.
 
-t_write_read (NotEmpty t) = monadicIO $ do
-                              r <- run act
-                              assert (r == t)
+t_write_read t = monadicIO $ assert . (==t) =<< run act
   where act = withTempFile $ \path h -> do
                 T.hPutStr h t
                 hClose h
                 T.readFile path
+
+t_write_hGetContents t = monadicIO $ assert . (==t) =<< run act
+  where act = withTempFile $ \_path h -> do
+                T.hPutStr h t
+                hSeek h AbsoluteSeek 0
+                T.hGetContents h
 
 -- Low-level.
 
@@ -981,7 +985,8 @@ tests = [
   ],
 
   testGroup "io" [
-    testProperty "t_write_read" t_write_read
+    testProperty "t_write_read" t_write_read,
+    testProperty "t_write_hGetContents" t_write_hGetContents
   ],
 
   testGroup "lowlevel" [
