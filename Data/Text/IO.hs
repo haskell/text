@@ -102,9 +102,9 @@ hGetContents h = do
           (hh',ts) <- readChunks
           return (hh', t:ts)
     readChunks `catch` \e -> do
-      (hh', _) <- hClose_help hh
       if isEOFError e
         then do
+          (hh', _) <- hClose_help hh
           buf <- readIORef haCharBuffer
           return $ if isEmptyBuffer buf
                       then (hh', [])
