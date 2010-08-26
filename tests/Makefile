@@ -33,11 +33,11 @@ else
 endif
 
 Properties.o Regressions.o qc qc-hpc: ghc-flags += $(ghc-test-flags)
-Properties.o: QuickCheckUtils.o SlowFunctions.o
+Properties.o: QuickCheckUtils.o SlowFunctions.o TestUtils.o
 
 QuickCheckUtils.o: $(lib)
 
-qc: Properties.o QuickCheckUtils.o SlowFunctions.o
+qc: Properties.o QuickCheckUtils.o SlowFunctions.o TestUtils.o
 	$(ghc) $(ghc-flags) -threaded -o $@ $^ $(lib)
 
 sb: SearchBench.o SlowFunctions.o

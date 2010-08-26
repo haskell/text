@@ -3,6 +3,7 @@
 {-# OPTIONS_GHC -fno-enable-rewrite-rules #-}
 
 import Test.QuickCheck
+import Test.QuickCheck.Monadic
 import Text.Show.Functions ()
 
 import qualified Data.Bits as Bits (shiftL, shiftR)
@@ -13,6 +14,7 @@ import Debug.Trace (trace)
 import Control.Arrow ((***), second)
 import Data.Word (Word8, Word16, Word32)
 import qualified Data.Text as T
+import qualified Data.Text.IO as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Builder as TB
 import qualified Data.Text.Encoding as E
@@ -26,6 +28,7 @@ import qualified Data.Text.Lazy.Fusion as SL
 import qualified Data.Text.UnsafeShift as U
 import qualified Data.List as L
 import Prelude hiding (replicate)
+import System.IO
 import System.IO.Unsafe (unsafePerformIO)
 import Test.Framework (defaultMain, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
@@ -34,6 +37,7 @@ import qualified Data.Text.Lazy.Search as S (indices)
 import qualified SlowFunctions as Slow
 
 import QuickCheckUtils (NotEmpty(..), small, genUnicode)
+import TestUtils (withTempFile)
 
 -- Ensure that two potentially bottom values (in the sense of crashing
 -- for some inputs, not looping infinitely) either both crash, or both
@@ -565,7 +569,8 @@ shiftR_Int    = shiftR :: Int -> Property
 shiftR_Word16 = shiftR :: Word16 -> Property
 shiftR_Word32 = shiftR :: Word32 -> Property
 
--- Builder
+-- Builder.
+
 t_builderSingleton = id `eqP` (unpackS . TB.toLazyText . mconcat . map TB.singleton)
 t_builderFromText = L.concat `eq` (unpackS . TB.toLazyText . mconcat . map (TB.fromText . packS))
 t_builderAssociative s1 s2 s3 = TB.toLazyText (b1 `mappend` (b2 `mappend` b3)) ==
@@ -573,6 +578,16 @@ t_builderAssociative s1 s2 s3 = TB.toLazyText (b1 `mappend` (b2 `mappend` b3)) =
     where b1 = TB.fromText (packS s1)
           b2 = TB.fromText (packS s2)
           b3 = TB.fromText (packS s3)
+
+-- Input and output.
+
+t_write_read (NotEmpty t) = monadicIO $ do
+                              r <- run act
+                              assert (r == t)
+  where act = withTempFile $ \path h -> do
+                T.hPutStr h t
+                hClose h
+                T.readFile path
 
 -- Low-level.
 
@@ -963,6 +978,10 @@ tests = [
     testProperty "t_builderSingleton" t_builderSingleton,
     testProperty "t_builderFromText" t_builderFromText,
     testProperty "t_builderAssociative" t_builderAssociative
+  ],
+
+  testGroup "io" [
+    testProperty "t_write_read" t_write_read
   ],
 
   testGroup "lowlevel" [
