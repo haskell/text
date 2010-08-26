@@ -34,6 +34,7 @@ import Control.Exception (assert)
 #endif
 import Control.Monad.ST (unsafeIOToST)
 import Data.Text.Internal (Text(..), empty)
+import Data.Text.Unsafe (lengthWord16)
 import qualified Data.Text.Array as A
 import Data.Word (Word16)
 import Foreign.Marshal.Alloc (allocaBytes)
@@ -72,13 +73,6 @@ fromPtr ptr len =
                    | otherwise = do
           A.unsafeWrite marr i =<< unsafeIOToST (peek p)
           loop (p `plusPtr` 2) (i + 1)
-
--- | /O(1)/ Return the length of a 'Text' in units of 'Word16'.  This
--- is useful for sizing a target array appropriately before using
--- 'unsafeCopyToPtr'.
-lengthWord16 :: Text -> Int
-lengthWord16 (Text _arr _off len) = len
-{-# INLINE lengthWord16 #-}
 
 -- $lowlevel
 --

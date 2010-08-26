@@ -195,7 +195,8 @@ import qualified Data.Text.Fusion.Common as S
 import Data.Text.Fusion (stream, reverseStream, unstream)
 import Data.Text.Internal (Text(..), empty, text, textP)
 import qualified Prelude as P
-import Data.Text.Unsafe (Iter(..), iter, iter_, reverseIter, unsafeHead, unsafeTail)
+import Data.Text.Unsafe (Iter(..), iter, iter_, lengthWord16, reverseIter,
+                         unsafeHead, unsafeTail)
 import Data.Text.UnsafeChar (unsafeChr)
 import qualified Data.Text.Encoding.Utf16 as U16
 import Data.Text.Search (indices)

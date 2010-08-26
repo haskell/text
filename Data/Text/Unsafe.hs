@@ -20,6 +20,7 @@ module Data.Text.Unsafe
     , reverseIter
     , unsafeHead
     , unsafeTail
+    , lengthWord16
     ) where
      
 #if defined(ASSERTS)
@@ -124,3 +125,10 @@ inlineInterleaveST :: ST s a -> ST s a
 inlineInterleaveST (ST m) = ST $ \ s ->
     let r = case m s of (# _, res #) -> res in (# s, r #)
 {-# INLINE inlineInterleaveST #-}
+
+-- | /O(1)/ Return the length of a 'Text' in units of 'Word16'.  This
+-- is useful for sizing a target array appropriately before using
+-- 'unsafeCopyToPtr'.
+lengthWord16 :: Text -> Int
+lengthWord16 (Text _arr _off len) = len
+{-# INLINE lengthWord16 #-}
