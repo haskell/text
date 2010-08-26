@@ -97,15 +97,16 @@ hGetContents h = do
                    return (hh'{haType=ClosedHandle},T.concat ts)
  where
   readAll hh@Handle__{..} = do
-    buf <- readIORef haCharBuffer
     let readChunks = do
-          t <- readChunk hh buf
-          (hh',ts) <- readAll hh
+          t <- readChunk hh =<< readIORef haCharBuffer
+          (hh',ts) <- readChunks
           return (hh', t:ts)
     readChunks `catch` \e -> do
       (hh', _) <- hClose_help hh
       if isEOFError e
-        then return $ if isEmptyBuffer buf
+        then do
+          buf <- readIORef haCharBuffer
+          return $ if isEmptyBuffer buf
                       then (hh', [])
                       else (hh', [T.singleton '\r'])
         else throw (augmentIOError e "hGetContents" h)
