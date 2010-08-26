@@ -55,7 +55,7 @@ import GHC.IO.Handle.Internals (augmentIOError, hClose_help, wantReadableHandle,
                                 wantWritableHandle)
 import GHC.IO.Handle.Text (commitBuffer')
 import GHC.IO.Handle.Types (BufferList(..), BufferMode(..), Handle__(..),
-                            Newline(..))
+                            HandleType(..), Newline(..))
 import System.IO (hGetBuffering, hFileSize, hSetBuffering, hTell)
 import System.IO.Error (isEOFError)
 #endif
@@ -94,7 +94,7 @@ hGetContents h = do
   chooseGoodBuffering h
   wantReadableHandle "hGetContents" h $ \hh -> do
                    (hh',ts) <- readAll hh
-                   return (hh',T.concat ts)
+                   return (hh'{haType=ClosedHandle},T.concat ts)
  where
   readAll hh@Handle__{..} = do
     buf <- readIORef haCharBuffer
