@@ -608,8 +608,21 @@ instance Arbitrary NewlineMode where
       [ noNewlineTranslation, universalNewlineMode, nativeNewlineMode,
         windowsNewlineMode ]
 
-write_read writer reader (E _ e) m t = monadicIO $ assert . (==t) =<< run act
-  where act = withTempFile $ \path h -> do
+-- This test harness is complex!  What property are we checking?
+--
+-- Reading after writing a multi-line file should give the same
+-- results as were written.
+--
+-- What do we vary while checking this property?
+-- * The lines themselves, scrubbed to contain neither CR nor LF.  (By
+--   working with a list of lines, we ensure that the data will
+--   sometimes contain line endings.)
+-- * Encoding.
+-- * Newline translation mode.
+write_read unline filt writer reader (E _ e) m ts =
+    monadicIO $ assert . (==t) =<< run act
+  where t = unline . map (filt (not . (`elem` "\r\n"))) $ ts
+        act = withTempFile $ \path h -> do
                 hSetEncoding h e
                 hSetNewlineMode h m
                 () <- writer h t
@@ -620,9 +633,13 @@ write_read writer reader (E _ e) m t = monadicIO $ assert . (==t) =<< run act
                   r <- reader h'
                   r `deepseq` return r
 
-t_write_read = write_read T.hPutStr T.hGetContents
+t_write_read = write_read T.unlines T.filter T.hPutStr T.hGetContents
+tl_write_read = write_read TL.unlines TL.filter TL.hPutStr TL.hGetContents
 
-tl_write_read = write_read TL.hPutStr TL.hGetContents
+t_write_read_line e m t = write_read head T.filter T.hPutStrLn
+                          T.hGetLine e m [t]
+tl_write_read_line e m t = write_read head TL.filter TL.hPutStrLn
+                           TL.hGetLine e m [t]
 
 -- Low-level.
 
@@ -1017,7 +1034,9 @@ tests = [
 
   testGroup "input-output" [
     testProperty "t_write_read" t_write_read,
-    testProperty "tl_write_read" tl_write_read
+    testProperty "tl_write_read" tl_write_read,
+    testProperty "t_write_read_line" t_write_read_line,
+    testProperty "tl_write_read_line" tl_write_read_line
   ],
 
   testGroup "lowlevel" [
