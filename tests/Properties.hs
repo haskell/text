@@ -582,13 +582,13 @@ t_builderAssociative s1 s2 s3 = TB.toLazyText (b1 `mappend` (b2 `mappend` b3)) =
 
 -- Input and output.
 
-write_read writer reader t = monadicIO $ assert . (==t) =<< run act
+write_read writer reader locale t = monadicIO $ assert . (==t) =<< run act
   where act = withTempFile $ \path h -> do
-                hSetEncoding h utf8
+                hSetEncoding h locale
                 () <- writer h t
                 hClose h
                 bracket (openFile path ReadMode) hClose $ \h' -> do
-                  hSetEncoding h' utf8
+                  hSetEncoding h' locale
                   reader h'
 
 t_write_read = write_read T.hPutStr T.hGetContents
@@ -987,8 +987,22 @@ tests = [
   ],
 
   testGroup "input-output" [
-    testProperty "t_write_read" t_write_read,
-    testProperty "tl_write_read" tl_write_read
+    testProperty "t_write_read_8" $ t_write_read utf8,
+    testProperty "t_write_read_8bom" $ t_write_read utf8_bom,
+    testProperty "t_write_read_16" $ t_write_read utf16,
+    testProperty "t_write_read_16le" $ t_write_read utf16le,
+    testProperty "t_write_read_16be" $ t_write_read utf16be,
+    testProperty "t_write_read_32" $ t_write_read utf32,
+    testProperty "t_write_read_32le" $ t_write_read utf32le,
+    testProperty "t_write_read_32be" $ t_write_read utf32be,
+    testProperty "tl_write_read_8" $ tl_write_read utf8,
+    testProperty "tl_write_read_8bom" $ tl_write_read utf8_bom,
+    testProperty "tl_write_read_16" $ tl_write_read utf16,
+    testProperty "tl_write_read_16le" $ tl_write_read utf16le,
+    testProperty "tl_write_read_16be" $ tl_write_read utf16be,
+    testProperty "tl_write_read_32" $ tl_write_read utf32,
+    testProperty "tl_write_read_32le" $ tl_write_read utf32le,
+    testProperty "tl_write_read_32be" $ tl_write_read utf32be
   ],
 
   testGroup "lowlevel" [
