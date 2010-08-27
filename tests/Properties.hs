@@ -16,9 +16,10 @@ import Data.Word (Word8, Word16, Word32)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import qualified Data.Text.Lazy as TL
+import qualified Data.Text.Lazy.IO as TL
 import qualified Data.Text.Lazy.Builder as TB
 import qualified Data.Text.Encoding as E
-import Control.Exception (SomeException, evaluate, try)
+import Control.Exception (SomeException, bracket, evaluate, try)
 import Data.Text.Foreign
 import qualified Data.Text.Fusion as S
 import qualified Data.Text.Fusion.Common as S
@@ -581,17 +582,18 @@ t_builderAssociative s1 s2 s3 = TB.toLazyText (b1 `mappend` (b2 `mappend` b3)) =
 
 -- Input and output.
 
-t_write_read t = monadicIO $ assert . (==t) =<< run act
+write_read writer reader t = monadicIO $ assert . (==t) =<< run act
   where act = withTempFile $ \path h -> do
-                T.hPutStr h t
+                hSetEncoding h utf8
+                () <- writer h t
                 hClose h
-                T.readFile path
+                bracket (openFile path ReadMode) hClose $ \h' -> do
+                  hSetEncoding h' utf8
+                  reader h'
 
-t_write_hGetContents t = monadicIO $ assert . (==t) =<< run act
-  where act = withTempFile $ \_path h -> do
-                T.hPutStr h t
-                hSeek h AbsoluteSeek 0
-                T.hGetContents h
+t_write_read = write_read T.hPutStr T.hGetContents
+
+tl_write_read = write_read TL.hPutStr TL.hGetContents
 
 -- Low-level.
 
@@ -984,9 +986,9 @@ tests = [
     testProperty "t_builderAssociative" t_builderAssociative
   ],
 
-  testGroup "io" [
+  testGroup "input-output" [
     testProperty "t_write_read" t_write_read,
-    testProperty "t_write_hGetContents" t_write_hGetContents
+    testProperty "tl_write_read" tl_write_read
   ],
 
   testGroup "lowlevel" [
