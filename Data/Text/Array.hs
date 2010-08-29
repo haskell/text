@@ -1,4 +1,5 @@
-{-# LANGUAGE BangPatterns, CPP, MagicHash, Rank2Types, UnboxedTuples #-}
+{-# LANGUAGE BangPatterns, CPP, MagicHash, Rank2Types, RecordWildCards,
+    UnboxedTuples #-}
 {-# OPTIONS_GHC -fno-warn-unused-matches #-}
 -- |
 -- Module      : Data.Text.Array
@@ -25,8 +26,7 @@
 module Data.Text.Array
     (
     -- * Types
-      IArray(..)
-    , Array
+      Array
     , MArray
 
     -- * Functions
@@ -68,14 +68,16 @@ import GHC.Word (Word16(..), Word(..))
 import Prelude hiding (length, read)
 
 -- | Immutable array type.
-data Array = Array
-    {-# UNPACK #-} !Int -- length (in units of Word16, not bytes)
-    ByteArray#
+data Array = Array {
+      aBA :: ByteArray#
+    , aLen :: {-# UNPACK #-} !Int -- length (in units of Word16, not bytes)
+    }
 
 -- | Mutable array type, for use in the ST monad.
-data MArray s = MArray
-    {-# UNPACK #-} !Int -- length (in units of Word16, not bytes)
-    (MutableByteArray# s)
+data MArray s = MArray {
+      maBA :: MutableByteArray# s
+    , maLen :: {-# UNPACK #-} !Int -- length (in units of Word16, not bytes)
+    }
 
 -- | Operations supported by all arrays.
 class IArray a where
@@ -83,11 +85,11 @@ class IArray a where
     length :: a -> Int
 
 instance IArray Array where
-    length (Array len _ba) = len
+    length = aLen
     {-# INLINE length #-}
 
 instance IArray (MArray s) where
-    length (MArray len _ba) = len
+    length = maLen
     {-# INLINE length #-}
 
 -- | Create an uninitialized mutable array.
@@ -103,13 +105,13 @@ unsafeNew n =
          if len < 0 then error (show ("unsafeNew",len)) else
 #endif
          case newByteArray# len# s1# of
-           (# s2#, marr# #) -> (# s2#, MArray n marr# #)
+           (# s2#, marr# #) -> (# s2#, MArray marr# n #)
 {-# INLINE unsafeNew #-}
 
 -- | Freeze a mutable array. Do not mutate the 'MArray' afterwards!
-unsafeFreeze :: MArray s -> ST s (Array)
-unsafeFreeze (MArray len mba#) = ST $ \s# ->
-                                 (# s#, Array len (unsafeCoerce# mba#) #)
+unsafeFreeze :: MArray s -> ST s Array
+unsafeFreeze MArray{..} = ST $ \s# ->
+                          (# s#, Array (unsafeCoerce# maBA) maLen #)
 {-# INLINE unsafeFreeze #-}
 
 -- | Indicate how many bytes would be used for an array of the given
@@ -121,52 +123,52 @@ bytesInArray n = n `shiftL` 1
 -- | Unchecked read of an immutable array.  May return garbage or
 -- crash on an out-of-bounds access.
 unsafeIndex :: Array -> Int -> Word16
-unsafeIndex (Array len ba#) i@(I# i#) =
+unsafeIndex Array{..} i@(I# i#) =
   CHECK_BOUNDS("unsafeIndex",len,i)
-    case indexWord16Array# ba# i# of r# -> (W16# r#)
+    case indexWord16Array# aBA i# of r# -> (W16# r#)
 {-# INLINE unsafeIndex #-}
 
 -- | Unchecked read of an immutable array.  May return garbage or
 -- crash on an out-of-bounds access.
 unsafeIndexWord :: Array -> Int -> Word
-unsafeIndexWord (Array len ba#) i@(I# i#) =
+unsafeIndexWord Array{..} i@(I# i#) =
   CHECK_BOUNDS("unsafeIndexWord",len,i)
-    case indexWordArray# ba# i# of r# -> (W# r#)
+    case indexWordArray# aBA i# of r# -> (W# r#)
 {-# INLINE unsafeIndexWord #-}
 
 -- | Unchecked read of a mutable array.  May return garbage or
 -- crash on an out-of-bounds access.
 unsafeRead :: MArray s -> Int -> ST s Word16
-unsafeRead (MArray len mba#) i@(I# i#) = ST $ \s# ->
+unsafeRead MArray{..} i@(I# i#) = ST $ \s# ->
   CHECK_BOUNDS("unsafeRead",len,i)
-  case readWord16Array# mba# i# s# of
+  case readWord16Array# maBA i# s# of
     (# s2#, r# #) -> (# s2#, W16# r# #)
 {-# INLINE unsafeRead #-}
 
 -- | Unchecked write of a mutable array.  May return garbage or crash
 -- on an out-of-bounds access.
 unsafeWrite :: MArray s -> Int -> Word16 -> ST s ()
-unsafeWrite (MArray len marr#) i@(I# i#) (W16# e#) = ST $ \s1# ->
+unsafeWrite MArray{..} i@(I# i#) (W16# e#) = ST $ \s1# ->
   CHECK_BOUNDS("unsafeWrite",len,i)
-  case writeWord16Array# marr# i# e# s1# of
+  case writeWord16Array# maBA i# e# s1# of
     s2# -> (# s2#, () #)
 {-# INLINE unsafeWrite #-}
 
 -- | Unchecked read of a mutable array.  May return garbage or
 -- crash on an out-of-bounds access.
 unsafeReadWord :: MArray s -> Int -> ST s Word
-unsafeReadWord (MArray len mba#) i@(I# i#) = ST $ \s# ->
+unsafeReadWord MArray{..} i@(I# i#) = ST $ \s# ->
   CHECK_BOUNDS("unsafeRead64",len,i)
-  case readWordArray# mba# i# s# of
+  case readWordArray# maBA i# s# of
     (# s2#, r# #) -> (# s2#, W# r# #)
 {-# INLINE unsafeReadWord #-}
 
 -- | Unchecked write of a mutable array.  May return garbage or crash
 -- on an out-of-bounds access.
 unsafeWriteWord :: MArray s -> Int -> Word -> ST s ()
-unsafeWriteWord (MArray len marr#) i@(I# i#) (W# e#) = ST $ \s1# ->
+unsafeWriteWord MArray{..} i@(I# i#) (W# e#) = ST $ \s1# ->
   CHECK_BOUNDS("unsafeWriteWord",len,i)
-  case writeWordArray# marr# i# e# s1# of
+  case writeWordArray# maBA i# e# s1# of
     s2# -> (# s2#, () #)
 {-# INLINE unsafeWriteWord #-}
 
@@ -208,7 +210,7 @@ wordAligned i = i .&. (wordFactor - 1) == 0
 copy :: MArray s     -- ^ source array
      -> MArray s     -- ^ destination array
      -> ST s ()
-copy dest@(MArray dlen _) src@(MArray slen _)
+copy dest@(MArray _ dlen) src@(MArray _ slen)
     | dlen >= slen = fast_loop 0
     | otherwise    = fail "Data.Text.Array.copy: array too small"
     where
