@@ -439,6 +439,10 @@ t_break_start (NotEmpty s) t = let (_,m) = T.break s t
                                in T.null m || s `T.isPrefixOf` m
 tl_break_start (NotEmpty s) t = let (_,m) = TL.break s t
                                 in TL.null m || s `TL.isPrefixOf` m
+t_breakEnd_end (NotEmpty s) t = let (m,_) = T.breakEnd s t
+                                in T.null m || s `T.isSuffixOf` m
+tl_breakEnd_end (NotEmpty s) t = let (m,_) = TL.breakEnd s t
+                                in TL.null m || s `TL.isSuffixOf` m
 t_breakBy p       = L.break p     `eqP` (unpack2 . T.breakBy p)
 tl_breakBy p      = L.break p     `eqP` (unpack2 . TL.breakBy p)
 t_group           = L.group       `eqP` (map unpackS . T.group)
@@ -942,6 +946,8 @@ tests = [
       testProperty "tl_break_id" tl_break_id,
       testProperty "t_break_start" t_break_start,
       testProperty "tl_break_start" tl_break_start,
+      testProperty "t_breakEnd_end" t_breakEnd_end,
+      testProperty "tl_breakEnd_end" tl_breakEnd_end,
       testProperty "t_breakBy" t_breakBy,
       testProperty "tl_breakBy" tl_breakBy,
       testProperty "t_group" t_group,
