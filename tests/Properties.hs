@@ -626,6 +626,13 @@ instance Arbitrary NewlineMode where
       [ noNewlineTranslation, universalNewlineMode, nativeNewlineMode,
         windowsNewlineMode ]
 
+instance Arbitrary BufferMode where
+    arbitrary = oneof [ return NoBuffering,
+                        return LineBuffering,
+                        return (BlockBuffering Nothing),
+                        (BlockBuffering . Just . fromIntegral) `fmap` arb16 ]
+        where arb16 = arbitrary :: Gen Word16
+
 -- This test harness is complex!  What property are we checking?
 --
 -- Reading after writing a multi-line file should give the same
@@ -637,17 +644,20 @@ instance Arbitrary NewlineMode where
 --   sometimes contain line endings.)
 -- * Encoding.
 -- * Newline translation mode.
-write_read unline filt writer reader (E _ e) m ts =
+-- * Buffering.
+write_read unline filt writer reader (E _ enc) nl buf ts =
     monadicIO $ assert . (==t) =<< run act
   where t = unline . map (filt (not . (`elem` "\r\n"))) $ ts
         act = withTempFile $ \path h -> do
-                hSetEncoding h e
-                hSetNewlineMode h m
+                hSetEncoding h enc
+                hSetNewlineMode h nl
+                hSetBuffering h buf
                 () <- writer h t
                 hClose h
                 bracket (openFile path ReadMode) hClose $ \h' -> do
-                  hSetEncoding h' e
-                  hSetNewlineMode h' m
+                  hSetEncoding h' enc
+                  hSetNewlineMode h' nl
+                  hSetBuffering h' buf
                   r <- reader h'
                   r `deepseq` return r
 
@@ -660,10 +670,10 @@ tl_put_get = write_read TL.unlines TL.filter put get
 t_write_read = write_read T.unlines T.filter T.hPutStr T.hGetContents
 tl_write_read = write_read TL.unlines TL.filter TL.hPutStr TL.hGetContents
 
-t_write_read_line e m t = write_read head T.filter T.hPutStrLn
-                          T.hGetLine e m [t]
-tl_write_read_line e m t = write_read head TL.filter TL.hPutStrLn
-                           TL.hGetLine e m [t]
+t_write_read_line e m b t = write_read head T.filter T.hPutStrLn
+                            T.hGetLine e m b [t]
+tl_write_read_line e m b t = write_read head TL.filter TL.hPutStrLn
+                             TL.hGetLine e m b [t]
 
 -- Low-level.
 
