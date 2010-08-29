@@ -66,6 +66,7 @@ tl_singleton c      = [c] == (TL.unpack . TL.singleton) c
 tl_unstreamChunks x = f 11 x == f 1000 x
     where f n = SL.unstreamChunks n . S.streamList
 tl_chunk_unchunk    = (TL.fromChunks . TL.toChunks) `eq` id
+tl_from_to_strict   = (TL.fromStrict . TL.toStrict) `eq` id
 
 t_ascii t    = E.decodeASCII (E.encodeUtf8 a) == a
     where a  = T.map (\c -> chr (ord c `mod` 128)) t
@@ -675,7 +676,8 @@ tests = [
     testProperty "t_singleton" t_singleton,
     testProperty "tl_singleton" tl_singleton,
     testProperty "tl_unstreamChunks" tl_unstreamChunks,
-    testProperty "tl_chunk_unchunk" tl_chunk_unchunk
+    testProperty "tl_chunk_unchunk" tl_chunk_unchunk,
+    testProperty "tl_from_to_strict" tl_from_to_strict
   ],
 
   testGroup "transcoding" [
