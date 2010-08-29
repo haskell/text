@@ -69,15 +69,20 @@ import Prelude hiding (length, read)
 -- | Immutable array type.
 data Array = Array {
       aBA :: ByteArray#
+#if defined(ASSERTS)
     , aLen :: {-# UNPACK #-} !Int -- length (in units of Word16, not bytes)
+#endif
     }
 
 -- | Mutable array type, for use in the ST monad.
 data MArray s = MArray {
       maBA :: MutableByteArray# s
+#if defined(ASSERTS)
     , maLen :: {-# UNPACK #-} !Int -- length (in units of Word16, not bytes)
+#endif
     }
 
+#if defined(ASSERTS)
 -- | Operations supported by all arrays.
 class IArray a where
     -- | Return the length of an array.
@@ -90,6 +95,7 @@ instance IArray Array where
 instance IArray (MArray s) where
     length = maLen
     {-# INLINE length #-}
+#endif
 
 -- | Create an uninitialized mutable array.
 unsafeNew :: forall s. Int -> ST s (MArray s)
@@ -104,13 +110,21 @@ unsafeNew n =
          if len < 0 then error (show ("unsafeNew",len)) else
 #endif
          case newByteArray# len# s1# of
-           (# s2#, marr# #) -> (# s2#, MArray marr# n #)
+           (# s2#, marr# #) -> (# s2#, MArray marr#
+#if defined(ASSERTS)
+                                  n
+#endif
+                                  #)
 {-# INLINE unsafeNew #-}
 
 -- | Freeze a mutable array. Do not mutate the 'MArray' afterwards!
 unsafeFreeze :: MArray s -> ST s Array
 unsafeFreeze MArray{..} = ST $ \s# ->
-                          (# s#, Array (unsafeCoerce# maBA) maLen #)
+                          (# s#, Array (unsafeCoerce# maBA)
+#if defined(ASSERTS)
+                             maLen
+#endif
+                             #)
 {-# INLINE unsafeFreeze #-}
 
 -- | Indicate how many bytes would be used for an array of the given
