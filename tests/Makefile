@@ -49,19 +49,30 @@ qc-hpc: Properties.hs QuickCheckUtils.hs SlowFunctions.hs TestUtils.hs $(lib-src
 	$(ghc) $(ghc-hpc-flags) $(ghc-test-flags) $(ghc-opt-flags) -ihpcdir \
 	  --make -threaded -o $@ $<
 
+stdio-hpc: StdioCoverage.hs $(lib-srcs:%=../%)
+	-mkdir -p hpcdir
+	@rm -f $@.tix
+	$(ghc) $(ghc-hpc-flags) $(ghc-test-flags) $(ghc-opt-flags) -ihpcdir \
+	  --make -threaded -o $@ $<
+
+coverage: coverage-html/hpc_index.html
+
+coverage-html/hpc_index.html: qc-hpc
+	@rm -f qc-hpc.tix stdio-hpc.tix coverage.tix
+	./qc-hpc -a 100 +RTS -N
+	bash ./cover-stdio.sh
+	hpc combine --output=coverage.tix --exclude=Main \
+	  qc-hpc.tix stdio-hpc.tix
+	hpc markup coverage --exclude=Main --exclude=Properties --exclude=Main \
+	  --exclude=Data.Text.Fusion.CaseMapping --exclude StdioCoverage \
+	  --exclude=SlowFunctions --exclude=TestUtils \
+	  --exclude=QuickCheckUtils --srcdir=.. --srcdir=. --destdir=$(dir $@)
+	@echo xdg-open $@
+
 Regressions.o: TestUtils.o
 
 regressions: Regressions.o TestUtils.o
 	$(ghc) $(ghc-test-flags) -o $@ $^ $(lib)
-
-coverage: qc-hpc-html/hpc_index.html
-
-qc-hpc-html/hpc_index.html: qc-hpc
-	./qc-hpc -a 100 +RTS -N
-	hpc markup qc-hpc --exclude=Main --exclude=Properties \
-	  --exclude=Data.Text.Fusion.CaseMapping \
-	  --exclude=SlowFunctions --exclude=TestUtils \
-	  --exclude=QuickCheckUtils --srcdir=.. --srcdir=. --destdir=$(dir $@)
 
 Benchmarks.o: ghc-opt-flags = -O
 bm Benchmarks.o: ghc-flags += -package utf8-string
@@ -83,4 +94,4 @@ text-testdata.tar.bz2:
 	curl -O http://projects.haskell.org/text/text-testdata.tar.bz2
 
 clean:
-	-rm -rf *.o *.hi *.tix bm qc qc-hpc hpcdir .hpc qc-hpc-html
+	-rm -rf *.o *.hi *.tix bm qc qc-hpc stdio-hpc hpcdir .hpc coverage-html

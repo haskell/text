@@ -18,6 +18,7 @@ import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.IO as TL
+import qualified Data.Text.Lazy.Internal as TL
 import qualified Data.Text.Lazy.Builder as TB
 import qualified Data.Text.Encoding as E
 import Data.Text.Encoding.Error
