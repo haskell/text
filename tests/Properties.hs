@@ -646,7 +646,7 @@ instance Arbitrary BufferMode where
     arbitrary = oneof [ return NoBuffering,
                         return LineBuffering,
                         return (BlockBuffering Nothing),
-                        (BlockBuffering . Just . fromIntegral) `fmap` arb16 ]
+                        (BlockBuffering . Just . (+1) . fromIntegral) `fmap` arb16 ]
         where arb16 = arbitrary :: Gen Word16
 
 -- This test harness is complex!  What property are we checking?
