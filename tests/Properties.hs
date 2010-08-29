@@ -67,18 +67,18 @@ tl_unstreamChunks x = f 11 x == f 1000 x
     where f n = SL.unstreamChunks n . S.streamList
 tl_chunk_unchunk    = (TL.fromChunks . TL.toChunks) `eq` id
 
-t_ascii t           = E.decodeASCII (E.encodeUtf8 a) == a
-    where a              = T.map (\c -> chr (ord c `mod` 128)) t
-t_utf8              = forAll genUnicode $ (E.decodeUtf8 . E.encodeUtf8) `eq` id
-tl_utf8             = forAll genUnicode $ (EL.decodeUtf8 . EL.encodeUtf8) `eq` id
-t_utf16LE           = forAll genUnicode $ (E.decodeUtf16LE . E.encodeUtf16LE) `eq` id
-tl_utf16LE          = forAll genUnicode $ (EL.decodeUtf16LE . EL.encodeUtf16LE) `eq` id
-t_utf16BE           = forAll genUnicode $ (E.decodeUtf16BE . E.encodeUtf16BE) `eq` id
-tl_utf16BE          = forAll genUnicode $ (EL.decodeUtf16BE . EL.encodeUtf16BE) `eq` id
-t_utf32LE           = forAll genUnicode $ (E.decodeUtf32LE . E.encodeUtf32LE) `eq` id
-tl_utf32LE          = forAll genUnicode $ (EL.decodeUtf32LE . EL.encodeUtf32LE) `eq` id
-t_utf32BE           = forAll genUnicode $ (E.decodeUtf32BE . E.encodeUtf32BE) `eq` id
-tl_utf32BE          = forAll genUnicode $ (EL.decodeUtf32BE . EL.encodeUtf32BE) `eq` id
+t_ascii t    = E.decodeASCII (E.encodeUtf8 a) == a
+    where a  = T.map (\c -> chr (ord c `mod` 128)) t
+t_utf8       = forAll genUnicode $ (E.decodeUtf8 . E.encodeUtf8) `eq` id
+tl_utf8      = forAll genUnicode $ (EL.decodeUtf8 . EL.encodeUtf8) `eq` id
+t_utf16LE    = forAll genUnicode $ (E.decodeUtf16LE . E.encodeUtf16LE) `eq` id
+tl_utf16LE   = forAll genUnicode $ (EL.decodeUtf16LE . EL.encodeUtf16LE) `eq` id
+t_utf16BE    = forAll genUnicode $ (E.decodeUtf16BE . E.encodeUtf16BE) `eq` id
+tl_utf16BE   = forAll genUnicode $ (EL.decodeUtf16BE . EL.encodeUtf16BE) `eq` id
+t_utf32LE    = forAll genUnicode $ (E.decodeUtf32LE . E.encodeUtf32LE) `eq` id
+tl_utf32LE   = forAll genUnicode $ (EL.decodeUtf32LE . EL.encodeUtf32LE) `eq` id
+t_utf32BE    = forAll genUnicode $ (E.decodeUtf32BE . E.encodeUtf32BE) `eq` id
+tl_utf32BE   = forAll genUnicode $ (EL.decodeUtf32BE . EL.encodeUtf32BE) `eq` id
 
 class Stringy s where
     packS    :: String -> s
