@@ -105,7 +105,7 @@ unstream (Stream next0 s0 len) = I.textP (P.fst a) 0 (P.snd a)
                 | j >= top  -> {-# SCC "unstream/resize" #-} do
                                let top' = (top + 1) `shiftL` 1
                                arr' <- A.unsafeNew top'
-                               A.partialCopyM arr' 0 arr 0 top
+                               A.copyM arr' 0 arr 0 top
                                outer arr' top' s i
                 | otherwise -> do d <- unsafeWrite arr i x
                                   loop s' (i+d)
@@ -138,7 +138,7 @@ reverse (Stream next s len0)
           Yield x s1 | i < least -> {-# SCC "reverse/resize" #-} do
                        let newLen = len `shiftL` 1
                        marr' <- A.unsafeNew newLen
-                       A.partialCopyM marr' (newLen-len) marr 0 len
+                       A.copyM marr' (newLen-len) marr 0 len
                        write s1 (len+i) newLen marr'
                      | otherwise -> write s1 i len marr
             where n = ord x

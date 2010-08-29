@@ -30,8 +30,8 @@ module Data.Text.Array
     , MArray
 
     -- * Functions
-    , partialCopyM
-    , partialCopyI
+    , copyM
+    , copyI
     , empty
     , run
     , run2
@@ -205,13 +205,13 @@ wordAligned :: Int -> Bool
 wordAligned i = i .&. (wordFactor - 1) == 0
 
 -- | Copy some elements of a mutable array.
-partialCopyM :: MArray s        -- ^ Destination
-             -> Int             -- ^ Destination offset
-             -> MArray s        -- ^ Source
-             -> Int             -- ^ Source offset
-             -> Int             -- ^ Count
-             -> ST s ()
-partialCopyM dest didx src sidx count =
+copyM :: MArray s               -- ^ Destination
+      -> Int                    -- ^ Destination offset
+      -> MArray s               -- ^ Source
+      -> Int                    -- ^ Source offset
+      -> Int                    -- ^ Count
+      -> ST s ()
+copyM dest didx src sidx count =
 #if defined(ASSERTS)
     assert (sidx + count <= length src) .
     assert (didx + count <= length dest) $
@@ -234,14 +234,14 @@ partialCopyM dest didx src sidx count =
                            slow_loop (i+1)
 
 -- | Copy some elements of an immutable array.
-partialCopyI :: MArray s        -- ^ Destination
-             -> Int             -- ^ Destination offset
-             -> Array           -- ^ Source
-             -> Int             -- ^ Source offset
-             -> Int             -- ^ First offset in source /not/ to
+copyI :: MArray s               -- ^ Destination
+      -> Int                    -- ^ Destination offset
+      -> Array                  -- ^ Source
+      -> Int                    -- ^ Source offset
+      -> Int                    -- ^ First offset in source /not/ to
                                 -- copy (i.e. /not/ length)
-             -> ST s ()
-partialCopyI dest i0 src j0 top
+      -> ST s ()
+copyI dest i0 src j0 top
     | wordAligned i0 && wordAligned j0 = fast (i0 `div` wordFactor) (j0 `div` wordFactor)
     | otherwise = slow i0 j0
   where

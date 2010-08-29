@@ -67,7 +67,7 @@ unstreamChunks chunkSize (Stream next s0 len0)
         | i + 1 >= len       = do
             let newLen = min (len `shiftL` 1) chunkSize
             marr' <- A.unsafeNew newLen
-            A.partialCopyM marr' 0 marr 0 len
+            A.copyM marr' 0 marr 0 len
             inner marr' newLen s i
         | otherwise =
             case next s of

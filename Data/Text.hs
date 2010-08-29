@@ -298,8 +298,8 @@ append (Text arr1 off1 len1) (Text arr2 off2 len2) = Text (A.run x) 0 len
       len = len1+len2
       x = do
         arr <- A.unsafeNew len
-        A.partialCopyI arr 0 arr1 off1 len1
-        A.partialCopyI arr len1 arr2 off2 (len1+len2)
+        A.copyI arr 0 arr1 off1 len1
+        A.copyI arr len1 arr2 off2 (len1+len2)
         return arr
 {-# INLINE append #-}
 
@@ -660,7 +660,7 @@ concat ts = case ts' of
     go = do
       arr <- A.unsafeNew len
       let step i (Text a o l) =
-            let !j = i + l in A.partialCopyI arr i a o j >> return j
+            let !j = i + l in A.copyI arr i a o j >> return j
       foldM step 0 ts' >> return arr
 
 -- | /O(n)/ Map a function over a 'Text' that results in a 'Text', and
@@ -769,7 +769,7 @@ replicate n t@(Text a o l)
       arr <- A.unsafeNew len
       let loop !d !i | i >= n    = return arr
                      | otherwise = let m = d + l
-                                   in A.partialCopyI arr d a o m >> loop m (i+1)
+                                   in A.copyI arr d a o m >> loop m (i+1)
       loop 0 0
 {-# INLINE [1] replicate #-}
 
