@@ -95,17 +95,20 @@ genUnicode = fmap fromString string where
     
     char = chr `fmap` excluding reserved (oneof planes)
 
-instance Arbitrary T.Text where
-    arbitrary     = T.pack `fmap` arbitrary
-
 -- For tests that have O(n^2) running times or input sizes, resize
 -- their inputs to the square root of the originals.
 unsquare :: (Arbitrary a, Show a, Testable b) => (a -> b) -> Property
-unsquare = forAll . sized $ \n -> resize (smallish n) arbitrary
-    where smallish = round . (sqrt :: Double -> Double) . fromIntegral
+unsquare = forAll smallArbitrary
+
+smallArbitrary :: (Arbitrary a, Show a) => Gen a
+smallArbitrary = sized $ \n -> resize (smallish n) arbitrary
+  where smallish = round . (sqrt :: Double -> Double) . fromIntegral . abs
+
+instance Arbitrary T.Text where
+    arbitrary = T.pack `fmap` arbitrary
 
 instance Arbitrary TL.Text where
-    arbitrary     = (TL.fromChunks . map notEmpty) `fmap` arbitrary
+    arbitrary = (TL.fromChunks . map notEmpty) `fmap` smallArbitrary
 
 newtype NotEmpty a = NotEmpty { notEmpty :: a }
     deriving (Eq, Ord)
