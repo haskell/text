@@ -575,20 +575,21 @@ tl_index s        = forAll (choose (-l,l*2)) ((s L.!!) `eq` (TL.index (packS s) 
     where l = L.length s
 
 t_findIndex p     = L.findIndex p `eqP` T.findIndex p
-t_count t         = (subtract 1 . L.length . T.split t) `eq` T.count t
-tl_count t        = (subtract 1 . L.genericLength . TL.split t) `eq` TL.count t
+t_count (NotEmpty t)  = (subtract 1 . L.length . T.split t) `eq` T.count t
+tl_count (NotEmpty t) = (subtract 1 . L.genericLength . TL.split t) `eq` TL.count t
 t_zip s           = L.zip s `eqP` T.zip (packS s)
 tl_zip s          = L.zip s `eqP` TL.zip (packS s)
 sf_zipWith p c s  = (L.zipWith c (L.filter p s) . L.filter p) `eqP` (unpackS . S.zipWith c (S.filter p $ packS s) . S.filter p)
 t_zipWith c s     = L.zipWith c s `eqP` (unpackS . T.zipWith c (packS s))
 tl_zipWith c s    = L.zipWith c s `eqP` (unpackS . TL.zipWith c (packS s))
 
-t_indices = unsquare (\s -> Slow.indices s `eq` indices s)
-tl_indices = unsquare (\s -> lazyIndices s `eq` S.indices s)
+t_indices  = unsquare (\(NotEmpty s) -> Slow.indices s `eq` indices s)
+tl_indices = unsquare (\(NotEmpty s) -> lazyIndices s `eq` S.indices s)
     where lazyIndices s t = map fromIntegral $ Slow.indices (conc s) (conc t)
           conc = T.concat . TL.toChunks
-t_indices_occurs t = unsquare (\ts -> let s = T.intercalate t ts
-                                      in Slow.indices t s == indices t s)
+t_indices_occurs (NotEmpty t) = unsquare $ \ts ->
+                                let s = T.intercalate t ts
+                                in Slow.indices t s == indices t s
 
 -- Bit shifts.
 shiftL w = forAll (choose (0,width-1)) $ \k -> Bits.shiftL w k == U.shiftL w k
