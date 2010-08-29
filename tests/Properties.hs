@@ -20,6 +20,7 @@ import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.IO as TL
 import qualified Data.Text.Lazy.Builder as TB
 import qualified Data.Text.Encoding as E
+import Data.Text.Encoding.Error
 import Control.Exception (SomeException, bracket, evaluate, try)
 import Data.Text.Foreign
 import qualified Data.Text.Fusion as S
@@ -80,6 +81,21 @@ t_utf32LE    = forAll genUnicode $ (E.decodeUtf32LE . E.encodeUtf32LE) `eq` id
 tl_utf32LE   = forAll genUnicode $ (EL.decodeUtf32LE . EL.encodeUtf32LE) `eq` id
 t_utf32BE    = forAll genUnicode $ (E.decodeUtf32BE . E.encodeUtf32BE) `eq` id
 tl_utf32BE   = forAll genUnicode $ (EL.decodeUtf32BE . EL.encodeUtf32BE) `eq` id
+
+data DecodeErr = DE String OnDecodeError
+
+instance Show DecodeErr where
+    show (DE d _) = "DE " ++ d
+
+instance CoArbitrary Word8 where
+    coarbitrary = coarbitraryIntegral
+
+instance Arbitrary DecodeErr where
+    arbitrary = oneof [ return $ DE "lenient" lenientDecode
+                      , return $ DE "ignore" ignore
+                      , DE "replace" `fmap` arbitrary ]
+
+t_utf8_err (DE _ de) bs = T.length (E.decodeUtf8With de bs) >= 0
 
 class Stringy s where
     packS    :: String -> s
@@ -723,7 +739,10 @@ tests = [
     testProperty "t_utf32LE" t_utf32LE,
     testProperty "tl_utf32LE" tl_utf32LE,
     testProperty "t_utf32BE" t_utf32BE,
-    testProperty "tl_utf32BE" tl_utf32BE
+    testProperty "tl_utf32BE" tl_utf32BE,
+    testGroup "errors" [
+      testProperty "t_utf8_err" t_utf8_err
+    ]
   ],
 
   testGroup "instances" [
