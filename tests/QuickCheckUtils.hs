@@ -11,7 +11,7 @@ import Data.String (IsString, fromString)
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import System.Random (Random(..), RandomGen)
-import Test.QuickCheck (Gen, Arbitrary(..), choose, sized, vector, oneof)
+import Test.QuickCheck hiding ((.&.))
 import qualified Data.ByteString as B
 
 instance Random Int64 where
@@ -97,6 +97,12 @@ genUnicode = fmap fromString string where
 
 instance Arbitrary T.Text where
     arbitrary     = T.pack `fmap` arbitrary
+
+-- For tests that have O(n^2) running times or input sizes, resize
+-- their inputs to the square root of the originals.
+unsquare :: (Arbitrary a, Show a, Testable b) => (a -> b) -> Property
+unsquare = forAll . sized $ \n -> resize (smallish n) arbitrary
+    where smallish = round . (sqrt :: Double -> Double) . fromIntegral
 
 instance Arbitrary TL.Text where
     arbitrary     = (TL.fromChunks . map notEmpty) `fmap` arbitrary

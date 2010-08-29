@@ -39,7 +39,7 @@ import Data.Text.Search (indices)
 import qualified Data.Text.Lazy.Search as S (indices)
 import qualified SlowFunctions as Slow
 
-import QuickCheckUtils (NotEmpty(..), small, genUnicode)
+import QuickCheckUtils (NotEmpty(..), genUnicode, small, unsquare)
 import TestUtils (withRedirect, withTempFile)
 
 -- Ensure that two potentially bottom values (in the sense of crashing
@@ -157,12 +157,6 @@ eqP f g s w  = eql "orig" (f s) (g t) &&
           eql d a b
             | a =^= b   = True
             | otherwise = trace (d ++ ": " ++ show a ++ " /= " ++ show b) False
-
--- For tests that have O(n^2) running times or input sizes, resize
--- their inputs to the square root of the originals.
-unsquare :: (Arbitrary a, Show a, Testable b) => (a -> b) -> Property
-unsquare = forAll . sized $ \n -> resize (smallish n) arbitrary
-    where smallish = round . (sqrt :: Double -> Double) . fromIntegral
 
 s_Eq s            = (s==)    `eq` ((S.streamList s==) . S.streamList)
     where _types = s :: String
