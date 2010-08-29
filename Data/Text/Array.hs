@@ -123,7 +123,7 @@ bytesInArray n = n `shiftL` 1
 -- crash on an out-of-bounds access.
 unsafeIndex :: Array -> Int -> Word16
 unsafeIndex Array{..} i@(I# i#) =
-  CHECK_BOUNDS("unsafeIndex",len,i)
+  CHECK_BOUNDS("unsafeIndex",aLen,i)
     case indexWord16Array# aBA i# of r# -> (W16# r#)
 {-# INLINE unsafeIndex #-}
 
@@ -131,7 +131,7 @@ unsafeIndex Array{..} i@(I# i#) =
 -- crash on an out-of-bounds access.
 unsafeIndexWord :: Array -> Int -> Word
 unsafeIndexWord Array{..} i@(I# i#) =
-  CHECK_BOUNDS("unsafeIndexWord",len,i)
+  CHECK_BOUNDS("unsafeIndexWord",aLen`div`wordFactor,i)
     case indexWordArray# aBA i# of r# -> (W# r#)
 {-# INLINE unsafeIndexWord #-}
 
@@ -139,7 +139,7 @@ unsafeIndexWord Array{..} i@(I# i#) =
 -- crash on an out-of-bounds access.
 unsafeRead :: MArray s -> Int -> ST s Word16
 unsafeRead MArray{..} i@(I# i#) = ST $ \s# ->
-  CHECK_BOUNDS("unsafeRead",len,i)
+  CHECK_BOUNDS("unsafeRead",maLen,i)
   case readWord16Array# maBA i# s# of
     (# s2#, r# #) -> (# s2#, W16# r# #)
 {-# INLINE unsafeRead #-}
@@ -148,7 +148,7 @@ unsafeRead MArray{..} i@(I# i#) = ST $ \s# ->
 -- on an out-of-bounds access.
 unsafeWrite :: MArray s -> Int -> Word16 -> ST s ()
 unsafeWrite MArray{..} i@(I# i#) (W16# e#) = ST $ \s1# ->
-  CHECK_BOUNDS("unsafeWrite",len,i)
+  CHECK_BOUNDS("unsafeWrite",maLen,i)
   case writeWord16Array# maBA i# e# s1# of
     s2# -> (# s2#, () #)
 {-# INLINE unsafeWrite #-}
@@ -157,7 +157,7 @@ unsafeWrite MArray{..} i@(I# i#) (W16# e#) = ST $ \s1# ->
 -- crash on an out-of-bounds access.
 unsafeReadWord :: MArray s -> Int -> ST s Word
 unsafeReadWord MArray{..} i@(I# i#) = ST $ \s# ->
-  CHECK_BOUNDS("unsafeRead64",len,i)
+  CHECK_BOUNDS("unsafeRead64",maLen`div`wordFactor,i)
   case readWordArray# maBA i# s# of
     (# s2#, r# #) -> (# s2#, W# r# #)
 {-# INLINE unsafeReadWord #-}
@@ -166,7 +166,7 @@ unsafeReadWord MArray{..} i@(I# i#) = ST $ \s# ->
 -- on an out-of-bounds access.
 unsafeWriteWord :: MArray s -> Int -> Word -> ST s ()
 unsafeWriteWord MArray{..} i@(I# i#) (W# e#) = ST $ \s1# ->
-  CHECK_BOUNDS("unsafeWriteWord",len,i)
+  CHECK_BOUNDS("unsafeWriteWord",maLen`div`wordFactor,i)
   case writeWordArray# maBA i# e# s1# of
     s2# -> (# s2#, () #)
 {-# INLINE unsafeWriteWord #-}
