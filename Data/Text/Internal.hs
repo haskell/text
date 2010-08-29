@@ -70,5 +70,5 @@ textP arr off len | len == 0  = empty
 -- | A useful 'show'-like function for debugging purposes.
 showText :: Text -> String
 showText (Text arr off len) =
-    "Text " ++ (show . take (off+len) . A.toList) arr ++ ' ' :
+    "Text " ++ show (A.toList arr off len) ++ ' ' :
             show off ++ ' ' : show len

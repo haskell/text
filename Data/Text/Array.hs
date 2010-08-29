@@ -172,11 +172,10 @@ unsafeWriteWord MArray{..} i@(I# i#) (W# e#) = ST $ \s1# ->
 {-# INLINE unsafeWriteWord #-}
 
 -- | Convert an immutable array to a list.
-toList :: Array -> [Word16]
-toList a = loop 0
-    where loop i | i < len   = unsafeIndex a i : loop (i+1)
+toList :: Array -> Int -> Int -> [Word16]
+toList ary off len = loop 0
+    where loop i | i < len   = unsafeIndex ary (off+i) : loop (i+1)
                  | otherwise = []
-          len = length a
 
 -- | An empty immutable array.
 empty :: Array
