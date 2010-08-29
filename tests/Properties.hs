@@ -205,6 +205,7 @@ t_null            = null   `eqP` T.null
 tl_null           = null   `eqP` TL.null
 s_length          = length `eqP` S.length
 sf_length p       = (length . L.filter p) `eqP` (S.length . S.filter p)
+sl_length         = (fromIntegral . length) `eqP` SL.length
 t_length          = length `eqP` T.length
 tl_length         = L.genericLength `eqP` TL.length
 t_compareLength t = (compare (T.length t)) `eq` T.compareLength t
@@ -446,6 +447,7 @@ t_findContains (NotEmpty s) = unsquare (all (T.isPrefixOf s . snd) . T.find s .
                                         T.intercalate s)
 tl_findContains (NotEmpty s) = unsquare (all (TL.isPrefixOf s . snd) .
                                          TL.find s . TL.intercalate s)
+sl_filterCount c    = (L.genericLength . L.filter (==c)) `eqP` SL.countChar c
 t_findCount s     = (L.length . T.find s) `eq` T.count s
 tl_findCount s    = (L.genericLength . TL.find s) `eq` TL.count s
 
@@ -752,6 +754,7 @@ tests = [
     testProperty "tl_null" tl_null,
     testProperty "s_length" s_length,
     testProperty "sf_length" sf_length,
+    testProperty "sl_length" sl_length,
     testProperty "t_length" t_length,
     testProperty "tl_length" tl_length,
     testProperty "t_compareLength" t_compareLength,
@@ -935,6 +938,7 @@ tests = [
       testProperty "tl_findAppendId" tl_findAppendId,
       testProperty "t_findContains" t_findContains,
       testProperty "tl_findContains" tl_findContains,
+      testProperty "sl_filterCount" sl_filterCount,
       testProperty "t_findCount" t_findCount,
       testProperty "tl_findCount" tl_findCount,
       testProperty "t_split_split" t_split_split,
