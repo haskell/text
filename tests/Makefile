@@ -57,7 +57,7 @@ stdio-hpc: StdioCoverage.hs $(lib-srcs:%=../%)
 
 coverage: coverage-html/hpc_index.html
 
-coverage-html/hpc_index.html: qc-hpc
+coverage-html/hpc_index.html: qc-hpc stdio-hpc
 	@rm -f qc-hpc.tix stdio-hpc.tix coverage.tix
 	./qc-hpc -a 100 +RTS -N
 	bash ./cover-stdio.sh
