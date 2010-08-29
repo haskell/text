@@ -72,8 +72,8 @@ hGetLineLoop hh@Handle__{..} ts buf@Buffer{ bufL=r0, bufR=w, bufRaw=raw0 } = do
               let pre | isEmptyBuffer buf1 = T.empty
                       | otherwise          = T.singleton '\r'
               writeIORef haCharBuffer buf1{ bufL=0, bufR=0 }
-              let str = reverse $ pre:t:ts
-              if all T.null str
+              let str = reverse . filter (not . T.null) $ pre:t:ts
+              if null str
                 then ioe_EOF
                 else return str
          Just new_buf -> hGetLineLoop hh (t:ts) new_buf
