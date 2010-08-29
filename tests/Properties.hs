@@ -136,7 +136,8 @@ instance Stringy TL.Text where
     packSChunkSize k = SL.unstreamChunks k . S.streamList
     packS    = TL.pack
     unpackS  = TL.unpack
-    splitAtS = TL.splitAt . fromIntegral
+    splitAtS = ((TL.lazyInvariant *** TL.lazyInvariant) .) .
+               TL.splitAt . fromIntegral
 
 -- Do two functions give the same answer?
 eq :: (Eq a, Show a) => (t -> a) -> (t -> a) -> t -> Bool
