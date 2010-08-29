@@ -29,9 +29,6 @@ module Data.Text.Lazy.Builder
    , flush
    ) where
 
-#if defined(ASSERTS)
-import Control.Exception (assert)
-#endif
 import Control.Monad.ST (ST, runST)
 import Data.Bits ((.&.))
 import Data.Monoid (Monoid(..))

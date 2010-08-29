@@ -33,6 +33,9 @@ module Data.Text.Array
     , copyM
     , copyI
     , empty
+#if defined(ASSERTS)
+    , length
+#endif
     , run
     , run2
     , toList
