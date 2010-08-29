@@ -30,7 +30,6 @@ module Data.Text.Array
     , MArray
 
     -- * Functions
-    , copy
     , partialCopyM
     , partialCopyI
     , empty
@@ -204,25 +203,6 @@ wordFactor = SIZEOF_HSWORD `shiftR` 1
 -- | Indicate whether an offset is word-aligned.
 wordAligned :: Int -> Bool
 wordAligned i = i .&. (wordFactor - 1) == 0
-
--- | Copy an array in its entirety. The destination array must be at
--- least as big as the source.
-copy :: MArray s     -- ^ source array
-     -> MArray s     -- ^ destination array
-     -> ST s ()
-copy dest@(MArray _ dlen) src@(MArray _ slen)
-    | dlen >= slen = fast_loop 0
-    | otherwise    = fail "Data.Text.Array.copy: array too small"
-    where
-      nwds = slen `div` wordFactor
-      fast_loop !i
-          | i >= nwds = copy_loop (i * wordFactor)
-          | otherwise = do unsafeReadWord src i >>= unsafeWriteWord dest i
-                           fast_loop (i+1)
-      copy_loop !i
-          | i >= slen = return ()
-          | otherwise = do unsafeRead src i >>= unsafeWrite dest i
-                           copy_loop (i+1)
 
 -- | Copy some elements of a mutable array.
 partialCopyM :: MArray s        -- ^ Destination

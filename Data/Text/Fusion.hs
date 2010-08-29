@@ -105,7 +105,8 @@ unstream (Stream next0 s0 len) = I.textP (P.fst a) 0 (P.snd a)
                 | j >= top  -> {-# SCC "unstream/resize" #-} do
                                let top' = (top + 1) `shiftL` 1
                                arr' <- A.unsafeNew top'
-                               A.copy arr' arr >> outer arr' top' s i
+                               A.partialCopyM arr' 0 arr 0 top
+                               outer arr' top' s i
                 | otherwise -> do d <- unsafeWrite arr i x
                                   loop s' (i+d)
                 where j | ord x < 0x10000 = i
