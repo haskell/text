@@ -3,7 +3,7 @@ ghc := ghc
 ghc-opt-flags = -O0
 ghc-base-flags := -funbox-strict-fields -hide-all-packages \
 	-package base -package mtl -package random -package directory \
-	-package criterion -package deepseq \
+	-package criterion -package deepseq -DHAVE_DEEPSEQ \
 	-package bytestring -ignore-package text \
 	-fno-ignore-asserts
 ghc-test-flags := -package QuickCheck -package test-framework -package deepseq \
@@ -60,6 +60,7 @@ qc-hpc-html/hpc_index.html: qc-hpc
 	./qc-hpc -a 100 +RTS -N2
 	hpc markup qc-hpc --exclude=Main --exclude=Properties \
 	  --exclude=Data.Text.Fusion.CaseMapping \
+	  --exclude=SlowFunctions --exclude=TestUtils \
 	  --exclude=QuickCheckUtils --srcdir=.. --srcdir=. --destdir=$(dir $@)
 
 Benchmarks.o: ghc-opt-flags = -O
