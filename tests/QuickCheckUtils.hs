@@ -99,7 +99,7 @@ instance Arbitrary T.Text where
     arbitrary     = T.pack `fmap` arbitrary
 
 instance Arbitrary TL.Text where
-    arbitrary     = TL.pack `fmap` arbitrary
+    arbitrary     = (TL.fromChunks . map notEmpty) `fmap` arbitrary
 
 newtype NotEmpty a = NotEmpty { notEmpty :: a }
     deriving (Eq, Ord)
