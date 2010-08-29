@@ -523,19 +523,19 @@ t_findAppendId (NotEmpty s) = unsquare $ \ts ->
 tl_findAppendId (NotEmpty s) = unsquare $ \ts ->
     let t = TL.intercalate s ts
     in all (==t) $ map (uncurry TL.append) (TL.find s t)
-t_findContains (NotEmpty s) = unsquare (all (T.isPrefixOf s . snd) . T.find s .
-                                        T.intercalate s)
-tl_findContains (NotEmpty s) = unsquare (all (TL.isPrefixOf s . snd) .
-                                         TL.find s . TL.intercalate s)
-sl_filterCount c    = (L.genericLength . L.filter (==c)) `eqP` SL.countChar c
+t_findContains (NotEmpty s) = unsquare $ all (T.isPrefixOf s . snd) . T.find s .
+                                         T.intercalate s
+tl_findContains (NotEmpty s) = unsquare $ all (TL.isPrefixOf s . snd) .
+                                          TL.find s . TL.intercalate s
+sl_filterCount c  = (L.genericLength . L.filter (==c)) `eqP` SL.countChar c
 t_findCount s     = (L.length . T.find s) `eq` T.count s
 tl_findCount s    = (L.genericLength . TL.find s) `eq` TL.count s
 
-t_split_split s         = unsquare ((T.split s `eq` Slow.split s) .
-                                    T.intercalate s)
-tl_split_split s        = unsquare (((TL.split (chunkify s) . chunkify) `eq`
-                                     (map chunkify . T.split s)) .
-                                    T.intercalate s)
+t_split_split s         = unsquare $
+                          (T.split s `eq` Slow.split s) . T.intercalate s
+tl_split_split s        = unsquare $
+                          ((TL.split (TL.fromStrict s) . TL.fromStrict) `eq`
+                           (map TL.fromStrict . T.split s)) . T.intercalate s
 t_split_i (NotEmpty t)  = id `eq` (T.intercalate t . T.split t)
 tl_split_i (NotEmpty t) = id `eq` (TL.intercalate t . TL.split t)
 
@@ -559,10 +559,8 @@ t_chunksOf_same_lengths k = all ((==k) . T.length) . ini . T.chunksOf k
 t_chunksOf_length k t = len == T.length t || (k <= 0 && len == 0)
   where len = L.sum . L.map T.length $ T.chunksOf k t
 
-chunkify = TL.fromChunks . (:[])
-
 tl_chunksOf k = T.chunksOf k `eq` (map (T.concat . TL.toChunks) .
-                                   TL.chunksOf (fromIntegral k) . chunkify)
+                                   TL.chunksOf (fromIntegral k) . TL.fromStrict)
 
 t_lines           = L.lines       `eqP` (map unpackS . T.lines)
 tl_lines          = L.lines       `eqP` (map unpackS . TL.lines)
