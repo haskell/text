@@ -71,6 +71,8 @@ tl_from_to_strict   = (TL.fromStrict . TL.toStrict) `eq` id
 
 t_ascii t    = E.decodeASCII (E.encodeUtf8 a) == a
     where a  = T.map (\c -> chr (ord c `mod` 128)) t
+tl_ascii t   = EL.decodeASCII (EL.encodeUtf8 a) == a
+    where a  = TL.map (\c -> chr (ord c `mod` 128)) t
 t_utf8       = forAll genUnicode $ (E.decodeUtf8 . E.encodeUtf8) `eq` id
 tl_utf8      = forAll genUnicode $ (EL.decodeUtf8 . EL.encodeUtf8) `eq` id
 t_utf16LE    = forAll genUnicode $ (E.decodeUtf16LE . E.encodeUtf16LE) `eq` id
@@ -783,6 +785,7 @@ tests = [
 
   testGroup "transcoding" [
     testProperty "t_ascii" t_ascii,
+    testProperty "tl_ascii" tl_ascii,
     testProperty "t_utf8" t_utf8,
     testProperty "tl_utf8" tl_utf8,
     testProperty "t_utf16LE" t_utf16LE,
