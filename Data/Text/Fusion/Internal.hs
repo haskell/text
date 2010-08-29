@@ -43,7 +43,7 @@ data S s = S !s {-# UNPACK #-} !M8 {-# UNPACK #-} !M8 {-# UNPACK #-} !M8
 
 infixl 2 :*:
 data PairS a b = !a :*: !b
-                 deriving (Eq, Ord, Show)
+                 -- deriving (Eq, Ord, Show)
 
 -- | Allow a function over a stream to switch between two states.
 data Switch = S1 | S2
@@ -52,10 +52,12 @@ data Step s a = Done
               | Skip !s
               | Yield !a !s
 
+{-
 instance (Show a) => Show (Step s a)
     where show Done        = "Done"
           show (Skip _)    = "Skip"
           show (Yield x _) = "Yield " ++ show x
+-}
 
 instance (Eq a) => Eq (Stream a) where
     (==) = eq

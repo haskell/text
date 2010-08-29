@@ -22,9 +22,7 @@ module Data.Text.Fusion.Size
     , unknownSize
     , smaller
     , larger
-    , toMax
     , upperBound
-    , lowerBound
     , isEmpty
     ) where
 
@@ -92,7 +90,7 @@ mulSize (Exact m) (Exact n) = Exact (m*n)
 mulSize (Exact m) (Max   n) = Max   (m*n)
 mulSize (Max   m) (Exact n) = Max   (m*n)
 mulSize (Max   m) (Max   n) = Max   (m*n)
-mulSize _          _       = Unknown
+mulSize _          _        = Unknown
 {-# INLINE mulSize #-}
 
 -- | Minimum of two size hints.
@@ -118,19 +116,6 @@ larger a@(Max   m) b@(Exact n) | n >= m    = b
 larger   (Max   m)   (Max   n)             = Max   (m `max` n)
 larger _             _                     = Unknown
 {-# INLINE larger #-}
-
--- | Convert a size hint to an upper bound.
-toMax :: Size -> Size
-toMax   (Exact n) = Max n
-toMax a@(Max   _) = a
-toMax   Unknown   = Unknown
-{-# INLINE toMax #-}
-
--- | Compute the minimum size from a size hint.
-lowerBound :: Size -> Int
-lowerBound (Exact n) = n
-lowerBound _         = 0
-{-# INLINE lowerBound #-}
 
 -- | Compute the maximum size from a size hint, if possible.
 upperBound :: Int -> Size -> Int
