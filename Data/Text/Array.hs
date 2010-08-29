@@ -236,12 +236,22 @@ partialCopyM dest didx src sidx count =
     assert (sidx + count <= length src) .
     assert (didx + count <= length dest) $
 #endif
-    copy_loop sidx didx 0
+    if srem == 0 && drem == 0
+    then fast_loop 0
+    else slow_loop 0
     where
-      copy_loop !i !j !c
-          | c >= count  = return ()
-          | otherwise = do unsafeRead src i >>= unsafeWrite dest j
-                           copy_loop (i+1) (j+1) (c+1)
+      (swidx,srem) = sidx `divMod` wordFactor
+      (dwidx,drem) = didx `divMod` wordFactor
+      nwds         = count `div` wordFactor
+      fast_loop !i
+          | i >= nwds = slow_loop (i * wordFactor)
+          | otherwise = do w <- unsafeReadWord src (swidx+i)
+                           unsafeWriteWord dest (dwidx+i) w
+                           fast_loop (i+1)
+      slow_loop !i
+          | i >= count= return ()
+          | otherwise = do unsafeRead src (sidx+i) >>= unsafeWrite dest (didx+i)
+                           slow_loop (i+1)
 
 -- | Copy some elements of an immutable array.
 partialCopyI :: MArray s        -- ^ Destination
