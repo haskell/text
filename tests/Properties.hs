@@ -264,8 +264,15 @@ t_toUpper_upper t = p (T.toUpper t) >= p t
 tl_toUpper_upper t = p (TL.toUpper t) >= p t
     where p = TL.length . TL.filter isUpper
 
-justifyLeft k c s  = s ++ L.replicate (k - length s) c
-justifyRight m n s = L.replicate (m - length s) n ++ s
+justifyLeft k c xs  = xs ++ L.replicate (k - length xs) c
+justifyRight m n xs = L.replicate (m - length xs) n ++ xs
+center k c xs
+    | len >= k  = xs
+    | otherwise = L.replicate l c ++ xs ++ L.replicate r c
+   where len = length xs
+         d   = k - len
+         r   = d `div` 2
+         l   = d - r
 
 s_justifyLeft k c = justifyLeft j c `eqP` (unpackS . S.justifyLeftI j c)
     where j = fromIntegral (k :: Word8)
@@ -281,6 +288,10 @@ tl_justifyLeft k c = justifyLeft j c `eqP` (unpackS . TL.justifyLeft (fromIntegr
 t_justifyRight k c = justifyRight j c `eqP` (unpackS . T.justifyRight j c)
     where j = fromIntegral (k :: Word8)
 tl_justifyRight k c = justifyRight j c `eqP` (unpackS . TL.justifyRight (fromIntegral j) c)
+    where j = fromIntegral (k :: Word8)
+t_center k c = center j c `eqP` (unpackS . T.center j c)
+    where j = fromIntegral (k :: Word8)
+tl_center k c = center j c `eqP` (unpackS . TL.center (fromIntegral j) c)
     where j = fromIntegral (k :: Word8)
 
 sf_foldl p f z     = (L.foldl f z . L.filter p)  `eqP` (S.foldl f z . S.filter p)
@@ -810,7 +821,9 @@ tests = [
       testProperty "t_justifyLeft" t_justifyLeft,
       testProperty "tl_justifyLeft" tl_justifyLeft,
       testProperty "t_justifyRight" t_justifyRight,
-      testProperty "tl_justifyRight" tl_justifyRight
+      testProperty "tl_justifyRight" tl_justifyRight,
+      testProperty "t_center" t_center,
+      testProperty "tl_center" tl_center
     ]
   ],
 
