@@ -1,12 +1,14 @@
 module TestUtils
     (
-      withTempFile
+      withRedirect
+    , withTempFile
     ) where
 
-import Control.Exception (bracket)
+import Control.Exception (bracket, bracket_)
 import Control.Monad (when)
+import GHC.IO.Handle.Internals (withHandle)
 import System.Directory (removeFile)
-import System.IO (Handle, hClose, hIsOpen, openTempFile)
+import System.IO
 
 withTempFile :: (FilePath -> Handle -> IO a) -> IO a
 withTempFile = bracket (openTempFile "." "crashy.txt") cleanupTemp . uncurry
@@ -15,3 +17,15 @@ withTempFile = bracket (openTempFile "." "crashy.txt") cleanupTemp . uncurry
       open <- hIsOpen h
       when open (hClose h)
       removeFile path
+
+withRedirect :: Handle -> Handle -> IO a -> IO a
+withRedirect tmp h = bracket_ swap swap
+  where
+    whenM p a = p >>= (`when` a)
+    swap = do
+      whenM (hIsOpen tmp) $ whenM (hIsWritable tmp) $ hFlush tmp
+      whenM (hIsOpen h) $ whenM (hIsWritable h) $ hFlush h
+      withHandle "spam" tmp $ \tmph -> do
+        hh <- withHandle "spam" h $ \hh ->
+          return (tmph,hh)
+        return (hh,())

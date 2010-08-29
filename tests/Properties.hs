@@ -39,7 +39,7 @@ import qualified Data.Text.Lazy.Search as S (indices)
 import qualified SlowFunctions as Slow
 
 import QuickCheckUtils (NotEmpty(..), small, genUnicode)
-import TestUtils (withTempFile)
+import TestUtils (withRedirect, withTempFile)
 
 -- Ensure that two potentially bottom values (in the sense of crashing
 -- for some inputs, not looping infinitely) either both crash, or both
@@ -636,6 +636,12 @@ write_read unline filt writer reader (E _ e) m ts =
                   r <- reader h'
                   r `deepseq` return r
 
+t_put_get = write_read T.unlines T.filter put get
+  where put h = withRedirect h stdout . T.putStr
+        get h = withRedirect h stdin T.getContents
+tl_put_get = write_read TL.unlines TL.filter put get
+  where put h = withRedirect h stdout . TL.putStr
+        get h = withRedirect h stdin TL.getContents
 t_write_read = write_read T.unlines T.filter T.hPutStr T.hGetContents
 tl_write_read = write_read TL.unlines TL.filter TL.hPutStr TL.hGetContents
 
@@ -1043,6 +1049,10 @@ tests = [
     testProperty "tl_write_read" tl_write_read,
     testProperty "t_write_read_line" t_write_read_line,
     testProperty "tl_write_read_line" tl_write_read_line
+    -- These tests are subject to I/O race conditions when run under
+    -- test-framework-quickcheck2.
+    -- testProperty "t_put_get" t_put_get
+    -- testProperty "tl_put_get" tl_put_get
   ],
 
   testGroup "lowlevel" [
