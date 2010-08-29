@@ -105,7 +105,7 @@ unpack_nl !buf !r !w
  | otherwise     = withRawBuffer buf $ go
  where
   go pbuf = do
-    let t = unstream (Stream next r (maxSize (w-r)))
+    let !t = unstream (Stream next r (maxSize (w-r)))
         w' = w - 1
     return $ if ix w' == '\r'
              then (t,w')
