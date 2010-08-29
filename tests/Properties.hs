@@ -144,8 +144,9 @@ eqP f g s w  = eql "orig" (f s) (g t) &&
           m | l == 0    = n
             | otherwise = n `mod` l
           n             = fromIntegral w
-          eql d a b | a =^= b   = True
-                    | otherwise = trace (d ++ ": " ++ show a ++ " /= " ++ show b) False
+          eql d a b
+            | a =^= b   = True
+            | otherwise = trace (d ++ ": " ++ show a ++ " /= " ++ show b) False
 
 -- For tests that have O(n^2) running times or input sizes, resize
 -- their inputs to the square root of the originals.
@@ -187,15 +188,18 @@ s_snoc x          = (++ [x]) `eqP` (unpackS . (flip S.snoc) x)
 t_snoc x          = (++ [x]) `eqP` (unpackS . (flip T.snoc) x)
 tl_snoc x         = (++ [x]) `eqP` (unpackS . (flip TL.snoc) x)
 s_append s        = (s++)    `eqP` (unpackS . S.append (S.streamList s))
-s_append_s s      = (s++)    `eqP` (unpackS . S.unstream . S.append (S.streamList s))
-sf_append p s     = (L.filter p s++) `eqP` (unpackS . S.append (S.filter p $ S.streamList s))
+s_append_s s      = (s++)    `eqP`
+                    (unpackS . S.unstream . S.append (S.streamList s))
+sf_append p s     = (L.filter p s++) `eqP`
+                    (unpackS . S.append (S.filter p $ S.streamList s))
 t_append s        = (s++)    `eqP` (unpackS . T.append (packS s))
 
 uncons (x:xs) = Just (x,xs)
 uncons _      = Nothing
 
 s_uncons          = uncons   `eqP` (fmap (second unpackS) . S.uncons)
-sf_uncons p       = (uncons . L.filter p) `eqP` (fmap (second unpackS) . S.uncons . S.filter p)
+sf_uncons p       = (uncons . L.filter p) `eqP`
+                    (fmap (second unpackS) . S.uncons . S.filter p)
 t_uncons          = uncons   `eqP` (fmap (second unpackS) . T.uncons)
 tl_uncons         = uncons   `eqP` (fmap (second unpackS) . TL.uncons)
 s_head            = head   `eqP` S.head
@@ -233,21 +237,31 @@ s_map_s f         = map f  `eqP` (unpackS . S.unstream . S.map f)
 sf_map p f        = (map f . L.filter p)  `eqP` (unpackS . S.map f . S.filter p)
 t_map f           = map f  `eqP` (unpackS . T.map f)
 tl_map f          = map f  `eqP` (unpackS . TL.map f)
-t_intercalate c   = unsquare (L.intercalate c `eq` (unpackS . T.intercalate (packS c) . map packS))
-tl_intercalate c  = unsquare (L.intercalate c `eq` (unpackS . TL.intercalate (TL.pack c) . map TL.pack))
-s_intersperse c   = L.intersperse c `eqP` (unpackS . S.intersperse c)
-s_intersperse_s c = L.intersperse c `eqP` (unpackS . S.unstream . S.intersperse c)
-sf_intersperse p c= (L.intersperse c . L.filter p) `eqP` (unpackS . S.intersperse c . S.filter p)
+t_intercalate c   = unsquare $ L.intercalate c `eq`
+                               (unpackS . T.intercalate (packS c) . map packS)
+tl_intercalate c  = unsquare $
+                    L.intercalate c `eq`
+                    (unpackS . TL.intercalate (TL.pack c) . map TL.pack)
+s_intersperse c   = L.intersperse c `eqP`
+                    (unpackS . S.intersperse c)
+s_intersperse_s c = L.intersperse c `eqP`
+                    (unpackS . S.unstream . S.intersperse c)
+sf_intersperse p c= (L.intersperse c . L.filter p) `eqP`
+                   (unpackS . S.intersperse c . S.filter p)
 t_intersperse c   = L.intersperse c `eqP` (unpackS . T.intersperse c)
 tl_intersperse c  = L.intersperse c `eqP` (unpackS . TL.intersperse c)
-t_transpose       = unsquare (L.transpose `eq` (map unpackS . T.transpose . map packS))
-tl_transpose      = unsquare (L.transpose `eq` (map unpackS . TL.transpose . map TL.pack))
+t_transpose       = unsquare $ L.transpose `eq`
+                               (map unpackS . T.transpose . map packS)
+tl_transpose      = unsquare $ L.transpose `eq`
+                               (map unpackS . TL.transpose . map TL.pack)
 t_reverse         = L.reverse `eqP` (unpackS . T.reverse)
 tl_reverse        = L.reverse `eqP` (unpackS . TL.reverse)
 t_reverse_short n = L.reverse `eqP` (unpackS . S.reverse . shorten n . S.stream)
 
-t_replace s d     = (L.intercalate d . split s) `eqP` (unpackS . T.replace (T.pack s) (T.pack d))
-tl_replace s d     = (L.intercalate d . split s) `eqP` (unpackS . TL.replace (TL.pack s) (TL.pack d))
+t_replace s d     = (L.intercalate d . split s) `eqP`
+                    (unpackS . T.replace (T.pack s) (T.pack d))
+tl_replace s d     = (L.intercalate d . split s) `eqP`
+                     (unpackS . TL.replace (TL.pack s) (TL.pack d))
 
 split :: (Eq a) => [a] -> [a] -> [[a]]
 split pat src0
@@ -292,31 +306,35 @@ center k c xs
 
 s_justifyLeft k c = justifyLeft j c `eqP` (unpackS . S.justifyLeftI j c)
     where j = fromIntegral (k :: Word8)
-s_justifyLeft_s k c = justifyLeft j c `eqP` (unpackS . S.unstream . S.justifyLeftI j c)
+s_justifyLeft_s k c = justifyLeft j c `eqP`
+                      (unpackS . S.unstream . S.justifyLeftI j c)
     where j = fromIntegral (k :: Word8)
 sf_justifyLeft p k c = (justifyLeft j c . L.filter p) `eqP`
                        (unpackS . S.justifyLeftI j c . S.filter p)
     where j = fromIntegral (k :: Word8)
 t_justifyLeft k c = justifyLeft j c `eqP` (unpackS . T.justifyLeft j c)
     where j = fromIntegral (k :: Word8)
-tl_justifyLeft k c = justifyLeft j c `eqP` (unpackS . TL.justifyLeft (fromIntegral j) c)
+tl_justifyLeft k c = justifyLeft j c `eqP`
+                     (unpackS . TL.justifyLeft (fromIntegral j) c)
     where j = fromIntegral (k :: Word8)
 t_justifyRight k c = justifyRight j c `eqP` (unpackS . T.justifyRight j c)
     where j = fromIntegral (k :: Word8)
-tl_justifyRight k c = justifyRight j c `eqP` (unpackS . TL.justifyRight (fromIntegral j) c)
+tl_justifyRight k c = justifyRight j c `eqP`
+                      (unpackS . TL.justifyRight (fromIntegral j) c)
     where j = fromIntegral (k :: Word8)
 t_center k c = center j c `eqP` (unpackS . T.center j c)
     where j = fromIntegral (k :: Word8)
 tl_center k c = center j c `eqP` (unpackS . TL.center (fromIntegral j) c)
     where j = fromIntegral (k :: Word8)
 
-sf_foldl p f z     = (L.foldl f z . L.filter p)  `eqP` (S.foldl f z . S.filter p)
+sf_foldl p f z    = (L.foldl f z . L.filter p) `eqP` (S.foldl f z . S.filter p)
     where _types  = f :: Char -> Char -> Char
 t_foldl f z       = L.foldl f z  `eqP` (T.foldl f z)
     where _types  = f :: Char -> Char -> Char
 tl_foldl f z      = L.foldl f z  `eqP` (TL.foldl f z)
     where _types  = f :: Char -> Char -> Char
-sf_foldl' p f z   = (L.foldl' f z . L.filter p) `eqP` (S.foldl' f z . S.filter p)
+sf_foldl' p f z   = (L.foldl' f z . L.filter p) `eqP`
+                    (S.foldl' f z . S.filter p)
     where _types  = f :: Char -> Char -> Char
 t_foldl' f z      = L.foldl' f z `eqP` T.foldl' f z
     where _types  = f :: Char -> Char -> Char
@@ -338,13 +356,18 @@ sf_foldr1 p f     = (L.foldr1 f . L.filter p) `eqP` (S.foldr1 f . S.filter p)
 t_foldr1 f        = L.foldr1 f   `eqP` T.foldr1 f
 tl_foldr1 f       = L.foldr1 f   `eqP` TL.foldr1 f
 
-s_concat_s        = unsquare (L.concat `eq` (unpackS . S.unstream . S.concat . map packS))
-sf_concat p       = unsquare ((L.concat . map (L.filter p)) `eq` (unpackS . S.concat . map (S.filter p . packS)))
+s_concat_s        = unsquare $ L.concat `eq`
+                               (unpackS . S.unstream . S.concat . map packS)
+sf_concat p       = unsquare $ (L.concat . map (L.filter p)) `eq`
+                               (unpackS . S.concat . map (S.filter p . packS))
 t_concat          = unsquare (L.concat `eq` (unpackS . T.concat . map packS))
 tl_concat         = unsquare (L.concat `eq` (unpackS . TL.concat . map TL.pack))
-sf_concatMap p f  = unsquare ((L.concatMap f . L.filter p) `eqP` (unpackS . S.concatMap (packS . f) . S.filter p))
-t_concatMap f     = unsquare (L.concatMap f `eqP` (unpackS . T.concatMap (packS . f)))
-tl_concatMap f    = unsquare (L.concatMap f `eqP` (unpackS . TL.concatMap (TL.pack . f)))
+sf_concatMap p f  = unsquare $ (L.concatMap f . L.filter p) `eqP`
+                               (unpackS . S.concatMap (packS . f) . S.filter p)
+t_concatMap f     = unsquare $
+                    L.concatMap f `eqP` (unpackS . T.concatMap (packS . f))
+tl_concatMap f    = unsquare $
+                    L.concatMap f `eqP` (unpackS . TL.concatMap (TL.pack . f))
 sf_any q p        = (L.any p . L.filter q) `eqP` (S.any p . S.filter q)
 t_any p           = L.any p       `eqP` T.any p
 tl_any p          = L.any p       `eqP` TL.any p
@@ -358,7 +381,8 @@ sf_minimum p      = (L.minimum . L.filter p) `eqP` (S.minimum . S.filter p)
 t_minimum         = L.minimum     `eqP` T.minimum
 tl_minimum        = L.minimum     `eqP` TL.minimum
 
-sf_scanl p f z    = (L.scanl f z . L.filter p) `eqP` (unpackS . S.scanl f z . S.filter p)
+sf_scanl p f z    = (L.scanl f z . L.filter p) `eqP`
+                    (unpackS . S.scanl f z . S.filter p)
 t_scanl f z       = L.scanl f z   `eqP` (unpackS . T.scanl f z)
 tl_scanl f z      = L.scanl f z   `eqP` (unpackS . TL.scanl f z)
 t_scanl1 f        = L.scanl1 f    `eqP` (unpackS . T.scanl1 f)
@@ -368,20 +392,25 @@ tl_scanr f z      = L.scanr f z   `eqP` (unpackS . TL.scanr f z)
 t_scanr1 f        = L.scanr1 f    `eqP` (unpackS . T.scanr1 f)
 tl_scanr1 f       = L.scanr1 f    `eqP` (unpackS . TL.scanr1 f)
 
-t_mapAccumL f z   = unsquare (L.mapAccumL f z `eqP` (second unpackS . T.mapAccumL f z))
+t_mapAccumL f z   = unsquare $
+                    L.mapAccumL f z `eqP` (second unpackS . T.mapAccumL f z)
     where _types = f :: Int -> Char -> (Int,Char)
-tl_mapAccumL f z  = unsquare (L.mapAccumL f z `eqP` (second unpackS . TL.mapAccumL f z))
+tl_mapAccumL f z  = unsquare $
+                    L.mapAccumL f z `eqP` (second unpackS . TL.mapAccumL f z)
     where _types = f :: Int -> Char -> (Int,Char)
-t_mapAccumR f z   = unsquare (L.mapAccumR f z `eqP` (second unpackS . T.mapAccumR f z))
+t_mapAccumR f z   = unsquare $
+                    L.mapAccumR f z `eqP` (second unpackS . T.mapAccumR f z)
     where _types = f :: Int -> Char -> (Int,Char)
-tl_mapAccumR f z   = unsquare (L.mapAccumR f z `eqP` (second unpackS . TL.mapAccumR f z))
+tl_mapAccumR f z   = unsquare $
+                     L.mapAccumR f z `eqP` (second unpackS . TL.mapAccumR f z)
     where _types = f :: Int -> Char -> (Int,Char)
 
 replicate n l = concat (L.replicate n l)
 
 t_replicate n     = replicate m `eq` (unpackS . T.replicate m . packS)
     where m = fromIntegral (n :: Word8)
-tl_replicate n    = replicate m `eq` (unpackS . TL.replicate (fromIntegral m) . packS)
+tl_replicate n    = replicate m `eq`
+                    (unpackS . TL.replicate (fromIntegral m) . packS)
     where m = fromIntegral (n :: Word8)
 
 unf :: Int -> Char -> Maybe (Char, Char)
@@ -407,33 +436,42 @@ unpack2 = unpackS *** unpackS
 s_take n          = L.take n      `eqP` (unpackS . S.take n)
 s_take_s m        = L.take n      `eqP` (unpackS . S.unstream . S.take n)
   where n = small m
-sf_take p n       = (L.take n . L.filter p) `eqP` (unpackS . S.take n . S.filter p)
+sf_take p n       = (L.take n . L.filter p) `eqP`
+                    (unpackS . S.take n . S.filter p)
 t_take n          = L.take n      `eqP` (unpackS . T.take n)
 tl_take n         = L.take n      `eqP` (unpackS . TL.take (fromIntegral n))
 s_drop n          = L.drop n      `eqP` (unpackS . S.drop n)
 s_drop_s m        = L.drop n      `eqP` (unpackS . S.unstream . S.drop n)
   where n = small m
-sf_drop p n       = (L.drop n . L.filter p) `eqP` (unpackS . S.drop n . S.filter p)
+sf_drop p n       = (L.drop n . L.filter p) `eqP`
+                    (unpackS . S.drop n . S.filter p)
 t_drop n          = L.drop n      `eqP` (unpackS . T.drop n)
 tl_drop n         = L.drop n      `eqP` (unpackS . TL.drop (fromIntegral n))
 s_take_drop m     = (L.take n . L.drop n) `eqP` (unpackS . S.take n . S.drop n)
   where n = small m
-s_take_drop_s m   = (L.take n . L.drop n) `eqP` (unpackS . S.unstream . S.take n . S.drop n)
+s_take_drop_s m   = (L.take n . L.drop n) `eqP`
+                    (unpackS . S.unstream . S.take n . S.drop n)
   where n = small m
 s_takeWhile p     = L.takeWhile p `eqP` (unpackS . S.takeWhile p)
 s_takeWhile_s p   = L.takeWhile p `eqP` (unpackS . S.unstream . S.takeWhile p)
-sf_takeWhile q p  = (L.takeWhile p . L.filter q) `eqP` (unpackS . S.takeWhile p . S.filter q)
+sf_takeWhile q p  = (L.takeWhile p . L.filter q) `eqP`
+                    (unpackS . S.takeWhile p . S.filter q)
 t_takeWhile p     = L.takeWhile p `eqP` (unpackS . T.takeWhile p)
 tl_takeWhile p    = L.takeWhile p `eqP` (unpackS . TL.takeWhile p)
 s_dropWhile p     = L.dropWhile p `eqP` (unpackS . S.dropWhile p)
 s_dropWhile_s p   = L.dropWhile p `eqP` (unpackS . S.unstream . S.dropWhile p)
-sf_dropWhile q p  = (L.dropWhile p . L.filter q) `eqP` (unpackS . S.dropWhile p . S.filter q)
+sf_dropWhile q p  = (L.dropWhile p . L.filter q) `eqP`
+                    (unpackS . S.dropWhile p . S.filter q)
 t_dropWhile p     = L.dropWhile p `eqP` (unpackS . T.dropWhile p)
 tl_dropWhile p    = L.dropWhile p `eqP` (unpackS . S.dropWhile p)
-t_dropWhileEnd p  = (L.reverse . L.dropWhile p . L.reverse) `eqP` (unpackS . T.dropWhileEnd p)
-tl_dropWhileEnd p = (L.reverse . L.dropWhile p . L.reverse) `eqP` (unpackS . TL.dropWhileEnd p)
-t_dropAround p    = (L.dropWhile p . L.reverse . L.dropWhile p . L.reverse) `eqP` (unpackS . T.dropAround p)
-tl_dropAround p   = (L.dropWhile p . L.reverse . L.dropWhile p . L.reverse) `eqP` (unpackS . TL.dropAround p)
+t_dropWhileEnd p  = (L.reverse . L.dropWhile p . L.reverse) `eqP`
+                    (unpackS . T.dropWhileEnd p)
+tl_dropWhileEnd p = (L.reverse . L.dropWhile p . L.reverse) `eqP`
+                    (unpackS . TL.dropWhileEnd p)
+t_dropAround p    = (L.dropWhile p . L.reverse . L.dropWhile p . L.reverse)
+                    `eqP` (unpackS . T.dropAround p)
+tl_dropAround p   = (L.dropWhile p . L.reverse . L.dropWhile p . L.reverse)
+                    `eqP` (unpackS . TL.dropAround p)
 t_stripStart      = T.dropWhile isSpace `eq` T.stripStart
 tl_stripStart     = TL.dropWhile isSpace `eq` TL.stripStart
 t_stripEnd        = T.dropWhileEnd isSpace `eq` T.stripEnd
@@ -492,7 +530,8 @@ t_split_i (NotEmpty t)  = id `eq` (T.intercalate t . T.split t)
 tl_split_i (NotEmpty t) = id `eq` (TL.intercalate t . TL.split t)
 
 t_splitBy p       = splitBy p `eqP` (map unpackS . T.splitBy p)
-t_splitBy_count c = (L.length . T.splitBy (==c)) `eq` ((1+) . T.count (T.singleton c))
+t_splitBy_count c = (L.length . T.splitBy (==c)) `eq`
+                    ((1+) . T.count (T.singleton c))
 t_splitBy_split c = T.splitBy (==c) `eq` T.split (T.singleton c)
 tl_splitBy p      = splitBy p `eqP` (map unpackS . TL.splitBy p)
 
@@ -512,7 +551,8 @@ t_chunksOf_length k t = len == T.length t || (k <= 0 && len == 0)
 
 chunkify = TL.fromChunks . (:[])
 
-tl_chunksOf k = T.chunksOf k `eq` (map (T.concat . TL.toChunks) . TL.chunksOf (fromIntegral k) . chunkify)
+tl_chunksOf k = T.chunksOf k `eq` (map (T.concat . TL.toChunks) .
+                                   TL.chunksOf (fromIntegral k) . chunkify)
 
 t_lines           = L.lines       `eqP` (map unpackS . T.lines)
 tl_lines          = L.lines       `eqP` (map unpackS . TL.lines)
@@ -534,8 +574,10 @@ tl_unlines        = unsquare (L.unlines `eq` (unpackS . TL.unlines . map packS))
 t_unwords         = unsquare (L.unwords `eq` (unpackS . T.unwords . map packS))
 tl_unwords        = unsquare (L.unwords `eq` (unpackS . TL.unwords . map packS))
 
-s_isPrefixOf s    = L.isPrefixOf s `eqP` (S.isPrefixOf (S.stream $ packS s) . S.stream)
-sf_isPrefixOf p s = (L.isPrefixOf s . L.filter p) `eqP` (S.isPrefixOf (S.stream $ packS s) . S.filter p . S.stream)
+s_isPrefixOf s    = L.isPrefixOf s `eqP`
+                    (S.isPrefixOf (S.stream $ packS s) . S.stream)
+sf_isPrefixOf p s = (L.isPrefixOf s . L.filter p) `eqP`
+                    (S.isPrefixOf (S.stream $ packS s) . S.filter p . S.stream)
 t_isPrefixOf s    = L.isPrefixOf s`eqP` T.isPrefixOf (packS s)
 tl_isPrefixOf s   = L.isPrefixOf s`eqP` TL.isPrefixOf (packS s)
 t_isSuffixOf s    = L.isSuffixOf s`eqP` T.isSuffixOf (packS s)
@@ -557,7 +599,8 @@ t_suffixed s      = (fmap packS . suffixed s) `eqP` T.suffixed (packS s)
 tl_suffixed s     = (fmap packS . suffixed s) `eqP` TL.suffixed (packS s)
 
 sf_elem p c       = (L.elem c . L.filter p) `eqP` (S.elem c . S.filter p)
-sf_filter q p     = (L.filter p . L.filter q) `eqP` (unpackS . S.filter p . S.filter q)
+sf_filter q p     = (L.filter p . L.filter q) `eqP`
+                    (unpackS . S.filter p . S.filter q)
 t_filter p        = L.filter p    `eqP` (unpackS . T.filter p)
 tl_filter p       = L.filter p    `eqP` (unpackS . TL.filter p)
 sf_findBy q p     = (L.find p . L.filter q) `eqP` (S.findBy p . S.filter q)
@@ -566,20 +609,24 @@ tl_findBy p       = L.find p      `eqP` TL.findBy p
 t_partition p     = L.partition p `eqP` (unpack2 . T.partitionBy p)
 tl_partition p    = L.partition p `eqP` (unpack2 . TL.partitionBy p)
 
-sf_index p s      = forAll (choose (-l,l*2)) ((L.filter p s L.!!) `eq` S.index (S.filter p $ packS s))
+sf_index p s      = forAll (choose (-l,l*2))
+                    ((L.filter p s L.!!) `eq` S.index (S.filter p $ packS s))
     where l = L.length s
 t_index s         = forAll (choose (-l,l*2)) ((s L.!!) `eq` T.index (packS s))
     where l = L.length s
 
-tl_index s        = forAll (choose (-l,l*2)) ((s L.!!) `eq` (TL.index (packS s) . fromIntegral))
+tl_index s        = forAll (choose (-l,l*2))
+                    ((s L.!!) `eq` (TL.index (packS s) . fromIntegral))
     where l = L.length s
 
 t_findIndex p     = L.findIndex p `eqP` T.findIndex p
 t_count (NotEmpty t)  = (subtract 1 . L.length . T.split t) `eq` T.count t
-tl_count (NotEmpty t) = (subtract 1 . L.genericLength . TL.split t) `eq` TL.count t
+tl_count (NotEmpty t) = (subtract 1 . L.genericLength . TL.split t) `eq`
+                        TL.count t
 t_zip s           = L.zip s `eqP` T.zip (packS s)
 tl_zip s          = L.zip s `eqP` TL.zip (packS s)
-sf_zipWith p c s  = (L.zipWith c (L.filter p s) . L.filter p) `eqP` (unpackS . S.zipWith c (S.filter p $ packS s) . S.filter p)
+sf_zipWith p c s  = (L.zipWith c (L.filter p s) . L.filter p) `eqP`
+                    (unpackS . S.zipWith c (S.filter p $ packS s) . S.filter p)
 t_zipWith c s     = L.zipWith c s `eqP` (unpackS . T.zipWith c (packS s))
 tl_zipWith c s    = L.zipWith c s `eqP` (unpackS . TL.zipWith c (packS s))
 
@@ -608,13 +655,16 @@ shiftR_Word32 = shiftR :: Word32 -> Property
 
 -- Builder.
 
-t_builderSingleton = id `eqP` (unpackS . TB.toLazyText . mconcat . map TB.singleton)
-t_builderFromText = L.concat `eq` (unpackS . TB.toLazyText . mconcat . map (TB.fromText . packS))
-t_builderAssociative s1 s2 s3 = TB.toLazyText (b1 `mappend` (b2 `mappend` b3)) ==
-                                TB.toLazyText ((b1 `mappend` b2) `mappend` b3)
-    where b1 = TB.fromText (packS s1)
-          b2 = TB.fromText (packS s2)
-          b3 = TB.fromText (packS s3)
+t_builderSingleton = id `eqP`
+                     (unpackS . TB.toLazyText . mconcat . map TB.singleton)
+t_builderFromText = L.concat `eq` (unpackS . TB.toLazyText . mconcat .
+                                   map (TB.fromText . packS))
+t_builderAssociative s1 s2 s3 =
+    TB.toLazyText (b1 `mappend` (b2 `mappend` b3)) ==
+    TB.toLazyText ((b1 `mappend` b2) `mappend` b3)
+  where b1 = TB.fromText (packS s1)
+        b2 = TB.fromText (packS s2)
+        b3 = TB.fromText (packS s3)
 
 -- Input and output.
 
@@ -647,8 +697,8 @@ instance Arbitrary BufferMode where
     arbitrary = oneof [ return NoBuffering,
                         return LineBuffering,
                         return (BlockBuffering Nothing),
-                        (BlockBuffering . Just . (+1) . fromIntegral) `fmap` arb16 ]
-        where arb16 = arbitrary :: Gen Word16
+                        (BlockBuffering . Just . (+1) . fromIntegral) `fmap`
+                        (arbitrary :: Gen Word16) ]
 
 -- This test harness is complex!  What property are we checking?
 --
