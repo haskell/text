@@ -43,7 +43,7 @@ qc: Properties.o QuickCheckUtils.o SlowFunctions.o TestUtils.o
 sb: SearchBench.o SlowFunctions.o
 	$(ghc) $(ghc-flags) -threaded -o $@ $^ $(lib)
 
-qc-hpc: Properties.hs QuickCheckUtils.hs $(lib-srcs:%=../%)
+qc-hpc: Properties.hs QuickCheckUtils.hs SlowFunctions.hs TestUtils.hs $(lib-srcs:%=../%)
 	-mkdir -p hpcdir
 	@rm -f $@.tix
 	$(ghc) $(ghc-hpc-flags) $(ghc-test-flags) $(ghc-opt-flags) -ihpcdir \
@@ -57,7 +57,7 @@ regressions: Regressions.o TestUtils.o
 coverage: qc-hpc-html/hpc_index.html
 
 qc-hpc-html/hpc_index.html: qc-hpc
-	./qc-hpc -a 100 +RTS -N2
+	./qc-hpc -a 100 +RTS -N
 	hpc markup qc-hpc --exclude=Main --exclude=Properties \
 	  --exclude=Data.Text.Fusion.CaseMapping \
 	  --exclude=SlowFunctions --exclude=TestUtils \
