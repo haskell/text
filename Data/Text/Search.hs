@@ -58,6 +58,8 @@ indices _needle@(Text narr noff nlen) _haystack@(Text harr hoff hlen)
     z        = nindex nlast
     nindex k = A.unsafeIndex narr (noff+k)
     hindex k = A.unsafeIndex harr (hoff+k)
+    hindex' k | k == hlen  = 0
+              | otherwise = A.unsafeIndex harr (hoff+k)
     (mask :: Word64) :*: skip  = buildTable 0 0 (nlen-2)
     buildTable !i !msk !skp
         | i >= nlast           = (msk .|. swizzle z) :*: skp
@@ -78,7 +80,7 @@ indices _needle@(Text narr noff nlen) _haystack@(Text harr hoff hlen)
               delta | nextInPattern = nlen + 1
                     | c == z        = skip + 1
                     | otherwise     = 1
-              nextInPattern         = mask .&. swizzle (hindex (i+nlen)) == 0
+              nextInPattern         = mask .&. swizzle (hindex' (i+nlen)) == 0
     scanOne c = loop 0
         where loop !i | i >= hlen     = []
                       | hindex i == c = i : loop (i+1)
