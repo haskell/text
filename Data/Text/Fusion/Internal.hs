@@ -34,16 +34,15 @@ data CC s = CC !s {-# UNPACK #-} !Char {-# UNPACK #-} !Char
 
 -- | Specialised, strict Maybe-like type.
 data M a = N
-         | J {-# UNPACK #-} !a
+         | J !a
 
 type M8 = M Word8
 
 -- Restreaming state.
-data S s = S {-# UNPACK #-} !s
-    {-# UNPACK #-} !M8 {-# UNPACK #-} !M8 {-# UNPACK #-} !M8
+data S s = S !s {-# UNPACK #-} !M8 {-# UNPACK #-} !M8 {-# UNPACK #-} !M8
 
 infixl 2 :*:
-data PairS a b = {-# UNPACK #-} !a :*: {-# UNPACK #-} !b
+data PairS a b = !a :*: !b
                  deriving (Eq, Ord, Show)
 
 -- | Allow a function over a stream to switch between two states.

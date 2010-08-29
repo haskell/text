@@ -159,8 +159,8 @@ snoc (Stream next0 xs0 len) w = Stream next (J xs0) (len+1)
     next N = Done
 {-# INLINE [0] snoc #-}
 
-data E l r = L {-# UNPACK #-} !l
-           | R {-# UNPACK #-} !r
+data E l r = L !l
+           | R !r
 
 -- | /O(n)/ Appends one Stream to the other.
 append :: Stream Char -> Stream Char -> Stream Char
