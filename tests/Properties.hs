@@ -21,7 +21,7 @@ import qualified Data.Text.Lazy.IO as TL
 import qualified Data.Text.Lazy.Builder as TB
 import qualified Data.Text.Encoding as E
 import Data.Text.Encoding.Error
-import Control.Exception (SomeException, bracket, evaluate, try)
+import Control.Exception (SomeException, bracket, catch, evaluate, try)
 import Data.Text.Foreign
 import qualified Data.Text.Fusion as S
 import qualified Data.Text.Fusion.Common as S
@@ -30,7 +30,7 @@ import qualified Data.Text.Lazy.Encoding as EL
 import qualified Data.Text.Lazy.Fusion as SL
 import qualified Data.Text.UnsafeShift as U
 import qualified Data.List as L
-import Prelude hiding (replicate)
+import Prelude hiding (catch, replicate)
 import System.IO
 import System.IO.Unsafe (unsafePerformIO)
 import Test.Framework (defaultMain, testGroup)
@@ -93,9 +93,19 @@ instance CoArbitrary Word8 where
 instance Arbitrary DecodeErr where
     arbitrary = oneof [ return $ DE "lenient" lenientDecode
                       , return $ DE "ignore" ignore
+                      , return $ DE "strict" strictDecode
                       , DE "replace" `fmap` arbitrary ]
 
-t_utf8_err (DE _ de) bs = T.length (E.decodeUtf8With de bs) >= 0
+-- This is a poor attempt to ensure that the error handling paths on
+-- decode are exercised in some way.  Proper testing would be rather
+-- more involved.
+t_utf8_err (DE _ de) bs = monadicIO $ do
+  l <- run $ let len = T.length (E.decodeUtf8With de bs)
+             in (len `seq` return (Right len)) `catch`
+                (\(e::UnicodeException) -> return (Left e))
+  case l of
+    Left err -> assert $ length (show err) >= 0
+    Right n  -> assert $ n >= 0
 
 class Stringy s where
     packS    :: String -> s
