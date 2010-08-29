@@ -3,7 +3,7 @@ ghc := ghc
 ghc-opt-flags = -O0
 ghc-base-flags := -funbox-strict-fields -hide-all-packages \
 	-package base -package mtl -package random -package directory \
-	-package criterion -package deepseq -DHAVE_DEEPSEQ \
+	-package criterion -package deepseq -DASSERTS -DHAVE_DEEPSEQ \
 	-package bytestring -ignore-package text \
 	-fno-ignore-asserts
 ghc-test-flags := -package QuickCheck -package test-framework -package deepseq \
