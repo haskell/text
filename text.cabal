@@ -88,6 +88,7 @@ library
     Data.Text.Unsafe
     Data.Text.UnsafeChar
     Data.Text.UnsafeShift
+    Data.Text.Util
 
   build-depends:
     base       < 5,

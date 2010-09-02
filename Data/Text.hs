@@ -198,6 +198,7 @@ import qualified Prelude as P
 import Data.Text.Unsafe (Iter(..), iter, iter_, lengthWord16, reverseIter,
                          unsafeHead, unsafeTail)
 import Data.Text.UnsafeChar (unsafeChr)
+import qualified Data.Text.Util as U
 import qualified Data.Text.Encoding.Utf16 as U16
 import Data.Text.Search (indices)
 
@@ -473,7 +474,7 @@ map f t = unstream (S.map f (stream t))
 -- 'Text's and concatenates the list after interspersing the first
 -- argument between each element of the list.
 intercalate :: Text -> [Text] -> Text
-intercalate t = concat . (L.intersperse t)
+intercalate t = concat . (U.intersperse t)
 {-# INLINE intercalate #-}
 
 -- | /O(n)/ The 'intersperse' function takes a character and places it

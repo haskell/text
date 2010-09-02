@@ -201,6 +201,7 @@ import Data.Text.Fusion.Internal (PairS(..))
 import Data.Text.Lazy.Fusion (stream, unstream)
 import Data.Text.Lazy.Internal (Text(..), chunk, empty, foldlChunks, foldrChunks)
 import Data.Text.Internal (textP)
+import qualified Data.Text.Util as U
 import Data.Text.Lazy.Search (indices)
 
 instance Eq Text where
@@ -447,7 +448,7 @@ map f t = unstream (S.map f (stream t))
 -- 'Text's and concatenates the list after interspersing the first
 -- argument between each element of the list.
 intercalate :: Text -> [Text] -> Text
-intercalate t = concat . (L.intersperse t)
+intercalate t = concat . (U.intersperse t)
 {-# INLINE intercalate #-}
 
 -- | /O(n)/ The 'intersperse' function takes a character and places it
