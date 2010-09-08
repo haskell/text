@@ -62,7 +62,11 @@ import Numeric (showHex)
 -- use the description provided to construct a more helpful error
 -- report.
 type OnError a b = String -> Maybe a -> Maybe b
+
+-- | A handler for a decoding error.
 type OnDecodeError = OnError Word8 Char
+
+-- | A handler for an encoding error.
 type OnEncodeError = OnError Char Word8
 
 -- | An exception type for representing Unicode encoding errors.
@@ -91,16 +95,16 @@ instance Show UnicodeException where
 instance Exception UnicodeException
 
 -- | Throw a 'UnicodeException' if decoding fails.
-strictDecode :: OnError Word8 Char
+strictDecode :: OnDecodeError
 strictDecode desc c = throw (DecodeError desc c)
 
 -- | Replace an invalid input byte with the Unicode replacement
 -- character U+FFFD.
-lenientDecode :: OnError Word8 Char
+lenientDecode :: OnDecodeError
 lenientDecode _ _ = Just '\xfffd'
 
 -- | Throw a 'UnicodeException' if encoding fails.
-strictEncode :: OnError Char Word8
+strictEncode :: OnEncodeError
 strictEncode desc c = throw (EncodeError desc c)
 
 -- | Ignore an invalid input, substituting nothing in the output.
