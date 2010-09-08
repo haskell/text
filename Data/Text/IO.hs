@@ -289,8 +289,8 @@ putStrLn = hPutStrLn stdout
 -- Beginning with GHC 6.12, text I\/O is performed using the system or
 -- handle's current locale and line ending conventions.
 --
--- Under GHC 6.10 and earlier, the system I\/O libraries /do not
--- support/ locale-sensitive I\/O or line ending conversion.  On these
+-- Under GHC 6.10 and earlier, the system I\/O libraries do not
+-- support locale-sensitive I\/O or line ending conversion.  On these
 -- versions of GHC, functions in this library all use UTF-8.  What
 -- does this mean in practice?
 --
