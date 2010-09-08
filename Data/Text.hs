@@ -785,22 +785,26 @@ scanr1 f t | null t    = empty
 -- function to each element of a 'Text', passing an accumulating
 -- parameter from left to right, and returns a final 'Text'.
 mapAccumL :: (a -> Char -> (a,Char)) -> a -> Text -> (a, Text)
-mapAccumL f s t = case uncons t of
-                    Nothing -> (s, empty)
-                    Just (x, xs) -> (s'', cons y ys)
-                        where (s', y ) = f s x
-                              (s'',ys) = mapAccumL f s' xs
+mapAccumL f = go
+  where go s t = case uncons t of
+                   Nothing -> (s, empty)
+                   Just (x, xs) -> (s'', cons y ys)
+                       where (s', y ) = f s x
+                             (s'',ys) = go s' xs
+{-# INLINE mapAccumL #-}
 
 -- | The 'mapAccumR' function behaves like a combination of 'map' and
 -- 'foldr'; it applies a function to each element of a 'Text', passing
 -- an accumulating parameter from right to left, and returning a final
 -- value of this accumulator together with the new 'Text'.
 mapAccumR :: (a -> Char -> (a,Char)) -> a -> Text -> (a, Text)
-mapAccumR f s t = case uncons t of
-                    Nothing -> (s, empty)
-                    Just (x, xs) ->  (s'', cons y ys)
-                        where (s'',y ) = f s' x
-                              (s', ys) = mapAccumR f s xs
+mapAccumR f = go
+  where go s t = case uncons t of
+                   Nothing -> (s, empty)
+                   Just (x, xs) ->  (s'', cons y ys)
+                       where (s'',y ) = f s' x
+                             (s', ys) = go s xs
+{-# INLINE mapAccumR #-}
 
 -- -----------------------------------------------------------------------------
 -- ** Generating and unfolding 'Text's
