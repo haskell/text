@@ -4,7 +4,7 @@ CPPFLAGS := $(shell icu-config --cppflags)
 LDFLAGS := $(CFLAGS) $(shell icu-config --ldflags --ldflags-icuio)
 ghc := ghc
 
-all := FileRead FileRead_prof fileread_c
+all := FileRead FileRead_prof Replace Replace_prof fileread_c
 
 all: $(all)
 
