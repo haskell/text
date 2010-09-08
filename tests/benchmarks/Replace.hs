@@ -18,4 +18,6 @@ main = do
   (kind : file : pat : sub : _) <- getArgs
   case kind of
     "lazyText" -> lazyText file pat sub
+    "lazyTextNull" -> LT.readFile file >>= LT.putStr
     "lazyBS" -> lazyBS file pat sub
+    "lazyBSNull" -> LB.readFile file >>= LB.putStr
