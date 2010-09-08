@@ -184,6 +184,8 @@ t_mappend s       = mappend s`eqP` (unpackS . mappend (T.pack s))
 tl_mappend s      = mappend s`eqP` (unpackS . mappend (TL.pack s))
 t_mconcat         = mconcat `eq` (unpackS . mconcat . L.map T.pack)
 tl_mconcat        = mconcat `eq` (unpackS . mconcat . L.map TL.pack)
+t_mempty          = mempty == (unpackS (mempty :: T.Text))
+tl_mempty         = mempty == (unpackS (mempty :: TL.Text))
 t_IsString        = fromString  `eqP` (T.unpack . fromString)
 tl_IsString       = fromString  `eqP` (TL.unpack . fromString)
 
@@ -809,6 +811,8 @@ tests = [
     testProperty "tl_mappend" tl_mappend,
     testProperty "t_mconcat" t_mconcat,
     testProperty "tl_mconcat" tl_mconcat,
+    testProperty "t_mempty" t_mempty,
+    testProperty "tl_mempty" tl_mempty,
     testProperty "t_IsString" t_IsString,
     testProperty "tl_IsString" tl_IsString
   ],
