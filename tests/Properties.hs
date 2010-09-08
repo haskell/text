@@ -583,18 +583,13 @@ tl_isSuffixOf s   = L.isSuffixOf s`eqP` TL.isSuffixOf (packS s)
 t_isInfixOf s     = L.isInfixOf s `eqP` T.isInfixOf (packS s)
 tl_isInfixOf s    = L.isInfixOf s `eqP` TL.isInfixOf (packS s)
 
-prefixed (p:ps) (t:ts)
-    | p == t = prefixed ps ts
-prefixed [] ts = Just ts
-prefixed _  _  = Nothing
+t_stripPrefix s      = (fmap packS . L.stripPrefix s) `eqP` T.stripPrefix (packS s)
+tl_stripPrefix s     = (fmap packS . L.stripPrefix s) `eqP` TL.stripPrefix (packS s)
 
-t_prefixed s      = (fmap packS . prefixed s) `eqP` T.prefixed (packS s)
-tl_prefixed s     = (fmap packS . prefixed s) `eqP` TL.prefixed (packS s)
+stripSuffix p t = reverse `fmap` L.stripPrefix (reverse p) (reverse t)
 
-suffixed p t = reverse `fmap` prefixed (reverse p) (reverse t)
-
-t_suffixed s      = (fmap packS . suffixed s) `eqP` T.suffixed (packS s)
-tl_suffixed s     = (fmap packS . suffixed s) `eqP` TL.suffixed (packS s)
+t_stripSuffix s      = (fmap packS . stripSuffix s) `eqP` T.stripSuffix (packS s)
+tl_stripSuffix s     = (fmap packS . stripSuffix s) `eqP` TL.stripSuffix (packS s)
 
 sf_elem p c       = (L.elem c . L.filter p) `eqP` (S.elem c . S.filter p)
 sf_filter q p     = (L.filter p . L.filter q) `eqP`
@@ -1086,10 +1081,10 @@ tests = [
     testProperty "tl_isInfixOf" tl_isInfixOf,
 
     testGroup "view" [
-      testProperty "t_prefixed" t_prefixed,
-      testProperty "tl_prefixed" tl_prefixed,
-      testProperty "t_suffixed" t_suffixed,
-      testProperty "tl_suffixed" tl_suffixed
+      testProperty "t_stripPrefix" t_stripPrefix,
+      testProperty "tl_stripPrefix" tl_stripPrefix,
+      testProperty "t_stripSuffix" t_stripSuffix,
+      testProperty "tl_stripSuffix" tl_stripSuffix
     ]
   ],
 

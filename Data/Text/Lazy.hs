@@ -150,8 +150,8 @@ module Data.Text.Lazy
     , isInfixOf
 
     -- ** View patterns
-    , prefixed
-    , suffixed
+    , stripPrefix
+    , stripSuffix
 
     -- * Searching
     , filter
@@ -1217,8 +1217,8 @@ isInfixOf needle haystack
 --
 -- Examples:
 --
--- > prefixed "foo" "foobar" == Just "bar"
--- > prefixed "foo" "quux"   == Nothing
+-- > stripPrefix "foo" "foobar" == Just "bar"
+-- > stripPrefix "foo" "quux"   == Nothing
 --
 -- This is particularly useful with the @ViewPatterns@ extension to
 -- GHC, as follows:
@@ -1227,11 +1227,11 @@ isInfixOf needle haystack
 -- > import Data.Text as T
 -- >
 -- > fnordLength :: Text -> Int
--- > fnordLength (prefixed "fnord" -> Just suf) = T.length suf
+-- > fnordLength (stripPrefix "fnord" -> Just suf) = T.length suf
 -- > fnordLength _                              = -1
-prefixed :: Text -> Text -> Maybe Text
+stripPrefix :: Text -> Text -> Maybe Text
 -- Yes, this could be much more efficient.
-prefixed p t
+stripPrefix p t
     | p `isPrefixOf` t = Just (drop (length p) t)
     | otherwise        = Nothing
 
@@ -1240,8 +1240,8 @@ prefixed p t
 --
 -- Examples:
 --
--- > suffixed "bar" "foobar" == Just "foo"
--- > suffixed "foo" "quux"   == Nothing
+-- > stripSuffix "bar" "foobar" == Just "foo"
+-- > stripSuffix "foo" "quux"   == Nothing
 --
 -- This is particularly useful with the @ViewPatterns@ extension to
 -- GHC, as follows:
@@ -1250,11 +1250,11 @@ prefixed p t
 -- > import Data.Text as T
 -- >
 -- > quuxLength :: Text -> Int
--- > quuxLength (suffixed "quux" -> Just pre) = T.length pre
+-- > quuxLength (stripSuffix "quux" -> Just pre) = T.length pre
 -- > quuxLength _                             = -1
-suffixed :: Text -> Text -> Maybe Text
+stripSuffix :: Text -> Text -> Maybe Text
 -- Yes, this could be much more efficient.
-suffixed p t
+stripSuffix p t
     | p `isSuffixOf` t = Just (take (length t - length p) t)
     | otherwise        = Nothing
 

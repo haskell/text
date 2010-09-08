@@ -145,8 +145,8 @@ module Data.Text
     , isInfixOf
 
     -- ** View patterns
-    , prefixed
-    , suffixed
+    , stripPrefix
+    , stripSuffix
 
     -- * Searching
     , filter
@@ -1408,8 +1408,8 @@ isInfixOf needle haystack
 --
 -- Examples:
 --
--- > prefixed "foo" "foobar" == Just "bar"
--- > prefixed "foo" "quux"   == Nothing
+-- > stripPrefix "foo" "foobar" == Just "bar"
+-- > stripPrefix "foo" "quux"   == Nothing
 --
 -- This is particularly useful with the @ViewPatterns@ extension to
 -- GHC, as follows:
@@ -1418,10 +1418,10 @@ isInfixOf needle haystack
 -- > import Data.Text as T
 -- >
 -- > fnordLength :: Text -> Int
--- > fnordLength (prefixed "fnord" -> Just suf) = T.length suf
+-- > fnordLength (stripPrefix "fnord" -> Just suf) = T.length suf
 -- > fnordLength _                              = -1
-prefixed :: Text -> Text -> Maybe Text
-prefixed p@(Text _arr _off plen) t@(Text arr off len)
+stripPrefix :: Text -> Text -> Maybe Text
+stripPrefix p@(Text _arr _off plen) t@(Text arr off len)
     | p `isPrefixOf` t = Just $! textP arr (off+plen) (len-plen)
     | otherwise        = Nothing
 
@@ -1430,8 +1430,8 @@ prefixed p@(Text _arr _off plen) t@(Text arr off len)
 --
 -- Examples:
 --
--- > suffixed "bar" "foobar" == Just "foo"
--- > suffixed "foo" "quux"   == Nothing
+-- > stripSuffix "bar" "foobar" == Just "foo"
+-- > stripSuffix "foo" "quux"   == Nothing
 --
 -- This is particularly useful with the @ViewPatterns@ extension to
 -- GHC, as follows:
@@ -1440,10 +1440,10 @@ prefixed p@(Text _arr _off plen) t@(Text arr off len)
 -- > import Data.Text as T
 -- >
 -- > quuxLength :: Text -> Int
--- > quuxLength (suffixed "quux" -> Just pre) = T.length pre
+-- > quuxLength (stripSuffix "quux" -> Just pre) = T.length pre
 -- > quuxLength _                             = -1
-suffixed :: Text -> Text -> Maybe Text
-suffixed p@(Text _arr _off plen) t@(Text arr off len)
+stripSuffix :: Text -> Text -> Maybe Text
+stripSuffix p@(Text _arr _off plen) t@(Text arr off len)
     | p `isSuffixOf` t = Just $! textP arr off (len-plen)
     | otherwise        = Nothing
 
