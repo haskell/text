@@ -657,12 +657,12 @@ transpose ts = P.map pack (L.transpose (P.map unpack ts))
 -- (typically the left-identity of the operator), and a 'Text',
 -- reduces the 'Text' using the binary operator, from left to right.
 -- Subject to fusion.
-foldl :: (b -> Char -> b) -> b -> Text -> b
+foldl :: (a -> Char -> a) -> a -> Text -> a
 foldl f z t = S.foldl f z (stream t)
 {-# INLINE foldl #-}
 
 -- | /O(n)/ A strict version of 'foldl'.  Subject to fusion.
-foldl' :: (b -> Char -> b) -> b -> Text -> b
+foldl' :: (a -> Char -> a) -> a -> Text -> a
 foldl' f z t = S.foldl' f z (stream t)
 {-# INLINE foldl' #-}
 
@@ -681,7 +681,7 @@ foldl1' f t = S.foldl1' f (stream t)
 -- (typically the right-identity of the operator), and a 'Text',
 -- reduces the 'Text' using the binary operator, from right to left.
 -- Subject to fusion.
-foldr :: (Char -> b -> b) -> b -> Text -> b
+foldr :: (Char -> a -> a) -> a -> Text -> a
 foldr f z t = S.foldr f z (stream t)
 {-# INLINE foldr #-}
 
