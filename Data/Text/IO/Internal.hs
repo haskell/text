@@ -44,7 +44,8 @@ hGetLineWith f h = wantReadableHandle_ "hGetLine" h go
     go hh@Handle__{..} = readIORef haCharBuffer >>= fmap f . hGetLineLoop hh []
 
 hGetLineLoop :: Handle__ -> [Text] -> CharBuffer -> IO [Text]
-hGetLineLoop hh@Handle__{..} ts buf@Buffer{ bufL=r0, bufR=w, bufRaw=raw0 } = do
+hGetLineLoop hh@Handle__{..} = go where
+ go ts buf@Buffer{ bufL=r0, bufR=w, bufRaw=raw0 } = do
   let findEOL raw r | r == w    = return (False, w)
                     | otherwise = do
         (c,r') <- readCharBuf raw r
@@ -76,7 +77,7 @@ hGetLineLoop hh@Handle__{..} ts buf@Buffer{ bufL=r0, bufR=w, bufRaw=raw0 } = do
               if null str
                 then ioe_EOF
                 else return str
-         Just new_buf -> hGetLineLoop hh (t:ts) new_buf
+         Just new_buf -> go (t:ts) new_buf
 
 -- This function is lifted almost verbatim from GHC.IO.Handle.Text.
 maybeFillReadBuffer :: Handle__ -> CharBuffer -> IO (Maybe CharBuffer)
