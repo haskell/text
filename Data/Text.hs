@@ -201,12 +201,33 @@ import Data.Text.UnsafeChar (unsafeChr)
 import qualified Data.Text.Util as U
 import qualified Data.Text.Encoding.Utf16 as U16
 import Data.Text.Search (indices)
+#if defined(__HADDOCK__)
+import Data.ByteString (ByteString)
+#endif
 
 -- $fusion
 --
 -- Most of the functions in this module are subject to /fusion/,
 -- meaning that a pipeline of such functions will usually allocate at
 -- most one 'Text' value.
+--
+-- As an example, consider the following pipeline:
+--
+-- > import Data.Text as T
+-- > import Data.Text.Encoding as E
+-- >
+-- > countChars :: ByteString -> Int
+-- > countChars = T.length . T.toUpper . E.decodeUtf8
+--
+-- From the type signatures involved, this looks like it should
+-- allocate one 'ByteString' value, and two 'Text' values. However,
+-- when a module is compiled with optimisation enabled under GHC, the
+-- two intermediate 'Text' values will be optimised away, and the
+-- function will be compiled down to a single loop over the source
+-- 'ByteString'.
+--
+-- Functions that can be fused by the compiler are marked with the
+-- phrase \"Subject to fusion\".
 
 instance Eq Text where
     t1 == t2 = stream t1 == stream t2
