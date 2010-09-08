@@ -24,6 +24,9 @@
 
 module Data.Text
     (
+    -- * Strict vs lazy types
+    -- $strict
+
     -- * Fusion
     -- $fusion
 
@@ -203,7 +206,29 @@ import qualified Data.Text.Encoding.Utf16 as U16
 import Data.Text.Search (indices)
 #if defined(__HADDOCK__)
 import Data.ByteString (ByteString)
+import qualified Data.Text.Lazy as L
+import Data.Int (Int64)
 #endif
+
+-- $strict
+--
+-- This package provides both strict and lazy 'Text' types.  The
+-- strict type is provided by the 'Data.Text' package, while the lazy
+-- type is provided by the 'Data.Text.Lazy' package.  Internally, the
+-- lazy @Text@ type consists of a list of strict chunks.
+--
+-- The strict 'Text' type requires that an entire string fit into
+-- memory at once.  The lazy @Text@ type is capable of streaming
+-- strings that are larger than memory using a small memory footprint.
+-- In many cases, the overhead of chunked streaming makes the lazy
+-- @Text@ type slower than its strict counterpart, but this is not
+-- always the case.  Sometimes, the time complexity of a function in
+-- one module may be different from the other, due to their differing
+-- internal structures.
+--
+-- Each module provides an almost identical API, with the main
+-- difference being that the strict module uses 'Int' values for
+-- lengths and counts, while the lazy module uses 'Int64' lengths.
 
 -- $fusion
 --
