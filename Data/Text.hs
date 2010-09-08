@@ -535,6 +535,9 @@ reverse t = S.reverse (stream t)
 {-# INLINE reverse #-}
 
 -- | /O(m+n)/ Replace every occurrence of one substring with another.
+--
+-- In (unlikely) bad cases, this function's time complexity degrades
+-- towards /O(n*m)/.
 replace :: Text                 -- ^ Text to search for
         -> Text                 -- ^ Replacement text
         -> Text                 -- ^ Input text

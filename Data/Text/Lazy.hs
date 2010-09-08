@@ -27,7 +27,7 @@
 -- This module is intended to be imported @qualified@, to avoid name
 -- clashes with "Prelude" functions.  eg.
 --
--- > import qualified Data.Text.Lazy as B
+-- > import qualified Data.Text.Lazy as L
 
 module Data.Text.Lazy
     (
@@ -518,6 +518,9 @@ reverse = rev Empty
         rev a (Chunk t ts) = rev (Chunk (T.reverse t) a) ts
 
 -- | /O(m+n)/ Replace every occurrence of one substring with another.
+--
+-- In (unlikely) bad cases, this function's time complexity degrades
+-- towards /O(n*m)/.
 replace :: Text                 -- ^ Text to search for
         -> Text                 -- ^ Replacement text
         -> Text                 -- ^ Input text
