@@ -38,18 +38,30 @@ cabal-version:  >= 1.6
 extra-source-files:
     README
     TODO
+    -- scripts/CaseFolding.txt
+    -- scripts/SpecialCasing.txt
     scripts/ApiCompare.hs
     scripts/Arsec.hs
     scripts/CaseFolding.hs
-    -- scripts/CaseFolding.txt
     scripts/CaseMapping.hs
     scripts/SpecialCasing.hs
-    -- scripts/SpecialCasing.txt
-    tests/Makefile
     tests/Benchmarks.hs
+    tests/Makefile
     tests/Properties.hs
     tests/QuickCheckUtils.hs
     tests/SlowFunctions.hs
+    tests/StdioCoverage.hs
+    tests/TestUtils.hs
+    tests/benchmarks/Cut.hs
+    tests/benchmarks/FileIndices.hs
+    tests/benchmarks/FileRead.hs
+    tests/benchmarks/FoldLines.hs
+    tests/benchmarks/HtmlCombinator.hs
+    tests/benchmarks/Makefile
+    tests/benchmarks/Replace.hs
+    tests/benchmarks/fileread.py
+    tests/benchmarks/fileread_c.c
+    tests/cover-stdio.sh
 
 flag developer
   description: operate in developer mode
