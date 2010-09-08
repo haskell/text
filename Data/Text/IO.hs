@@ -111,7 +111,6 @@ hGetContents h = do
     ts <- readChunks
     (hh', _) <- hClose_help hh
     return (hh'{haType=ClosedHandle}, T.concat ts)
-#endif
   
 -- | Use a more efficient buffer size if we're reading in
 -- block-buffered mode with the default buffer size.  When we can
@@ -129,6 +128,7 @@ chooseGoodBuffering h = do
            else throw e
       when (d > 0) . hSetBuffering h . BlockBuffering . Just . fromIntegral $ d
     _ -> return ()
+#endif
 
 -- | Read a single line from a handle.
 hGetLine :: Handle -> IO Text
