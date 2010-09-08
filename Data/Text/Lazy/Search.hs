@@ -42,15 +42,17 @@ indices :: Text              -- ^ Substring to search for (@needle@)
 indices needle@(Chunk n ns) _haystack@(Chunk k ks)
     | nlen <= 0  = []
     | nlen == 1  = indicesOne (nindex 0) 0 k ks
-    | otherwise  = scan 0 0 k ks
+    | otherwise  = advance k ks 0 0
   where
-    scan !g !i x@(T.Text _ _ l) xs
+    advance x@(T.Text _ _ l) xs = scan
+     where
+      scan !g !i
          | i >= m = case xs of
                       Empty           -> []
-                      Chunk y ys      -> scan g (i-m) y ys
+                      Chunk y ys      -> advance y ys g (i-m)
          | lackingHay (i + nlen) x xs  = []
-         | c == z && candidateMatch 0  = g : scan (g+nlen) (i+nlen) x xs
-         | otherwise                   = scan (g+delta) (i+delta) x xs
+         | c == z && candidateMatch 0  = g : scan (g+nlen) (i+nlen)
+         | otherwise                   = scan (g+delta) (i+delta)
        where
          m = fromIntegral l
          c = hindex (i + nlast)
