@@ -346,7 +346,7 @@ append (Text arr1 off1 len1) (Text arr2 off2 len2) = Text (A.run x) 0 len
       x = do
         arr <- A.unsafeNew len
         A.copyI arr 0 arr1 off1 len1
-        A.copyI arr len1 arr2 off2 (len1+len2)
+        A.copyI arr len1 arr2 off2 len
         return arr
 {-# INLINE append #-}
 
