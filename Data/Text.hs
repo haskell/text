@@ -789,16 +789,12 @@ mapAccumL f z0 = S.mapAccumL f z0 . stream
 {-# INLINE mapAccumL #-}
 
 -- | The 'mapAccumR' function behaves like a combination of 'map' and
--- 'foldr'; it applies a function to each element of a 'Text', passing
--- an accumulating parameter from right to left, and returning a final
--- value of this accumulator together with the new 'Text'.
+-- a strict 'foldr'; it applies a function to each element of a
+-- 'Text', passing an accumulating parameter from right to left, and
+-- returning a final value of this accumulator together with the new
+-- 'Text'.
 mapAccumR :: (a -> Char -> (a,Char)) -> a -> Text -> (a, Text)
-mapAccumR f = go
-  where go s t = case uncons t of
-                   Nothing -> (s, empty)
-                   Just (x, xs) ->  (s'', cons y ys)
-                       where (s'',y ) = f s' x
-                             (s', ys) = go s xs
+mapAccumR f z0 = second reverse . S.mapAccumL f z0 . reverseStream
 {-# INLINE mapAccumR #-}
 
 -- -----------------------------------------------------------------------------
