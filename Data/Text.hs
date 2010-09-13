@@ -781,16 +781,11 @@ scanr1 f t | null t    = empty
            | otherwise = scanr f (last t) (init t)
 {-# INLINE scanr1 #-}
 
--- | /O(n)/ Like a combination of 'map' and 'foldl'. Applies a
+-- | /O(n)/ Like a combination of 'map' and 'foldl''. Applies a
 -- function to each element of a 'Text', passing an accumulating
 -- parameter from left to right, and returns a final 'Text'.
 mapAccumL :: (a -> Char -> (a,Char)) -> a -> Text -> (a, Text)
-mapAccumL f = go
-  where go s t = case uncons t of
-                   Nothing -> (s, empty)
-                   Just (x, xs) -> (s'', cons y ys)
-                       where (s', y ) = f s x
-                             (s'',ys) = go s' xs
+mapAccumL f z0 = S.mapAccumL f z0 . stream
 {-# INLINE mapAccumL #-}
 
 -- | The 'mapAccumR' function behaves like a combination of 'map' and

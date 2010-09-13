@@ -34,6 +34,9 @@ module Data.Text.Fusion
     -- ** Scans
     , reverseScanr
 
+    -- ** Accumulating maps
+    , mapAccumL
+
     -- ** Generation and unfolding
     , unfoldrN
 
@@ -199,3 +202,30 @@ findIndex = S.findIndexI
 countChar :: Char -> Stream Char -> Int
 countChar = S.countCharI
 {-# INLINE [0] countChar #-}
+
+-- | /O(n)/ Like a combination of 'map' and 'foldl''. Applies a
+-- function to each element of a 'Text', passing an accumulating
+-- parameter from left to right, and returns a final 'Text'.
+mapAccumL :: (a -> Char -> (a,Char)) -> a -> Stream Char -> (a, Text)
+mapAccumL f z0 (Stream next0 s0 len) = (nz,I.textP na 0 nl)
+  where
+    (na,(nz,nl)) = A.run2 (A.unsafeNew mlen >>= \arr -> outer arr mlen z0 s0 0)
+      where mlen = upperBound 4 len
+    outer arr top = loop
+      where
+        loop !z !s !i =
+            case next0 s of
+              Done          -> return (arr, (z,i))
+              Skip s'       -> loop z s' i
+              Yield x s'
+                | j >= top  -> {-# SCC "mapAccumL/resize" #-} do
+                               let top' = (top + 1) `shiftL` 1
+                               arr' <- A.unsafeNew top'
+                               A.copyM arr' 0 arr 0 top
+                               outer arr' top' z s i
+                | otherwise -> do let (z',c) = f z x
+                                  d <- unsafeWrite arr i c
+                                  loop z' s' (i+d)
+                where j | ord x < 0x10000 = i
+                        | otherwise       = i + 1
+{-# INLINE [0] mapAccumL #-}
