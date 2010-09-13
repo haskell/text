@@ -692,29 +692,30 @@ scanr1 :: (Char -> Char -> Char) -> Text -> Text
 scanr1 f t | null t    = empty
            | otherwise = scanr f (last t) (init t)
 
--- | /O(n)/ Like a combination of 'map' and 'foldl'. Applies a
+-- | /O(n)/ Like a combination of 'map' and 'foldl''. Applies a
 -- function to each element of a 'Text', passing an accumulating
 -- parameter from left to right, and returns a final 'Text'.
 mapAccumL :: (a -> Char -> (a,Char)) -> a -> Text -> (a, Text)
 mapAccumL f = go
-  where go s t = case uncons t of
-                   Nothing -> (s, empty)
-                   Just (x, xs) -> (s'', cons y ys)
-                       where (s', y ) = f s x
-                             (s'',ys) = go s' xs
+  where
+    go z (Chunk c cs)    = (z'', Chunk c' cs')
+        where (z',  c')  = T.mapAccumL f z c
+              (z'', cs') = go z' cs
+    go z Empty           = (z, Empty)
 {-# INLINE mapAccumL #-}
 
 -- | The 'mapAccumR' function behaves like a combination of 'map' and
--- 'foldr'; it applies a function to each element of a 'Text', passing
--- an accumulating parameter from right to left, and returning a final
--- value of this accumulator together with the new 'Text'.
+-- a strict 'foldr'; it applies a function to each element of a
+-- 'Text', passing an accumulating parameter from right to left, and
+-- returning a final value of this accumulator together with the new
+-- 'Text'.
 mapAccumR :: (a -> Char -> (a,Char)) -> a -> Text -> (a, Text)
 mapAccumR f = go
-  where go s t = case uncons t of
-                   Nothing -> (s, empty)
-                   Just (x, xs) ->  (s'', cons y ys)
-                       where (s'',y ) = f s' x
-                             (s', ys) = go s xs
+  where
+    go z (Chunk c cs)   = (z'', Chunk c' cs')
+        where (z'', c') = T.mapAccumR f z' c
+              (z', cs') = go z cs
+    go z Empty          = (z, Empty)
 {-# INLINE mapAccumR #-}
 
 -- | /O(n*m)/ 'replicate' @n@ @t@ is a 'Text' consisting of the input
