@@ -102,22 +102,16 @@ instance IArray (MArray s) where
 
 -- | Create an uninitialized mutable array.
 unsafeNew :: forall s. Int -> ST s (MArray s)
-unsafeNew n =
+unsafeNew n
+  | len < 0 = error $ "Data.Text.Array.unsafeNew: invalid length " ++ show n
+  | otherwise = ST $ \s1# ->
+       case newByteArray# len# s1# of
+         (# s2#, marr# #) -> (# s2#, MArray marr#
 #if defined(ASSERTS)
-    assert (n >= 0) .
+                                n
 #endif
-    ST $ \s1# ->
-    case bytesInArray n of
-      len@(I# len#) ->
-#if defined(ASSERTS)
-         if len < 0 then error (show ("unsafeNew",len)) else
-#endif
-         case newByteArray# len# s1# of
-           (# s2#, marr# #) -> (# s2#, MArray marr#
-#if defined(ASSERTS)
-                                  n
-#endif
-                                  #)
+                                #)
+  where !len@(I# len#) = bytesInArray n
 {-# INLINE unsafeNew #-}
 
 -- | Freeze a mutable array. Do not mutate the 'MArray' afterwards!
