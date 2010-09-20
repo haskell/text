@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, CPP #-}
+{-# LANGUAGE BangPatterns, CPP, GeneralizedNewtypeDeriving #-}
 -- |
 -- Module      : Data.Text.Foreign
 -- Copyright   : (c) 2009, 2010 Bryan O'Sullivan
@@ -16,9 +16,9 @@ module Data.Text.Foreign
     (
     -- * Interoperability with native code
     -- $interop
-
+      I16
     -- * Safe conversion functions
-      fromPtr
+    , fromPtr
     , useAsPtr
     -- * Unsafe conversion code
     , lengthWord16
@@ -54,13 +54,17 @@ import Foreign.Storable (peek, poke)
 -- internal representations, such as UTF-8 or UTF-32, consider using
 -- the functions in the 'Data.Text.Encoding' module.
 
+-- | A type representing a number of UTF-16 code units.
+newtype I16 = I16 Int
+    deriving (Bounded, Enum, Eq, Integral, Num, Ord, Read, Real, Show)
+
 -- | /O(n)/ Create a new 'Text' from a 'Ptr' 'Word16' by copying the
 -- contents of the array.
 fromPtr :: Ptr Word16           -- ^ source array
-        -> Int                  -- ^ length of source array (in 'Word16' units)
+        -> I16                  -- ^ length of source array (in 'Word16' units)
         -> IO Text
-fromPtr _   0   = return empty
-fromPtr ptr len =
+fromPtr _   (I16 0)   = return empty
+fromPtr ptr (I16 len) =
 #if defined(ASSERTS)
     assert (len > 0) $
 #endif
@@ -87,8 +91,8 @@ fromPtr ptr len =
 -- If @n@ would cause the 'Text' to end inside a surrogate pair, the
 -- end of the prefix will be advanced by one additional 'Word16' unit
 -- to maintain its validity.
-takeWord16 :: Int -> Text -> Text
-takeWord16 n t@(Text arr off len)
+takeWord16 :: I16 -> Text -> Text
+takeWord16 (I16 n) t@(Text arr off len)
     | n <= 0               = empty
     | n >= len || m >= len = t
     | otherwise            = Text arr off m
@@ -103,8 +107,8 @@ takeWord16 n t@(Text arr off len)
 -- If @n@ would cause the 'Text' to begin inside a surrogate pair, the
 -- beginning of the suffix will be advanced by one additional 'Word16'
 -- unit to maintain its validity.
-dropWord16 :: Int -> Text -> Text
-dropWord16 n t@(Text arr off len)
+dropWord16 :: I16 -> Text -> Text
+dropWord16 (I16 n) t@(Text arr off len)
     | n <= 0               = t
     | n >= len || m >= len = empty
     | otherwise            = Text arr (off+m) (len-m)
@@ -126,8 +130,8 @@ unsafeCopyToPtr (Text arr off len) ptr = loop ptr off
 
 -- | /O(n)/ Perform an action on a temporary, mutable copy of a
 -- 'Text'.  The copy is freed as soon as the action returns.
-useAsPtr :: Text -> (Ptr Word16 -> Int -> IO a) -> IO a
+useAsPtr :: Text -> (Ptr Word16 -> I16 -> IO a) -> IO a
 useAsPtr t@(Text _arr _off len) action =
     allocaBytes (len * 2) $ \buf -> do
       unsafeCopyToPtr t buf
-      action (castPtr buf) len
+      action (castPtr buf) (fromIntegral len)
