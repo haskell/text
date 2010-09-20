@@ -198,6 +198,20 @@ main = do
       , bench "bl" $ nf (BL.map f) bla
       , bench "l" $ nf (L.map f) la
       ],
+      bgroup "mapAccumL" [
+        bench "ts" $ nf (TS.mapAccumL g 0) tsa
+      , bench "tl" $ nf (TL.mapAccumL g 0) tla
+      , bench "bs" $ nf (BS.mapAccumL g 0) bsa
+      , bench "bl" $ nf (BL.mapAccumL g 0) bla
+      , bench "l" $ nf (L.mapAccumL g 0) la
+      ],
+      bgroup "mapAccumR" [
+        bench "ts" $ nf (TS.mapAccumR g 0) tsa
+      , bench "tl" $ nf (TL.mapAccumR g 0) tla
+      , bench "bs" $ nf (BS.mapAccumR g 0) bsa
+      , bench "bl" $ nf (BL.mapAccumR g 0) bla
+      , bench "l" $ nf (L.mapAccumR g 0) la
+      ],
       bgroup "map.map" [
         bench "ts" $ nf (TS.map f . TS.map f) tsa
       , bench "tl" $ nf (TL.map f . TL.map f) tla
@@ -414,6 +428,7 @@ main = do
     tsw  = TS.pack lw
     tlw  = TL.fromChunks [tsw]
     f (C# c#) = C# (chr# (ord# c# +# 1#))
+    g (I# i#) (C# c#) = (I# (i# +# 1#), C# (chr# (ord# c# +# i#)))
     len l _ = l + (1::Int)
     replicat n = concat . L.replicate n
     short = TS.pack "short"
