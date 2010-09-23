@@ -181,8 +181,8 @@ toLazyText = toLazyTextWith smallChunkSize
 -- If the initial buffer is too small to hold all data, subsequent
 -- buffers will be the default buffer size.
 toLazyTextWith :: Int -> Builder -> L.Text
-toLazyTextWith chunkSize m = L.fromChunks . runST $
-  newBuffer chunkSize >>= runBuilder (m `append` flush) (const (return []))
+toLazyTextWith chunkSize m = L.fromChunks (runST $
+  newBuffer chunkSize >>= runBuilder (m `append` flush) (const (return [])))
 
 -- | /O(1)./ Pop the 'S.Text' we have constructed so far, if any,
 -- yielding a new chunk in the result lazy 'L.Text'.
