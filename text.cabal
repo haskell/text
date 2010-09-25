@@ -1,5 +1,5 @@
 name:           text
-version:        0.9.0.0
+version:        0.9.0.1
 homepage:       http://code.haskell.org/text
 synopsis:       An efficient packed Unicode text type.
 description:    
