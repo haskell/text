@@ -103,7 +103,7 @@ instance IArray (MArray s) where
 -- | Create an uninitialized mutable array.
 new :: forall s. Int -> ST s (MArray s)
 new n
-  | len < 0 = error $ "Data.Text.Array.unsafeNew: invalid length " ++ show n
+  | len < n = error $ "Data.Text.Array.unsafeNew: invalid length " ++ show n
   | otherwise = ST $ \s1# ->
        case newByteArray# len# s1# of
          (# s2#, marr# #) -> (# s2#, MArray marr#

@@ -1,4 +1,4 @@
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
 
 -- Regression tests for specific bugs.
 
@@ -6,6 +6,7 @@ import Control.Exception (SomeException, handle)
 import System.IO
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as LB
+import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import qualified Data.Text.Lazy as LT
 import qualified Data.Text.Lazy.Encoding as LE
@@ -30,10 +31,21 @@ hGetContents_crash = withTempFile $ \ path h -> do
   handle (\(_::SomeException) -> return ()) $
     T.hGetContents h' >> assertFailure "T.hGetContents should crash"
 
+-- Reported by Ian Lynagh: attempting to allocate a sufficiently large
+-- string (via either Array.new or Text.replicate) could result in an
+-- integer overflow.
+replicate_crash = handle (\(_::SomeException) -> return ()) $
+                  T.replicate (2^power) "0123456789abcdef" `seq`
+                  assertFailure "T.replicate should crash"
+  where
+    power | maxBound == (2147483647::Int) = 28
+          | otherwise                     = 60 :: Int
+
 tests :: F.Test
 tests = F.testGroup "crashers" [
           F.testCase "hGetContents_crash" hGetContents_crash
         , F.testCase "lazy_encode_crash" lazy_encode_crash
+        , F.testCase "replicate_crash" replicate_crash
         ]
 
 main = F.defaultMain [tests]

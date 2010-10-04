@@ -807,6 +807,8 @@ replicate n t@(Text a o l)
     | n <= 0 || l <= 0 = empty
     | n == 1           = t
     | isSingleton t    = replicateChar n (unsafeHead t)
+    | len < n          = error $ "Data.Text.replicate: invalid length " ++
+                                 show n -- multiplication overflow
     | otherwise        = Text (A.run x) 0 len
   where
     len = l * n
