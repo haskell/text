@@ -139,7 +139,7 @@ fromString str = Builder $ \k (Buffer p0 o0 u0 l0) ->
             | l <= 1 = do
                 arr <- A.unsafeFreeze marr
                 let !t = Text arr o u
-                marr' <- A.unsafeNew chunkSize
+                marr' <- A.new chunkSize
                 ts <- inlineInterleaveST (loop marr' 0 0 chunkSize s)
                 return $ t : ts
             | otherwise = do
@@ -252,7 +252,7 @@ writeNBuffer n f (Buffer p o u l) = do
 
 newBuffer :: Int -> ST s (Buffer s)
 newBuffer size = do
-    arr <- A.unsafeNew size
+    arr <- A.new size
     return $! Buffer arr 0 0 size
 {-# INLINE newBuffer #-}
 

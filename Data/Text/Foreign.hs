@@ -70,7 +70,7 @@ fromPtr ptr (I16 len) =
 #endif
     return $! Text arr 0 len
   where
-    arr = A.run (A.unsafeNew len >>= copy)
+    arr = A.run (A.new len >>= copy)
     copy marr = loop ptr 0
       where
         loop !p !i | i == len = return marr

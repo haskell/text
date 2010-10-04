@@ -41,7 +41,7 @@ module Data.Text.Array
     , toList
     , unsafeFreeze
     , unsafeIndex
-    , unsafeNew
+    , new
     , unsafeWrite
     ) where
 
@@ -101,8 +101,8 @@ instance IArray (MArray s) where
 #endif
 
 -- | Create an uninitialized mutable array.
-unsafeNew :: forall s. Int -> ST s (MArray s)
-unsafeNew n
+new :: forall s. Int -> ST s (MArray s)
+new n
   | len < 0 = error $ "Data.Text.Array.unsafeNew: invalid length " ++ show n
   | otherwise = ST $ \s1# ->
        case newByteArray# len# s1# of
@@ -112,7 +112,7 @@ unsafeNew n
 #endif
                                 #)
   where !len@(I# len#) = bytesInArray n
-{-# INLINE unsafeNew #-}
+{-# INLINE new #-}
 
 -- | Freeze a mutable array. Do not mutate the 'MArray' afterwards!
 unsafeFreeze :: MArray s -> ST s Array
@@ -190,7 +190,7 @@ toList ary off len = loop 0
 
 -- | An empty immutable array.
 empty :: Array
-empty = runST (unsafeNew 0 >>= unsafeFreeze)
+empty = runST (new 0 >>= unsafeFreeze)
 
 -- | Run an action in the ST monad and return an immutable array of
 -- its result.

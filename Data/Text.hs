@@ -344,7 +344,7 @@ append (Text arr1 off1 len1) (Text arr2 off2 len2) = Text (A.run x) 0 len
     where
       len = len1+len2
       x = do
-        arr <- A.unsafeNew len
+        arr <- A.new len
         A.copyI arr 0 arr1 off1 len1
         A.copyI arr len1 arr2 off2 len
         return arr
@@ -708,7 +708,7 @@ concat ts = case ts' of
     ts' = L.filter (not . null) ts
     len = L.sum $ L.map lengthWord16 ts'
     go = do
-      arr <- A.unsafeNew len
+      arr <- A.new len
       let step i (Text a o l) =
             let !j = i + l in A.copyI arr i a o j >> return j
       foldM step 0 ts' >> return arr
@@ -811,7 +811,7 @@ replicate n t@(Text a o l)
   where
     len = l * n
     x = do
-      arr <- A.unsafeNew len
+      arr <- A.new len
       let loop !d !i | i >= n    = return arr
                      | otherwise = let m = d + l
                                    in A.copyI arr d a o m >> loop m (i+1)

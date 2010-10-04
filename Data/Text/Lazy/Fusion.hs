@@ -59,14 +59,14 @@ unstreamChunks chunkSize (Stream next s0 len0)
                 Skip s'    -> outer s'
                 Yield x s' -> I.Text arr 0 len `chunk` outer s''
                   where (arr,(s'',len)) = A.run2 fill
-                        fill = do a <- A.unsafeNew unknownLength
+                        fill = do a <- A.new unknownLength
                                   unsafeWrite a 0 x >>= inner a unknownLength s'
                         unknownLength = 4
     inner marr len s !i
         | i + 1 >= chunkSize = return (marr, (s,i))
         | i + 1 >= len       = do
             let newLen = min (len `shiftL` 1) chunkSize
-            marr' <- A.unsafeNew newLen
+            marr' <- A.new newLen
             A.copyM marr' 0 marr 0 len
             inner marr' newLen s i
         | otherwise =

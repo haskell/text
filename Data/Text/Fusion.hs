@@ -96,7 +96,7 @@ reverseStream (Text arr off len) = Stream next (off+len-1) (maxSize len)
 unstream :: Stream Char -> Text
 unstream (Stream next0 s0 len) = I.textP (P.fst a) 0 (P.snd a)
   where
-    a = A.run2 (A.unsafeNew mlen >>= \arr -> outer arr mlen s0 0)
+    a = A.run2 (A.new mlen >>= \arr -> outer arr mlen s0 0)
       where mlen = upperBound 4 len
     outer arr top = loop
       where
@@ -107,7 +107,7 @@ unstream (Stream next0 s0 len) = I.textP (P.fst a) 0 (P.snd a)
               Yield x s'
                 | j >= top  -> {-# SCC "unstream/resize" #-} do
                                let top' = (top + 1) `shiftL` 1
-                               arr' <- A.unsafeNew top'
+                               arr' <- A.new top'
                                A.copyM arr' 0 arr 0 top
                                outer arr' top' s i
                 | otherwise -> do d <- unsafeWrite arr i x
@@ -132,7 +132,7 @@ reverse (Stream next s len0)
     | otherwise    = I.textP arr off' len'
   where
     len0' = upperBound 4 (larger len0 4)
-    (arr, (off', len')) = A.run2 (A.unsafeNew len0' >>= loop s (len0'-1) len0')
+    (arr, (off', len')) = A.run2 (A.new len0' >>= loop s (len0'-1) len0')
     loop !s0 !i !len marr =
         case next s0 of
           Done -> return (marr, (j, len-j))
@@ -140,7 +140,7 @@ reverse (Stream next s len0)
           Skip s1    -> loop s1 i len marr
           Yield x s1 | i < least -> {-# SCC "reverse/resize" #-} do
                        let newLen = len `shiftL` 1
-                       marr' <- A.unsafeNew newLen
+                       marr' <- A.new newLen
                        A.copyM marr' (newLen-len) marr 0 len
                        write s1 (len+i) newLen marr'
                      | otherwise -> write s1 i len marr
@@ -209,7 +209,7 @@ countChar = S.countCharI
 mapAccumL :: (a -> Char -> (a,Char)) -> a -> Stream Char -> (a, Text)
 mapAccumL f z0 (Stream next0 s0 len) = (nz,I.textP na 0 nl)
   where
-    (na,(nz,nl)) = A.run2 (A.unsafeNew mlen >>= \arr -> outer arr mlen z0 s0 0)
+    (na,(nz,nl)) = A.run2 (A.new mlen >>= \arr -> outer arr mlen z0 s0 0)
       where mlen = upperBound 4 len
     outer arr top = loop
       where
@@ -220,7 +220,7 @@ mapAccumL f z0 (Stream next0 s0 len) = (nz,I.textP na 0 nl)
               Yield x s'
                 | j >= top  -> {-# SCC "mapAccumL/resize" #-} do
                                let top' = (top + 1) `shiftL` 1
-                               arr' <- A.unsafeNew top'
+                               arr' <- A.new top'
                                A.copyM arr' 0 arr 0 top
                                outer arr' top' z s i
                 | otherwise -> do let (z',c) = f z x
