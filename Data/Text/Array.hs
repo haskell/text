@@ -59,7 +59,7 @@ if (_k_) < 0 || (_k_) >= (_len_) then error ("Data.Text.Array." ++ (_func_) ++ "
 #if defined(ASSERTS)
 import Control.Exception (assert)
 #endif
-import Data.Bits ((.&.))
+import Data.Bits ((.&.), xor)
 import Data.Text.UnsafeShift (shiftL, shiftR)
 import GHC.Base (ByteArray#, MutableByteArray#, Int(..),
                  indexWord16Array#, indexWordArray#, newByteArray#,
@@ -103,7 +103,7 @@ instance IArray (MArray s) where
 -- | Create an uninitialized mutable array.
 new :: forall s. Int -> ST s (MArray s)
 new n
-  | len < n = error $ "Data.Text.Array.unsafeNew: invalid length " ++ show n
+  | n < 0 || n .&. highBit /= 0 = error $ "Data.Text.Array.new: size overflow"
   | otherwise = ST $ \s1# ->
        case newByteArray# len# s1# of
          (# s2#, marr# #) -> (# s2#, MArray marr#
@@ -111,7 +111,8 @@ new n
                                 n
 #endif
                                 #)
-  where !len@(I# len#) = bytesInArray n
+  where !(I# len#) = bytesInArray n
+        highBit    = maxBound `xor` (maxBound `shiftR` 1)
 {-# INLINE new #-}
 
 -- | Freeze a mutable array. Do not mutate the 'MArray' afterwards!

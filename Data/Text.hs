@@ -174,7 +174,7 @@ import Prelude (Char, Bool(..), Functor(..), Int, Maybe(..), String,
                 Eq(..), Ord(..), Ordering(..), (++),
                 Read(..), Show(..),
                 (&&), (||), (+), (-), (.), ($), ($!), (>>), (*),
-                div, error, not, return, otherwise)
+                div, maxBound, not, return, otherwise)
 #if defined(HAVE_DEEPSEQ)
 import Control.DeepSeq (NFData)
 #endif
@@ -294,8 +294,8 @@ instance NFData Text
 
 instance Data Text where
   gfoldl f z txt = z pack `f` (unpack txt)
-  toConstr _     = error "Data.Text.Text.toConstr"
-  gunfold _ _    = error "Data.Text.Text.gunfold"
+  toConstr _     = P.error "Data.Text.Text.toConstr"
+  gunfold _ _    = P.error "Data.Text.Text.gunfold"
 #if __GLASGOW_HASKELL__ >= 612
   dataTypeOf _   = mkNoRepType "Data.Text.Text"
 #else
@@ -340,7 +340,11 @@ snoc t c = unstream (S.snoc (stream t) c)
 -- | /O(n)/ Appends one 'Text' to the other by copying both of them
 -- into a new 'Text'.  Subject to fusion.
 append :: Text -> Text -> Text
-append (Text arr1 off1 len1) (Text arr2 off2 len2) = Text (A.run x) 0 len
+append a@(Text arr1 off1 len1) b@(Text arr2 off2 len2)
+    | len1 == 0 = b
+    | len2 == 0 = a
+    | len > 0   = Text (A.run x) 0 len
+    | otherwise = overflowError "append"
     where
       len = len1+len2
       x = do
@@ -706,7 +710,7 @@ concat ts = case ts' of
               _ -> Text (A.run go) 0 len
   where
     ts' = L.filter (not . null) ts
-    len = L.sum $ L.map lengthWord16 ts'
+    len = sumP "concat" $ L.map lengthWord16 ts'
     go = do
       arr <- A.new len
       let step i (Text a o l) =
@@ -804,12 +808,11 @@ mapAccumR f z0 = second reverse . S.mapAccumL f z0 . reverseStream
 -- @t@ repeated @n@ times.
 replicate :: Int -> Text -> Text
 replicate n t@(Text a o l)
-    | n <= 0 || l <= 0 = empty
-    | n == 1           = t
-    | isSingleton t    = replicateChar n (unsafeHead t)
-    | len < n          = error $ "Data.Text.replicate: invalid length " ++
-                                 show n -- multiplication overflow
-    | otherwise        = Text (A.run x) 0 len
+    | n <= 0 || l <= 0      = empty
+    | n == 1                = t
+    | isSingleton t         = replicateChar n (unsafeHead t)
+    | n <= maxBound `div` l = Text (A.run x) 0 len
+    | otherwise             = overflowError "replicate"
   where
     len = l * n
     x = do
@@ -1440,5 +1443,17 @@ stripSuffix p@(Text _arr _off plen) t@(Text arr off len)
     | p `isSuffixOf` t = Just $! textP arr off (len-plen)
     | otherwise        = Nothing
 
+-- | Add a list of non-negative numbers.  Errors out on overflow.
+sumP :: String -> [Int] -> Int
+sumP fun = go 0
+  where go !a (x:xs)
+            | ax >= 0   = go ax xs
+            | otherwise = overflowError fun
+          where ax = a + x
+        go a  _         = a
+
 emptyError :: String -> a
-emptyError fun = P.error ("Data.Text." ++ fun ++ ": empty input")
+emptyError fun = P.error $ "Data.Text." ++ fun ++ ": empty input"
+
+overflowError :: String -> a
+overflowError fun = P.error $ "Data.Text." ++ fun ++ ": size overflow"
