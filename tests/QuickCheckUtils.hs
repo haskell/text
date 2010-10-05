@@ -9,6 +9,7 @@ import Data.Int (Int64)
 import Data.Word (Word8, Word16, Word32)
 import Data.String (IsString, fromString)
 import qualified Data.Text as T
+import Data.Text.Foreign (I16)
 import qualified Data.Text.Lazy as TL
 import System.Random (Random(..), RandomGen)
 import Test.QuickCheck hiding ((.&.))
@@ -19,6 +20,13 @@ instance Random Int64 where
     random  = randomR (minBound,maxBound)
 
 instance Arbitrary Int64 where
+    arbitrary     = choose (minBound,maxBound)
+
+instance Random I16 where
+    randomR = integralRandomR
+    random  = randomR (minBound,maxBound)
+
+instance Arbitrary I16 where
     arbitrary     = choose (minBound,maxBound)
 
 instance Random Word8 where
@@ -137,8 +145,8 @@ data Small = S0  | S1  | S2  | S3  | S4  | S5  | S6  | S7
            | S24 | S25 | S26 | S27 | S28 | S29 | S30 | S31
     deriving (Eq, Ord, Enum, Bounded)
 
-small :: Small -> Int
-small = fromEnum
+small :: Integral a => Small -> a
+small = fromIntegral . fromEnum
 
 intf f a b = toEnum ((fromEnum a `f` fromEnum b) `mod` 32)
 
