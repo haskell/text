@@ -20,6 +20,7 @@ module Data.Text.Foreign
     -- * Safe conversion functions
     , fromPtr
     , useAsPtr
+    , asForeignPtr
     -- * Unsafe conversion code
     , lengthWord16
     , unsafeCopyToPtr
@@ -39,6 +40,7 @@ import qualified Data.Text.Array as A
 import Data.Word (Word16)
 import Foreign.Marshal.Alloc (allocaBytes)
 import Foreign.Ptr (Ptr, castPtr, plusPtr)
+import Foreign.ForeignPtr (ForeignPtr, mallocForeignPtrArray, withForeignPtr)
 import Foreign.Storable (peek, poke)
 
 -- $interop
@@ -135,3 +137,10 @@ useAsPtr t@(Text _arr _off len) action =
     allocaBytes (len * 2) $ \buf -> do
       unsafeCopyToPtr t buf
       action (castPtr buf) (fromIntegral len)
+
+-- | /O(n)/ Make a mutable copy of a 'Text'.
+asForeignPtr :: Text -> IO (ForeignPtr Word16, I16)
+asForeignPtr t@(Text _arr _off len) = do
+  fp <- mallocForeignPtrArray len
+  withForeignPtr fp $ unsafeCopyToPtr t
+  return (fp, I16 len)
