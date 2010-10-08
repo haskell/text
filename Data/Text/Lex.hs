@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, Rank2Types #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 -- |
 -- Module      : Data.Text.Lex
@@ -69,7 +69,7 @@ hexDigitToInt c
 -- to the result of applying the given reader.
 signed :: Num a => Lexer a -> Lexer a
 {-# INLINE signed #-}
-signed f = parse (signa (asP f))
+signed f = runP (signa (P f))
 
 signa :: Num a => Parser a -> Parser a
 {-# SPECIALIZE signa :: Parser Int -> Parser Int #-}
@@ -79,46 +79,39 @@ signa p = do
   if sign == '+' then p else negate `liftM` p
 
 newtype Parser a = P {
-      runP :: forall r.
-              (String -> Either String (r,Text))
-           -> (a -> Text -> Either String (r,Text))
-           -> Text -> Either String (r,Text)
+      runP :: Text -> Either String (a,Text)
     }
 
-parse :: Parser a -> Text -> Either String (a,Text)
-parse p t = runP p Left (\a t' -> Right (a,t')) t
-
 instance Monad Parser where
-    return a = P $ \kf ks t -> ks a t
+    return a = P $ \t -> Right (a,t)
     {-# INLINE return #-}
-    m >>= k  = P $ \kf ks t -> runP m kf (\a t' -> runP (k a) kf ks t') t
+    m >>= k  = P $ \t -> case runP m t of
+                           Left err     -> Left err
+                           Right (a,t') -> runP (k a) t'
     {-# INLINE (>>=) #-}
-    fail msg = P $ \kf ks t -> kf msg
+    fail msg = P $ \_ -> Left msg
 
 perhaps :: a -> Parser a -> Parser a
-perhaps def m = P $ \kf ks t -> runP m (\_ -> ks def t) ks t
+perhaps def m = P $ \t -> case runP m t of
+                            Left _      -> Right (def,t)
+                            r@(Right _) -> r
 
 char :: (Char -> Bool) -> Parser Char
-char p = P $ \kf ks t -> case T.uncons t of
-                           Just (c,t') | p c -> ks c t'
-                           _                 -> kf "char"
-
-asP :: (Text -> Either String (a,Text)) -> Parser a
-asP p = P $ \kf ks t -> case p t of
-                          Left err -> kf err
-                          Right (a,t') -> ks a t'
+char p = P $ \t -> case T.uncons t of
+                     Just (c,t') | p c -> Right (c,t')
+                     _                 -> Left "char"
 
 -- | Read a rational number.
 rational :: RealFloat a => Lexer a
 {-# SPECIALIZE rational :: Lexer Double #-}
-rational = parse $ do
-  real <- signa (asP decimal)
+rational = runP $ do
+  real <- signa (P decimal)
   (fraction,fracDigits) <- perhaps (0,0) $ do
     _ <- char (=='.')
-    digits <- P $ \kf ks t -> ks (T.length $ T.takeWhile isDigit t) t
-    n <- asP decimal
+    digits <- P $ \t -> Right (T.length $ T.takeWhile isDigit t, t)
+    n <- P decimal
     return (n, digits)
-  power <- perhaps 0 (char (`elem` "eE") >> signa (asP decimal) :: Parser Int)
+  power <- perhaps 0 (char (`elem` "eE") >> signa (P decimal) :: Parser Int)
   return $! if fraction == 0
             then if power == 0
                  then fromIntegral real
