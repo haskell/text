@@ -18,6 +18,7 @@ module Data.Text.Lex
     , hexadecimal
     , signed
     , rational
+    , double
     ) where
 
 import Control.Monad (liftM)
@@ -119,3 +120,30 @@ rational = runP $ do
             else fromRational $ if power == 0
                  then real % 1 + fraction % (10 ^ fracDigits)
                  else (real % 1 + fraction % (10 ^ fracDigits)) * (10 ^^ power)
+
+-- | Read a rational number.  This function is about ten times faster
+-- than 'rational', but is slightly less accurate.
+--
+-- The 'Double' type supports about 16 decimal places of accuracy.
+-- For 94.2% of numbers, this function and 'rational' give identical
+-- results, but for the remaining 5.8%, this function loses precision
+-- around the 15th decimal place.  For 0.001% of numbers, this
+-- function will lose precision at the 13th or 14th decimal place.
+double :: Lexer Double
+double = runP $ do
+  real <- signa (P decimal) :: Parser Integer
+  (fraction,fracDigits) <- perhaps (0,0) $ do
+    _ <- char (=='.')
+    digits <- P $ \t -> Right (T.length $ T.takeWhile isDigit t, t)
+    n <- P decimal :: Parser Integer
+    return (n, digits)
+  power <- perhaps 0 (char (`elem` "eE") >> signa (P decimal) :: Parser Int)
+  return $! if fraction == 0
+            then if power == 0
+                 then fromIntegral real
+                 else fromIntegral real * (10 ^^ power)
+            else if power == 0
+                 then fromIntegral real + fromIntegral fraction /
+                      (10 ^ fracDigits)
+                 else (fromIntegral real + fromIntegral fraction /
+                       (10 ^ fracDigits)) * (10 ^^ power)
