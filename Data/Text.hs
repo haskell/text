@@ -380,13 +380,6 @@ uncons t@(Text arr off len)
 second :: (b -> c) -> (a,b) -> (a,c)
 second f (a, b) = (a, f b)
 
-{-# RULES
-"TEXT uncons -> fused" [~1] forall t.
-    uncons t = fmap (second unstream) (S.uncons (stream t))
-"TEXT uncons -> unfused" [1] forall t.
-    fmap (second unstream) (S.uncons (stream t)) = uncons t
-  #-}
-
 -- | /O(1)/ Returns the last character of a 'Text', which must be
 -- non-empty.  Subject to fusion.
 last :: Text -> Char
