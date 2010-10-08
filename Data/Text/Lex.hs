@@ -32,6 +32,7 @@ type Lexer a = Text -> Either String (a,Text)
 -- | Read a decimal number.
 decimal :: Integral a => Lexer a
 {-# SPECIALIZE decimal :: Lexer Int #-}
+{-# SPECIALIZE decimal :: Lexer Integer #-}
 decimal txt
     | T.null h  = Left "no digits in input"
     | otherwise = Right (T.foldl' go 0 h, t)
@@ -42,6 +43,7 @@ decimal txt
 -- function is case insensitive.
 hexadecimal :: Integral a => Lexer a
 {-# SPECIALIZE hex :: Lexer Int #-}
+{-# SPECIALIZE hex :: Lexer Integer #-}
 hexadecimal txt
     | T.toLower h == "0x" = hex t
     | otherwise           = hex txt
@@ -49,6 +51,7 @@ hexadecimal txt
 
 hex :: Integral a => Lexer a
 {-# SPECIALIZE hex :: Lexer Int #-}
+{-# SPECIALIZE hex :: Lexer Integer #-}
 hex txt
     | T.null h  = Left "no digits in input"
     | otherwise = Right (T.foldl' go 0 h, t)
@@ -69,7 +72,8 @@ signed :: Num a => Lexer a -> Lexer a
 signed f = runP (signa (P f))
 
 signa :: Num a => Parser a -> Parser a
-{-# SPECIALIZE signa :: Parser Int -> Parser Int  #-}
+{-# SPECIALIZE signa :: Parser Int -> Parser Int #-}
+{-# SPECIALIZE signa :: Parser Integer -> Parser Integer #-}
 signa p = do
   sign <- perhaps '+' $ char (`elem` "-+")
   if sign == '+' then p else negate `liftM` p
@@ -108,6 +112,11 @@ rational = runP $ do
     n <- P decimal
     return (n, digits)
   power <- perhaps 0 (char (`elem` "eE") >> signa (P decimal) :: Parser Int)
-  return $! fromRational ((real % 1 + fraction % (10 ^ fracDigits)) *
-                          (10 ^ power))
+  return $! if fraction == 0
+            then if power == 0
+                 then fromIntegral real
+                 else fromIntegral real * (10 ^^ power)
+            else fromRational $ if power == 0
+                 then real % 1 + fraction % (10 ^ fracDigits)
+                 else (real % 1 + fraction % (10 ^ fracDigits)) * (10 ^^ power)
 
