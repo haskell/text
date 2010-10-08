@@ -17,8 +17,12 @@ main = do
                  S.difference a b
   text <- tidy "Data.Text"
   lazy <- tidy "Data.Text.Lazy"
-  putStrLn "In Data.Text:"
+  list <- tidy "Data.List"
+  putStrLn "Text \\ List:"
+  diff text list
+  putStrLn ""
+  putStrLn "Text \\ Lazy:"
   diff text lazy
   putStrLn ""
-  putStrLn "In Data.Text.Lazy:"
+  putStrLn "Lazy \\ Text:"
   diff lazy text

@@ -74,6 +74,7 @@ library
     Data.Text.Encoding.Error
     Data.Text.Foreign
     Data.Text.IO
+    Data.Text.Lex
     Data.Text.Lazy
     Data.Text.Lazy.Builder
     Data.Text.Lazy.Encoding
