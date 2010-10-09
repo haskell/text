@@ -1,3 +1,4 @@
+{-# LANGUAGE BangPatterns #-}
 import Debug.Trace
 import Control.Monad
 import Data.List
@@ -33,15 +34,15 @@ paranoid = foldr go [] . T.lines
                     else xs
     
 read2 :: Num a => T.Lexer a -> T.Text -> a
-read2 reader = go
+read2 reader = go 0
  where
-   go t
+   go !i t
     | T.null t = 0
     | otherwise = case reader t of
                     Left err -> error err
                     Right (n,t') -> case T.uncons t' of
                                       Nothing -> n
-                                      Just (_,t'') -> go t''
+                                      Just (_,t'') -> go (n+i) t''
 
 main = do
   args <- getArgs
