@@ -12,7 +12,7 @@ hex = T.signed T.hexadecimal :: T.Lexer Int
 
 double = T.double :: T.Lexer Double
 
-def = dec
+def = double
 
 read1 :: Num a => T.Lexer a -> T.Text -> a
 read1 reader = foldl' go 0 . T.lines
