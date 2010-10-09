@@ -107,7 +107,7 @@ signa :: Num a => Parser a -> Parser a
 {-# SPECIALIZE signa :: Parser Int -> Parser Int #-}
 {-# SPECIALIZE signa :: Parser Integer -> Parser Integer #-}
 signa p = do
-  sign <- perhaps '+' $ char (`elem` "-+")
+  sign <- perhaps '+' $ char (\c -> c == '-' || c == '+')
   if sign == '+' then p else negate `liftM` p
 
 newtype Parser a = P {
@@ -142,7 +142,8 @@ floaty f = runP $ do
     digits <- P $ \t -> Right (T.length $ T.takeWhile isDigit t, t)
     n <- P decimal
     return (n, digits)
-  power <- perhaps 0 (char (`elem` "eE") >> signa (P decimal) :: Parser Int)
+  let e c = c == 'e' || c == 'E'
+  power <- perhaps 0 (char e >> signa (P decimal) :: Parser Int)
   return $! if fracDigits == 0
             then if power == 0
                  then fromIntegral real
