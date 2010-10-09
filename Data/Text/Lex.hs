@@ -133,15 +133,17 @@ char p = P $ \t -> case T.uncons t of
                      Just (c,t') | p c -> Right (c,t')
                      _                 -> Left "char"
 
+data T = T !Integer !Int
+
 floaty :: RealFloat a => (Integer -> Integer -> Integer -> a) -> Lexer a
 {-# INLINE floaty #-}
 floaty f = runP $ do
   real <- signa (P decimal)
-  (fraction,fracDigits) <- perhaps (0,0) $ do
+  T fraction fracDigits <- perhaps (T 0 0) $ do
     _ <- char (=='.')
     digits <- P $ \t -> Right (T.length $ T.takeWhile isDigit t, t)
     n <- P decimal
-    return (n, digits)
+    return $ T n digits
   let e c = c == 'e' || c == 'E'
   power <- perhaps 0 (char e >> signa (P decimal) :: Parser Int)
   return $! if fracDigits == 0
