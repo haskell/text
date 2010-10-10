@@ -332,10 +332,10 @@ append xs ys = foldrChunks Chunk ys xs
 -- | /O(1)/ Returns the first character and rest of a 'Text', or
 -- 'Nothing' if empty. Subject to array fusion.
 uncons :: Text -> Maybe (Char, Text)
-uncons Empty = Nothing
-uncons (Chunk t ts) =
-    Just (T.unsafeHead t,
-          if T.compareLength t 1 == EQ then ts else Chunk (T.unsafeTail t) ts)
+uncons Empty        = Nothing
+uncons (Chunk t ts) = Just (T.unsafeHead t, ts')
+  where ts' | T.compareLength t 1 == EQ = ts
+            | otherwise                 = Chunk (T.unsafeTail t) ts
 {-# INLINE uncons #-}
 
 -- | /O(1)/ Returns the first character of a 'Text', which must be
