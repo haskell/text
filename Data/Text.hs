@@ -170,7 +170,7 @@ module Data.Text
     -- , sort
     ) where
 
-import Prelude (Char, Bool(..), Functor(..), Int, Maybe(..), String,
+import Prelude (Char, Bool(..), Int, Maybe(..), String,
                 Eq(..), Ord(..), Ordering(..), (++),
                 Read(..), Show(..),
                 (&&), (||), (+), (-), (.), ($), ($!), (>>), (*),
