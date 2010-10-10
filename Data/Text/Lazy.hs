@@ -174,7 +174,7 @@ module Data.Text.Lazy
     ) where
 
 import Prelude (Char, Bool(..), Maybe(..), String,
-                Eq(..), Ord(..), Ordering, Read(..), Show(..),
+                Eq(..), Ord(..), Ordering(..), Read(..), Show(..),
                 (&&), (+), (-), (.), ($), (++),
                 div, error, flip, fromIntegral, not, otherwise)
 import qualified Prelude as P
@@ -335,7 +335,7 @@ uncons :: Text -> Maybe (Char, Text)
 uncons Empty = Nothing
 uncons (Chunk t ts) =
     Just (T.unsafeHead t,
-          if T.length t == 1 then ts else Chunk (T.unsafeTail t) ts)
+          if T.compareLength t 1 == EQ then ts else Chunk (T.unsafeTail t) ts)
 {-# INLINE uncons #-}
 
 -- | /O(1)/ Returns the first character of a 'Text', which must be
