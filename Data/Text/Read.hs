@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 -- |
--- Module      : Data.Text.Lex
+-- Module      : Data.Text.Read
 -- Copyright   : (c) 2010 Bryan O'Sullivan
 --
 -- License     : BSD-style
@@ -10,10 +10,10 @@
 -- Stability   : experimental
 -- Portability : GHC
 --
--- Lexing functions used frequently when handling textual data.
-module Data.Text.Lex
+-- Reading functions used frequently when handling textual data.
+module Data.Text.Read
     (
-      Lexer
+      Reader
     , decimal
     , hexadecimal
     , signed
@@ -28,15 +28,15 @@ import Data.Text as T
 
 -- | Read some text, and if the read succeeds, return its value and
 -- the remaining text.
-type Lexer a = Text -> Either String (a,Text)
+type Reader a = Text -> Either String (a,Text)
 
 -- | Read a decimal integer.
 --
 -- This function does not handle leading sign characters.  If you need
 -- to handle signed input, use @'signed' 'decimal'@.
-decimal :: Integral a => Lexer a
-{-# SPECIALIZE decimal :: Lexer Int #-}
-{-# SPECIALIZE decimal :: Lexer Integer #-}
+decimal :: Integral a => Reader a
+{-# SPECIALIZE decimal :: Reader Int #-}
+{-# SPECIALIZE decimal :: Reader Integer #-}
 decimal txt
     | T.null h  = Left "no digits in input"
     | otherwise = Right (T.foldl' go 0 h, t)
@@ -48,9 +48,9 @@ decimal txt
 --
 -- This function does not handle leading sign characters.  If you need
 -- to handle signed input, use @'signed' 'hexadecimal'@.
-hexadecimal :: Integral a => Lexer a
-{-# SPECIALIZE hex :: Lexer Int #-}
-{-# SPECIALIZE hex :: Lexer Integer #-}
+hexadecimal :: Integral a => Reader a
+{-# SPECIALIZE hex :: Reader Int #-}
+{-# SPECIALIZE hex :: Reader Integer #-}
 hexadecimal txt
     | T.toLower h == "0x" = hex t
     | otherwise           = hex txt
@@ -58,15 +58,15 @@ hexadecimal txt
 
 -- | Read a leading sign character (@\'-\'@ or @\'+\'@) and apply it
 -- to the result of applying the given reader.
-signed :: Num a => Lexer a -> Lexer a
+signed :: Num a => Reader a -> Reader a
 {-# INLINE signed #-}
 signed f = runP (signa (P f))
 
 -- | Read a rational number.
 --
 -- This function accepts an optional leading sign character.
-rational :: RealFloat a => Lexer a
-{-# SPECIALIZE rational :: Lexer Double #-}
+rational :: RealFloat a => Reader a
+{-# SPECIALIZE rational :: Reader Double #-}
 rational = floaty $ \real frac fracDenom -> fromRational $
                      real % 1 + frac % fracDenom
 
@@ -82,14 +82,14 @@ rational = floaty $ \real frac fracDenom -> fromRational $
 -- results, but for the remaining 5.8%, this function loses precision
 -- around the 15th decimal place.  For 0.001% of numbers, this
 -- function will lose precision at the 13th or 14th decimal place.
-double :: Lexer Double
+double :: Reader Double
 double = floaty $ \real frac fracDenom ->
                    fromIntegral real +
                    fromIntegral frac / fromIntegral fracDenom
 
-hex :: Integral a => Lexer a
-{-# SPECIALIZE hex :: Lexer Int #-}
-{-# SPECIALIZE hex :: Lexer Integer #-}
+hex :: Integral a => Reader a
+{-# SPECIALIZE hex :: Reader Int #-}
+{-# SPECIALIZE hex :: Reader Integer #-}
 hex txt
     | T.null h  = Left "no digits in input"
     | otherwise = Right (T.foldl' go 0 h, t)
@@ -135,7 +135,7 @@ char p = P $ \t -> case T.uncons t of
 
 data T = T !Integer !Int
 
-floaty :: RealFloat a => (Integer -> Integer -> Integer -> a) -> Lexer a
+floaty :: RealFloat a => (Integer -> Integer -> Integer -> a) -> Reader a
 {-# INLINE floaty #-}
 floaty f = runP $ do
   real <- signa (P decimal)
