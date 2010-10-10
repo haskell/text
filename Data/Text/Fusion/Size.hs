@@ -68,11 +68,17 @@ instance Num Size where
     fromInteger = f where f = Exact . fromInteger
                           {-# INLINE f #-}
 
+add :: Int -> Int -> Int
+add m n | mn >    0 = mn
+        | otherwise = overflowError
+  where mn = m + n
+{-# INLINE add #-}
+
 addSize :: Size -> Size -> Size
-addSize (Exact m) (Exact n) = Exact (m+n)
-addSize (Exact m) (Max   n) = Max   (m+n)
-addSize (Max   m) (Exact n) = Max   (m+n)
-addSize (Max   m) (Max   n) = Max   (m+n)
+addSize (Exact m) (Exact n) = Exact (add m n)
+addSize (Exact m) (Max   n) = Max   (add m n)
+addSize (Max   m) (Exact n) = Max   (add m n)
+addSize (Max   m) (Max   n) = Max   (add m n)
 addSize _          _       = Unknown
 {-# INLINE addSize #-}
 
@@ -85,11 +91,17 @@ subtractSize a@(Max   _) Unknown   = a
 subtractSize _         _           = Unknown
 {-# INLINE subtractSize #-}
 
+mul :: Int -> Int -> Int
+mul m n
+    | m <= maxBound `div` n = m * n
+    | otherwise             = overflowError
+{-# INLINE mul #-}
+
 mulSize :: Size -> Size -> Size
-mulSize (Exact m) (Exact n) = Exact (m*n)
-mulSize (Exact m) (Max   n) = Max   (m*n)
-mulSize (Max   m) (Exact n) = Max   (m*n)
-mulSize (Max   m) (Max   n) = Max   (m*n)
+mulSize (Exact m) (Exact n) = Exact (mul m n)
+mulSize (Exact m) (Max   n) = Max   (mul m n)
+mulSize (Max   m) (Exact n) = Max   (mul m n)
+mulSize (Max   m) (Max   n) = Max   (mul m n)
 mulSize _          _        = Unknown
 {-# INLINE mulSize #-}
 
@@ -129,3 +141,6 @@ isEmpty (Exact n) = n <= 0
 isEmpty (Max   n) = n <= 0
 isEmpty _         = False
 {-# INLINE isEmpty #-}
+
+overflowError :: Int
+overflowError = error "Data.Text.Fusion.Size: size overflow"
