@@ -78,6 +78,7 @@ library
     Data.Text.Lazy.Builder
     Data.Text.Lazy.Encoding
     Data.Text.Lazy.IO
+    Data.Text.Lazy.Read
     Data.Text.Read
   other-modules:
     Data.Text.Array

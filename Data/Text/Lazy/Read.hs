@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 -- |
--- Module      : Data.Text.Read
+-- Module      : Data.Text.Lazy.Read
 -- Copyright   : (c) 2010 Bryan O'Sullivan
 --
 -- License     : BSD-style
@@ -11,7 +11,7 @@
 -- Portability : GHC
 --
 -- Functions used frequently when reading textual data.
-module Data.Text.Read
+module Data.Text.Lazy.Read
     (
       Reader
     , decimal
@@ -24,7 +24,7 @@ module Data.Text.Read
 import Control.Monad (liftM)
 import Data.Char (digitToInt, isDigit, isHexDigit, ord)
 import Data.Ratio
-import Data.Text as T
+import Data.Text.Lazy as T
 
 -- | Read some text, and if the read succeeds, return its value and
 -- the remaining text.
@@ -141,7 +141,7 @@ floaty f = runP $ do
   real <- signa (P decimal)
   T fraction fracDigits <- perhaps (T 0 0) $ do
     _ <- char (=='.')
-    digits <- P $ \t -> Right (T.length $ T.takeWhile isDigit t, t)
+    digits <- P $ \t -> Right (fromIntegral . T.length $ T.takeWhile isDigit t, t)
     n <- P decimal
     return $ T n digits
   let e c = c == 'e' || c == 'E'
