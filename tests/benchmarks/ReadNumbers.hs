@@ -2,9 +2,9 @@
 import Debug.Trace
 import Control.Monad
 import Data.List
-import qualified Data.Text.Read as T
-import qualified Data.Text.IO as T
-import qualified Data.Text as T
+import qualified Data.Text.Lazy.Read as T
+import qualified Data.Text.Lazy.IO as T
+import qualified Data.Text.Lazy as T
 import System.Environment
 
 dec = T.signed T.decimal :: T.Reader Int
