@@ -33,11 +33,11 @@ module Data.Text.Lazy.Internal
     , chunkOverhead
     ) where
 
-import qualified Data.Text.Internal as T
 import Data.Text ()
-import Data.Text.UnsafeShift
+import Data.Text.UnsafeShift (shiftL)
 import Data.Typeable (Typeable)
 import Foreign.Storable (sizeOf)
+import qualified Data.Text.Internal as T
 
 data Text = Empty
           | Chunk {-# UNPACK #-} !T.Text Text
