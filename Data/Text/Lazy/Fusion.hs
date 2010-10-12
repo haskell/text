@@ -54,7 +54,8 @@ unstreamChunks chunkSize (Stream next s0 len0)
   | isEmpty len0 = Empty
   | otherwise    = outer s0
   where
-    outer s = case next s of
+    outer s = {-# SCC "unstreamChunks/outer" #-}
+              case next s of
                 Done       -> Empty
                 Skip s'    -> outer s'
                 Yield x s' -> I.Text arr 0 len `chunk` outer s''
@@ -64,12 +65,13 @@ unstreamChunks chunkSize (Stream next s0 len0)
                         unknownLength = 4
     inner marr len s !i
         | i + 1 >= chunkSize = return (marr, (s,i))
-        | i + 1 >= len       = do
+        | i + 1 >= len       = {-# SCC "unstreamChunks/resize" #-} do
             let newLen = min (len `shiftL` 1) chunkSize
             marr' <- A.new newLen
             A.copyM marr' 0 marr 0 len
             inner marr' newLen s i
         | otherwise =
+            {-# SCC "unstreamChunks/inner" #-}
             case next s of
               Done        -> return (marr,(s,i))
               Skip s'     -> inner marr len s' i
