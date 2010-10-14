@@ -47,6 +47,31 @@ string h = do
   t <- hGetContents h
   rnf t `seq` return ()
 
+string_len h = do
+  hSetEncoding h utf8
+  t <- hGetContents h
+  print (length t)
+
+lazy_string_utf8 h = do
+  bs <- BL.hGetContents h
+  let t = U8.toString bs
+  rnf t `seq` return ()
+
+lazy_string_utf8_len h = do
+  bs <- BL.hGetContents h
+  let t = U8.toString bs
+  print (length t)
+
+strict_string_utf8 h = do
+  bs <- B.hGetContents h
+  let t = U8.toString bs
+  rnf t `seq` return ()
+
+strict_string_utf8_len h = do
+  bs <- B.hGetContents h
+  let t = U8.toString bs
+  print (length t)
+
 main = do
   [kind,name] <- getArgs
   h <- openFile name ReadMode
@@ -59,3 +84,8 @@ main = do
     "lazy" -> lazy h
     "lazy_io" -> lazy_io h
     "string" -> string h
+    "string_len" -> string_len h
+    "lazy_string_utf8" -> lazy_string_utf8 h
+    "lazy_string_utf8_len" -> lazy_string_utf8_len h
+    "strict_string_utf8" -> strict_string_utf8 h
+    "strict_string_utf8_len" -> strict_string_utf8_len h
