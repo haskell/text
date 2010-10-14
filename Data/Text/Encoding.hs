@@ -22,14 +22,12 @@ module Data.Text.Encoding
     -- * Decoding ByteStrings to Text
       decodeASCII
     , decodeUtf8
-    , decodeUtf8'
     , decodeUtf16LE
     , decodeUtf16BE
     , decodeUtf32LE
     , decodeUtf32BE
     -- ** Controllable error handling
     , decodeUtf8With
-    , decodeUtf8With'
     , decodeUtf16LEWith
     , decodeUtf16BEWith
     , decodeUtf32LEWith
@@ -67,18 +65,8 @@ decodeASCII :: ByteString -> Text
 decodeASCII bs = F.unstream (E.streamASCII bs)
 {-# INLINE decodeASCII #-}
 
--- | Decode a 'ByteString' containing UTF-8 encoded text.
 decodeUtf8With :: OnDecodeError -> ByteString -> Text
-decodeUtf8With onErr bs = F.unstream (E.streamUtf8 onErr bs)
-{-# INLINE decodeUtf8With #-}
-
--- | Decode a 'ByteString' containing UTF-8 encoded text.
-decodeUtf8 :: ByteString -> Text
-decodeUtf8 = decodeUtf8With strictDecode
-{-# INLINE decodeUtf8 #-}
-
-decodeUtf8With' :: OnDecodeError -> ByteString -> Text
-decodeUtf8With' onErr bs = textP (fst a) 0 (snd a)
+decodeUtf8With onErr bs = textP (fst a) 0 (snd a)
  where
   a   = A.run2 (A.new len >>= outer 0 0)
   len = B.length bs
@@ -109,16 +97,16 @@ decodeUtf8With' onErr bs = textP (fst a) 0 (snd a)
                          Just c -> do
                            w <- unsafeWrite arr n c
                            go (n+w) (m+1)
-  desc = "Data.Text.Encoding.encodeUtf8: Invalid UTF-8 stream"
-{-# INLINE[0] decodeUtf8With' #-}
+  desc = "Data.Text.Encoding.decodeUtf8: Invalid UTF-8 stream"
+{-# INLINE[0] decodeUtf8With #-}
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text.
-decodeUtf8' :: ByteString -> Text
-decodeUtf8' = decodeUtf8With' strictDecode
-{-# INLINE[0] decodeUtf8' #-}
+decodeUtf8 :: ByteString -> Text
+decodeUtf8 = decodeUtf8With strictDecode
+{-# INLINE[0] decodeUtf8 #-}
 
-{-# RULES "STREAM stream/decodeUtf8' fusion" [1]
-    forall bs. F.stream (decodeUtf8' bs) = E.streamUtf8 strictDecode bs #-}
+{-# RULES "STREAM stream/decodeUtf8 fusion" [1]
+    forall bs. F.stream (decodeUtf8 bs) = E.streamUtf8 strictDecode bs #-}
 
 -- | Encode text using UTF-8 encoding.
 encodeUtf8 :: Text -> ByteString

@@ -15,22 +15,23 @@ strict h = do
   bs <- B.hGetContents h
   rnf (T.decodeUtf8 bs) `seq` return ()
 
-strict_ h = do
-  bs <- B.hGetContents h
-  rnf (T.decodeUtf8' bs) `seq` return ()
-
 strict_len h = do
   bs <- B.hGetContents h
-  print . T.length . T.init . T.decodeUtf8 $ bs
+  print . T.length . T.decodeUtf8 $ bs
 
-strict__len h = do
+strict_init_len h = do
   bs <- B.hGetContents h
-  print . T.length . T.init . T.decodeUtf8' $ bs
+  print . T.length . T.init . T.decodeUtf8 $ bs
 
 strict_io h = do
   hSetEncoding h utf8
   t <- T.hGetContents h
   rnf t `seq` return ()
+
+strict_len_io h = do
+  hSetEncoding h utf8
+  t <- T.hGetContents h
+  print (T.length t)
 
 lazy h = do
   bs <- BL.hGetContents h
@@ -51,10 +52,10 @@ main = do
   h <- openFile name ReadMode
   case kind of
     "strict" -> strict h
-    "strict_" -> strict_ h
-    "strict__len" -> strict__len h
     "strict_len" -> strict_len h
+    "strict_init_len" -> strict_init_len h
     "strict_io" -> strict_io h
+    "strict_len_io" -> strict_len_io h
     "lazy" -> lazy h
     "lazy_io" -> lazy_io h
     "string" -> string h
