@@ -15,6 +15,10 @@ strict h = do
   bs <- B.hGetContents h
   rnf (T.decodeUtf8 bs) `seq` return ()
 
+strict_ h = do
+  bs <- B.hGetContents h
+  rnf (T.decodeUtf8' bs) `seq` return ()
+
 strict_io h = do
   hSetEncoding h utf8
   t <- T.hGetContents h
@@ -39,6 +43,7 @@ main = do
   h <- openFile name ReadMode
   case kind of
     "strict" -> strict h
+    "strict_" -> strict_ h
     "strict_io" -> strict_io h
     "lazy" -> lazy h
     "lazy_io" -> lazy_io h

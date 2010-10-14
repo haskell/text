@@ -22,12 +22,14 @@ module Data.Text.Encoding
     -- * Decoding ByteStrings to Text
       decodeASCII
     , decodeUtf8
+    , decodeUtf8'
     , decodeUtf16LE
     , decodeUtf16BE
     , decodeUtf32LE
     , decodeUtf32BE
     -- ** Controllable error handling
     , decodeUtf8With
+    , decodeUtf8With'
     , decodeUtf16LEWith
     , decodeUtf16BEWith
     , decodeUtf32LEWith
@@ -44,10 +46,10 @@ module Data.Text.Encoding
 import Data.Bits ((.&.))
 import Data.ByteString as B
 import Data.ByteString.Internal as B
+import Data.ByteString.Unsafe as B
 import Data.Text.Encoding.Error (OnDecodeError, strictDecode)
-import Data.Text.Encoding.Utf16 (chr2)
-import Data.Text.Internal (Text(..))
-import Data.Text.UnsafeChar (ord)
+import Data.Text.Internal (Text(..), textP)
+import Data.Text.UnsafeChar (ord, unsafeWrite)
 import Data.Text.UnsafeShift (shiftL, shiftR)
 import Data.Word (Word8)
 import Foreign.ForeignPtr (withForeignPtr)
@@ -56,6 +58,8 @@ import Foreign.Storable (poke)
 import System.IO.Unsafe (unsafePerformIO)
 import qualified Data.Text.Array as A
 import qualified Data.Text.Encoding.Fusion as E
+import qualified Data.Text.Encoding.Utf16 as U16
+import qualified Data.Text.Encoding.Utf8 as U8
 import qualified Data.Text.Fusion as F
 
 -- | Decode a 'ByteString' containing 7-bit ASCII encoded text.
@@ -72,6 +76,46 @@ decodeUtf8With onErr bs = F.unstream (E.streamUtf8 onErr bs)
 decodeUtf8 :: ByteString -> Text
 decodeUtf8 = decodeUtf8With strictDecode
 {-# INLINE decodeUtf8 #-}
+
+decodeUtf8With' :: OnDecodeError -> ByteString -> Text
+decodeUtf8With' onErr bs = textP (fst a) 0 (snd a)
+ where
+  a   = A.run2 (A.new len >>= outer 0 0)
+  len = B.length bs
+  outer n0 m0 arr = go n0 m0
+   where
+    go !n !m = do
+      let x1 = idx m
+          x2 = idx (m + 1)
+          x3 = idx (m + 2)
+          x4 = idx (m + 3)
+          idx = B.unsafeIndex bs
+      case undefined of
+       _| m >= len -> return (arr,n)
+        | U8.validate1 x1 -> do
+           A.unsafeWrite arr n (fromIntegral x1)
+           go (n+1) (m+1)
+        | m+1 < len && U8.validate2 x1 x2 -> do
+           w <- unsafeWrite arr n (U8.chr2 x1 x2)
+           go (n+w) (m+2)
+        | m+2 < len && U8.validate3 x1 x2 x3 -> do
+           w <- unsafeWrite arr n (U8.chr3 x1 x2 x3)
+           go (n+w) (m+3)
+        | m+3 < len && U8.validate4 x1 x2 x3 x4 -> do
+           w <- unsafeWrite arr n (U8.chr4 x1 x2 x3 x4)
+           go (n+w) (m+4)
+        | otherwise -> case onErr desc (Just x1) of
+                         Nothing -> go n (m+1)
+                         Just c -> do
+                           w <- unsafeWrite arr n c
+                           go (n+w) (m+1)
+  desc = "Data.Text.Encoding.encodeUtf8: Invalid UTF-8 stream"
+{-# INLINE decodeUtf8With' #-}
+
+-- | Decode a 'ByteString' containing UTF-8 encoded text.
+decodeUtf8' :: ByteString -> Text
+decodeUtf8' = decodeUtf8With' strictDecode
+{-# INLINE decodeUtf8' #-}
 
 -- | Encode text using UTF-8 encoding.
 encodeUtf8 :: Text -> ByteString
@@ -102,7 +146,7 @@ encodeUtf8 (Text arr off len) = unsafePerformIO $ do
                   poke8 (m+1) $ (w .&. 0x3f) + 0x80
                   go (n+1) (m+2)
               | 0xD800 <= w && w <= 0xDBFF -> do
-                  let c = ord $ chr2 w (A.unsafeIndex arr (n+1))
+                  let c = ord $ U16.chr2 w (A.unsafeIndex arr (n+1))
                   poke8 m     $ (c `shiftR` 18) + 0xF0
                   poke8 (m+1) $ ((c `shiftR` 12) .&. 0x3F) + 0x80
                   poke8 (m+2) $ ((c `shiftR` 6) .&. 0x3F) + 0x80
