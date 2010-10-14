@@ -53,6 +53,8 @@ extra-source-files:
     tests/StdioCoverage.hs
     tests/TestUtils.hs
     tests/benchmarks/Cut.hs
+    tests/benchmarks/DecodeUtf8.hs
+    tests/benchmarks/EncodeUtf8.hs
     tests/benchmarks/FileIndices.hs
     tests/benchmarks/FileRead.hs
     tests/benchmarks/FoldLines.hs
