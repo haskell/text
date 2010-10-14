@@ -48,7 +48,7 @@ between :: Word8                -- ^ byte to check
 between x y z = x >= y && x <= z
 {-# INLINE between #-}
 
-ord2   :: Char -> (Word8,Word8)
+ord2 :: Char -> (Word8,Word8)
 ord2 c =
 #if defined(ASSERTS)
     assert (n >= 0x80 && n <= 0x07ff)
@@ -59,7 +59,7 @@ ord2 c =
       x1 = fromIntegral $ (n `shiftR` 6) + 0xC0
       x2 = fromIntegral $ (n .&. 0x3F)   + 0x80
 
-ord3   :: Char -> (Word8,Word8,Word8)
+ord3 :: Char -> (Word8,Word8,Word8)
 ord3 c =
 #if defined(ASSERTS)
     assert (n >= 0x0800 && n <= 0xffff)
@@ -71,7 +71,7 @@ ord3 c =
       x2 = fromIntegral $ ((n `shiftR` 6) .&. 0x3F) + 0x80
       x3 = fromIntegral $ (n .&. 0x3F) + 0x80
 
-ord4   :: Char -> (Word8,Word8,Word8,Word8)
+ord4 :: Char -> (Word8,Word8,Word8,Word8)
 ord4 c =
 #if defined(ASSERTS)
     assert (n >= 0x10000)
@@ -84,7 +84,7 @@ ord4 c =
       x3 = fromIntegral $ ((n `shiftR` 6) .&. 0x3F) + 0x80
       x4 = fromIntegral $ (n .&. 0x3F) + 0x80
 
-chr2       :: Word8 -> Word8 -> Char
+chr2 :: Word8 -> Word8 -> Char
 chr2 (W8# x1#) (W8# x2#) = C# (chr# (z1# +# z2#))
     where
       !y1# = word2Int# x1#
@@ -93,7 +93,7 @@ chr2 (W8# x1#) (W8# x2#) = C# (chr# (z1# +# z2#))
       !z2# = y2# -# 0x80#
 {-# INLINE chr2 #-}
 
-chr3          :: Word8 -> Word8 -> Word8 -> Char
+chr3 :: Word8 -> Word8 -> Word8 -> Char
 chr3 (W8# x1#) (W8# x2#) (W8# x3#) = C# (chr# (z1# +# z2# +# z3#))
     where
       !y1# = word2Int# x1#
@@ -118,20 +118,17 @@ chr4 (W8# x1#) (W8# x2#) (W8# x3#) (W8# x4#) =
       !z4# = y4# -# 0x80#
 {-# INLINE chr4 #-}
 
-validate1    :: Word8 -> Bool
+validate1 :: Word8 -> Bool
 validate1 x1 = x1 <= 0x7F
 {-# INLINE validate1 #-}
 
-validate2       :: Word8 -> Word8 -> Bool
+validate2 :: Word8 -> Word8 -> Bool
 validate2 x1 x2 = between x1 0xC2 0xDF && between x2 0x80 0xBF
 {-# INLINE validate2 #-}
 
-validate3          :: Word8 -> Word8 -> Word8 -> Bool
+validate3 :: Word8 -> Word8 -> Word8 -> Bool
 {-# INLINE validate3 #-}
-validate3 x1 x2 x3 = validate3_1 ||
-                     validate3_2 ||
-                     validate3_3 ||
-                     validate3_4
+validate3 x1 x2 x3 = validate3_1 || validate3_2 || validate3_3 || validate3_4
   where
     validate3_1 = (x1 == 0xE0) &&
                   between x2 0xA0 0xBF &&
@@ -146,11 +143,9 @@ validate3 x1 x2 x3 = validate3_1 ||
                   between x2 0x80 0xBF &&
                   between x3 0x80 0xBF
 
-validate4             :: Word8 -> Word8 -> Word8 -> Word8 -> Bool
+validate4 :: Word8 -> Word8 -> Word8 -> Word8 -> Bool
 {-# INLINE validate4 #-}
-validate4 x1 x2 x3 x4 = validate4_1 ||
-                        validate4_2 ||
-                        validate4_3
+validate4 x1 x2 x3 x4 = validate4_1 || validate4_2 || validate4_3
   where 
     validate4_1 = x1 == 0xF0 &&
                   between x2 0x90 0xBF &&
