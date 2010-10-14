@@ -32,18 +32,20 @@ module Data.Text.Lazy.Encoding
 
     -- * Encoding Text to ByteStrings
     , encodeUtf8
+    , encodeUtf8'
     , encodeUtf16LE
     , encodeUtf16BE
     , encodeUtf32LE
     , encodeUtf32BE
     ) where
 
-import qualified Data.ByteString.Lazy as B
 import Data.Text.Encoding.Error (OnDecodeError, strictDecode)
-import qualified Data.Text.Encoding as TE
-import qualified Data.Text.Lazy.Fusion as F
 import Data.Text.Lazy.Internal (Text(..), chunk, foldrChunks)
+import qualified Data.ByteString.Lazy as B
+import qualified Data.ByteString.Lazy.Internal as B
+import qualified Data.Text.Encoding as TE
 import qualified Data.Text.Lazy.Encoding.Fusion as E
+import qualified Data.Text.Lazy.Fusion as F
 
 -- | Decode a 'ByteString' containing 7-bit ASCII encoded text.
 decodeASCII :: B.ByteString -> Text
@@ -61,9 +63,13 @@ decodeUtf8 = decodeUtf8With strictDecode
 {-# INLINE decodeUtf8 #-}
 
 -- | Encode text using UTF-8 encoding.
+encodeUtf8' :: Text -> B.ByteString
+encodeUtf8' txt = E.unstream (E.restreamUtf8 (F.stream txt))
+{-# INLINE encodeUtf8' #-}
+
 encodeUtf8 :: Text -> B.ByteString
-encodeUtf8 txt = E.unstream (E.restreamUtf8 (F.stream txt))
-{-# INLINE encodeUtf8 #-}
+encodeUtf8 (Chunk c cs) = B.Chunk (TE.encodeUtf8 c) (encodeUtf8 cs)
+encodeUtf8 Empty        = B.Empty
 
 -- | Decode text from little endian UTF-16 encoding.
 decodeUtf16LEWith :: OnDecodeError -> B.ByteString -> Text
