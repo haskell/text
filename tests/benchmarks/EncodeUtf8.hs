@@ -19,14 +19,6 @@ lazy_bytestring k s = do
   let t = TL.replicate (fromIntegral k) (TL.pack s)
   BL.putStr (TL.encodeUtf8 t)
 
-strict_bytestring_ k s = do
-  let t = T.replicate k (T.pack s)
-  B.putStr (T.encodeUtf8' t)
-
-lazy_bytestring_ k s = do
-  let t = TL.replicate (fromIntegral k) (TL.pack s)
-  BL.putStr (TL.encodeUtf8' t)
-
 strict_io k s = do
   let t = T.replicate k (T.pack s)
   hSetEncoding stdout utf8
@@ -56,8 +48,6 @@ main = do
   case kind of
     "strict" -> strict_bytestring k str
     "lazy" -> lazy_bytestring k str
-    "strict_" -> strict_bytestring_ k str
-    "lazy_" -> lazy_bytestring_ k str
     "strict_io" -> strict_io k str
     "lazy_io" -> lazy_io k str
     "string" -> string k str
