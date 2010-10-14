@@ -175,7 +175,7 @@ module Data.Text.Lazy
 
 import Prelude (Char, Bool(..), Maybe(..), String,
                 Eq(..), Ord(..), Ordering(..), Read(..), Show(..),
-                (&&), (+), (-), (.), ($), (++),
+                (&&), (||), (+), (-), (.), ($), (++),
                 div, error, flip, fromIntegral, not, otherwise)
 import qualified Prelude as P
 #if defined(HAVE_DEEPSEQ)
@@ -721,9 +721,12 @@ mapAccumR f = go
 -- | /O(n*m)/ 'replicate' @n@ @t@ is a 'Text' consisting of the input
 -- @t@ repeated @n@ times.
 replicate :: Int64 -> Text -> Text
-replicate n t = concat (rep 0)
-    where rep i | i >= n    = []
-                | otherwise = t : rep (i+1)
+replicate n t
+    | null t || n <= 0 = empty
+    | isSingleton t    = replicateChar n (head t)
+    | otherwise        = concat (rep 0)
+    where rep !i | i >= n    = []
+                 | otherwise = t : rep (i+1)
 {-# INLINE replicate #-}
 
 -- | /O(n)/ 'replicateChar' @n@ @c@ is a 'Text' of length @n@ with @c@ the
