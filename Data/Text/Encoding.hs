@@ -42,7 +42,7 @@ module Data.Text.Encoding
     , encodeUtf32LE
     , encodeUtf32BE
     ) where
-    
+
 import Data.Bits ((.&.))
 import Data.ByteString as B
 import Data.ByteString.Internal as B
@@ -110,12 +110,15 @@ decodeUtf8With' onErr bs = textP (fst a) 0 (snd a)
                            w <- unsafeWrite arr n c
                            go (n+w) (m+1)
   desc = "Data.Text.Encoding.encodeUtf8: Invalid UTF-8 stream"
-{-# INLINE decodeUtf8With' #-}
+{-# INLINE[0] decodeUtf8With' #-}
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text.
 decodeUtf8' :: ByteString -> Text
 decodeUtf8' = decodeUtf8With' strictDecode
-{-# INLINE decodeUtf8' #-}
+{-# INLINE[0] decodeUtf8' #-}
+
+{-# RULES "STREAM stream/decodeUtf8' fusion" [1]
+    forall bs. F.stream (decodeUtf8' bs) = E.streamUtf8 strictDecode bs #-}
 
 -- | Encode text using UTF-8 encoding.
 encodeUtf8 :: Text -> ByteString
