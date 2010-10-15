@@ -20,14 +20,12 @@ module Data.Text.Lazy.Encoding
     -- * Decoding ByteStrings to Text
       decodeASCII
     , decodeUtf8
-    , decodeUtf8'
     , decodeUtf16LE
     , decodeUtf16BE
     , decodeUtf32LE
     , decodeUtf32BE
     -- ** Controllable error handling
     , decodeUtf8With
-    , decodeUtf8With'
     , decodeUtf16LEWith
     , decodeUtf16BEWith
     , decodeUtf32LEWith
@@ -60,17 +58,7 @@ decodeASCII bs = foldr (chunk . TE.decodeASCII) empty (B.toChunks bs)
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text.
 decodeUtf8With :: OnDecodeError -> B.ByteString -> Text
-decodeUtf8With onErr bs = F.unstream (E.streamUtf8 onErr bs)
-{-# INLINE decodeUtf8With #-}
-
--- | Decode a 'ByteString' containing UTF-8 encoded text.
-decodeUtf8 :: B.ByteString -> Text
-decodeUtf8 = decodeUtf8With strictDecode
-{-# INLINE decodeUtf8 #-}
-
--- | Decode a 'ByteString' containing UTF-8 encoded text.
-decodeUtf8With' :: OnDecodeError -> B.ByteString -> Text
-decodeUtf8With' onErr bs0 = fast bs0
+decodeUtf8With onErr bs0 = fast bs0
   where
     decode = TE.decodeUtf8With onErr
     fast (B.Chunk p ps) | isComplete p = chunk (decode p) (fast ps)
@@ -104,12 +92,12 @@ decodeUtf8With' onErr bs0 = fast bs0
       where len = S.length bs
             ix n = S.unsafeIndex bs (len-n)
     desc = "Data.Text.Lazy.Encoding.decodeUtf8With: Invalid UTF-8 stream"
-{-# INLINE[0] decodeUtf8With' #-}
+{-# INLINE[0] decodeUtf8With #-}
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text.
-decodeUtf8' :: B.ByteString -> Text
-decodeUtf8' = decodeUtf8With' strictDecode
-{-# INLINE[0] decodeUtf8' #-}
+decodeUtf8 :: B.ByteString -> Text
+decodeUtf8 = decodeUtf8With strictDecode
+{-# INLINE[0] decodeUtf8 #-}
 
 -- This rule seems to cause performance loss.
 {- RULES "LAZY STREAM stream/decodeUtf8' fusion" [1]

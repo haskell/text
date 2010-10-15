@@ -37,25 +37,13 @@ lazy h = do
   bs <- BL.hGetContents h
   rnf (TL.decodeUtf8 bs) `seq` return ()
 
-lazy_ h = do
-  bs <- BL.hGetContents h
-  rnf (TL.decodeUtf8' bs) `seq` return ()
-
 lazy_len h = do
   bs <- BL.hGetContents h
   print . TL.length . TL.decodeUtf8 $ bs
 
-lazy__len h = do
-  bs <- BL.hGetContents h
-  print . TL.length . TL.decodeUtf8' $ bs
-
 lazy_init_len h = do
   bs <- BL.hGetContents h
   print . TL.length . TL.init . TL.decodeUtf8 $ bs
-
-lazy__init_len h = do
-  bs <- BL.hGetContents h
-  print . TL.length . TL.init . TL.decodeUtf8' $ bs
 
 lazy_io h = do
   hSetEncoding h utf8
@@ -109,9 +97,6 @@ main = do
     "lazy" -> lazy h
     "lazy_len" -> lazy_len h
     "lazy_init_len" -> lazy_init_len h
-    "lazy__init_len" -> lazy__init_len h
-    "lazy_" -> lazy_ h
-    "lazy__len" -> lazy__len h
     "lazy_io" -> lazy_io h
     "lazy_len_io" -> lazy_len_io h
     "string" -> string h
