@@ -7,7 +7,8 @@ import Test.QuickCheck.Monadic
 import Text.Show.Functions ()
 
 import qualified Data.Bits as Bits (shiftL, shiftR)
-import Data.Char (chr, isLower, isSpace, isUpper, ord)
+import Numeric (showHex)
+import Data.Char (chr, isDigit, isHexDigit, isLower, isSpace, isUpper, ord)
 import Data.Monoid (Monoid(..))
 import Data.String (fromString)
 import Debug.Trace (trace)
@@ -21,6 +22,8 @@ import qualified Data.Text.Lazy.IO as TL
 import qualified Data.Text.Lazy.Internal as TL
 import qualified Data.Text.Lazy.Builder as TB
 import qualified Data.Text.Encoding as E
+import Data.Text.Read as T
+import Data.Text.Lazy.Read as TL
 import Data.Text.Encoding.Error
 import Control.Exception (SomeException, bracket, catch, evaluate, try)
 import Data.Text.Foreign
@@ -658,6 +661,23 @@ t_builderAssociative s1 s2 s3 =
         b2 = TB.fromText (packS s2)
         b3 = TB.fromText (packS s3)
 
+-- Reading.
+
+t_decimal (n::Int) s =
+    T.signed T.decimal (T.pack (show n) `T.append` t) == Right (n,t)
+    where t = T.dropWhile isDigit s
+tl_decimal (n::Int) s =
+    TL.signed TL.decimal (TL.pack (show n) `TL.append` t) == Right (n,t)
+    where t = TL.dropWhile isDigit s
+t_hexadecimal (n::Positive Int) s ox =
+    T.hexadecimal (T.concat [p, T.pack (showHex n ""), t]) == Right (n,t)
+    where t = T.dropWhile isHexDigit s
+          p = if ox then "0x" else ""
+tl_hexadecimal (n::Positive Int) s ox =
+    TL.hexadecimal (TL.concat [p, TL.pack (showHex n ""), t]) == Right (n,t)
+    where t = TL.dropWhile isHexDigit s
+          p = if ox then "0x" else ""
+
 -- Input and output.
 
 -- Work around lack of Show instance for TextEncoding.
@@ -1137,6 +1157,13 @@ tests = [
     testProperty "t_builderSingleton" t_builderSingleton,
     testProperty "t_builderFromText" t_builderFromText,
     testProperty "t_builderAssociative" t_builderAssociative
+  ],
+
+  testGroup "read" [
+    testProperty "t_decimal" t_decimal,
+    testProperty "tl_decimal" tl_decimal,
+    testProperty "t_hexadecimal" t_hexadecimal,
+    testProperty "tl_hexadecimal" tl_hexadecimal
   ],
 
   testGroup "input-output" [
