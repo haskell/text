@@ -21,6 +21,8 @@ module Data.Text.Unsafe
     , unsafeHead
     , unsafeTail
     , lengthWord16
+    , takeWord16
+    , dropWord16
     ) where
      
 #if defined(ASSERTS)
@@ -132,3 +134,13 @@ inlineInterleaveST (ST m) = ST $ \ s ->
 lengthWord16 :: Text -> Int
 lengthWord16 (Text _arr _off len) = len
 {-# INLINE lengthWord16 #-}
+
+-- | /O(1)/ Unchecked take of 'k' 'Word16's from the front of a 'Text'.
+takeWord16 :: Int -> Text -> Text
+takeWord16 k (Text arr off _len) = Text arr off k
+{-# INLINE takeWord16 #-}
+
+-- | /O(1)/ Unchecked drop of 'k' 'Word16's from the front of a 'Text'.
+dropWord16 :: Int -> Text -> Text
+dropWord16 k (Text arr off len) = Text arr (off+k) (len-k)
+{-# INLINE dropWord16 #-}

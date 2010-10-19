@@ -204,8 +204,22 @@ import Data.Text.Internal (textP)
 import qualified Data.Text.Util as U
 import Data.Text.Lazy.Search (indices)
 
+equal :: Text -> Text -> Bool
+equal Empty Empty = True
+equal Empty _     = False
+equal _ Empty     = False
+equal (Chunk a as) (Chunk b bs) =
+    case compare lenA lenB of
+      LT -> a == (T.takeWord16 lenA b) &&
+            as `equal` Chunk (T.dropWord16 lenA b) bs
+      EQ -> a == b && as `equal` bs
+      GT -> T.takeWord16 lenB a == b &&
+            Chunk (T.dropWord16 lenB a) as `equal` bs
+  where lenA = T.lengthWord16 a
+        lenB = T.lengthWord16 b
+
 instance Eq Text where
-    t1 == t2 = stream t1 == stream t2
+    (==) = equal
     {-# INLINE (==) #-}
 
 instance Ord Text where
