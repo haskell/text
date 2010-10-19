@@ -55,6 +55,7 @@ extra-source-files:
     tests/benchmarks/Cut.hs
     tests/benchmarks/DecodeUtf8.hs
     tests/benchmarks/EncodeUtf8.hs
+    tests/benchmarks/Equality.hs
     tests/benchmarks/FileIndices.hs
     tests/benchmarks/FileRead.hs
     tests/benchmarks/FoldLines.hs
