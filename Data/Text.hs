@@ -254,20 +254,10 @@ import Data.Int (Int64)
 -- Functions that can be fused by the compiler are marked with the
 -- phrase \"Subject to fusion\".
 
-eq :: Text -> Text -> Bool
-eq (Text arrA offA lenA) (Text arrB offB lenB)
-   | lenA /= lenB = False
-   | otherwise    = go 0
- where
-   go !n | n == lenA = True
-         | a /= b    = False
-         | otherwise = go (n+1)
-         where a = A.unsafeIndex arrA (offA+n)
-               b = A.unsafeIndex arrB (offB+n)
-{-# INLINE eq #-}
-
 instance Eq Text where
-    (==) = eq
+    Text arrA offA lenA == Text arrB offB lenB
+        | lenA == lenB = A.equal arrA offA arrB offB lenA
+        | otherwise    = False
     {-# INLINE (==) #-}
 
 instance Ord Text where

@@ -33,6 +33,7 @@ module Data.Text.Array
     , copyM
     , copyI
     , empty
+    , equal
 #if defined(ASSERTS)
     , length
 #endif
@@ -265,3 +266,31 @@ copyI dest i0 src j0 top
         | i >= top  = return ()
         | otherwise = do unsafeWrite dest i (src `unsafeIndex` j)
                          slow (i+1) (j+1)
+
+-- | Compare portions of two arrays for equality.  No bounds checking
+-- is performed.
+equal :: Array                  -- ^ First
+      -> Int                    -- ^ Offset into first
+      -> Array                  -- ^ Second
+      -> Int                    -- ^ Offset into second
+      -> Int                    -- ^ Count
+      -> Bool
+equal arrA offA arrB offB count
+    | wordAligned offA && wordAligned offB = fast 0
+    | otherwise                            = slow 0
+  where
+    countWords = count `div` wordFactor
+    fast !i
+        | i >= countWords = slow (i * wordFactor)
+        | a /= b          = False
+        | otherwise       = fast (i+1)
+        where a     = unsafeIndexWord arrA (offAW+i)
+              b     = unsafeIndexWord arrB (offBW+i)
+              offAW = offA `div` wordFactor
+              offBW = offB `div` wordFactor
+    slow !i
+        | i >= count = True
+        | a /= b     = False
+        | otherwise  = slow (i+1)
+        where a = unsafeIndex arrA (offA+i)
+              b = unsafeIndex arrB (offB+i)
