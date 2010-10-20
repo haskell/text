@@ -19,7 +19,7 @@ library to provide these facilities.
 # Get involved!
 
 Please report bugs via the
-[bitbucket issue tracker](http://bitbucket.org/bos/text).
+[bitbucket issue tracker](http://bitbucket.org/bos/text/issues).
 
 Master [Mercurial repository](http://bitbucket.org/bos/text):
 
