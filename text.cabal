@@ -1,6 +1,7 @@
 name:           text
 version:        0.9.1.0
-homepage:       http://code.haskell.org/text
+homepage:       http://bitbucket.org/bos/text
+bug-reports:    http://bitbucket.org/bos/text/issues
 synopsis:       An efficient packed Unicode text type.
 description:    
     .
@@ -27,7 +28,7 @@ description:
     .
 license:        BSD3
 license-file:   LICENSE
-author:         Tom Harper <rtomharper@googlemail.com>
+author:         Bryan O'Sullivan <bos@serpentine.com>
 maintainer:     Bryan O'Sullivan <bos@serpentine.com>
                 Tom Harper <rrtomharper@googlemail.com>
                 Duncan Coutts <duncan@haskell.org>
@@ -130,5 +131,9 @@ library
     cpp-options: -DASSERTS
 
 source-repository head
-  type:     darcs
-  location: http://code.haskell.org/text/
+  type:     mercurial
+  location: http://bitbucket.org/bos/text
+
+source-repository head
+  type:     git
+  location: http://github.com/bos/text
