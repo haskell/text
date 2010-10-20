@@ -19,15 +19,15 @@ library to provide these facilities.
 # Get involved!
 
 Please report bugs via the
-[bitbucket issue tracker](http://bitbucket.org/bos/attoparsec/statistics).
+[bitbucket issue tracker](http://bitbucket.org/bos/text).
 
-Master [Mercurial repository](http://bitbucket.org/bos/statistics):
+Master [Mercurial repository](http://bitbucket.org/bos/text):
 
-* `hg clone http://bitbucket.org/bos/statistics`
+* `hg clone http://bitbucket.org/bos/text`
 
-There's also a [git mirror](http://github.com/bos/statistics):
+There's also a [git mirror](http://github.com/bos/text):
 
-* `git clone git://github.com/bos/statistics.git`
+* `git clone git://github.com/bos/text.git`
 
 (You can create and contribute changes using either Mercurial or git.)
 
