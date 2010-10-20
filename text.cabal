@@ -36,7 +36,7 @@ category:       Data, Text
 build-type:     Simple
 cabal-version:  >= 1.6
 extra-source-files:
-    README
+    README.markdown
     TODO
     -- scripts/CaseFolding.txt
     -- scripts/SpecialCasing.txt
