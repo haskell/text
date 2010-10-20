@@ -6,25 +6,20 @@ import qualified Data.Text.Encoding as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as TL
 
-bytestring haystack = do
-  ls <- B.lines `fmap` B.readFile haystack
+func :: (Eq a) => [a] -> IO ()
+func ls =
   print . sum . map (\needle -> length . filter (==needle) $ ls) $ take 100 ls
 
-lazyBytestring haystack = do
-  ls <- BL.lines `fmap` BL.readFile haystack
-  print . sum . map (\needle -> length . filter (==needle) $ ls) $ take 100 ls
+bytestring haystack = func =<< B.lines `fmap` B.readFile haystack
 
-text haystack = do
-  ls <- (T.lines . T.decodeUtf8) `fmap` B.readFile haystack
-  print . sum . map (\needle -> length . filter (==needle) $ ls) $ take 100 ls
+lazyBytestring haystack = func =<< BL.lines `fmap` BL.readFile haystack
 
-lazyText haystack = do
-  ls <- (TL.lines . TL.decodeUtf8) `fmap` BL.readFile haystack
-  print . sum . map (\needle -> length . filter (==needle) $ ls) $ take 100 ls
+text haystack = func =<< (T.lines . T.decodeUtf8) `fmap` B.readFile haystack
 
-string haystack = do
-  ls <- lines `fmap` readFile haystack
-  print . sum . map (\needle -> length . filter (==needle) $ ls) $ take 100 ls
+lazyText haystack = func =<<
+                    (TL.lines . TL.decodeUtf8) `fmap` BL.readFile haystack
+
+string haystack = func =<< lines `fmap` readFile haystack
 
 main = do
   args <- getArgs
