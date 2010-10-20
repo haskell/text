@@ -1,6 +1,0 @@
-Normalization.
-
-Collation.
-
-Case conversion lacks locale sensitivity, so cannot handle a few
-Turkic and Azeri code points completely correctly.

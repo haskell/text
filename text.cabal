@@ -38,7 +38,6 @@ build-type:     Simple
 cabal-version:  >= 1.6
 extra-source-files:
     README.markdown
-    TODO
     -- scripts/CaseFolding.txt
     -- scripts/SpecialCasing.txt
     scripts/ApiCompare.hs
