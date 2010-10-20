@@ -223,8 +223,24 @@ instance Eq Text where
     {-# INLINE (==) #-}
 
 instance Ord Text where
-    compare t1 t2 = compare (stream t1) (stream t2)
-    {-# INLINE compare #-}
+    compare = compareText
+
+compareText :: Text -> Text -> Ordering
+compareText Empty Empty = EQ
+compareText Empty _     = LT
+compareText _     Empty = GT
+compareText (Chunk a0 as) (Chunk b0 bs) = outer a0 b0
+ where
+  outer ta@(T.Text arrA offA lenA) tb@(T.Text arrB offB lenB) = go 0 0
+   where
+    go !i !j
+      | i >= lenA = compareText as (chunk (T.Text arrB (offB+j) (lenB-j)) bs)
+      | j >= lenB = compareText (chunk (T.Text arrA (offA+i) (lenA-i)) as) bs
+      | a < b     = LT
+      | a > b     = GT
+      | otherwise = go (i+di) (j+dj)
+      where T.Iter a di = T.iter ta i
+            T.Iter b dj = T.iter tb j
 
 instance Show Text where
     showsPrec p ps r = showsPrec p (unpack ps) r
