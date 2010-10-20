@@ -17,6 +17,10 @@ func :: (Ord a) => [a] -> IO ()
 func ls = print . sum . map f $ every 1000 ls
     where f needle = length . filter ((==GT) . compare needle) $ ls
 
+-- Test a comparison that could be fused: compare (toLower a) (toLower b)
+func1 ls = print . sum . map f $ every 1000 ls
+    where f needle = length . filter ((==GT) . compare (T.toLower needle) . T.toLower) $ ls
+
 bytestring haystack = func =<< B.lines `fmap` B.readFile haystack
 
 lazyBytestring haystack = func =<< BL.lines `fmap` BL.readFile haystack
