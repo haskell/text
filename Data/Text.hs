@@ -261,8 +261,7 @@ instance Eq Text where
     {-# INLINE (==) #-}
 
 instance Ord Text where
-    compare t1 t2 = compare (stream t1) (stream t2)
-    {-# INLINE compare #-}
+    compare = compareText
 
 instance Show Text where
     showsPrec p ps r = showsPrec p (unpack ps) r
@@ -303,6 +302,20 @@ instance Data Text where
 #else
   dataTypeOf _   = mkNorepType "Data.Text.Text"
 #endif
+
+-- | /O(n)/ Compare two 'Text' values lexicographically.
+compareText :: Text -> Text -> Ordering
+compareText ta@(Text _arrA _offA lenA) tb@(Text _arrB _offB lenB)
+    | lenA == 0 && lenB == 0 = EQ
+    | otherwise              = go 0 0
+  where
+    go !i !j
+        | i >= lenA || j >= lenB = compare lenA lenB
+        | a < b                  = LT
+        | a > b                  = GT
+        | otherwise              = go (i+di) (j+dj)
+      where Iter a di = iter ta i
+            Iter b dj = iter tb j
 
 -- -----------------------------------------------------------------------------
 -- * Conversion to/from 'Text'
