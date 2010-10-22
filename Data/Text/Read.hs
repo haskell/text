@@ -22,8 +22,8 @@ module Data.Text.Read
     ) where
 
 import Control.Monad (liftM)
-import Data.Char (digitToInt, isDigit, isHexDigit, ord)
-import Data.Ratio
+import Data.Char (isDigit, isHexDigit, ord)
+import Data.Ratio ((%))
 import Data.Text as T
 
 -- | Read some text, and if the read succeeds, return its value and
@@ -56,8 +56,17 @@ hexadecimal txt
     | otherwise           = hex txt
  where (h,t) = T.splitAt 2 txt
 
--- | Read a leading sign character (@\'-\'@ or @\'+\'@) and apply it
--- to the result of applying the given reader.
+hexDigitToInt :: Char -> Int
+hexDigitToInt c
+    | c >= '0' && c <= '9' = ord c - ord '0'
+    | c >= 'a' && c <= 'f' = ord c - (ord 'a' - 10)
+    | otherwise            = ord c - (ord 'A' - 10)
+
+digitToInt :: Char -> Int
+digitToInt c = ord c - ord '0'
+
+-- | Read an optional leading sign character (@\'-\'@ or @\'+\'@) and
+-- apply it to the result of applying the given reader.
 signed :: Num a => Reader a -> Reader a
 {-# INLINE signed #-}
 signed f = runP (signa (P f))
