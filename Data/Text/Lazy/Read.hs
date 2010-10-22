@@ -22,18 +22,24 @@ module Data.Text.Lazy.Read
     ) where
 
 import Control.Monad (liftM)
-import Data.Char (digitToInt, isDigit, isHexDigit, ord)
-import Data.Ratio
+import Data.Char (isDigit, isHexDigit, ord)
+import Data.Ratio ((%))
 import Data.Text.Lazy as T
 
--- | Read some text, and if the read succeeds, return its value and
--- the remaining text.
+-- | Read some text.  If the read succeeds, return its value and the
+-- remaining text, otherwise an error message.
 type Reader a = Text -> Either String (a,Text)
 
--- | Read a decimal integer.
+-- | Read a decimal integer.  The input must begin with at least one
+-- decimal digit, and is consumed until a non-digit or end of string
+-- is reached.
 --
 -- This function does not handle leading sign characters.  If you need
 -- to handle signed input, use @'signed' 'decimal'@.
+--
+-- /Note/: For fixed-width integer types, this function does not
+-- attempt to detect overflow, so a sufficiently long input may give
+-- incorrect results.
 decimal :: Integral a => Reader a
 {-# SPECIALIZE decimal :: Reader Int #-}
 {-# SPECIALIZE decimal :: Reader Integer #-}
@@ -43,49 +49,24 @@ decimal txt
   where (h,t)  = T.spanBy isDigit txt
         go n d = (n * 10 + fromIntegral (digitToInt d))
 
--- | Read a hexadecimal number, with optional leading @\"0x\"@.  This
--- function is case insensitive.
+-- | Read a hexadecimal integer, consisting of an optional leading
+-- @\"0x\"@ followed by at least one decimal digit. Input is consumed
+-- until a non-hex-digit or end of string is reached.  This function
+-- is case insensitive.
 --
 -- This function does not handle leading sign characters.  If you need
 -- to handle signed input, use @'signed' 'hexadecimal'@.
+--
+-- /Note/: For fixed-width integer types, this function does not
+-- attempt to detect overflow, so a sufficiently long input may give
+-- incorrect results.
 hexadecimal :: Integral a => Reader a
-{-# SPECIALIZE hex :: Reader Int #-}
-{-# SPECIALIZE hex :: Reader Integer #-}
+{-# SPECIALIZE hexadecimal :: Reader Int #-}
+{-# SPECIALIZE hexadecimal :: Reader Integer #-}
 hexadecimal txt
-    | T.toLower h == "0x" = hex t
-    | otherwise           = hex txt
+    | h == "0x" || h == "0X" = hex t
+    | otherwise              = hex txt
  where (h,t) = T.splitAt 2 txt
-
--- | Read a leading sign character (@\'-\'@ or @\'+\'@) and apply it
--- to the result of applying the given reader.
-signed :: Num a => Reader a -> Reader a
-{-# INLINE signed #-}
-signed f = runP (signa (P f))
-
--- | Read a rational number.
---
--- This function accepts an optional leading sign character.
-rational :: RealFloat a => Reader a
-{-# SPECIALIZE rational :: Reader Double #-}
-rational = floaty $ \real frac fracDenom -> fromRational $
-                     real % 1 + frac % fracDenom
-
--- | Read a rational number.
---
--- This function accepts an optional leading sign character.
---
--- /Note/: This function is almost ten times faster than 'rational',
--- but is slightly less accurate.
---
--- The 'Double' type supports about 16 decimal places of accuracy.
--- For 94.2% of numbers, this function and 'rational' give identical
--- results, but for the remaining 5.8%, this function loses precision
--- around the 15th decimal place.  For 0.001% of numbers, this
--- function will lose precision at the 13th or 14th decimal place.
-double :: Reader Double
-double = floaty $ \real frac fracDenom ->
-                   fromIntegral real +
-                   fromIntegral frac / fromIntegral fracDenom
 
 hex :: Integral a => Reader a
 {-# SPECIALIZE hex :: Reader Int #-}
@@ -100,8 +81,58 @@ hexDigitToInt :: Char -> Int
 hexDigitToInt c
     | c >= '0' && c <= '9' = ord c - ord '0'
     | c >= 'a' && c <= 'f' = ord c - (ord 'a' - 10)
-    | c >= 'A' && c <= 'F' = ord c - (ord 'A' - 10)
-    | otherwise            = error "Data.Text.Lex.hexDigitToInt: bad input"
+    | otherwise            = ord c - (ord 'A' - 10)
+
+digitToInt :: Char -> Int
+digitToInt c = ord c - ord '0'
+
+-- | Read an optional leading sign character (@\'-\'@ or @\'+\'@) and
+-- apply it to the result of applying the given reader.
+signed :: Num a => Reader a -> Reader a
+{-# INLINE signed #-}
+signed f = runP (signa (P f))
+
+-- | Read a rational number.
+--
+-- This function accepts an optional leading sign character, followed
+-- by at least one decimal digit.  The syntax similar to that accepted
+-- by the 'read' function, with the exception that a trailing @\'.\'@
+-- or @\'e\'@ /not/ followed by a number is not consumed.
+--
+-- Examples:
+--
+-- >rational "3"     == Right (3.0, "")
+-- >rational "3.1"   == Right (3.1, "")
+-- >rational "3e4"   == Right (30000.0, "")
+-- >rational "3.1e4" == Right (31000.0, "")
+-- >rational ".3"    == Left "input does not start with a digit"
+-- >rational "e3"    == Left "input does not start with a digit"
+--
+-- Examples of differences from 'read':
+--
+-- >rational "3.foo" == Right (3.0, ".foo")
+-- >rational "3e"    == Right (3.0, "e")
+rational :: RealFloat a => Reader a
+{-# SPECIALIZE rational :: Reader Double #-}
+rational = floaty $ \real frac fracDenom -> fromRational $
+                     real % 1 + frac % fracDenom
+
+-- | Read a rational number.
+--
+-- The syntax accepted by this function is the same as for 'rational'.
+--
+-- /Note/: This function is almost ten times faster than 'rational',
+-- but is slightly less accurate.
+--
+-- The 'Double' type supports about 16 decimal places of accuracy.
+-- For 94.2% of numbers, this function and 'rational' give identical
+-- results, but for the remaining 5.8%, this function loses precision
+-- around the 15th decimal place.  For 0.001% of numbers, this
+-- function will lose precision at the 13th or 14th decimal place.
+double :: Reader Double
+double = floaty $ \real frac fracDenom ->
+                   fromIntegral real +
+                   fromIntegral frac / fromIntegral fracDenom
 
 signa :: Num a => Parser a -> Parser a
 {-# SPECIALIZE signa :: Parser Int -> Parser Int #-}
@@ -111,7 +142,7 @@ signa p = do
   if sign == '+' then p else negate `liftM` p
 
 newtype Parser a = P {
-      runP :: Text -> Either String (a,Text)
+      runP :: Reader a
     }
 
 instance Monad Parser where
