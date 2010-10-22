@@ -38,7 +38,7 @@ decimal :: Integral a => Reader a
 {-# SPECIALIZE decimal :: Reader Int #-}
 {-# SPECIALIZE decimal :: Reader Integer #-}
 decimal txt
-    | T.null h  = Left "no digits in input"
+    | T.null h  = Left "input does not start with a digit"
     | otherwise = Right (T.foldl' go 0 h, t)
   where (h,t)  = T.spanBy isDigit txt
         go n d = (n * 10 + fromIntegral (digitToInt d))
@@ -91,7 +91,7 @@ hex :: Integral a => Reader a
 {-# SPECIALIZE hex :: Reader Int #-}
 {-# SPECIALIZE hex :: Reader Integer #-}
 hex txt
-    | T.null h  = Left "no digits in input"
+    | T.null h  = Left "input does not start with a hexadecimal digit"
     | otherwise = Right (T.foldl' go 0 h, t)
   where (h,t)  = T.spanBy isHexDigit txt
         go n d = (n * 16 + fromIntegral (hexDigitToInt d))
@@ -131,7 +131,7 @@ perhaps def m = P $ \t -> case runP m t of
 char :: (Char -> Bool) -> Parser Char
 char p = P $ \t -> case T.uncons t of
                      Just (c,t') | p c -> Right (c,t')
-                     _                 -> Left "char"
+                     _                 -> Left "character does not match"
 
 data T = T !Integer !Int
 
