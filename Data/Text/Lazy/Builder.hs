@@ -10,7 +10,20 @@
 -- Stability   : experimental
 -- Portability : portable to Hugs and GHC
 --
--- Efficient construction of lazy texts.
+-- Efficient construction of lazy @Text@ values.  The principal
+-- operations on a @Builder@ are @singleton@, @fromText@, and
+-- @fromLazyText@, which construct new builders, and 'mappend', which
+-- concatenates two builders.
+--
+-- To get maximum performance when building lazy @Text@ values using a builder, associate @mappend@ calls to the right.  For example, prefer
+--
+-- > singleton 'a' `mappend` (singleton 'b' `mappend` singleton 'c')
+--
+-- to
+--
+-- > singleton 'a' `mappend` singleton 'b' `mappend` singleton 'c'
+--
+-- as the latter associates @mappend@ to the left.
 --
 -----------------------------------------------------------------------------
 
@@ -46,15 +59,15 @@ import qualified Data.Text.Lazy as L
 
 ------------------------------------------------------------------------
 
--- | A 'Builder' is an efficient way to build lazy 'L.Text's.  There
--- are several functions for constructing 'Builder's, but only one to
--- inspect them: to extract any data, you have to turn them into lazy
--- 'L.Text's using 'toLazyText'.
+-- | A @Builder@ is an efficient way to build lazy @Text@ values.
+-- There are several functions for constructing builders, but only one
+-- to inspect them: to extract any data, you have to turn them into
+-- lazy @Text@ values using @toLazyText@.
 --
--- Internally, a 'Builder' constructs a lazy 'L.Text' by filling byte
--- arrays piece by piece.  As each buffer is filled, it is \'popped\'
--- off, to become a new chunk of the resulting lazy 'L.Text'.  All
--- this is hidden from the user of the 'Builder'.
+-- Internally, a builder constructs a lazy @Text@ by filling arrays
+-- piece by piece.  As each buffer is filled, it is \'popped\' off, to
+-- become a new chunk of the resulting lazy @Text@.  All this is
+-- hidden from the user of the @Builder@.
 newtype Builder = Builder {
      -- Invariant (from Data.Text.Lazy):
      --      The lists include no null Texts.
@@ -78,7 +91,7 @@ instance Show Builder where
 
 ------------------------------------------------------------------------
 
--- | /O(1)./ The empty Builder, satisfying
+-- | /O(1)./ The empty @Builder@, satisfying
 --
 --  * @'toLazyText' 'empty' = 'L.empty'@
 --
@@ -86,7 +99,7 @@ empty :: Builder
 empty = Builder id
 {-# INLINE empty #-}
 
--- | /O(1)./ A Builder taking a single character, satisfying
+-- | /O(1)./ A @Builder@ taking a single character, satisfying
 --
 --  * @'toLazyText' ('singleton' c) = 'L.singleton' c@
 --
@@ -96,7 +109,7 @@ singleton c = putChar c
 
 ------------------------------------------------------------------------
 
--- | /O(1)./ The concatenation of two Builders, an associative
+-- | /O(1)./ The concatenation of two builders, an associative
 -- operation with identity 'empty', satisfying
 --
 --  * @'toLazyText' ('append' x y) = 'L.append' ('toLazyText' x) ('toLazyText' y)@
@@ -107,12 +120,12 @@ append (Builder f) (Builder g) = Builder (f . g)
 
 -- TODO: Experiment to find the right threshold.
 copyLimit :: Int
-copyLimit =  128                                 
+copyLimit = 128                                 
 
--- This function attempts to merge small Texts instead of treating the
--- text as its own chunk.  We may not always want this.
+-- This function attempts to merge small @Text@ values instead of
+-- treating each value as its own chunk.  We may not always want this.
 
--- | /O(1)./ A Builder taking a 'S.Text', satisfying
+-- | /O(1)./ A @Builder@ taking a 'S.Text', satisfying
 --
 --  * @'toLazyText' ('fromText' t) = 'L.fromChunks' [t]@
 --
@@ -128,7 +141,7 @@ fromText t@(Text arr off l)
         fromText (S.pack s) = fromString s
  #-}
 
--- | /O(1)./ A Builder taking a 'String', satisfying
+-- | /O(1)./ A Builder taking a @String@, satisfying
 --
 --  * @'toLazyText' ('fromString' s) = 'L.fromChunks' [S.pack s]@
 --
@@ -150,7 +163,7 @@ fromString str = Builder $ \k (Buffer p0 o0 u0 l0) ->
     chunkSize = smallChunkSize
 {-# INLINE fromString #-}
 
--- | /O(1)./ A Builder taking a lazy 'L.Text', satisfying
+-- | /O(1)./ A @Builder@ taking a lazy @Text@, satisfying
 --
 --  * @'toLazyText' ('fromLazyText' t) = t@
 --
@@ -168,15 +181,15 @@ data Buffer s = Buffer {-# UNPACK #-} !(A.MArray s)
 
 ------------------------------------------------------------------------
 
--- | /O(n)./ Extract a lazy 'L.Text' from a 'Builder' with a default
+-- | /O(n)./ Extract a lazy @Text@ from a @Builder@ with a default
 -- buffer size.  The construction work takes place if and when the
--- relevant part of the lazy 'L.Text' is demanded.
+-- relevant part of the lazy @Text@ is demanded.
 toLazyText :: Builder -> L.Text
 toLazyText = toLazyTextWith smallChunkSize
 
--- | /O(n)./ Extract a lazy 'L.Text' from a 'Builder', using the given
+-- | /O(n)./ Extract a lazy @Text@ from a @Builder@, using the given
 -- size for the initial buffer.  The construction work takes place if
--- and when the relevant part of the lazy 'L.Text' is demanded.
+-- and when the relevant part of the lazy @Text@ is demanded.
 --
 -- If the initial buffer is too small to hold all data, subsequent
 -- buffers will be the default buffer size.
@@ -184,8 +197,8 @@ toLazyTextWith :: Int -> Builder -> L.Text
 toLazyTextWith chunkSize m = L.fromChunks (runST $
   newBuffer chunkSize >>= runBuilder (m `append` flush) (const (return [])))
 
--- | /O(1)./ Pop the 'S.Text' we have constructed so far, if any,
--- yielding a new chunk in the result lazy 'L.Text'.
+-- | /O(1)./ Pop the strict @Text@ we have constructed so far, if any,
+-- yielding a new chunk in the result lazy @Text@.
 flush :: Builder
 flush = Builder $ \ k buf@(Buffer p o u l) ->
     if u == 0
