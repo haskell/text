@@ -5,8 +5,6 @@ module QuickCheckUtils where
 import Control.Arrow (first)
 import Data.Char (chr)
 import Data.Bits ((.&.))
-import Data.Int (Int64)
-import Data.Word (Word8, Word16, Word32)
 import Data.String (IsString, fromString)
 import qualified Data.Text as T
 import Data.Text.Foreign (I16)
@@ -15,13 +13,6 @@ import System.Random (Random(..), RandomGen)
 import Test.QuickCheck hiding ((.&.))
 import qualified Data.ByteString as B
 
-instance Random Int64 where
-    randomR = integralRandomR
-    random  = randomR (minBound,maxBound)
-
-instance Arbitrary Int64 where
-    arbitrary     = choose (minBound,maxBound)
-
 instance Random I16 where
     randomR = integralRandomR
     random  = randomR (minBound,maxBound)
@@ -29,29 +20,8 @@ instance Random I16 where
 instance Arbitrary I16 where
     arbitrary     = choose (minBound,maxBound)
 
-instance Random Word8 where
-    randomR = integralRandomR
-    random  = randomR (minBound,maxBound)
-
-instance Arbitrary Word8 where
-    arbitrary     = choose (minBound,maxBound)
-
 instance Arbitrary B.ByteString where
     arbitrary     = B.pack `fmap` arbitrary
-
-instance Random Word16 where
-    randomR = integralRandomR
-    random  = randomR (minBound,maxBound)
-
-instance Arbitrary Word16 where
-    arbitrary     = choose (minBound,maxBound)
-
-instance Random Word32 where
-    randomR = integralRandomR
-    random  = randomR (minBound,maxBound)
-
-instance Arbitrary Word32 where
-    arbitrary     = choose (minBound,maxBound)
 
 genUnicode :: IsString a => Gen a
 genUnicode = fmap fromString string where

@@ -93,9 +93,6 @@ data DecodeErr = DE String OnDecodeError
 instance Show DecodeErr where
     show (DE d _) = "DE " ++ d
 
-instance CoArbitrary Word8 where
-    coarbitrary = coarbitraryIntegral
-
 instance Arbitrary DecodeErr where
     arbitrary = oneof [ return $ DE "lenient" lenientDecode
                       , return $ DE "ignore" ignore
@@ -682,13 +679,13 @@ isFloaty c = c `elem` "+-.0123456789eE"
 
 t_read_rational p tol (n::Double) s =
     case p (T.pack (show n) `T.append` t) of
-      Left err      -> False
+      Left _err     -> False
       Right (n',t') -> t == t' && abs (n-n') <= tol
     where t = T.dropWhile isFloaty s
 
 tl_read_rational p tol (n::Double) s =
     case p (TL.pack (show n) `TL.append` t) of
-      Left err      -> False
+      Left _err     -> False
       Right (n',t') -> t == t' && abs (n-n') <= tol
     where t = TL.dropWhile isFloaty s
 
