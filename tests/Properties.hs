@@ -265,13 +265,13 @@ t_reverse         = L.reverse `eqP` (unpackS . T.reverse)
 tl_reverse        = L.reverse `eqP` (unpackS . TL.reverse)
 t_reverse_short n = L.reverse `eqP` (unpackS . S.reverse . shorten n . S.stream)
 
-t_replace s d     = (L.intercalate d . split s) `eqP`
+t_replace s d     = (L.intercalate d . splitOn s) `eqP`
                     (unpackS . T.replace (T.pack s) (T.pack d))
-tl_replace s d     = (L.intercalate d . split s) `eqP`
+tl_replace s d     = (L.intercalate d . splitOn s) `eqP`
                      (unpackS . TL.replace (TL.pack s) (TL.pack d))
 
-split :: (Eq a) => [a] -> [a] -> [[a]]
-split pat src0
+splitOn :: (Eq a) => [a] -> [a] -> [[a]]
+splitOn pat src0
     | l == 0    = error "empty"
     | otherwise = go src0
   where
@@ -523,21 +523,21 @@ sl_filterCount c  = (L.genericLength . L.filter (==c)) `eqP` SL.countChar c
 t_findCount s     = (L.length . T.breakOnAll s) `eq` T.count s
 tl_findCount s    = (L.genericLength . TL.breakOnAll s) `eq` TL.count s
 
-t_split_split s         = (T.split s `eq` Slow.split s) . T.intercalate s
-tl_split_split s        = ((TL.split (TL.fromStrict s) . TL.fromStrict) `eq`
-                           (map TL.fromStrict . T.split s)) . T.intercalate s
-t_split_i (NotEmpty t)  = id `eq` (T.intercalate t . T.split t)
-tl_split_i (NotEmpty t) = id `eq` (TL.intercalate t . TL.split t)
+t_splitOn_split s         = (T.splitOn s `eq` Slow.splitOn s) . T.intercalate s
+tl_splitOn_split s        = ((TL.splitOn (TL.fromStrict s) . TL.fromStrict) `eq`
+                           (map TL.fromStrict . T.splitOn s)) . T.intercalate s
+t_splitOn_i (NotEmpty t)  = id `eq` (T.intercalate t . T.splitOn t)
+tl_splitOn_i (NotEmpty t) = id `eq` (TL.intercalate t . TL.splitOn t)
 
-t_splitBy p       = splitBy p `eqP` (map unpackS . T.splitBy p)
-t_splitBy_count c = (L.length . T.splitBy (==c)) `eq`
-                    ((1+) . T.count (T.singleton c))
-t_splitBy_split c = T.splitBy (==c) `eq` T.split (T.singleton c)
-tl_splitBy p      = splitBy p `eqP` (map unpackS . TL.splitBy p)
+t_split p       = split p `eqP` (map unpackS . T.split p)
+t_split_count c = (L.length . T.split (==c)) `eq`
+                  ((1+) . T.count (T.singleton c))
+t_split_splitOn c = T.split (==c) `eq` T.splitOn (T.singleton c)
+tl_split p      = split p `eqP` (map unpackS . TL.split p)
 
-splitBy :: (a -> Bool) -> [a] -> [[a]]
-splitBy _ [] =  [[]]
-splitBy p xs = loop xs
+split :: (a -> Bool) -> [a] -> [[a]]
+split _ [] =  [[]]
+split p xs = loop xs
     where loop s | null s'   = [l]
                  | otherwise = l : loop (tail s')
               where (l, s') = break p s
@@ -613,8 +613,8 @@ tl_index s        = forAll (choose (-l,l*2))
     where l = L.length s
 
 t_findIndex p     = L.findIndex p `eqP` T.findIndex p
-t_count (NotEmpty t)  = (subtract 1 . L.length . T.split t) `eq` T.count t
-tl_count (NotEmpty t) = (subtract 1 . L.genericLength . TL.split t) `eq`
+t_count (NotEmpty t)  = (subtract 1 . L.length . T.splitOn t) `eq` T.count t
+tl_count (NotEmpty t) = (subtract 1 . L.genericLength . TL.splitOn t) `eq`
                         TL.count t
 t_zip s           = L.zip s `eqP` T.zip (packS s)
 tl_zip s          = L.zip s `eqP` TL.zip (packS s)
@@ -1080,14 +1080,14 @@ tests = [
       testProperty "sl_filterCount" sl_filterCount,
       testProperty "t_findCount" t_findCount,
       testProperty "tl_findCount" tl_findCount,
-      testProperty "t_split_split" t_split_split,
-      testProperty "tl_split_split" tl_split_split,
-      testProperty "t_split_i" t_split_i,
-      testProperty "tl_split_i" tl_split_i,
-      testProperty "t_splitBy" t_splitBy,
-      testProperty "t_splitBy_count" t_splitBy_count,
-      testProperty "t_splitBy_split" t_splitBy_split,
-      testProperty "tl_splitBy" tl_splitBy,
+      testProperty "t_splitOn_split" t_splitOn_split,
+      testProperty "tl_splitOn_split" tl_splitOn_split,
+      testProperty "t_splitOn_i" t_splitOn_i,
+      testProperty "tl_splitOn_i" tl_splitOn_i,
+      testProperty "t_split" t_split,
+      testProperty "t_split_count" t_split_count,
+      testProperty "t_split_splitOn" t_split_splitOn,
+      testProperty "tl_split" tl_split,
       testProperty "t_chunksOf_same_lengths" t_chunksOf_same_lengths,
       testProperty "t_chunksOf_length" t_chunksOf_length,
       testProperty "tl_chunksOf" tl_chunksOf

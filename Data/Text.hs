@@ -128,8 +128,8 @@ module Data.Text
 
     -- ** Breaking into many substrings
     -- $split
+    , splitOn
     , split
-    , splitBy
     , chunksOf
 
     -- ** Breaking into lines and words
@@ -554,7 +554,7 @@ replace :: Text                 -- ^ Text to search for
         -> Text                 -- ^ Replacement text
         -> Text                 -- ^ Input text
         -> Text
-replace s d = intercalate d . split s
+replace s d = intercalate d . splitOn s
 {-# INLINE replace #-}
 
 -- ----------------------------------------------------------------------------
@@ -1075,30 +1075,30 @@ tails t | null t    = [empty]
 --
 -- Examples:
 --
--- > split "\r\n" "a\r\nb\r\nd\r\ne" == ["a","b","d","e"]
--- > split "aaa"  "aaaXaaaXaaaXaaa"  == ["","X","X","X",""]
--- > split "x"    "x"                == ["",""]
+-- > splitOn "\r\n" "a\r\nb\r\nd\r\ne" == ["a","b","d","e"]
+-- > splitOn "aaa"  "aaaXaaaXaaaXaaa"  == ["","X","X","X",""]
+-- > splitOn "x"    "x"                == ["",""]
 -- 
 -- and
 --
--- > intercalate s . split s         == id
--- > split (singleton c)             == splitBy (==c)
+-- > intercalate s . splitOn s         == id
+-- > splitOn (singleton c)             == split (==c)
 --
 -- In (unlikely) bad cases, this function's time complexity degrades
 -- towards /O(n*m)/.
-split :: Text -> Text -> [Text]
-split pat@(Text _ _ l) src@(Text arr off len)
-    | l <= 0          = emptyError "split"
-    | isSingleton pat = splitBy (== unsafeHead pat) src
+splitOn :: Text -> Text -> [Text]
+splitOn pat@(Text _ _ l) src@(Text arr off len)
+    | l <= 0          = emptyError "splitOn"
+    | isSingleton pat = split (== unsafeHead pat) src
     | otherwise       = go 0 (indices pat src)
   where
     go !s (x:xs) =  textP arr (s+off) (x-s) : go (x+l) xs
     go  s _      = [textP arr (s+off) (len-s)]
-{-# INLINE [1] split #-}
+{-# INLINE [1] splitOn #-}
 
 {-# RULES
-"TEXT split/singleton -> splitBy/==" [~1] forall c t.
-    split (singleton c) t = splitBy (==c) t
+"TEXT splitOn/singleton -> split/==" [~1] forall c t.
+    splitOn (singleton c) t = split (==c) t
   #-}
 
 -- | /O(n)/ Splits a 'Text' into components delimited by separators,
@@ -1106,15 +1106,15 @@ split pat@(Text _ _ l) src@(Text arr off len)
 -- resulting components do not contain the separators.  Two adjacent
 -- separators result in an empty component in the output.  eg.
 --
--- > splitBy (=='a') "aabbaca" == ["","","bb","c",""]
--- > splitBy (=='a') ""        == [""]
-splitBy :: (Char -> Bool) -> Text -> [Text]
-splitBy _ t@(Text _off _arr 0) = [t]
-splitBy p t = loop t
+-- > split (=='a') "aabbaca" == ["","","bb","c",""]
+-- > split (=='a') ""        == [""]
+split :: (Char -> Bool) -> Text -> [Text]
+split _ t@(Text _off _arr 0) = [t]
+split p t = loop t
     where loop s | null s'   = [l]
                  | otherwise = l : loop (unsafeTail s')
               where (l, s') = break p s
-{-# INLINE splitBy #-}
+{-# INLINE split #-}
 
 -- | /O(n)/ Splits a 'Text' into components of length @k@.  The last
 -- element may be shorter than the other chunks, depending on the
