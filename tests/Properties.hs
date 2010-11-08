@@ -511,17 +511,17 @@ t_tails           = L.tails       `eqP` (map unpackS . T.tails)
 tl_tails          = L.tails       `eqP` (map unpackS . TL.tails)
 t_findAppendId (NotEmpty s) = unsquare $ \ts ->
     let t = T.intercalate s ts
-    in all (==t) $ map (uncurry T.append) (T.find s t)
+    in all (==t) $ map (uncurry T.append) (T.breakOnAll s t)
 tl_findAppendId (NotEmpty s) = unsquare $ \ts ->
     let t = TL.intercalate s ts
-    in all (==t) $ map (uncurry TL.append) (TL.find s t)
-t_findContains (NotEmpty s) = all (T.isPrefixOf s . snd) . T.find s .
+    in all (==t) $ map (uncurry TL.append) (TL.breakOnAll s t)
+t_findContains (NotEmpty s) = all (T.isPrefixOf s . snd) . T.breakOnAll s .
                               T.intercalate s
 tl_findContains (NotEmpty s) = all (TL.isPrefixOf s . snd) .
-                               TL.find s . TL.intercalate s
+                               TL.breakOnAll s . TL.intercalate s
 sl_filterCount c  = (L.genericLength . L.filter (==c)) `eqP` SL.countChar c
-t_findCount s     = (L.length . T.find s) `eq` T.count s
-tl_findCount s    = (L.genericLength . TL.find s) `eq` TL.count s
+t_findCount s     = (L.length . T.breakOnAll s) `eq` T.count s
+tl_findCount s    = (L.genericLength . TL.breakOnAll s) `eq` TL.count s
 
 t_split_split s         = (T.split s `eq` Slow.split s) . T.intercalate s
 tl_split_split s        = ((TL.split (TL.fromStrict s) . TL.fromStrict) `eq`
@@ -597,8 +597,8 @@ sf_filter q p     = (L.filter p . L.filter q) `eqP`
 t_filter p        = L.filter p    `eqP` (unpackS . T.filter p)
 tl_filter p       = L.filter p    `eqP` (unpackS . TL.filter p)
 sf_findBy q p     = (L.find p . L.filter q) `eqP` (S.findBy p . S.filter q)
-t_findBy p        = L.find p      `eqP` T.findBy p
-tl_findBy p       = L.find p      `eqP` TL.findBy p
+t_find p          = L.find p      `eqP` T.find p
+tl_find p         = L.find p      `eqP` TL.find p
 t_partition p     = L.partition p `eqP` (unpack2 . T.partitionBy p)
 tl_partition p    = L.partition p `eqP` (unpack2 . TL.partitionBy p)
 
@@ -1130,8 +1130,8 @@ tests = [
     testProperty "t_filter" t_filter,
     testProperty "tl_filter" tl_filter,
     testProperty "sf_findBy" sf_findBy,
-    testProperty "t_findBy" t_findBy,
-    testProperty "tl_findBy" tl_findBy,
+    testProperty "t_find" t_find,
+    testProperty "tl_find" tl_find,
     testProperty "t_partition" t_partition,
     testProperty "tl_partition" tl_partition
   ],

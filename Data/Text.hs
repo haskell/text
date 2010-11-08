@@ -150,8 +150,8 @@ module Data.Text
 
     -- * Searching
     , filter
+    , breakOnAll
     , find
-    , findBy
     , partitionBy
 
     -- , findSubstring
@@ -1136,12 +1136,12 @@ chunksOf k = go
 -------------------------------------------------------------------------------
 -- ** Searching with a predicate
 
--- | /O(n)/ The 'findBy' function takes a predicate and a 'Text', and
--- returns the first element in matching the predicate, or 'Nothing'
--- if there is no such element.
-findBy :: (Char -> Bool) -> Text -> Maybe Char
-findBy p t = S.findBy p (stream t)
-{-# INLINE findBy #-}
+-- | /O(n)/ The 'find' function takes a predicate and a 'Text', and
+-- returns the first element matching the predicate, or 'Nothing' if
+-- there is no such element.
+find :: (Char -> Bool) -> Text -> Maybe Char
+find p t = S.findBy p (stream t)
+{-# INLINE find #-}
 
 -- | /O(n)/ The 'partitionBy' function takes a predicate and a 'Text',
 -- and returns the pair of 'Text's with elements which do and do not
@@ -1175,7 +1175,7 @@ filter p t = unstream (S.filter p (stream t))
 -- >   where (prefix, match) = breakOn needle haystack
 --
 -- If you need to break a string by a substring repeatedly (e.g. you
--- want to break on every instance of a substring), use 'find'
+-- want to break on every instance of a substring), use 'breakOnAll'
 -- instead, as it has lower startup overhead.
 --
 -- In (unlikely) bad cases, this function's time complexity degrades
@@ -1219,16 +1219,16 @@ breakOnEnd pat src = (reverse b, reverse a)
 -- towards /O(n*m)/.
 --
 -- The @needle@ parameter may not be empty.
-find :: Text                    -- ^ @needle@ to search for
-     -> Text                    -- ^ @haystack@ in which to search
-     -> [(Text, Text)]
-find pat src@(Text arr off slen)
-    | null pat  = emptyError "find"
+breakOnAll :: Text              -- ^ @needle@ to search for
+           -> Text              -- ^ @haystack@ in which to search
+           -> [(Text, Text)]
+breakOnAll pat src@(Text arr off slen)
+    | null pat  = emptyError "breakOnAll"
     | otherwise = L.map step (indices pat src)
   where
     step       x = (chunk 0 x, chunk x (slen-x))
     chunk !n !l  = textP arr (n+off) l
-{-# INLINE find #-}
+{-# INLINE breakOnAll #-}
 
 -------------------------------------------------------------------------------
 -- ** Indexing 'Text's

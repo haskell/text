@@ -156,7 +156,7 @@ module Data.Text.Lazy
     -- * Searching
     , filter
     , find
-    , findBy
+    , breakOnAll
     , partitionBy
 
     -- , findSubstring
@@ -1010,9 +1010,9 @@ breakOnEnd pat src = let (a,b) = breakOn (reverse pat) (reverse src)
 --
 -- Examples:
 --
--- > find "::" ""
+-- > breakOnAll "::" ""
 -- > ==> []
--- > find "/" "a/b/c/"
+-- > breakOnAll "/" "a/b/c/"
 -- > ==> [("a", "/b/c/"), ("a/b", "/c/"), ("a/b/c", "/")]
 --
 -- This function is strict in its first argument, and lazy in its
@@ -1022,11 +1022,11 @@ breakOnEnd pat src = let (a,b) = breakOn (reverse pat) (reverse src)
 -- towards /O(n*m)/.
 --
 -- The @needle@ parameter may not be empty.
-find :: Text                    -- ^ @needle@ to search for
-     -> Text                    -- ^ @haystack@ in which to search
-     -> [(Text, Text)]
-find pat src
-    | null pat  = emptyError "find"
+breakOnAll :: Text              -- ^ @needle@ to search for
+           -> Text              -- ^ @haystack@ in which to search
+           -> [(Text, Text)]
+breakOnAll pat src
+    | null pat  = emptyError "breakOnAll"
     | otherwise = go 0 empty src (indices pat src)
   where
     go !n p s (x:xs) = let h :*: t = splitAtWord (x-n) s
@@ -1299,12 +1299,12 @@ filter :: (Char -> Bool) -> Text -> Text
 filter p t = unstream (S.filter p (stream t))
 {-# INLINE filter #-}
 
--- | /O(n)/ The 'findBy' function takes a predicate and a 'Text', and
+-- | /O(n)/ The 'find' function takes a predicate and a 'Text', and
 -- returns the first element in matching the predicate, or 'Nothing'
 -- if there is no such element.
-findBy :: (Char -> Bool) -> Text -> Maybe Char
-findBy p t = S.findBy p (stream t)
-{-# INLINE findBy #-}
+find :: (Char -> Bool) -> Text -> Maybe Char
+find p t = S.findBy p (stream t)
+{-# INLINE find #-}
 
 -- | /O(n)/ The 'partitionBy' function takes a predicate and a 'Text',
 -- and returns the pair of 'Text's with elements which do and do not
