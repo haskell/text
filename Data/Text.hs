@@ -117,10 +117,10 @@ module Data.Text
     , stripStart
     , stripEnd
     , splitAt
-    , spanBy
+    , breakOn
+    , breakOnEnd
     , break
-    , breakEnd
-    , breakBy
+    , span
     , group
     , groupBy
     , inits
@@ -1009,23 +1009,23 @@ splitAt n t@(Text arr off len)
             where d                = iter_ t i
 {-# INLINE splitAt #-}
 
--- | /O(n)/ 'spanBy', applied to a predicate @p@ and text @t@, returns
+-- | /O(n)/ 'span', applied to a predicate @p@ and text @t@, returns
 -- a pair whose first element is the longest prefix (possibly empty)
 -- of @t@ of elements that satisfy @p@, and whose second is the
 -- remainder of the list.
-spanBy :: (Char -> Bool) -> Text -> (Text, Text)
-spanBy p t@(Text arr off len) = (textP arr off k, textP arr (off+k) (len-k))
+span :: (Char -> Bool) -> Text -> (Text, Text)
+span p t@(Text arr off len) = (textP arr off k, textP arr (off+k) (len-k))
   where k = loop 0
         loop !i | i >= len || not (p c) = i
                 | otherwise             = loop (i+d)
             where Iter c d              = iter t i
-{-# INLINE spanBy #-}
+{-# INLINE span #-}
 
--- | /O(n)/ 'breakBy' is like 'spanBy', but the prefix returned is
+-- | /O(n)/ 'break' is like 'span', but the prefix returned is
 -- over elements that fail the predicate @p@.
-breakBy :: (Char -> Bool) -> Text -> (Text, Text)
-breakBy p = spanBy (not . p)
-{-# INLINE breakBy #-}
+break :: (Char -> Bool) -> Text -> (Text, Text)
+break p = span (not . p)
+{-# INLINE break #-}
 
 -- | /O(n)/ Group characters in a string according to a predicate.
 groupBy :: (Char -> Char -> Bool) -> Text -> [Text]
@@ -1113,7 +1113,7 @@ splitBy _ t@(Text _off _arr 0) = [t]
 splitBy p t = loop t
     where loop s | null s'   = [l]
                  | otherwise = l : loop (unsafeTail s')
-              where (l, s') = breakBy p s
+              where (l, s') = break p s
 {-# INLINE splitBy #-}
 
 -- | /O(n)/ Splits a 'Text' into components of length @k@.  The last
@@ -1166,13 +1166,13 @@ filter p t = unstream (S.filter p (stream t))
 --
 -- Examples:
 --
--- > break "::" "a::b::c" ==> ("a", "::b::c")
--- > break "/" "foobar"   ==> ("foobar", "")
+-- > breakOn "::" "a::b::c" ==> ("a", "::b::c")
+-- > breakOn "/" "foobar"   ==> ("foobar", "")
 --
 -- Laws:
 --
 -- > append prefix match == haystack
--- >   where (prefix, match) = break needle haystack
+-- >   where (prefix, match) = breakOn needle haystack
 --
 -- If you need to break a string by a substring repeatedly (e.g. you
 -- want to break on every instance of a substring), use 'find'
@@ -1180,25 +1180,26 @@ filter p t = unstream (S.filter p (stream t))
 --
 -- In (unlikely) bad cases, this function's time complexity degrades
 -- towards /O(n*m)/.
-break :: Text -> Text -> (Text, Text)
-break pat src@(Text arr off len)
-    | null pat  = emptyError "break"
+breakOn :: Text -> Text -> (Text, Text)
+breakOn pat src@(Text arr off len)
+    | null pat  = emptyError "breakOn"
     | otherwise = case indices pat src of
                     []    -> (src, empty)
                     (x:_) -> (textP arr off x, textP arr (off+x) (len-x))
-{-# INLINE break #-}
+{-# INLINE breakOn #-}
 
--- | /O(n+m)/ Similar to 'break', but searches from the end of the string.
+-- | /O(n+m)/ Similar to 'breakOn', but searches from the end of the
+-- string.
 --
 -- The first element of the returned tuple is the prefix of @haystack@
 -- up to and including the last match of @needle@.  The second is the
 -- remainder of @haystack@, following the match.
 --
--- > breakEnd "::" "a::b::c" ==> ("a::b::", "c")
-breakEnd :: Text -> Text -> (Text, Text)
-breakEnd pat src = let (a,b) = break (reverse pat) (reverse src)
-                   in  (reverse b, reverse a)
-{-# INLINE breakEnd #-}
+-- > breakOnEnd "::" "a::b::c" ==> ("a::b::", "c")
+breakOnEnd :: Text -> Text -> (Text, Text)
+breakOnEnd pat src = (reverse b, reverse a)
+    where (a,b) = breakOn (reverse pat) (reverse src)
+{-# INLINE breakOnEnd #-}
 
 -- | /O(n+m)/ Find all non-overlapping instances of @needle@ in
 -- @haystack@.  Each element of the returned list consists of a pair:
@@ -1325,7 +1326,7 @@ lines ps | null ps   = []
          | otherwise = h : if null t
                            then []
                            else lines (unsafeTail t)
-    where (h,t) = spanBy (/= '\n') ps
+    where (h,t) = span (/= '\n') ps
 {-# INLINE lines #-}
 
 {-

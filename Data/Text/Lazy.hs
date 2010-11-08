@@ -122,10 +122,10 @@ module Data.Text.Lazy
     , stripStart
     , stripEnd
     , splitAt
-    , spanBy
+    , span
+    , breakOn
+    , breakOnEnd
     , break
-    , breakEnd
-    , breakBy
     , group
     , groupBy
     , inits
@@ -964,13 +964,13 @@ splitAtWord x (Chunk c@(T.Text arr off len) cs)
 --
 -- Examples:
 --
--- > break "::" "a::b::c" ==> ("a", "::b::c")
--- > break "/" "foobar"   ==> ("foobar", "")
+-- > breakOn "::" "a::b::c" ==> ("a", "::b::c")
+-- > breakOn "/" "foobar"   ==> ("foobar", "")
 --
 -- Laws:
 --
 -- > append prefix match == haystack
--- >   where (prefix, match) = break needle haystack
+-- >   where (prefix, match) = breakOn needle haystack
 --
 -- If you need to break a string by a substring repeatedly (e.g. you
 -- want to break on every instance of a substring), use 'find'
@@ -981,25 +981,25 @@ splitAtWord x (Chunk c@(T.Text arr off len) cs)
 --
 -- In (unlikely) bad cases, this function's time complexity degrades
 -- towards /O(n*m)/.
-break :: Text -> Text -> (Text, Text)
-break pat src
-    | null pat  = emptyError "break"
+breakOn :: Text -> Text -> (Text, Text)
+breakOn pat src
+    | null pat  = emptyError "breakOn"
     | otherwise = case indices pat src of
                     []    -> (src, empty)
                     (x:_) -> let h :*: t = splitAtWord x src
                              in  (h, t)
 
--- | /O(n+m)/ Similar to 'break', but searches from the end of the string.
+-- | /O(n+m)/ Similar to 'breakOn', but searches from the end of the string.
 --
 -- The first element of the returned tuple is the prefix of @haystack@
 -- up to and including the last match of @needle@.  The second is the
 -- remainder of @haystack@, following the match.
 --
--- > breakEnd "::" "a::b::c" ==> ("a::b::", "c")
-breakEnd :: Text -> Text -> (Text, Text)
-breakEnd pat src = let (a,b) = break (reverse pat) (reverse src)
+-- > breakOnEnd "::" "a::b::c" ==> ("a::b::", "c")
+breakOnEnd :: Text -> Text -> (Text, Text)
+breakOnEnd pat src = let (a,b) = breakOn (reverse pat) (reverse src)
                    in  (reverse b, reverse a)
-{-# INLINE breakEnd #-}
+{-# INLINE breakOnEnd #-}
 
 -- | /O(n+m)/ Find all non-overlapping instances of @needle@ in
 -- @haystack@.  Each element of the returned list consists of a pair:
@@ -1034,10 +1034,10 @@ find pat src
                        in (h',t) : go x h' t xs
     go _  _ _ _      = []
 
--- | /O(n)/ 'breakBy' is like 'spanBy', but the prefix returned is over
+-- | /O(n)/ 'break' is like 'span', but the prefix returned is over
 -- elements that fail the predicate @p@.
-breakBy :: (Char -> Bool) -> Text -> (Text, Text)
-breakBy p t0 = break' t0
+break :: (Char -> Bool) -> Text -> (Text, Text)
+break p t0 = break' t0
   where break' Empty          = (empty, empty)
         break' c@(Chunk t ts) =
           case T.findIndex p t of
@@ -1047,13 +1047,13 @@ breakBy p t0 = break' t0
                    | otherwise -> let (a,b) = T.splitAt n t
                                   in (Chunk a Empty, Chunk b ts)
 
--- | /O(n)/ 'spanBy', applied to a predicate @p@ and text @t@, returns
+-- | /O(n)/ 'span', applied to a predicate @p@ and text @t@, returns
 -- a pair whose first element is the longest prefix (possibly empty)
 -- of @t@ of elements that satisfy @p@, and whose second is the
 -- remainder of the list.
-spanBy :: (Char -> Bool) -> Text -> (Text, Text)
-spanBy p = breakBy (not . p)
-{-# INLINE spanBy #-}
+span :: (Char -> Bool) -> Text -> (Text, Text)
+span p = break (not . p)
+{-# INLINE span #-}
 
 -- | The 'group' function takes a 'Text' and returns a list of 'Text's
 -- such that the concatenation of the result is equal to the argument.
@@ -1072,7 +1072,7 @@ group =  groupBy (==)
 groupBy :: (Char -> Char -> Bool) -> Text -> [Text]
 groupBy _  Empty        = []
 groupBy eq (Chunk t ts) = cons x ys : groupBy eq zs
-                          where (ys,zs) = spanBy (eq x) xs
+                          where (ys,zs) = span (eq x) xs
                                 x  = T.unsafeHead t
                                 xs = chunk (T.unsafeTail t) ts
 
@@ -1171,7 +1171,7 @@ chunksOf k = go
 -- newline 'Char's. The resulting strings do not contain newlines.
 lines :: Text -> [Text]
 lines Empty = []
-lines t = let (l,t') = breakBy ((==) '\n') t
+lines t = let (l,t') = break ((==) '\n') t
           in l : if null t' then []
                  else lines (tail t')
 

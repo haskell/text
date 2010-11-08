@@ -46,7 +46,7 @@ decimal :: Integral a => Reader a
 decimal txt
     | T.null h  = Left "input does not start with a digit"
     | otherwise = Right (T.foldl' go 0 h, t)
-  where (h,t)  = T.spanBy isDigit txt
+  where (h,t)  = T.span isDigit txt
         go n d = (n * 10 + fromIntegral (digitToInt d))
 
 -- | Read a hexadecimal integer, consisting of an optional leading
@@ -74,7 +74,7 @@ hex :: Integral a => Reader a
 hex txt
     | T.null h  = Left "input does not start with a hexadecimal digit"
     | otherwise = Right (T.foldl' go 0 h, t)
-  where (h,t)  = T.spanBy isHexDigit txt
+  where (h,t)  = T.span isHexDigit txt
         go n d = (n * 16 + fromIntegral (hexDigitToInt d))
 
 hexDigitToInt :: Char -> Int
