@@ -157,7 +157,7 @@ module Data.Text.Lazy
     , filter
     , find
     , breakOnAll
-    , partitionBy
+    , partition
 
     -- , findSubstring
     
@@ -1306,14 +1306,14 @@ find :: (Char -> Bool) -> Text -> Maybe Char
 find p t = S.findBy p (stream t)
 {-# INLINE find #-}
 
--- | /O(n)/ The 'partitionBy' function takes a predicate and a 'Text',
+-- | /O(n)/ The 'partition' function takes a predicate and a 'Text',
 -- and returns the pair of 'Text's with elements which do and do not
 -- satisfy the predicate, respectively; i.e.
 --
--- > partitionBy p t == (filter p t, filter (not . p) t)
-partitionBy :: (Char -> Bool) -> Text -> (Text, Text)
-partitionBy p t = (filter p t, filter (not . p) t)
-{-# INLINE partitionBy #-}
+-- > partition p t == (filter p t, filter (not . p) t)
+partition :: (Char -> Bool) -> Text -> (Text, Text)
+partition p t = (filter p t, filter (not . p) t)
+{-# INLINE partition #-}
 
 -- | /O(n)/ 'Text' index (subscript) operator, starting from 0.
 index :: Text -> Int64 -> Char

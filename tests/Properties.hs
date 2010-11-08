@@ -599,8 +599,8 @@ tl_filter p       = L.filter p    `eqP` (unpackS . TL.filter p)
 sf_findBy q p     = (L.find p . L.filter q) `eqP` (S.findBy p . S.filter q)
 t_find p          = L.find p      `eqP` T.find p
 tl_find p         = L.find p      `eqP` TL.find p
-t_partition p     = L.partition p `eqP` (unpack2 . T.partitionBy p)
-tl_partition p    = L.partition p `eqP` (unpack2 . TL.partitionBy p)
+t_partition p     = L.partition p `eqP` (unpack2 . T.partition p)
+tl_partition p    = L.partition p `eqP` (unpack2 . TL.partition p)
 
 sf_index p s      = forAll (choose (-l,l*2))
                     ((L.filter p s L.!!) `eq` S.index (S.filter p $ packS s))
