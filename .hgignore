@@ -1,7 +1,7 @@
 ^dist$
 ^tests/benchmarks/.*\.txt$
-^tests/(?:qc|text/test)$
-\.(?:aux|eventlog|h[ip]|log|[oa]|orig|prof|ps|swp)$
+^tests/(?:\.hpc|bm|qc|qc-hpc|stdio-hpc|text/test)$
+\.(?:aux|eventlog|h[ip]|log|[oa]|orig|prof|ps|rej|swp)$
 ~$
 syntax: glob
 .\#*
