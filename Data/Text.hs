@@ -278,6 +278,7 @@ import Data.Int (Int64)
 --
 -- > import Data.Text as T
 -- > import Data.Text.Encoding as E
+-- > import Data.ByteString (ByteString)
 -- >
 -- > countChars :: ByteString -> Int
 -- > countChars = T.length . T.toUpper . E.decodeUtf8
@@ -289,7 +290,7 @@ import Data.Int (Int64)
 -- function will be compiled down to a single loop over the source
 -- 'ByteString'.
 --
--- Functions that can be fused by the compiler are marked with the
+-- Functions that can be fused by the compiler are documented with the
 -- phrase \"Subject to fusion\".
 
 instance Eq Text where
@@ -1428,8 +1429,7 @@ unwords = intercalate (singleton ' ')
 {-# INLINE unwords #-}
 
 -- | /O(n)/ The 'isPrefixOf' function takes two 'Text's and returns
--- 'True' iff the first is a prefix of the second.  This function is
--- subject to fusion.
+-- 'True' iff the first is a prefix of the second.  Subject to fusion.
 isPrefixOf :: Text -> Text -> Bool
 isPrefixOf a@(Text _ _ alen) b@(Text _ _ blen) =
     alen <= blen && S.isPrefixOf (stream a) (stream b)

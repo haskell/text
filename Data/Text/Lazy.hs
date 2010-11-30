@@ -22,12 +22,12 @@
 -- requiring that the entire content be resident in memory.
 --
 -- Some operations, such as 'concat', 'append', 'reverse' and 'cons',
--- have better complexity than their "Data.Text" equivalents, due to
--- optimisations resulting from the list spine structure. And for
--- other operations lazy 'Text's are usually within a few percent of
--- strict ones, but with better heap usage. For data larger than
--- available memory, or if you have tight memory constraints, this
--- module will be the only option.
+-- have better time complexity than their "Data.Text" equivalents, due
+-- to the underlying representation being a list of chunks. For other
+-- operations, lazy 'Text's are usually within a few percent of strict
+-- ones, but often with better heap usage if used in a streaming
+-- fashion. For data larger than available memory, or if you have
+-- tight memory constraints, this module will be the only option.
 --
 -- This module is intended to be imported @qualified@, to avoid name
 -- clashes with "Prelude" functions.  eg.
@@ -345,7 +345,7 @@ pack = unstream . S.streamList . L.map safe
 {-# INLINE [1] pack #-}
 
 -- | /O(n)/ Convert a 'Text' into a 'String'.
--- Subject to array fusion.
+-- Subject to fusion.
 unpack :: Text -> String
 unpack t = S.unstreamList (stream t)
 {-# INLINE [1] unpack #-}
@@ -411,8 +411,7 @@ snoc t c = foldrChunks Chunk (singleton c) t
     unstream (S.snoc (stream t) c) = snoc t c
  #-}
 
--- | /O(n\/c)/ Appends one 'Text' to another.  Subject to array
--- fusion.
+-- | /O(n\/c)/ Appends one 'Text' to another.  Subject to fusion.
 append :: Text -> Text -> Text
 append xs ys = foldrChunks Chunk ys xs
 {-# INLINE [1] append #-}
@@ -425,7 +424,7 @@ append xs ys = foldrChunks Chunk ys xs
  #-}
 
 -- | /O(1)/ Returns the first character and rest of a 'Text', or
--- 'Nothing' if empty. Subject to array fusion.
+-- 'Nothing' if empty. Subject to fusion.
 uncons :: Text -> Maybe (Char, Text)
 uncons Empty        = Nothing
 uncons (Chunk t ts) = Just (T.unsafeHead t, ts')
@@ -434,13 +433,13 @@ uncons (Chunk t ts) = Just (T.unsafeHead t, ts')
 {-# INLINE uncons #-}
 
 -- | /O(1)/ Returns the first character of a 'Text', which must be
--- non-empty.  Subject to array fusion.
+-- non-empty.  Subject to fusion.
 head :: Text -> Char
 head t = S.head (stream t)
 {-# INLINE head #-}
 
 -- | /O(1)/ Returns all characters after the head of a 'Text', which
--- must be non-empty.  Subject to array fusion.
+-- must be non-empty.  Subject to fusion.
 tail :: Text -> Text
 tail (Chunk t ts) = chunk (T.tail t) ts
 tail Empty        = emptyError "tail"
@@ -454,7 +453,7 @@ tail Empty        = emptyError "tail"
  #-}
 
 -- | /O(1)/ Returns all but the last character of a 'Text', which must
--- be non-empty.  Subject to array fusion.
+-- be non-empty.  Subject to fusion.
 init :: Text -> Text
 init (Chunk t0 ts0) = go t0 ts0
     where go t (Chunk t' ts) = Chunk t (go t' ts)
@@ -469,7 +468,7 @@ init Empty = emptyError "init"
     unstream (S.init (stream t)) = init t
  #-}
 
--- | /O(1)/ Tests whether a 'Text' is empty or not.  Subject to array
+-- | /O(1)/ Tests whether a 'Text' is empty or not.  Subject to
 -- fusion.
 null :: Text -> Bool
 null Empty = True
@@ -490,7 +489,7 @@ isSingleton = S.isSingleton . stream
 {-# INLINE isSingleton #-}
 
 -- | /O(1)/ Returns the last character of a 'Text', which must be
--- non-empty.  Subject to array fusion.
+-- non-empty.  Subject to fusion.
 last :: Text -> Char
 last Empty        = emptyError "last"
 last (Chunk t ts) = go t ts
@@ -548,9 +547,10 @@ intercalate t = concat . (U.intersperse t)
 {-# INLINE intercalate #-}
 
 -- | /O(n)/ The 'intersperse' function takes a character and places it
--- between the characters of a 'Text'.  Subject to array fusion.
-intersperse     :: Char -> Text -> Text
-intersperse c t = unstream (S.intersperse c (stream t))
+-- between the characters of a 'Text'.  Subject to fusion.  Performs
+-- replacement on invalid scalar values.
+intersperse :: Char -> Text -> Text
+intersperse c t = unstream (S.intersperse (safe c) (stream t))
 {-# INLINE intersperse #-}
 
 -- | /O(n)/ Left-justify a string to the given length, using the
@@ -683,26 +683,24 @@ toUpper t = unstream (S.toUpper (stream t))
 -- | /O(n)/ 'foldl', applied to a binary operator, a starting value
 -- (typically the left-identity of the operator), and a 'Text',
 -- reduces the 'Text' using the binary operator, from left to right.
--- Subject to array fusion.
+-- Subject to fusion.
 foldl :: (a -> Char -> a) -> a -> Text -> a
 foldl f z t = S.foldl f z (stream t)
 {-# INLINE foldl #-}
 
 -- | /O(n)/ A strict version of 'foldl'.
--- Subject to array fusion.
+-- Subject to fusion.
 foldl' :: (a -> Char -> a) -> a -> Text -> a
 foldl' f z t = S.foldl' f z (stream t)
 {-# INLINE foldl' #-}
 
 -- | /O(n)/ A variant of 'foldl' that has no starting value argument,
--- and thus must be applied to a non-empty 'Text'.  Subject to array
--- fusion.
+-- and thus must be applied to a non-empty 'Text'.  Subject to fusion.
 foldl1 :: (Char -> Char -> Char) -> Text -> Char
 foldl1 f t = S.foldl1 f (stream t)
 {-# INLINE foldl1 #-}
 
--- | /O(n)/ A strict version of 'foldl1'.
--- Subject to array fusion.
+-- | /O(n)/ A strict version of 'foldl1'.  Subject to fusion.
 foldl1' :: (Char -> Char -> Char) -> Text -> Char
 foldl1' f t = S.foldl1' f (stream t)
 {-# INLINE foldl1' #-}
@@ -710,13 +708,13 @@ foldl1' f t = S.foldl1' f (stream t)
 -- | /O(n)/ 'foldr', applied to a binary operator, a starting value
 -- (typically the right-identity of the operator), and a 'Text',
 -- reduces the 'Text' using the binary operator, from right to left.
--- Subject to array fusion.
+-- Subject to fusion.
 foldr :: (Char -> a -> a) -> a -> Text -> a
 foldr f z t = S.foldr f z (stream t)
 {-# INLINE foldr #-}
 
--- | /O(n)/ A variant of 'foldr' that has no starting value argument, and
--- thust must be applied to a non-empty 'Text'.  Subject to array
+-- | /O(n)/ A variant of 'foldr' that has no starting value argument,
+-- and thust must be applied to a non-empty 'Text'.  Subject to
 -- fusion.
 foldr1 :: (Char -> Char -> Char) -> Text -> Char
 foldr1 f t = S.foldr1 f (stream t)
@@ -739,25 +737,25 @@ concatMap f = concat . foldr ((:) . f) []
 {-# INLINE concatMap #-}
 
 -- | /O(n)/ 'any' @p@ @t@ determines whether any character in the
--- 'Text' @t@ satisifes the predicate @p@. Subject to array fusion.
+-- 'Text' @t@ satisifes the predicate @p@. Subject to fusion.
 any :: (Char -> Bool) -> Text -> Bool
 any p t = S.any p (stream t)
 {-# INLINE any #-}
 
 -- | /O(n)/ 'all' @p@ @t@ determines whether all characters in the
--- 'Text' @t@ satisify the predicate @p@. Subject to array fusion.
+-- 'Text' @t@ satisify the predicate @p@. Subject to fusion.
 all :: (Char -> Bool) -> Text -> Bool
 all p t = S.all p (stream t)
 {-# INLINE all #-}
 
 -- | /O(n)/ 'maximum' returns the maximum value from a 'Text', which
--- must be non-empty. Subject to array fusion.
+-- must be non-empty. Subject to fusion.
 maximum :: Text -> Char
 maximum t = S.maximum (stream t)
 {-# INLINE maximum #-}
 
 -- | /O(n)/ 'minimum' returns the minimum value from a 'Text', which
--- must be non-empty. Subject to array fusion.
+-- must be non-empty. Subject to fusion.
 minimum :: Text -> Char
 minimum t = S.minimum (stream t)
 {-# INLINE minimum #-}
@@ -929,9 +927,9 @@ dropWords i t0
             where len'  = fromIntegral len
                   n'    = fromIntegral n
 
--- | /O(n)/ 'takeWhile', applied to a predicate @p@ and a 'Text', returns
--- the longest prefix (possibly empty) of elements that satisfy @p@.
--- This function is subject to array fusion.
+-- | /O(n)/ 'takeWhile', applied to a predicate @p@ and a 'Text',
+-- returns the longest prefix (possibly empty) of elements that
+-- satisfy @p@.  Subject to fusion.
 takeWhile :: (Char -> Bool) -> Text -> Text
 takeWhile p t0 = takeWhile' t0
   where takeWhile' Empty        = Empty
@@ -950,7 +948,7 @@ takeWhile p t0 = takeWhile' t0
   #-}
 
 -- | /O(n)/ 'dropWhile' @p@ @t@ returns the suffix remaining after
--- 'takeWhile' @p@ @t@. This function is subject to array fusion.
+-- 'takeWhile' @p@ @t@.  Subject to fusion.
 dropWhile :: (Char -> Bool) -> Text -> Text
 dropWhile p t0 = dropWhile' t0
   where dropWhile' Empty        = Empty
@@ -1275,8 +1273,7 @@ unwords = intercalate (singleton ' ')
 {-# INLINE unwords #-}
 
 -- | /O(n)/ The 'isPrefixOf' function takes two 'Text's and returns
--- 'True' iff the first is a prefix of the second.  This function is
--- subject to fusion.
+-- 'True' iff the first is a prefix of the second.  Subject to fusion.
 isPrefixOf :: Text -> Text -> Bool
 isPrefixOf Empty _  = True
 isPrefixOf _ Empty  = False
@@ -1422,8 +1419,7 @@ count pat src
   #-}
 
 -- | /O(n)/ The 'countChar' function returns the number of times the
--- query element appears in the given 'Text'. This function is subject
--- to fusion.
+-- query element appears in the given 'Text'.  Subject to fusion.
 countChar :: Char -> Text -> Int64
 countChar c t = S.countChar c (stream t)
 
