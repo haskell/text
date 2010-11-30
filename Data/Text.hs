@@ -575,7 +575,8 @@ replace s d = intercalate d . splitOn s
 -- context-dependent operation. The case conversion functions in this
 -- module are /not/ locale sensitive. Programs that require locale
 -- sensitivity should use appropriate versions of the case mapping
--- functions from the @text-icu@ package.
+-- functions from the @text-icu@ package:
+-- <http://hackage.haskell.org/package/text-icu>
 
 -- | /O(n)/ Convert a string to folded case.  This function is mainly
 -- useful for performing caseless (also known as case insensitive)

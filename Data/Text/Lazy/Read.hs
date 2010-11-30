@@ -39,7 +39,8 @@ type Reader a = Text -> Either String (a,Text)
 --
 -- /Note/: For fixed-width integer types, this function does not
 -- attempt to detect overflow, so a sufficiently long input may give
--- incorrect results.
+-- incorrect results.  If you are worried about overflow, use
+-- 'Integer' for your result type.
 decimal :: Integral a => Reader a
 {-# SPECIALIZE decimal :: Reader Int #-}
 {-# SPECIALIZE decimal :: Reader Integer #-}
@@ -59,7 +60,8 @@ decimal txt
 --
 -- /Note/: For fixed-width integer types, this function does not
 -- attempt to detect overflow, so a sufficiently long input may give
--- incorrect results.
+-- incorrect results.  If you are worried about overflow, use
+-- 'Integer' for your result type.
 hexadecimal :: Integral a => Reader a
 {-# SPECIALIZE hexadecimal :: Reader Int #-}
 {-# SPECIALIZE hexadecimal :: Reader Integer #-}
