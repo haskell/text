@@ -11,7 +11,12 @@
 -- Portability : GHC
 --
 -- A time and space-efficient implementation of Unicode text using
--- lists of packed arrays.  This representation is suitable for high
+-- lists of packed arrays.
+--
+-- /Note/: Read below the synopsis for important notes on the use of
+-- this module.
+--
+-- The representation used by this module is suitable for high
 -- performance use and for streaming large quantities of data.  It
 -- provides a means to manipulate a large body of text without
 -- requiring that the entire content be resident in memory.
@@ -31,7 +36,15 @@
 
 module Data.Text.Lazy
     (
+    -- * Fusion
+    -- $fusion
+
+    -- * Acceptable data
+    -- $replacement
+
+    -- * Types
       Text
+
     -- * Creation and elimination
     , pack
     , unpack
@@ -200,9 +213,61 @@ import qualified Data.Text.Lazy.Fusion as S
 import Data.Text.Fusion.Internal (PairS(..))
 import Data.Text.Lazy.Fusion (stream, unstream)
 import Data.Text.Lazy.Internal (Text(..), chunk, empty, foldlChunks, foldrChunks)
-import Data.Text.Internal (textP)
+import Data.Text.Internal (firstf, safe, textP)
 import qualified Data.Text.Util as U
 import Data.Text.Lazy.Search (indices)
+
+-- $fusion
+--
+-- Most of the functions in this module are subject to /fusion/,
+-- meaning that a pipeline of such functions will usually allocate at
+-- most one 'Text' value.
+--
+-- As an example, consider the following pipeline:
+--
+-- > import Data.Text.Lazy as T
+-- > import Data.Text.Lazy.Encoding as E
+-- > import Data.ByteString.Lazy (ByteString)
+-- >
+-- > countChars :: ByteString -> Int
+-- > countChars = T.length . T.toUpper . E.decodeUtf8
+--
+-- From the type signatures involved, this looks like it should
+-- allocate one 'ByteString' value, and two 'Text' values. However,
+-- when a module is compiled with optimisation enabled under GHC, the
+-- two intermediate 'Text' values will be optimised away, and the
+-- function will be compiled down to a single loop over the source
+-- 'ByteString'.
+--
+-- Functions that can be fused by the compiler are documented with the
+-- phrase \"Subject to fusion\".
+
+-- $replacement
+--
+-- A 'Text' value is a sequence of Unicode scalar values, as defined
+-- in &#xa7;3.9, definition D76 of the Unicode 5.2 standard:
+-- <http://www.unicode.org/versions/Unicode5.2.0/ch03.pdf#page=35>. As
+-- such, a 'Text' cannot contain values in the range U+D800 to U+DFFF
+-- inclusive. Haskell implementations admit all Unicode code points
+-- (&#xa7;3.4, definition D10) as 'Char' values, including code points
+-- from this invalid range.  This means that there are some 'Char'
+-- values that are not valid Unicode scalar values, and the functions
+-- in this module must handle those cases.
+--
+-- Within this module, many functions construct a 'Text' from one or
+-- more 'Char' values. Those functions will substitute 'Char' values
+-- that are not valid Unicode scalar values with the replacement
+-- character \"&#xfffd;\" (U+FFFD).  Functions that perform this
+-- inspection and replacement are documented with the phrase
+-- \"Performs replacement on invalid scalar values\".
+--
+-- (One reason for this policy of replacement is that internally, a
+-- 'Text' value is represented as packed UTF-16 data. Values in the
+-- range U+D800 through U+DFFF are used by UTF-16 to denote surrogate
+-- code points, and so cannot be represented. The functions replace
+-- invalid scalar values, instead of dropping them, as a security
+-- measure. For details, see Unicode Technical Report 36, &#xa7;3.5:
+-- <http://unicode.org/reports/tr36#Deletion_of_Noncharacters>)
 
 equal :: Text -> Text -> Bool
 equal Empty Empty = True
@@ -274,9 +339,9 @@ instance Data Text where
 
 -- | /O(n)/ Convert a 'String' into a 'Text'.
 --
--- This function is subject to array fusion.
+-- Subject to fusion.  Performs replacement on invalid scalar values.
 pack :: String -> Text
-pack s = unstream (S.streamList s)
+pack = unstream . S.streamList . L.map safe
 {-# INLINE [1] pack #-}
 
 -- | /O(n)/ Convert a 'Text' into a 'String'.
@@ -285,8 +350,8 @@ unpack :: Text -> String
 unpack t = S.unstreamList (stream t)
 {-# INLINE [1] unpack #-}
 
--- | /O(1)/ Convert a character into a Text.
--- Subject to fusion.
+-- | /O(1)/ Convert a character into a Text.  Subject to fusion.
+-- Performs replacement on invalid scalar values.
 singleton :: Char -> Text
 singleton c = Chunk (T.singleton c) Empty
 {-# INLINE [1] singleton #-}
@@ -469,9 +534,10 @@ compareLength t n = S.compareLengthI (stream t) n
 -- properties of code.
 
 -- | /O(n)/ 'map' @f@ @t@ is the 'Text' obtained by applying @f@ to
--- each element of @t@.  Subject to array fusion.
+-- each element of @t@.  Subject to fusion.  Performs replacement on
+-- invalid scalar values.
 map :: (Char -> Char) -> Text -> Text
-map f t = unstream (S.map f (stream t))
+map f t = unstream (S.map (safe . f) (stream t))
 {-# INLINE [1] map #-}
 
 -- | /O(n)/ The 'intercalate' function takes a 'Text' and a list of
@@ -488,7 +554,10 @@ intersperse c t = unstream (S.intersperse c (stream t))
 {-# INLINE intersperse #-}
 
 -- | /O(n)/ Left-justify a string to the given length, using the
--- specified fill character on the right. Subject to fusion. Examples:
+-- specified fill character on the right. Subject to fusion.  Performs
+-- replacement on invalid scalar values.
+--
+-- Examples:
 --
 -- > justifyLeft 7 'x' "foo"    == "fooxxxx"
 -- > justifyLeft 3 'x' "foobar" == "foobar"
@@ -507,7 +576,10 @@ justifyLeft k c t
   #-}
 
 -- | /O(n)/ Right-justify a string to the given length, using the
--- specified fill character on the left. Examples:
+-- specified fill character on the left.  Performs replacement on
+-- invalid scalar values.
+--
+-- Examples:
 --
 -- > justifyRight 7 'x' "bar"    == "xxxxbar"
 -- > justifyRight 3 'x' "foobar" == "foobar"
@@ -518,8 +590,11 @@ justifyRight k c t
   where len = length t
 {-# INLINE justifyRight #-}
 
--- | /O(n)/ Center a string to the given length, using the
--- specified fill character on either side. Examples:
+-- | /O(n)/ Center a string to the given length, using the specified
+-- fill character on either side.  Performs replacement on invalid
+-- scalar values.
+--
+-- Examples:
 --
 -- > center 8 'x' "HS" = "xxxHSxxx"
 center :: Int64 -> Char -> Text -> Text
@@ -688,8 +763,8 @@ minimum t = S.minimum (stream t)
 {-# INLINE minimum #-}
 
 -- | /O(n)/ 'scanl' is similar to 'foldl', but returns a list of
--- successive reduced values from the left. This function is subject
--- to array fusion.
+-- successive reduced values from the left. Subject to fusion.
+-- Performs replacement on invalid scalar values.
 --
 -- > scanl f z [x1, x2, ...] == [z, z `f` x1, (z `f` x1) `f` x2, ...]
 --
@@ -697,11 +772,13 @@ minimum t = S.minimum (stream t)
 --
 -- > last (scanl f z xs) == foldl f z xs.
 scanl :: (Char -> Char -> Char) -> Char -> Text -> Text
-scanl f z t = unstream (S.scanl f z (stream t))
+scanl f z t = unstream (S.scanl g z (stream t))
+    where g a b = safe (f a b)
 {-# INLINE scanl #-}
 
 -- | /O(n)/ 'scanl1' is a variant of 'scanl' that has no starting
--- value argument.  This function is subject to array fusion.
+-- value argument.  Subject to fusion.  Performs replacement on
+-- invalid scalar values.
 --
 -- > scanl1 f [x1, x2, ...] == [x1, x1 `f` x2, ...]
 scanl1 :: (Char -> Char -> Char) -> Text -> Text
@@ -710,21 +787,24 @@ scanl1 f t0 = case uncons t0 of
                 Just (t,ts) -> scanl f t ts
 {-# INLINE scanl1 #-}
 
--- | /O(n)/ 'scanr' is the right-to-left dual of 'scanl'.
+-- | /O(n)/ 'scanr' is the right-to-left dual of 'scanl'.  Performs
+-- replacement on invalid scalar values.
 --
 -- > scanr f v == reverse . scanl (flip f) v . reverse
 scanr :: (Char -> Char -> Char) -> Char -> Text -> Text
-scanr f v = reverse . scanl (flip f) v . reverse
+scanr f v = reverse . scanl g v . reverse
+    where g a b = safe (f b a)
 
 -- | /O(n)/ 'scanr1' is a variant of 'scanr' that has no starting
--- value argument.
+-- value argument.  Performs replacement on invalid scalar values.
 scanr1 :: (Char -> Char -> Char) -> Text -> Text
 scanr1 f t | null t    = empty
            | otherwise = scanr f (last t) (init t)
 
 -- | /O(n)/ Like a combination of 'map' and 'foldl''. Applies a
 -- function to each element of a 'Text', passing an accumulating
--- parameter from left to right, and returns a final 'Text'.
+-- parameter from left to right, and returns a final 'Text'.  Performs
+-- replacement on invalid scalar values.
 mapAccumL :: (a -> Char -> (a,Char)) -> a -> Text -> (a, Text)
 mapAccumL f = go
   where
@@ -738,7 +818,7 @@ mapAccumL f = go
 -- a strict 'foldr'; it applies a function to each element of a
 -- 'Text', passing an accumulating parameter from right to left, and
 -- returning a final value of this accumulator together with the new
--- 'Text'.
+-- 'Text'.  Performs replacement on invalid scalar values.
 mapAccumR :: (a -> Char -> (a,Char)) -> a -> Text -> (a, Text)
 mapAccumR f = go
   where
@@ -762,7 +842,7 @@ replicate n t
 -- | /O(n)/ 'replicateChar' @n@ @c@ is a 'Text' of length @n@ with @c@ the
 -- value of every element. Subject to fusion.
 replicateChar :: Int64 -> Char -> Text
-replicateChar n c = unstream (S.replicateCharI n c)
+replicateChar n c = unstream (S.replicateCharI n (safe c))
 {-# INLINE replicateChar #-}
 
 {-# RULES
@@ -775,9 +855,10 @@ replicateChar n c = unstream (S.replicateCharI n c)
 -- 'Text' from a seed value. The function takes the element and
 -- returns 'Nothing' if it is done producing the 'Text', otherwise
 -- 'Just' @(a,b)@.  In this case, @a@ is the next 'Char' in the
--- string, and @b@ is the seed value for further production.
-unfoldr     :: (a -> Maybe (Char,a)) -> a -> Text
-unfoldr f s = unstream (S.unfoldr f s)
+-- string, and @b@ is the seed value for further production.  Performs
+-- replacement on invalid scalar values.
+unfoldr :: (a -> Maybe (Char,a)) -> a -> Text
+unfoldr f s = unstream (S.unfoldr (firstf safe . f) s)
 {-# INLINE unfoldr #-}
 
 -- | /O(n)/ Like 'unfoldr', 'unfoldrN' builds a 'Text' from a seed
@@ -785,8 +866,9 @@ unfoldr f s = unstream (S.unfoldr f s)
 -- first argument to 'unfoldrN'. This function is more efficient than
 -- 'unfoldr' when the maximum length of the result is known and
 -- correct, otherwise its performance is similar to 'unfoldr'.
-unfoldrN     :: Int64 -> (a -> Maybe (Char,a)) -> a -> Text
-unfoldrN n f s = unstream (S.unfoldrN n f s)
+-- Performs replacement on invalid scalar values.
+unfoldrN :: Int64 -> (a -> Maybe (Char,a)) -> a -> Text
+unfoldrN n f s = unstream (S.unfoldrN n (firstf safe . f) s)
 {-# INLINE unfoldrN #-}
 
 -- | /O(n)/ 'take' @n@, applied to a 'Text', returns the prefix of the
@@ -1355,8 +1437,10 @@ zip a b = S.unstreamList $ S.zipWith (,) (stream a) (stream b)
 
 -- | /O(n)/ 'zipWith' generalises 'zip' by zipping with the function
 -- given as the first argument, instead of a tupling function.
+-- Performs replacement on invalid scalar values.
 zipWith :: (Char -> Char -> Char) -> Text -> Text -> Text
-zipWith f t1 t2 = unstream (S.zipWith f (stream t1) (stream t2))
+zipWith f t1 t2 = unstream (S.zipWith g (stream t1) (stream t2))
+    where g a b = safe (f a b)
 {-# INLINE [0] zipWith #-}
 
 revChunks :: [T.Text] -> Text

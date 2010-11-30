@@ -22,8 +22,12 @@ module Data.Text.Internal
     -- * Construction
     , text
     , textP
+    -- * Safety
+    , safe
     -- * Code that must be here for accessibility
     , empty
+    -- * Utilities
+    , firstf
     -- * Debugging
     , showText
     ) where
@@ -31,7 +35,9 @@ module Data.Text.Internal
 #if defined(ASSERTS)
 import Control.Exception (assert)
 #endif
+import Data.Bits ((.&.))
 import qualified Data.Text.Array as A
+import Data.Text.UnsafeChar (ord)
 import Data.Typeable (Typeable)
 
 -- | A space efficient, packed, unboxed Unicode text type.
@@ -72,3 +78,21 @@ showText :: Text -> String
 showText (Text arr off len) =
     "Text " ++ show (A.toList arr off len) ++ ' ' :
             show off ++ ' ' : show len
+
+-- | Map a 'Char' to a 'Text'-safe value.
+--
+-- UTF-16 surrogate code points are not included in the set of Unicode
+-- scalar values, but are unfortunately admitted as valid 'Char'
+-- values by Haskell.  They cannot be represented in a 'Text'.  This
+-- function remaps those code points to the Unicode replacement
+-- character \"&#xfffd;\", and leaves other code points unchanged.
+safe :: Char -> Char
+safe c
+    | ord c .&. 0x1ff800 /= 0xd800 = c
+    | otherwise                    = '\xfffd'
+{-# INLINE safe #-}
+
+-- | Apply a function to the first element of an optional pair.
+firstf :: (a -> c) -> Maybe (a,b) -> Maybe (c,b)
+firstf f (Just (a, b)) = Just (f a, b)
+firstf _  Nothing      = Nothing
