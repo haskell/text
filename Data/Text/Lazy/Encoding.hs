@@ -12,12 +12,13 @@
 -- Functions for converting lazy 'Text' values to and from lazy
 -- 'ByteString', using several standard encodings.
 --
--- To make use of a much larger variety of encodings, use the @text-icu@
--- package.
+-- To gain access to a much larger variety of encodings, use the
+-- @text-icu@ package: <http://hackage.haskell.org/package/text-icu>
 
 module Data.Text.Lazy.Encoding
     (
     -- * Decoding ByteStrings to Text
+    -- $strict
       decodeASCII
     , decodeUtf8
     , decodeUtf16LE
@@ -50,6 +51,19 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text.Lazy.Encoding.Fusion as E
 import qualified Data.Text.Lazy.Fusion as F
+
+-- $strict
+--
+-- All of the single-parameter functions for decoding bytestrings
+-- encoded in one of the Unicode Transformation Formats (UTF) operate
+-- in a /strict/ mode: each will throw an exception if given invalid
+-- input.
+--
+-- Each function has a variant, whose name is suffixed with -'With',
+-- that gives greater control over the handling of decoding errors.
+-- For instance, 'decodeUtf8' will throw an exception, but
+-- 'decodeUtf8With' allows the programmer to determine what to do on a
+-- decoding error.
 
 -- | Decode a 'ByteString' containing 7-bit ASCII encoded text.
 decodeASCII :: B.ByteString -> Text
@@ -95,6 +109,10 @@ decodeUtf8With onErr bs0 = fast bs0
 {-# INLINE[0] decodeUtf8With #-}
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text.
+--
+-- If the input contains any invalid UTF-8 data, an exception will be
+-- thrown.  For more control over the handling of invalid data, use
+-- 'decodeUtf8With'.
 decodeUtf8 :: B.ByteString -> Text
 decodeUtf8 = decodeUtf8With strictDecode
 {-# INLINE[0] decodeUtf8 #-}
@@ -113,6 +131,10 @@ decodeUtf16LEWith onErr bs = F.unstream (E.streamUtf16LE onErr bs)
 {-# INLINE decodeUtf16LEWith #-}
 
 -- | Decode text from little endian UTF-16 encoding.
+--
+-- If the input contains any invalid little endian UTF-16 data, an
+-- exception will be thrown.  For more control over the handling of
+-- invalid data, use 'decodeUtf16LEWith'.
 decodeUtf16LE :: B.ByteString -> Text
 decodeUtf16LE = decodeUtf16LEWith strictDecode
 {-# INLINE decodeUtf16LE #-}
@@ -123,6 +145,10 @@ decodeUtf16BEWith onErr bs = F.unstream (E.streamUtf16BE onErr bs)
 {-# INLINE decodeUtf16BEWith #-}
 
 -- | Decode text from big endian UTF-16 encoding.
+--
+-- If the input contains any invalid big endian UTF-16 data, an
+-- exception will be thrown.  For more control over the handling of
+-- invalid data, use 'decodeUtf16BEWith'.
 decodeUtf16BE :: B.ByteString -> Text
 decodeUtf16BE = decodeUtf16BEWith strictDecode
 {-# INLINE decodeUtf16BE #-}
@@ -143,6 +169,10 @@ decodeUtf32LEWith onErr bs = F.unstream (E.streamUtf32LE onErr bs)
 {-# INLINE decodeUtf32LEWith #-}
 
 -- | Decode text from little endian UTF-32 encoding.
+--
+-- If the input contains any invalid little endian UTF-32 data, an
+-- exception will be thrown.  For more control over the handling of
+-- invalid data, use 'decodeUtf32LEWith'.
 decodeUtf32LE :: B.ByteString -> Text
 decodeUtf32LE = decodeUtf32LEWith strictDecode
 {-# INLINE decodeUtf32LE #-}
@@ -153,6 +183,10 @@ decodeUtf32BEWith onErr bs = F.unstream (E.streamUtf32BE onErr bs)
 {-# INLINE decodeUtf32BEWith #-}
 
 -- | Decode text from big endian UTF-32 encoding.
+--
+-- If the input contains any invalid big endian UTF-32 data, an
+-- exception will be thrown.  For more control over the handling of
+-- invalid data, use 'decodeUtf32BEWith'.
 decodeUtf32BE :: B.ByteString -> Text
 decodeUtf32BE = decodeUtf32BEWith strictDecode
 {-# INLINE decodeUtf32BE #-}

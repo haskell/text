@@ -39,14 +39,15 @@ type Reader a = Text -> Either String (a,Text)
 --
 -- /Note/: For fixed-width integer types, this function does not
 -- attempt to detect overflow, so a sufficiently long input may give
--- incorrect results.
+-- incorrect results.  If you are worried about overflow, use
+-- 'Integer' for your result type.
 decimal :: Integral a => Reader a
 {-# SPECIALIZE decimal :: Reader Int #-}
 {-# SPECIALIZE decimal :: Reader Integer #-}
 decimal txt
     | T.null h  = Left "input does not start with a digit"
     | otherwise = Right (T.foldl' go 0 h, t)
-  where (h,t)  = T.spanBy isDigit txt
+  where (h,t)  = T.span isDigit txt
         go n d = (n * 10 + fromIntegral (digitToInt d))
 
 -- | Read a hexadecimal integer, consisting of an optional leading
@@ -59,7 +60,8 @@ decimal txt
 --
 -- /Note/: For fixed-width integer types, this function does not
 -- attempt to detect overflow, so a sufficiently long input may give
--- incorrect results.
+-- incorrect results.  If you are worried about overflow, use
+-- 'Integer' for your result type.
 hexadecimal :: Integral a => Reader a
 {-# SPECIALIZE hexadecimal :: Reader Int #-}
 {-# SPECIALIZE hexadecimal :: Reader Integer #-}
@@ -74,7 +76,7 @@ hex :: Integral a => Reader a
 hex txt
     | T.null h  = Left "input does not start with a hexadecimal digit"
     | otherwise = Right (T.foldl' go 0 h, t)
-  where (h,t)  = T.spanBy isHexDigit txt
+  where (h,t)  = T.span isHexDigit txt
         go n d = (n * 16 + fromIntegral (hexDigitToInt d))
 
 hexDigitToInt :: Char -> Int
@@ -99,7 +101,7 @@ signed f = runP (signa (P f))
 -- by the 'read' function, with the exception that a trailing @\'.\'@
 -- or @\'e\'@ /not/ followed by a number is not consumed.
 --
--- Examples:
+-- Examples (with behaviour identical to 'read'):
 --
 -- >rational "3"     == Right (3.0, "")
 -- >rational "3.1"   == Right (3.1, "")

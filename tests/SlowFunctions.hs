@@ -3,7 +3,7 @@
 module SlowFunctions
     (
       indices
-    , split
+    , splitOn
     ) where
 
 import qualified Data.Text as T
@@ -23,12 +23,12 @@ indices needle@(Text _narr _noff nlen) haystack@(Text harr hoff hlen)
            where t = Text harr (hoff+i) (hlen-i)
                  d = iter_ haystack i
 
-split :: T.Text                 -- ^ Text to split on
-      -> T.Text                 -- ^ Input text
-      -> [T.Text]
-split pat src0
-    | T.null pat  = error "split: empty"
-    | l == 1      = T.splitBy (== (unsafeHead pat)) src0
+splitOn :: T.Text               -- ^ Text to split on
+        -> T.Text               -- ^ Input text
+        -> [T.Text]
+splitOn pat src0
+    | T.null pat  = error "splitOn: empty"
+    | l == 1      = T.split (== (unsafeHead pat)) src0
     | otherwise   = go src0
   where
     l      = T.length pat

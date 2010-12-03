@@ -135,10 +135,10 @@ module Data.Text.Lazy
     , stripStart
     , stripEnd
     , splitAt
-    , spanBy
+    , span
+    , breakOn
+    , breakOnEnd
     , break
-    , breakEnd
-    , breakBy
     , group
     , groupBy
     , inits
@@ -146,8 +146,8 @@ module Data.Text.Lazy
 
     -- ** Breaking into many substrings
     -- $split
+    , splitOn
     , split
-    , splitBy
     , chunksOf
     -- , breakSubstring
 
@@ -169,8 +169,8 @@ module Data.Text.Lazy
     -- * Searching
     , filter
     , find
-    , findBy
-    , partitionBy
+    , breakOnAll
+    , partition
 
     -- , findSubstring
     
@@ -630,7 +630,7 @@ replace :: Text                 -- ^ Text to search for
         -> Text                 -- ^ Replacement text
         -> Text                 -- ^ Input text
         -> Text
-replace s d = intercalate d . split s
+replace s d = intercalate d . splitOn s
 {-# INLINE replace #-}
 
 -- ----------------------------------------------------------------------------
@@ -1044,13 +1044,13 @@ splitAtWord x (Chunk c@(T.Text arr off len) cs)
 --
 -- Examples:
 --
--- > break "::" "a::b::c" ==> ("a", "::b::c")
--- > break "/" "foobar"   ==> ("foobar", "")
+-- > breakOn "::" "a::b::c" ==> ("a", "::b::c")
+-- > breakOn "/" "foobar"   ==> ("foobar", "")
 --
 -- Laws:
 --
 -- > append prefix match == haystack
--- >   where (prefix, match) = break needle haystack
+-- >   where (prefix, match) = breakOn needle haystack
 --
 -- If you need to break a string by a substring repeatedly (e.g. you
 -- want to break on every instance of a substring), use 'find'
@@ -1061,25 +1061,25 @@ splitAtWord x (Chunk c@(T.Text arr off len) cs)
 --
 -- In (unlikely) bad cases, this function's time complexity degrades
 -- towards /O(n*m)/.
-break :: Text -> Text -> (Text, Text)
-break pat src
-    | null pat  = emptyError "break"
+breakOn :: Text -> Text -> (Text, Text)
+breakOn pat src
+    | null pat  = emptyError "breakOn"
     | otherwise = case indices pat src of
                     []    -> (src, empty)
                     (x:_) -> let h :*: t = splitAtWord x src
                              in  (h, t)
 
--- | /O(n+m)/ Similar to 'break', but searches from the end of the string.
+-- | /O(n+m)/ Similar to 'breakOn', but searches from the end of the string.
 --
 -- The first element of the returned tuple is the prefix of @haystack@
 -- up to and including the last match of @needle@.  The second is the
 -- remainder of @haystack@, following the match.
 --
--- > breakEnd "::" "a::b::c" ==> ("a::b::", "c")
-breakEnd :: Text -> Text -> (Text, Text)
-breakEnd pat src = let (a,b) = break (reverse pat) (reverse src)
+-- > breakOnEnd "::" "a::b::c" ==> ("a::b::", "c")
+breakOnEnd :: Text -> Text -> (Text, Text)
+breakOnEnd pat src = let (a,b) = breakOn (reverse pat) (reverse src)
                    in  (reverse b, reverse a)
-{-# INLINE breakEnd #-}
+{-# INLINE breakOnEnd #-}
 
 -- | /O(n+m)/ Find all non-overlapping instances of @needle@ in
 -- @haystack@.  Each element of the returned list consists of a pair:
@@ -1090,9 +1090,9 @@ breakEnd pat src = let (a,b) = break (reverse pat) (reverse src)
 --
 -- Examples:
 --
--- > find "::" ""
+-- > breakOnAll "::" ""
 -- > ==> []
--- > find "/" "a/b/c/"
+-- > breakOnAll "/" "a/b/c/"
 -- > ==> [("a", "/b/c/"), ("a/b", "/c/"), ("a/b/c", "/")]
 --
 -- This function is strict in its first argument, and lazy in its
@@ -1102,11 +1102,11 @@ breakEnd pat src = let (a,b) = break (reverse pat) (reverse src)
 -- towards /O(n*m)/.
 --
 -- The @needle@ parameter may not be empty.
-find :: Text                    -- ^ @needle@ to search for
-     -> Text                    -- ^ @haystack@ in which to search
-     -> [(Text, Text)]
-find pat src
-    | null pat  = emptyError "find"
+breakOnAll :: Text              -- ^ @needle@ to search for
+           -> Text              -- ^ @haystack@ in which to search
+           -> [(Text, Text)]
+breakOnAll pat src
+    | null pat  = emptyError "breakOnAll"
     | otherwise = go 0 empty src (indices pat src)
   where
     go !n p s (x:xs) = let h :*: t = splitAtWord (x-n) s
@@ -1114,10 +1114,10 @@ find pat src
                        in (h',t) : go x h' t xs
     go _  _ _ _      = []
 
--- | /O(n)/ 'breakBy' is like 'spanBy', but the prefix returned is over
+-- | /O(n)/ 'break' is like 'span', but the prefix returned is over
 -- elements that fail the predicate @p@.
-breakBy :: (Char -> Bool) -> Text -> (Text, Text)
-breakBy p t0 = break' t0
+break :: (Char -> Bool) -> Text -> (Text, Text)
+break p t0 = break' t0
   where break' Empty          = (empty, empty)
         break' c@(Chunk t ts) =
           case T.findIndex p t of
@@ -1127,13 +1127,13 @@ breakBy p t0 = break' t0
                    | otherwise -> let (a,b) = T.splitAt n t
                                   in (Chunk a Empty, Chunk b ts)
 
--- | /O(n)/ 'spanBy', applied to a predicate @p@ and text @t@, returns
+-- | /O(n)/ 'span', applied to a predicate @p@ and text @t@, returns
 -- a pair whose first element is the longest prefix (possibly empty)
 -- of @t@ of elements that satisfy @p@, and whose second is the
 -- remainder of the list.
-spanBy :: (Char -> Bool) -> Text -> (Text, Text)
-spanBy p = breakBy (not . p)
-{-# INLINE spanBy #-}
+span :: (Char -> Bool) -> Text -> (Text, Text)
+span p = break (not . p)
+{-# INLINE span #-}
 
 -- | The 'group' function takes a 'Text' and returns a list of 'Text's
 -- such that the concatenation of the result is equal to the argument.
@@ -1152,7 +1152,7 @@ group =  groupBy (==)
 groupBy :: (Char -> Char -> Bool) -> Text -> [Text]
 groupBy _  Empty        = []
 groupBy eq (Chunk t ts) = cons x ys : groupBy eq zs
-                          where (ys,zs) = spanBy (eq x) xs
+                          where (ys,zs) = span (eq x) xs
                                 x  = T.unsafeHead t
                                 xs = chunk (T.unsafeTail t) ts
 
@@ -1184,37 +1184,37 @@ tails ts@(Chunk t ts')
 --
 -- Examples:
 --
--- > split "\r\n" "a\r\nb\r\nd\r\ne" == ["a","b","d","e"]
--- > split "aaa"  "aaaXaaaXaaaXaaa"  == ["","X","X","X",""]
--- > split "x"    "x"                == ["",""]
+-- > splitOn "\r\n" "a\r\nb\r\nd\r\ne" == ["a","b","d","e"]
+-- > splitOn "aaa"  "aaaXaaaXaaaXaaa"  == ["","X","X","X",""]
+-- > splitOn "x"    "x"                == ["",""]
 -- 
 -- and
 --
--- > intercalate s . split s         == id
--- > split (singleton c)             == splitBy (==c)
+-- > intercalate s . splitOn s         == id
+-- > splitOn (singleton c)             == split (==c)
 --
 -- This function is strict in its first argument, and lazy in its
 -- second.
 --
 -- In (unlikely) bad cases, this function's time complexity degrades
 -- towards /O(n*m)/.
-split :: Text                   -- ^ Text to split on
-      -> Text                   -- ^ Input text
-      -> [Text]
-split pat src
-    | null pat        = emptyError "split"
-    | isSingleton pat = splitBy (== head pat) src
+splitOn :: Text                 -- ^ Text to split on
+        -> Text                 -- ^ Input text
+        -> [Text]
+splitOn pat src
+    | null pat        = emptyError "splitOn"
+    | isSingleton pat = split (== head pat) src
     | otherwise       = go 0 (indices pat src) src
   where
     go  _ []     cs = [cs]
     go !i (x:xs) cs = let h :*: t = splitAtWord (x-i) cs
                       in  h : go (x+l) xs (dropWords l t)
     l = foldlChunks (\a (T.Text _ _ b) -> a + fromIntegral b) 0 pat
-{-# INLINE [1] split #-}
+{-# INLINE [1] splitOn #-}
 
 {-# RULES
-"LAZY TEXT split/singleton -> splitBy/==" [~1] forall c t.
-    split (singleton c) t = splitBy (==c) t
+"LAZY TEXT splitOn/singleton -> split/==" [~1] forall c t.
+    splitOn (singleton c) t = split (==c) t
   #-}
 
 -- | /O(n)/ Splits a 'Text' into components delimited by separators,
@@ -1222,16 +1222,16 @@ split pat src
 -- resulting components do not contain the separators.  Two adjacent
 -- separators result in an empty component in the output.  eg.
 --
--- > splitBy (=='a') "aabbaca" == ["","","bb","c",""]
--- > splitBy (=='a') []        == [""]
-splitBy :: (Char -> Bool) -> Text -> [Text]
-splitBy _ Empty = [Empty]
-splitBy p (Chunk t0 ts0) = comb [] (T.splitBy p t0) ts0
+-- > split (=='a') "aabbaca" == ["","","bb","c",""]
+-- > split (=='a') []        == [""]
+split :: (Char -> Bool) -> Text -> [Text]
+split _ Empty = [Empty]
+split p (Chunk t0 ts0) = comb [] (T.split p t0) ts0
   where comb acc (s:[]) Empty        = revChunks (s:acc) : []
-        comb acc (s:[]) (Chunk t ts) = comb (s:acc) (T.splitBy p t) ts
+        comb acc (s:[]) (Chunk t ts) = comb (s:acc) (T.split p t) ts
         comb acc (s:ss) ts           = revChunks (s:acc) : comb [] ss ts
-        comb _   []     _            = impossibleError "splitBy"
-{-# INLINE splitBy #-}
+        comb _   []     _            = impossibleError "split"
+{-# INLINE split #-}
 
 -- | /O(n)/ Splits a 'Text' into components of length @k@.  The last
 -- element may be shorter than the other chunks, depending on the
@@ -1251,14 +1251,14 @@ chunksOf k = go
 -- newline 'Char's. The resulting strings do not contain newlines.
 lines :: Text -> [Text]
 lines Empty = []
-lines t = let (l,t') = breakBy ((==) '\n') t
+lines t = let (l,t') = break ((==) '\n') t
           in l : if null t' then []
                  else lines (tail t')
 
 -- | /O(n)/ Breaks a 'Text' up into a list of words, delimited by 'Char's
 -- representing white space.
 words :: Text -> [Text]
-words = L.filter (not . null) . splitBy isSpace
+words = L.filter (not . null) . split isSpace
 {-# INLINE words #-}
 
 -- | /O(n)/ Joins lines, after appending a terminating newline to
@@ -1378,21 +1378,21 @@ filter :: (Char -> Bool) -> Text -> Text
 filter p t = unstream (S.filter p (stream t))
 {-# INLINE filter #-}
 
--- | /O(n)/ The 'findBy' function takes a predicate and a 'Text', and
+-- | /O(n)/ The 'find' function takes a predicate and a 'Text', and
 -- returns the first element in matching the predicate, or 'Nothing'
 -- if there is no such element.
-findBy :: (Char -> Bool) -> Text -> Maybe Char
-findBy p t = S.findBy p (stream t)
-{-# INLINE findBy #-}
+find :: (Char -> Bool) -> Text -> Maybe Char
+find p t = S.findBy p (stream t)
+{-# INLINE find #-}
 
--- | /O(n)/ The 'partitionBy' function takes a predicate and a 'Text',
+-- | /O(n)/ The 'partition' function takes a predicate and a 'Text',
 -- and returns the pair of 'Text's with elements which do and do not
 -- satisfy the predicate, respectively; i.e.
 --
--- > partitionBy p t == (filter p t, filter (not . p) t)
-partitionBy :: (Char -> Bool) -> Text -> (Text, Text)
-partitionBy p t = (filter p t, filter (not . p) t)
-{-# INLINE partitionBy #-}
+-- > partition p t == (filter p t, filter (not . p) t)
+partition :: (Char -> Bool) -> Text -> (Text, Text)
+partition p t = (filter p t, filter (not . p) t)
+{-# INLINE partition #-}
 
 -- | /O(n)/ 'Text' index (subscript) operator, starting from 0.
 index :: Text -> Int64 -> Char

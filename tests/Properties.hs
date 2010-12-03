@@ -265,13 +265,13 @@ t_reverse         = L.reverse `eqP` (unpackS . T.reverse)
 tl_reverse        = L.reverse `eqP` (unpackS . TL.reverse)
 t_reverse_short n = L.reverse `eqP` (unpackS . S.reverse . shorten n . S.stream)
 
-t_replace s d     = (L.intercalate d . split s) `eqP`
+t_replace s d     = (L.intercalate d . splitOn s) `eqP`
                     (unpackS . T.replace (T.pack s) (T.pack d))
-tl_replace s d     = (L.intercalate d . split s) `eqP`
+tl_replace s d     = (L.intercalate d . splitOn s) `eqP`
                      (unpackS . TL.replace (TL.pack s) (TL.pack d))
 
-split :: (Eq a) => [a] -> [a] -> [[a]]
-split pat src0
+splitOn :: (Eq a) => [a] -> [a] -> [[a]]
+splitOn pat src0
     | l == 0    = error "empty"
     | otherwise = go src0
   where
@@ -482,25 +482,25 @@ t_strip           = T.dropAround isSpace `eq` T.strip
 tl_strip          = TL.dropAround isSpace `eq` TL.strip
 t_splitAt n       = L.splitAt n   `eqP` (unpack2 . T.splitAt n)
 tl_splitAt n      = L.splitAt n   `eqP` (unpack2 . TL.splitAt (fromIntegral n))
-t_spanBy p        = L.span p      `eqP` (unpack2 . T.spanBy p)
-tl_spanBy p       = L.span p      `eqP` (unpack2 . TL.spanBy p)
+t_span p        = L.span p      `eqP` (unpack2 . T.span p)
+tl_span p       = L.span p      `eqP` (unpack2 . TL.span p)
 
-t_break_id s      = squid `eq` (uncurry T.append . T.break s)
+t_breakOn_id s      = squid `eq` (uncurry T.append . T.breakOn s)
   where squid t | T.null s  = error "empty"
                 | otherwise = t
-tl_break_id s     = squid `eq` (uncurry TL.append . TL.break s)
+tl_breakOn_id s     = squid `eq` (uncurry TL.append . TL.breakOn s)
   where squid t | TL.null s  = error "empty"
                 | otherwise = t
-t_break_start (NotEmpty s) t = let (_,m) = T.break s t
+t_breakOn_start (NotEmpty s) t = let (_,m) = T.breakOn s t
                                in T.null m || s `T.isPrefixOf` m
-tl_break_start (NotEmpty s) t = let (_,m) = TL.break s t
+tl_breakOn_start (NotEmpty s) t = let (_,m) = TL.breakOn s t
                                 in TL.null m || s `TL.isPrefixOf` m
-t_breakEnd_end (NotEmpty s) t = let (m,_) = T.breakEnd s t
+t_breakOnEnd_end (NotEmpty s) t = let (m,_) = T.breakOnEnd s t
                                 in T.null m || s `T.isSuffixOf` m
-tl_breakEnd_end (NotEmpty s) t = let (m,_) = TL.breakEnd s t
+tl_breakOnEnd_end (NotEmpty s) t = let (m,_) = TL.breakOnEnd s t
                                 in TL.null m || s `TL.isSuffixOf` m
-t_breakBy p       = L.break p     `eqP` (unpack2 . T.breakBy p)
-tl_breakBy p      = L.break p     `eqP` (unpack2 . TL.breakBy p)
+t_break p       = L.break p     `eqP` (unpack2 . T.break p)
+tl_break p      = L.break p     `eqP` (unpack2 . TL.break p)
 t_group           = L.group       `eqP` (map unpackS . T.group)
 tl_group          = L.group       `eqP` (map unpackS . TL.group)
 t_groupBy p       = L.groupBy p   `eqP` (map unpackS . T.groupBy p)
@@ -511,33 +511,33 @@ t_tails           = L.tails       `eqP` (map unpackS . T.tails)
 tl_tails          = L.tails       `eqP` (map unpackS . TL.tails)
 t_findAppendId (NotEmpty s) = unsquare $ \ts ->
     let t = T.intercalate s ts
-    in all (==t) $ map (uncurry T.append) (T.find s t)
+    in all (==t) $ map (uncurry T.append) (T.breakOnAll s t)
 tl_findAppendId (NotEmpty s) = unsquare $ \ts ->
     let t = TL.intercalate s ts
-    in all (==t) $ map (uncurry TL.append) (TL.find s t)
-t_findContains (NotEmpty s) = all (T.isPrefixOf s . snd) . T.find s .
+    in all (==t) $ map (uncurry TL.append) (TL.breakOnAll s t)
+t_findContains (NotEmpty s) = all (T.isPrefixOf s . snd) . T.breakOnAll s .
                               T.intercalate s
 tl_findContains (NotEmpty s) = all (TL.isPrefixOf s . snd) .
-                               TL.find s . TL.intercalate s
+                               TL.breakOnAll s . TL.intercalate s
 sl_filterCount c  = (L.genericLength . L.filter (==c)) `eqP` SL.countChar c
-t_findCount s     = (L.length . T.find s) `eq` T.count s
-tl_findCount s    = (L.genericLength . TL.find s) `eq` TL.count s
+t_findCount s     = (L.length . T.breakOnAll s) `eq` T.count s
+tl_findCount s    = (L.genericLength . TL.breakOnAll s) `eq` TL.count s
 
-t_split_split s         = (T.split s `eq` Slow.split s) . T.intercalate s
-tl_split_split s        = ((TL.split (TL.fromStrict s) . TL.fromStrict) `eq`
-                           (map TL.fromStrict . T.split s)) . T.intercalate s
-t_split_i (NotEmpty t)  = id `eq` (T.intercalate t . T.split t)
-tl_split_i (NotEmpty t) = id `eq` (TL.intercalate t . TL.split t)
+t_splitOn_split s         = (T.splitOn s `eq` Slow.splitOn s) . T.intercalate s
+tl_splitOn_split s        = ((TL.splitOn (TL.fromStrict s) . TL.fromStrict) `eq`
+                           (map TL.fromStrict . T.splitOn s)) . T.intercalate s
+t_splitOn_i (NotEmpty t)  = id `eq` (T.intercalate t . T.splitOn t)
+tl_splitOn_i (NotEmpty t) = id `eq` (TL.intercalate t . TL.splitOn t)
 
-t_splitBy p       = splitBy p `eqP` (map unpackS . T.splitBy p)
-t_splitBy_count c = (L.length . T.splitBy (==c)) `eq`
-                    ((1+) . T.count (T.singleton c))
-t_splitBy_split c = T.splitBy (==c) `eq` T.split (T.singleton c)
-tl_splitBy p      = splitBy p `eqP` (map unpackS . TL.splitBy p)
+t_split p       = split p `eqP` (map unpackS . T.split p)
+t_split_count c = (L.length . T.split (==c)) `eq`
+                  ((1+) . T.count (T.singleton c))
+t_split_splitOn c = T.split (==c) `eq` T.splitOn (T.singleton c)
+tl_split p      = split p `eqP` (map unpackS . TL.split p)
 
-splitBy :: (a -> Bool) -> [a] -> [[a]]
-splitBy _ [] =  [[]]
-splitBy p xs = loop xs
+split :: (a -> Bool) -> [a] -> [[a]]
+split _ [] =  [[]]
+split p xs = loop xs
     where loop s | null s'   = [l]
                  | otherwise = l : loop (tail s')
               where (l, s') = break p s
@@ -597,10 +597,10 @@ sf_filter q p     = (L.filter p . L.filter q) `eqP`
 t_filter p        = L.filter p    `eqP` (unpackS . T.filter p)
 tl_filter p       = L.filter p    `eqP` (unpackS . TL.filter p)
 sf_findBy q p     = (L.find p . L.filter q) `eqP` (S.findBy p . S.filter q)
-t_findBy p        = L.find p      `eqP` T.findBy p
-tl_findBy p       = L.find p      `eqP` TL.findBy p
-t_partition p     = L.partition p `eqP` (unpack2 . T.partitionBy p)
-tl_partition p    = L.partition p `eqP` (unpack2 . TL.partitionBy p)
+t_find p          = L.find p      `eqP` T.find p
+tl_find p         = L.find p      `eqP` TL.find p
+t_partition p     = L.partition p `eqP` (unpack2 . T.partition p)
+tl_partition p    = L.partition p `eqP` (unpack2 . TL.partition p)
 
 sf_index p s      = forAll (choose (-l,l*2))
                     ((L.filter p s L.!!) `eq` S.index (S.filter p $ packS s))
@@ -613,8 +613,8 @@ tl_index s        = forAll (choose (-l,l*2))
     where l = L.length s
 
 t_findIndex p     = L.findIndex p `eqP` T.findIndex p
-t_count (NotEmpty t)  = (subtract 1 . L.length . T.split t) `eq` T.count t
-tl_count (NotEmpty t) = (subtract 1 . L.genericLength . TL.split t) `eq`
+t_count (NotEmpty t)  = (subtract 1 . L.length . T.splitOn t) `eq` T.count t
+tl_count (NotEmpty t) = (subtract 1 . L.genericLength . TL.splitOn t) `eq`
                         TL.count t
 t_zip s           = L.zip s `eqP` T.zip (packS s)
 tl_zip s          = L.zip s `eqP` TL.zip (packS s)
@@ -1052,16 +1052,16 @@ tests = [
       testProperty "tl_strip" tl_strip,
       testProperty "t_splitAt" t_splitAt,
       testProperty "tl_splitAt" tl_splitAt,
-      testProperty "t_spanBy" t_spanBy,
-      testProperty "tl_spanBy" tl_spanBy,
-      testProperty "t_break_id" t_break_id,
-      testProperty "tl_break_id" tl_break_id,
-      testProperty "t_break_start" t_break_start,
-      testProperty "tl_break_start" tl_break_start,
-      testProperty "t_breakEnd_end" t_breakEnd_end,
-      testProperty "tl_breakEnd_end" tl_breakEnd_end,
-      testProperty "t_breakBy" t_breakBy,
-      testProperty "tl_breakBy" tl_breakBy,
+      testProperty "t_span" t_span,
+      testProperty "tl_span" tl_span,
+      testProperty "t_breakOn_id" t_breakOn_id,
+      testProperty "tl_breakOn_id" tl_breakOn_id,
+      testProperty "t_breakOn_start" t_breakOn_start,
+      testProperty "tl_breakOn_start" tl_breakOn_start,
+      testProperty "t_breakOnEnd_end" t_breakOnEnd_end,
+      testProperty "tl_breakOnEnd_end" tl_breakOnEnd_end,
+      testProperty "t_break" t_break,
+      testProperty "tl_break" tl_break,
       testProperty "t_group" t_group,
       testProperty "tl_group" tl_group,
       testProperty "t_groupBy" t_groupBy,
@@ -1080,14 +1080,14 @@ tests = [
       testProperty "sl_filterCount" sl_filterCount,
       testProperty "t_findCount" t_findCount,
       testProperty "tl_findCount" tl_findCount,
-      testProperty "t_split_split" t_split_split,
-      testProperty "tl_split_split" tl_split_split,
-      testProperty "t_split_i" t_split_i,
-      testProperty "tl_split_i" tl_split_i,
-      testProperty "t_splitBy" t_splitBy,
-      testProperty "t_splitBy_count" t_splitBy_count,
-      testProperty "t_splitBy_split" t_splitBy_split,
-      testProperty "tl_splitBy" tl_splitBy,
+      testProperty "t_splitOn_split" t_splitOn_split,
+      testProperty "tl_splitOn_split" tl_splitOn_split,
+      testProperty "t_splitOn_i" t_splitOn_i,
+      testProperty "tl_splitOn_i" tl_splitOn_i,
+      testProperty "t_split" t_split,
+      testProperty "t_split_count" t_split_count,
+      testProperty "t_split_splitOn" t_split_splitOn,
+      testProperty "tl_split" tl_split,
       testProperty "t_chunksOf_same_lengths" t_chunksOf_same_lengths,
       testProperty "t_chunksOf_length" t_chunksOf_length,
       testProperty "tl_chunksOf" tl_chunksOf
@@ -1130,8 +1130,8 @@ tests = [
     testProperty "t_filter" t_filter,
     testProperty "tl_filter" tl_filter,
     testProperty "sf_findBy" sf_findBy,
-    testProperty "t_findBy" t_findBy,
-    testProperty "tl_findBy" tl_findBy,
+    testProperty "t_find" t_find,
+    testProperty "tl_find" tl_find,
     testProperty "t_partition" t_partition,
     testProperty "tl_partition" tl_partition
   ],

@@ -128,10 +128,10 @@ module Data.Text
     , stripStart
     , stripEnd
     , splitAt
-    , spanBy
+    , breakOn
+    , breakOnEnd
     , break
-    , breakEnd
-    , breakBy
+    , span
     , group
     , groupBy
     , inits
@@ -139,8 +139,8 @@ module Data.Text
 
     -- ** Breaking into many substrings
     -- $split
+    , splitOn
     , split
-    , splitBy
     , chunksOf
 
     -- ** Breaking into lines and words
@@ -161,9 +161,9 @@ module Data.Text
 
     -- * Searching
     , filter
+    , breakOnAll
     , find
-    , findBy
-    , partitionBy
+    , partition
 
     -- , findSubstring
     
@@ -598,7 +598,7 @@ replace :: Text                 -- ^ Text to search for
         -> Text                 -- ^ Replacement text
         -> Text                 -- ^ Input text
         -> Text
-replace s d = intercalate d . split s
+replace s d = intercalate d . splitOn s
 {-# INLINE replace #-}
 
 -- ----------------------------------------------------------------------------
@@ -619,7 +619,8 @@ replace s d = intercalate d . split s
 -- context-dependent operation. The case conversion functions in this
 -- module are /not/ locale sensitive. Programs that require locale
 -- sensitivity should use appropriate versions of the case mapping
--- functions from the @text-icu@ package.
+-- functions from the @text-icu@ package:
+-- <http://hackage.haskell.org/package/text-icu>
 
 -- | /O(n)/ Convert a string to folded case.  This function is mainly
 -- useful for performing caseless (also known as case insensitive)
@@ -1072,23 +1073,23 @@ splitAt n t@(Text arr off len)
             where d                = iter_ t i
 {-# INLINE splitAt #-}
 
--- | /O(n)/ 'spanBy', applied to a predicate @p@ and text @t@, returns
+-- | /O(n)/ 'span', applied to a predicate @p@ and text @t@, returns
 -- a pair whose first element is the longest prefix (possibly empty)
 -- of @t@ of elements that satisfy @p@, and whose second is the
 -- remainder of the list.
-spanBy :: (Char -> Bool) -> Text -> (Text, Text)
-spanBy p t@(Text arr off len) = (textP arr off k, textP arr (off+k) (len-k))
+span :: (Char -> Bool) -> Text -> (Text, Text)
+span p t@(Text arr off len) = (textP arr off k, textP arr (off+k) (len-k))
   where k = loop 0
         loop !i | i >= len || not (p c) = i
                 | otherwise             = loop (i+d)
             where Iter c d              = iter t i
-{-# INLINE spanBy #-}
+{-# INLINE span #-}
 
--- | /O(n)/ 'breakBy' is like 'spanBy', but the prefix returned is
+-- | /O(n)/ 'break' is like 'span', but the prefix returned is
 -- over elements that fail the predicate @p@.
-breakBy :: (Char -> Bool) -> Text -> (Text, Text)
-breakBy p = spanBy (not . p)
-{-# INLINE breakBy #-}
+break :: (Char -> Bool) -> Text -> (Text, Text)
+break p = span (not . p)
+{-# INLINE break #-}
 
 -- | /O(n)/ Group characters in a string according to a predicate.
 groupBy :: (Char -> Char -> Bool) -> Text -> [Text]
@@ -1138,30 +1139,30 @@ tails t | null t    = [empty]
 --
 -- Examples:
 --
--- > split "\r\n" "a\r\nb\r\nd\r\ne" == ["a","b","d","e"]
--- > split "aaa"  "aaaXaaaXaaaXaaa"  == ["","X","X","X",""]
--- > split "x"    "x"                == ["",""]
+-- > splitOn "\r\n" "a\r\nb\r\nd\r\ne" == ["a","b","d","e"]
+-- > splitOn "aaa"  "aaaXaaaXaaaXaaa"  == ["","X","X","X",""]
+-- > splitOn "x"    "x"                == ["",""]
 -- 
 -- and
 --
--- > intercalate s . split s         == id
--- > split (singleton c)             == splitBy (==c)
+-- > intercalate s . splitOn s         == id
+-- > splitOn (singleton c)             == split (==c)
 --
 -- In (unlikely) bad cases, this function's time complexity degrades
 -- towards /O(n*m)/.
-split :: Text -> Text -> [Text]
-split pat@(Text _ _ l) src@(Text arr off len)
-    | l <= 0          = emptyError "split"
-    | isSingleton pat = splitBy (== unsafeHead pat) src
+splitOn :: Text -> Text -> [Text]
+splitOn pat@(Text _ _ l) src@(Text arr off len)
+    | l <= 0          = emptyError "splitOn"
+    | isSingleton pat = split (== unsafeHead pat) src
     | otherwise       = go 0 (indices pat src)
   where
     go !s (x:xs) =  textP arr (s+off) (x-s) : go (x+l) xs
     go  s _      = [textP arr (s+off) (len-s)]
-{-# INLINE [1] split #-}
+{-# INLINE [1] splitOn #-}
 
 {-# RULES
-"TEXT split/singleton -> splitBy/==" [~1] forall c t.
-    split (singleton c) t = splitBy (==c) t
+"TEXT splitOn/singleton -> split/==" [~1] forall c t.
+    splitOn (singleton c) t = split (==c) t
   #-}
 
 -- | /O(n)/ Splits a 'Text' into components delimited by separators,
@@ -1169,15 +1170,15 @@ split pat@(Text _ _ l) src@(Text arr off len)
 -- resulting components do not contain the separators.  Two adjacent
 -- separators result in an empty component in the output.  eg.
 --
--- > splitBy (=='a') "aabbaca" == ["","","bb","c",""]
--- > splitBy (=='a') ""        == [""]
-splitBy :: (Char -> Bool) -> Text -> [Text]
-splitBy _ t@(Text _off _arr 0) = [t]
-splitBy p t = loop t
+-- > split (=='a') "aabbaca" == ["","","bb","c",""]
+-- > split (=='a') ""        == [""]
+split :: (Char -> Bool) -> Text -> [Text]
+split _ t@(Text _off _arr 0) = [t]
+split p t = loop t
     where loop s | null s'   = [l]
                  | otherwise = l : loop (unsafeTail s')
-              where (l, s') = breakBy p s
-{-# INLINE splitBy #-}
+              where (l, s') = break p s
+{-# INLINE split #-}
 
 -- | /O(n)/ Splits a 'Text' into components of length @k@.  The last
 -- element may be shorter than the other chunks, depending on the
@@ -1199,21 +1200,21 @@ chunksOf k = go
 -------------------------------------------------------------------------------
 -- ** Searching with a predicate
 
--- | /O(n)/ The 'findBy' function takes a predicate and a 'Text', and
--- returns the first element in matching the predicate, or 'Nothing'
--- if there is no such element.
-findBy :: (Char -> Bool) -> Text -> Maybe Char
-findBy p t = S.findBy p (stream t)
-{-# INLINE findBy #-}
+-- | /O(n)/ The 'find' function takes a predicate and a 'Text', and
+-- returns the first element matching the predicate, or 'Nothing' if
+-- there is no such element.
+find :: (Char -> Bool) -> Text -> Maybe Char
+find p t = S.findBy p (stream t)
+{-# INLINE find #-}
 
--- | /O(n)/ The 'partitionBy' function takes a predicate and a 'Text',
+-- | /O(n)/ The 'partition' function takes a predicate and a 'Text',
 -- and returns the pair of 'Text's with elements which do and do not
 -- satisfy the predicate, respectively; i.e.
 --
--- > partitionBy p t == (filter p t, filter (not . p) t)
-partitionBy :: (Char -> Bool) -> Text -> (Text, Text)
-partitionBy p t = (filter p t, filter (not . p) t)
-{-# INLINE partitionBy #-}
+-- > partition p t == (filter p t, filter (not . p) t)
+partition :: (Char -> Bool) -> Text -> (Text, Text)
+partition p t = (filter p t, filter (not . p) t)
+{-# INLINE partition #-}
 
 -- | /O(n)/ 'filter', applied to a predicate and a 'Text',
 -- returns a 'Text' containing those characters that satisfy the
@@ -1229,39 +1230,40 @@ filter p t = unstream (S.filter p (stream t))
 --
 -- Examples:
 --
--- > break "::" "a::b::c" ==> ("a", "::b::c")
--- > break "/" "foobar"   ==> ("foobar", "")
+-- > breakOn "::" "a::b::c" ==> ("a", "::b::c")
+-- > breakOn "/" "foobar"   ==> ("foobar", "")
 --
 -- Laws:
 --
 -- > append prefix match == haystack
--- >   where (prefix, match) = break needle haystack
+-- >   where (prefix, match) = breakOn needle haystack
 --
 -- If you need to break a string by a substring repeatedly (e.g. you
--- want to break on every instance of a substring), use 'find'
+-- want to break on every instance of a substring), use 'breakOnAll'
 -- instead, as it has lower startup overhead.
 --
 -- In (unlikely) bad cases, this function's time complexity degrades
 -- towards /O(n*m)/.
-break :: Text -> Text -> (Text, Text)
-break pat src@(Text arr off len)
-    | null pat  = emptyError "break"
+breakOn :: Text -> Text -> (Text, Text)
+breakOn pat src@(Text arr off len)
+    | null pat  = emptyError "breakOn"
     | otherwise = case indices pat src of
                     []    -> (src, empty)
                     (x:_) -> (textP arr off x, textP arr (off+x) (len-x))
-{-# INLINE break #-}
+{-# INLINE breakOn #-}
 
--- | /O(n+m)/ Similar to 'break', but searches from the end of the string.
+-- | /O(n+m)/ Similar to 'breakOn', but searches from the end of the
+-- string.
 --
 -- The first element of the returned tuple is the prefix of @haystack@
 -- up to and including the last match of @needle@.  The second is the
 -- remainder of @haystack@, following the match.
 --
--- > breakEnd "::" "a::b::c" ==> ("a::b::", "c")
-breakEnd :: Text -> Text -> (Text, Text)
-breakEnd pat src = let (a,b) = break (reverse pat) (reverse src)
-                   in  (reverse b, reverse a)
-{-# INLINE breakEnd #-}
+-- > breakOnEnd "::" "a::b::c" ==> ("a::b::", "c")
+breakOnEnd :: Text -> Text -> (Text, Text)
+breakOnEnd pat src = (reverse b, reverse a)
+    where (a,b) = breakOn (reverse pat) (reverse src)
+{-# INLINE breakOnEnd #-}
 
 -- | /O(n+m)/ Find all non-overlapping instances of @needle@ in
 -- @haystack@.  Each element of the returned list consists of a pair:
@@ -1281,16 +1283,16 @@ breakEnd pat src = let (a,b) = break (reverse pat) (reverse src)
 -- towards /O(n*m)/.
 --
 -- The @needle@ parameter may not be empty.
-find :: Text                    -- ^ @needle@ to search for
-     -> Text                    -- ^ @haystack@ in which to search
-     -> [(Text, Text)]
-find pat src@(Text arr off slen)
-    | null pat  = emptyError "find"
+breakOnAll :: Text              -- ^ @needle@ to search for
+           -> Text              -- ^ @haystack@ in which to search
+           -> [(Text, Text)]
+breakOnAll pat src@(Text arr off slen)
+    | null pat  = emptyError "breakOnAll"
     | otherwise = L.map step (indices pat src)
   where
     step       x = (chunk 0 x, chunk x (slen-x))
     chunk !n !l  = textP arr (n+off) l
-{-# INLINE find #-}
+{-# INLINE breakOnAll #-}
 
 -------------------------------------------------------------------------------
 -- ** Indexing 'Text's
@@ -1390,7 +1392,7 @@ lines ps | null ps   = []
          | otherwise = h : if null t
                            then []
                            else lines (unsafeTail t)
-    where (h,t) = spanBy (/= '\n') ps
+    where (h,t) = span (/= '\n') ps
 {-# INLINE lines #-}
 
 {-

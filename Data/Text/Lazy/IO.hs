@@ -9,9 +9,15 @@
 -- Portability : GHC
 --
 -- Efficient locale-sensitive support for lazy text I\/O.
+--
+-- Skip past the synopsis for some important notes on performance and
+-- portability across different versions of GHC.
 
 module Data.Text.Lazy.IO
     (
+    -- * Performance
+    -- $performance 
+
     -- * Locale support
     -- $locale
     -- * File-at-a-time operations
@@ -57,6 +63,21 @@ import System.IO (BufferMode(..), hGetBuffering, hSetBuffering)
 import System.IO.Error (isEOFError)
 import System.IO.Unsafe (unsafeInterleaveIO)
 #endif
+
+-- $performance
+--
+-- The functions in this module obey the runtime system's locale,
+-- character set encoding, and line ending conversion settings.
+--
+-- If you know in advance that you will be working with data that has
+-- a specific encoding (e.g. UTF-8), and your application is highly
+-- performance sensitive, you may find that it is faster to perform
+-- I\/O with bytestrings and to encode and decode yourself than to use
+-- the functions in this module.
+--
+-- Whether this will hold depends on the version of GHC you are using,
+-- the platform you are working on, the data you are working with, and
+-- the encodings you are using, so be sure to test for yourself.
 
 -- | Read a file and return its contents as a string.  The file is
 -- read lazily, as with 'getContents'.
