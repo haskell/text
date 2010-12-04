@@ -165,6 +165,7 @@ module Data.Text.Lazy
     -- ** View patterns
     , stripPrefix
     , stripSuffix
+    , commonPrefixes
 
     -- * Searching
     , filter
@@ -189,7 +190,7 @@ module Data.Text.Lazy
 import Prelude (Char, Bool(..), Maybe(..), String,
                 Eq(..), Ord(..), Ordering(..), Read(..), Show(..),
                 (&&), (||), (+), (-), (.), ($), (++),
-                div, error, flip, fromIntegral, not, otherwise)
+                div, error, flip, fmap, fromIntegral, not, otherwise)
 import qualified Prelude as P
 #if defined(HAVE_DEEPSEQ)
 import Control.DeepSeq (NFData(..))
@@ -1325,51 +1326,77 @@ isInfixOf needle haystack
 -------------------------------------------------------------------------------
 -- * View patterns
 
--- | /O(n)/ Returns the suffix of the second string if its prefix
--- matches the first.
+-- | /O(n)/ Return the suffix of the second string if its prefix
+-- matches the entire first string.
 --
 -- Examples:
 --
 -- > stripPrefix "foo" "foobar" == Just "bar"
+-- > stripPrefix ""    "baz"    == Just "baz"
 -- > stripPrefix "foo" "quux"   == Nothing
 --
 -- This is particularly useful with the @ViewPatterns@ extension to
 -- GHC, as follows:
 --
 -- > {-# LANGUAGE ViewPatterns #-}
--- > import Data.Text as T
+-- > import Data.Text.Lazy as T
 -- >
 -- > fnordLength :: Text -> Int
 -- > fnordLength (stripPrefix "fnord" -> Just suf) = T.length suf
--- > fnordLength _                              = -1
+-- > fnordLength _                                 = -1
 stripPrefix :: Text -> Text -> Maybe Text
--- Yes, this could be much more efficient.
 stripPrefix p t
-    | p `isPrefixOf` t = Just (drop (length p) t)
-    | otherwise        = Nothing
+    | null p    = Just t
+    | otherwise = case commonPrefixes p t of
+                    Just (_,c,r) | null c -> Just r
+                    _                     -> Nothing
 
--- | /O(n)/ Returns the prefix of the second string if its suffix
--- matches the first.
+-- | /O(n)/ Find the longest non-empty common prefix of two strings
+-- and return it, along with the suffixes of each string at which they
+-- no longer match.
+--
+-- If the strings do not have a common prefix or either one is empty,
+-- this function returns 'Nothing'.
+--
+-- Examples:
+--
+-- > commonPrefixes "foobar" "fooquux" == Just ("foo","bar","quux")
+-- > commonPrefixes "veeble" "fetzer"  == Nothing
+-- > commonPrefixes "" "baz"           == Nothing
+commonPrefixes :: Text -> Text -> Maybe (Text,Text,Text)
+commonPrefixes Empty _ = Nothing
+commonPrefixes _ Empty = Nothing
+commonPrefixes a0 b0   = Just (go a0 b0 [])
+  where
+    go t0@(Chunk x xs) t1@(Chunk y ys) ps
+        = case T.commonPrefixes x y of
+            Just (p,a,b)
+              | T.null a  -> go xs (chunk b ys) (p:ps)
+              | T.null b  -> go (chunk a xs) ys (p:ps)
+              | otherwise -> (fromChunks (L.reverse (p:ps)),chunk a xs, chunk b ys)
+            Nothing       -> (fromChunks (L.reverse ps),t0,t1)
+    go t0 t1 ps = (fromChunks (L.reverse ps),t0,t1)
+
+-- | /O(n)/ Return the prefix of the second string if its suffix
+-- matches the entire first string.
 --
 -- Examples:
 --
 -- > stripSuffix "bar" "foobar" == Just "foo"
+-- > stripSuffix ""    "baz"    == Just "baz"
 -- > stripSuffix "foo" "quux"   == Nothing
 --
 -- This is particularly useful with the @ViewPatterns@ extension to
 -- GHC, as follows:
 --
 -- > {-# LANGUAGE ViewPatterns #-}
--- > import Data.Text as T
+-- > import Data.Text.Lazy as T
 -- >
 -- > quuxLength :: Text -> Int
 -- > quuxLength (stripSuffix "quux" -> Just pre) = T.length pre
--- > quuxLength _                             = -1
+-- > quuxLength _                                = -1
 stripSuffix :: Text -> Text -> Maybe Text
--- Yes, this could be much more efficient.
-stripSuffix p t
-    | p `isSuffixOf` t = Just (take (length t - length p) t)
-    | otherwise        = Nothing
+stripSuffix p t = reverse `fmap` stripPrefix (reverse p) (reverse t)
 
 -- | /O(n)/ 'filter', applied to a predicate and a 'Text',
 -- returns a 'Text' containing those characters that satisfy the

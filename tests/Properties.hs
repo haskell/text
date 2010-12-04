@@ -591,6 +591,26 @@ stripSuffix p t = reverse `fmap` L.stripPrefix (reverse p) (reverse t)
 t_stripSuffix s      = (fmap packS . stripSuffix s) `eqP` T.stripSuffix (packS s)
 tl_stripSuffix s     = (fmap packS . stripSuffix s) `eqP` TL.stripSuffix (packS s)
 
+commonPrefixes a0@(_:_) b0@(_:_) = Just (go a0 b0 [])
+    where go (a:as) (b:bs) ps
+              | a == b = go as bs (a:ps)
+          go as bs ps  = (reverse ps,as,bs)
+commonPrefixes _ _ = Nothing
+
+t_commonPrefixes a b (NonEmpty p)
+    = commonPrefixes pa pb ==
+      repack `fmap` T.commonPrefixes (packS pa) (packS pb)
+  where repack (x,y,z) = (unpackS x,unpackS y,unpackS z)
+        pa = p ++ a
+        pb = p ++ b
+
+tl_commonPrefixes a b (NonEmpty p)
+    = commonPrefixes pa pb ==
+      repack `fmap` TL.commonPrefixes (packS pa) (packS pb)
+  where repack (x,y,z) = (unpackS x,unpackS y,unpackS z)
+        pa = p ++ a
+        pb = p ++ b
+
 sf_elem p c       = (L.elem c . L.filter p) `eqP` (S.elem c . S.filter p)
 sf_filter q p     = (L.filter p . L.filter q) `eqP`
                     (unpackS . S.filter p . S.filter q)
@@ -1120,7 +1140,9 @@ tests = [
       testProperty "t_stripPrefix" t_stripPrefix,
       testProperty "tl_stripPrefix" tl_stripPrefix,
       testProperty "t_stripSuffix" t_stripSuffix,
-      testProperty "tl_stripSuffix" tl_stripSuffix
+      testProperty "tl_stripSuffix" tl_stripSuffix,
+      testProperty "t_commonPrefixes" t_commonPrefixes,
+      testProperty "tl_commonPrefixes" tl_commonPrefixes
     ]
   ],
 

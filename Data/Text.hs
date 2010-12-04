@@ -158,6 +158,7 @@ module Data.Text
     -- ** View patterns
     , stripPrefix
     , stripSuffix
+    , commonPrefixes
 
     -- * Searching
     , filter
@@ -1473,12 +1474,13 @@ isInfixOf needle haystack
 -------------------------------------------------------------------------------
 -- * View patterns
 
--- | /O(n)/ Returns the suffix of the second string if its prefix
--- matches the first.
+-- | /O(n)/ Return the suffix of the second string if its prefix
+-- matches the entire first string.
 --
 -- Examples:
 --
 -- > stripPrefix "foo" "foobar" == Just "bar"
+-- > stripPrefix ""    "baz"    == Just "baz"
 -- > stripPrefix "foo" "quux"   == Nothing
 --
 -- This is particularly useful with the @ViewPatterns@ extension to
@@ -1489,18 +1491,42 @@ isInfixOf needle haystack
 -- >
 -- > fnordLength :: Text -> Int
 -- > fnordLength (stripPrefix "fnord" -> Just suf) = T.length suf
--- > fnordLength _                              = -1
+-- > fnordLength _                                 = -1
 stripPrefix :: Text -> Text -> Maybe Text
 stripPrefix p@(Text _arr _off plen) t@(Text arr off len)
     | p `isPrefixOf` t = Just $! textP arr (off+plen) (len-plen)
     | otherwise        = Nothing
 
--- | /O(n)/ Returns the prefix of the second string if its suffix
--- matches the first.
+-- | /O(n)/ Find the longest non-empty common prefix of two strings
+-- and return it, along with the suffixes of each string at which they
+-- no longer match.
+--
+-- If the strings do not have a common prefix or either one is empty,
+-- this function returns 'Nothing'.
+--
+-- Examples:
+--
+-- > commonPrefixes "foobar" "fooquux" == Just ("foo","bar","quux")
+-- > commonPrefixes "veeble" "fetzer"  == Nothing
+-- > commonPrefixes "" "baz"           == Nothing
+commonPrefixes :: Text -> Text -> Maybe (Text,Text,Text)
+commonPrefixes t0@(Text arr0 off0 len0) t1@(Text arr1 off1 len1) = go 0 0
+  where
+    go !i !j | i < len0 && j < len1 && a == b = go (i+d0) (j+d1)
+             | i > 0     = Just (Text arr0 off0 i,
+                                 textP arr0 (off0+i) (len0-i),
+                                 textP arr1 (off1+j) (len1-j))
+             | otherwise = Nothing
+      where Iter a d0 = iter t0 i
+            Iter b d1 = iter t1 j
+
+-- | /O(n)/ Return the prefix of the second string if its suffix
+-- matches the entire first string.
 --
 -- Examples:
 --
 -- > stripSuffix "bar" "foobar" == Just "foo"
+-- > stripSuffix ""    "baz"    == Just "baz"
 -- > stripSuffix "foo" "quux"   == Nothing
 --
 -- This is particularly useful with the @ViewPatterns@ extension to
@@ -1511,7 +1537,7 @@ stripPrefix p@(Text _arr _off plen) t@(Text arr off len)
 -- >
 -- > quuxLength :: Text -> Int
 -- > quuxLength (stripSuffix "quux" -> Just pre) = T.length pre
--- > quuxLength _                             = -1
+-- > quuxLength _                                = -1
 stripSuffix :: Text -> Text -> Maybe Text
 stripSuffix p@(Text _arr _off plen) t@(Text arr off len)
     | p `isSuffixOf` t = Just $! textP arr off (len-plen)
