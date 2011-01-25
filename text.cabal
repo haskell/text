@@ -1,5 +1,5 @@
 name:           text
-version:        0.11.0.1
+version:        0.11.0.2
 homepage:       http://bitbucket.org/bos/text
 bug-reports:    http://bitbucket.org/bos/text/issues
 synopsis:       An efficient packed Unicode text type.
@@ -124,13 +124,11 @@ library
     build-depends: extensible-exceptions
     extensions: PatternSignatures
 
-  -- gather extensive profiling data for now
-  ghc-prof-options: -auto-all
-
   ghc-options: -Wall -funbox-strict-fields -O2
   if impl(ghc >= 6.8)
     ghc-options: -fwarn-tabs
   if flag(developer)
+    ghc-prof-options: -auto-all
     ghc-options: -Werror
     cpp-options: -DASSERTS
 
