@@ -388,6 +388,8 @@ cons :: Char -> Text -> Text
 cons c t = unstream (S.cons (safe c) (stream t))
 {-# INLINE cons #-}
 
+infixr 5 cons
+
 -- | /O(n)/ Adds a character to the end of a 'Text'.  This copies the
 -- entire array in the process, unless fused.  Subject to fusion.
 -- Performs replacement on invalid scalar values.

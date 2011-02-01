@@ -392,6 +392,8 @@ cons :: Char -> Text -> Text
 cons c t = Chunk (T.singleton c) t
 {-# INLINE [1] cons #-}
 
+infixr 5 cons
+
 {-# RULES
 "LAZY TEXT cons -> fused" [~1] forall c t.
     cons c t = unstream (S.cons c (stream t))
