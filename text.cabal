@@ -1,5 +1,5 @@
 name:           text
-version:        0.11.0.2
+version:        0.11.0.3
 homepage:       http://bitbucket.org/bos/text
 bug-reports:    http://bitbucket.org/bos/text/issues
 synopsis:       An efficient packed Unicode text type.
@@ -79,18 +79,20 @@ flag developer
 library
   exposed-modules:
     Data.Text
+    Data.Text.Array
     Data.Text.Encoding
     Data.Text.Encoding.Error
     Data.Text.Foreign
     Data.Text.IO
+    Data.Text.Internal
     Data.Text.Lazy
     Data.Text.Lazy.Builder
     Data.Text.Lazy.Encoding
     Data.Text.Lazy.IO
+    Data.Text.Lazy.Internal
     Data.Text.Lazy.Read
     Data.Text.Read
   other-modules:
-    Data.Text.Array
     Data.Text.Encoding.Fusion
     Data.Text.Encoding.Fusion.Common
     Data.Text.Encoding.Utf16
@@ -102,10 +104,8 @@ library
     Data.Text.Fusion.Internal
     Data.Text.Fusion.Size
     Data.Text.IO.Internal
-    Data.Text.Internal
     Data.Text.Lazy.Encoding.Fusion
     Data.Text.Lazy.Fusion
-    Data.Text.Lazy.Internal
     Data.Text.Lazy.Search
     Data.Text.Search
     Data.Text.Unsafe

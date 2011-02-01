@@ -9,10 +9,14 @@
 -- Stability   : experimental
 -- Portability : GHC
 -- 
--- A module containing semi-public 'Text' internals. This exposes the
+-- A module containing private 'Text' internals. This exposes the
 -- 'Text' representation and low level construction functions.
 -- Modules which extend the 'Text' system may need to use this module.
--- Regular users should not.
+--
+-- You should not use this module unless you are determined to monkey
+-- with the internals, as the functions here do just about nothing to
+-- preserve data invariants.  You have been warned!
+
 module Data.Text.Lazy.Internal
     (
       Text(..)
