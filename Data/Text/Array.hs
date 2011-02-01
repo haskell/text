@@ -26,8 +26,8 @@
 module Data.Text.Array
     (
     -- * Types
-      Array
-    , MArray
+      Array(aBA)
+    , MArray(maBA)
 
     -- * Functions
     , copyM
