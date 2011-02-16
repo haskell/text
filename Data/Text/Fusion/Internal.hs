@@ -39,7 +39,7 @@ data M a = N
 type M8 = M Word8
 
 -- Restreaming state.
-data S s = S !s {-# UNPACK #-} !M8 {-# UNPACK #-} !M8 {-# UNPACK #-} !M8
+data S s = S !s !M8 !M8 !M8
 
 infixl 2 :*:
 data PairS a b = !a :*: !b
@@ -81,7 +81,7 @@ data Stream a =
     forall s. Stream
     (s -> Step s a)             -- stepper function
     !s                          -- current state
-    {-# UNPACK #-} !Size        -- size hint
+    !Size                       -- size hint
 
 -- | /O(n)/ Determines if two streams are equal.
 eq :: (Eq a) => Stream a -> Stream a -> Bool
