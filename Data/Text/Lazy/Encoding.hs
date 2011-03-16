@@ -25,6 +25,10 @@ module Data.Text.Lazy.Encoding
     , decodeUtf16BE
     , decodeUtf32LE
     , decodeUtf32BE
+
+    -- ** Catchable failure
+    , decodeUtf8'
+
     -- ** Controllable error handling
     , decodeUtf8With
     , decodeUtf16LEWith
@@ -40,9 +44,11 @@ module Data.Text.Lazy.Encoding
     , encodeUtf32BE
     ) where
 
+import Control.Exception (evaluate, try)
 import Data.Bits ((.&.))
-import Data.Text.Encoding.Error (OnDecodeError, strictDecode)
+import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode)
 import Data.Text.Lazy.Internal (Text(..), chunk, empty, foldrChunks)
+import System.IO.Unsafe (unsafePerformIO)
 import qualified Data.ByteString as S
 import qualified Data.ByteString.Lazy as B
 import qualified Data.ByteString.Lazy.Internal as B
@@ -108,10 +114,12 @@ decodeUtf8With onErr bs0 = fast bs0
     desc = "Data.Text.Lazy.Encoding.decodeUtf8With: Invalid UTF-8 stream"
 {-# INLINE[0] decodeUtf8With #-}
 
--- | Decode a 'ByteString' containing UTF-8 encoded text.
+-- | Decode a 'ByteString' containing UTF-8 encoded text that is known
+-- to be valid.
 --
 -- If the input contains any invalid UTF-8 data, an exception will be
--- thrown.  For more control over the handling of invalid data, use
+-- thrown that cannot be caught in pure code.  For more control over
+-- the handling of invalid data, use 'decodeUtf8'' or
 -- 'decodeUtf8With'.
 decodeUtf8 :: B.ByteString -> Text
 decodeUtf8 = decodeUtf8With strictDecode
@@ -120,6 +128,23 @@ decodeUtf8 = decodeUtf8With strictDecode
 -- This rule seems to cause performance loss.
 {- RULES "LAZY STREAM stream/decodeUtf8' fusion" [1]
    forall bs. F.stream (decodeUtf8' bs) = E.streamUtf8 strictDecode bs #-}
+
+-- | Decode a 'ByteString' containing UTF-8 encoded text..
+--
+-- If the input contains any invalid UTF-8 data, the relevant
+-- exception will be returned, otherwise the decoded text.
+--
+-- /Note/: this function is /not/ lazy, as it must decode its entire
+-- input before it can return a result.  If you need lazy (streaming)
+-- decoding, use 'decodeUtf8With' in lenient mode.
+decodeUtf8' :: B.ByteString -> Either UnicodeException Text
+decodeUtf8' bs = unsafePerformIO $ do
+                   let t = decodeUtf8 bs
+                   try (evaluate (rnf t `seq` t))
+  where
+    rnf Empty        = ()
+    rnf (Chunk _ ts) = rnf ts
+{-# INLINE decodeUtf8' #-}
 
 encodeUtf8 :: Text -> B.ByteString
 encodeUtf8 (Chunk c cs) = B.Chunk (TE.encodeUtf8 c) (encodeUtf8 cs)
