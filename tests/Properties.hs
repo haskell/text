@@ -78,7 +78,9 @@ t_ascii t    = E.decodeASCII (E.encodeUtf8 a) == a
 tl_ascii t   = EL.decodeASCII (EL.encodeUtf8 a) == a
     where a  = TL.map (\c -> chr (ord c `mod` 128)) t
 t_utf8       = forAll genUnicode $ (E.decodeUtf8 . E.encodeUtf8) `eq` id
+t_utf8'      = forAll genUnicode $ (E.decodeUtf8' . E.encodeUtf8) `eq` (id . Right)
 tl_utf8      = forAll genUnicode $ (EL.decodeUtf8 . EL.encodeUtf8) `eq` id
+tl_utf8'     = forAll genUnicode $ (EL.decodeUtf8' . EL.encodeUtf8) `eq` (id . Right)
 t_utf16LE    = forAll genUnicode $ (E.decodeUtf16LE . E.encodeUtf16LE) `eq` id
 tl_utf16LE   = forAll genUnicode $ (EL.decodeUtf16LE . EL.encodeUtf16LE) `eq` id
 t_utf16BE    = forAll genUnicode $ (E.decodeUtf16BE . E.encodeUtf16BE) `eq` id
@@ -109,6 +111,10 @@ t_utf8_err (DE _ de) bs = monadicIO $ do
   case l of
     Left err -> assert $ length (show err) >= 0
     Right n  -> assert $ n >= 0
+
+t_utf8_err' bs = monadicIO . assert $ case E.decodeUtf8' bs of
+                                        Left err -> length (show err) >= 0
+                                        Right t  -> T.length t >= 0
 
 class Stringy s where
     packS    :: String -> s
@@ -831,7 +837,9 @@ tests = [
     testProperty "t_ascii" t_ascii,
     testProperty "tl_ascii" tl_ascii,
     testProperty "t_utf8" t_utf8,
+    testProperty "t_utf8'" t_utf8',
     testProperty "tl_utf8" tl_utf8,
+    testProperty "tl_utf8'" tl_utf8',
     testProperty "t_utf16LE" t_utf16LE,
     testProperty "tl_utf16LE" tl_utf16LE,
     testProperty "t_utf16BE" t_utf16BE,
@@ -841,7 +849,8 @@ tests = [
     testProperty "t_utf32BE" t_utf32BE,
     testProperty "tl_utf32BE" tl_utf32BE,
     testGroup "errors" [
-      testProperty "t_utf8_err" t_utf8_err
+      testProperty "t_utf8_err" t_utf8_err,
+      testProperty "t_utf8_err'" t_utf8_err'
     ]
   ],
 
