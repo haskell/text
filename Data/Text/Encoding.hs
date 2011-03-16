@@ -28,6 +28,9 @@ module Data.Text.Encoding
     , decodeUtf32LE
     , decodeUtf32BE
 
+    -- ** Catchable failure
+    , decodeUtf8'
+
     -- ** Controllable error handling
     , decodeUtf8With
     , decodeUtf16LEWith
@@ -43,11 +46,12 @@ module Data.Text.Encoding
     , encodeUtf32BE
     ) where
 
+import Control.Exception (evaluate, try)
 import Data.Bits ((.&.))
 import Data.ByteString as B
 import Data.ByteString.Internal as B
 import Data.ByteString.Unsafe as B
-import Data.Text.Encoding.Error (OnDecodeError, strictDecode)
+import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode)
 import Data.Text.Internal (Text(..), textP)
 import Data.Text.UnsafeChar (ord, unsafeWrite)
 import Data.Text.UnsafeShift (shiftL, shiftR)
@@ -116,17 +120,25 @@ decodeUtf8With onErr bs = textP (fst a) 0 (snd a)
   desc = "Data.Text.Encoding.decodeUtf8: Invalid UTF-8 stream"
 {-# INLINE[0] decodeUtf8With #-}
 
--- | Decode a 'ByteString' containing UTF-8 encoded text.
+-- | Decode a 'ByteString' containing known-valid UTF-8 encoded text.
 --
 -- If the input contains any invalid UTF-8 data, an exception will be
--- thrown.  For more control over the handling of invalid data, use
+-- thrown that cannot be caught in pure code.  For more control over
+-- the handling of invalid data, use 'decodeUtf8'' or
 -- 'decodeUtf8With'.
 decodeUtf8 :: ByteString -> Text
 decodeUtf8 = decodeUtf8With strictDecode
 {-# INLINE[0] decodeUtf8 #-}
-
 {-# RULES "STREAM stream/decodeUtf8 fusion" [1]
     forall bs. F.stream (decodeUtf8 bs) = E.streamUtf8 strictDecode bs #-}
+
+-- | Decode a 'ByteString' containing UTF-8 encoded text..
+--
+-- If the input contains any invalid UTF-8 data, the relevant
+-- exception will be returned, otherwise the decoded text.
+decodeUtf8' :: ByteString -> Either UnicodeException Text
+decodeUtf8' = unsafePerformIO . try . evaluate . decodeUtf8With strictDecode
+{-# INLINE decodeUtf8' #-}
 
 -- | Encode text using UTF-8 encoding.
 encodeUtf8 :: Text -> ByteString
