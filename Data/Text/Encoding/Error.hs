@@ -77,7 +77,7 @@ data UnicodeException =
   | EncodeError String (Maybe Char)
     -- ^ Tried to encode a character that could not be represented
     -- under the given encoding, or ran out of input in mid-encode.
-    deriving (Typeable)
+    deriving (Eq, Typeable)
 
 showUnicodeException :: UnicodeException -> String
 showUnicodeException (DecodeError desc (Just w))
