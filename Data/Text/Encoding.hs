@@ -120,7 +120,8 @@ decodeUtf8With onErr bs = textP (fst a) 0 (snd a)
   desc = "Data.Text.Encoding.decodeUtf8: Invalid UTF-8 stream"
 {-# INLINE[0] decodeUtf8With #-}
 
--- | Decode a 'ByteString' containing known-valid UTF-8 encoded text.
+-- | Decode a 'ByteString' containing UTF-8 encoded text that is known
+-- to be valid.
 --
 -- If the input contains any invalid UTF-8 data, an exception will be
 -- thrown that cannot be caught in pure code.  For more control over
