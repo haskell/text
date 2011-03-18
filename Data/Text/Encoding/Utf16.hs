@@ -1,4 +1,4 @@
-{-# LANGUAGE MagicHash #-}
+{-# LANGUAGE MagicHash, BangPatterns #-}
 
 -- |
 -- Module      : Data.Text.Encoding.Utf16

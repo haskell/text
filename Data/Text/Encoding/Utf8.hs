@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, MagicHash #-}
+{-# LANGUAGE CPP, MagicHash, BangPatterns #-}
 
 -- |
 -- Module      : Data.Text.Encoding.Utf8
