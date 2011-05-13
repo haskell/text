@@ -1,5 +1,5 @@
 {-# LANGUAGE BangPatterns, FlexibleInstances, OverloadedStrings,
-             ScopedTypeVariables, TypeSynonymInstances #-}
+             ScopedTypeVariables, TypeSynonymInstances, CPP #-}
 {-# OPTIONS_GHC -fno-enable-rewrite-rules #-}
 
 import Test.QuickCheck
@@ -734,6 +734,8 @@ instance Arbitrary Encoding where
 
 windowsNewlineMode  = NewlineMode { inputNL = CRLF, outputNL = CRLF }
 
+-- Newline and NewlineMode have standard Show instance from GHC 7 onwards
+#if __GLASGOW_HASKELL__ < 700
 instance Show Newline where
     show CRLF = "CRLF"
     show LF   = "LF"
@@ -741,6 +743,7 @@ instance Show Newline where
 instance Show NewlineMode where
     show (NewlineMode i o) = "NewlineMode { inputNL = " ++ show i ++
                              ", outputNL = " ++ show o ++ " }"
+# endif
 
 instance Arbitrary NewlineMode where
     arbitrary = oneof . map return $
@@ -770,13 +773,13 @@ write_read unline filt writer reader (E _ enc) nl buf ts =
     monadicIO $ assert . (==t) =<< run act
   where t = unline . map (filt (not . (`elem` "\r\n"))) $ ts
         act = withTempFile $ \path h -> do
-                hSetEncoding h enc
+                -- hSetEncoding h enc
                 hSetNewlineMode h nl
                 hSetBuffering h buf
                 () <- writer h t
                 hClose h
                 bracket (openFile path ReadMode) hClose $ \h' -> do
-                  hSetEncoding h' enc
+                  -- hSetEncoding h' enc
                   hSetNewlineMode h' nl
                   hSetBuffering h' buf
                   r <- reader h'

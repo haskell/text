@@ -1,4 +1,5 @@
 version := $(shell awk '/^version:/{print $$2}' ../text.cabal)
+ghc-major-version := $(shell ghc --numeric-version | sed 's/\..*//')
 ghc := ghc
 ghc-opt-flags = -O0
 ghc-base-flags := -funbox-strict-fields -hide-all-packages \
@@ -6,9 +7,12 @@ ghc-base-flags := -funbox-strict-fields -hide-all-packages \
 	-package criterion -package deepseq -DASSERTS -DHAVE_DEEPSEQ \
 	-package bytestring -ignore-package text \
 	-fno-ignore-asserts
+ifeq ($(ghc-major-version),7)
+    ghc-base-flags += -rtsopts
+endif
 ghc-test-flags := -package QuickCheck -package test-framework -package deepseq \
 	-package test-framework-quickcheck2 -package test-framework-hunit \
-	-package HUnit
+	-package HUnit -package directory
 ghc-base-flags += -Wall -fno-warn-orphans -fno-warn-missing-signatures
 ghc-flags := $(ghc-base-flags) -i../dist/build -package-name text-$(version)
 ghc-hpc-flags := $(ghc-base-flags) -fhpc -fno-ignore-asserts -odir hpcdir \
