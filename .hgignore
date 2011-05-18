@@ -1,5 +1,6 @@
 ^dist$
 ^tests/benchmarks/.*\.txt$
+^tests/text-testdata.tar.bz2$
 ^tests/(?:\.hpc|bm|qc|qc-hpc|stdio-hpc|text/test)$
 \.(?:aux|eventlog|h[ip]|log|[oa]|orig|prof|ps|rej|swp)$
 ~$
