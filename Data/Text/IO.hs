@@ -46,7 +46,7 @@ import System.IO (Handle, IOMode(..), hPutChar, openFile, stdin, stdout,
 import qualified Data.ByteString.Char8 as B
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 #else
-import Control.Exception (catch, throw)
+import Control.Exception (catch, throwIO)
 import Control.Monad (liftM2, when)
 import Data.IORef (readIORef, writeIORef)
 import qualified Data.Text as T
@@ -123,7 +123,7 @@ hGetContents h = do
               return $ if isEmptyBuffer buf
                        then T.empty
                        else T.singleton '\r'
-          | otherwise = throw (augmentIOError e "hGetContents" h)
+          | otherwise = throwIO (augmentIOError e "hGetContents" h)
         readChunks = do
           buf <- readIORef haCharBuffer
           t <- readChunk hh buf `catch` catchError
@@ -147,7 +147,7 @@ chooseGoodBuffering h = do
       d <- catch (liftM2 (-) (hFileSize h) (hTell h)) $ \(e::IOException) ->
            if ioe_type e == InappropriateType
            then return 16384 -- faster than the 2KB default
-           else throw e
+           else throwIO e
       when (d > 0) . hSetBuffering h . BlockBuffering . Just . fromIntegral $ d
     _ -> return ()
 #endif
