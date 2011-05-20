@@ -1,7 +1,7 @@
 name:           text
-version:        0.11.0.8
-homepage:       http://bitbucket.org/bos/text
-bug-reports:    http://bitbucket.org/bos/text/issues
+version:        0.11.0.9
+homepage:       https://bitbucket.org/bos/text
+bug-reports:    https://bitbucket.org/bos/text/issues
 synopsis:       An efficient packed Unicode text type.
 description:    
     .
@@ -134,8 +134,8 @@ library
 
 source-repository head
   type:     mercurial
-  location: http://bitbucket.org/bos/text
+  location: https://bitbucket.org/bos/text
 
 source-repository head
   type:     git
-  location: http://github.com/bos/text
+  location: https://github.com/bos/text
