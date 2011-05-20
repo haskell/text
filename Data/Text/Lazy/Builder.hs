@@ -37,6 +37,7 @@ module Data.Text.Lazy.Builder
    , singleton
    , fromText
    , fromLazyText
+   , fromString
 
      -- * Flushing the buffer state
    , flush
