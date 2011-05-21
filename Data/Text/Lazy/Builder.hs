@@ -97,7 +97,7 @@ instance Show Builder where
 --  * @'toLazyText' 'empty' = 'L.empty'@
 --
 empty :: Builder
-empty = Builder id
+empty = Builder (\ k buf -> k buf)
 {-# INLINE empty #-}
 
 -- | /O(1)./ A @Builder@ taking a single character, satisfying
