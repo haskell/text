@@ -82,6 +82,8 @@ instance Monoid Builder where
    {-# INLINE mempty #-}
    mappend = append
    {-# INLINE mappend #-}
+   mconcat = foldr mappend mempty
+   {-# INLINE mconcat #-}
 
 instance String.IsString Builder where
     fromString = fromString
@@ -97,7 +99,7 @@ instance Show Builder where
 --  * @'toLazyText' 'empty' = 'L.empty'@
 --
 empty :: Builder
-empty = Builder id
+empty = Builder (\ k buf -> k buf)
 {-# INLINE empty #-}
 
 -- | /O(1)./ A @Builder@ taking a single character, satisfying
@@ -105,7 +107,17 @@ empty = Builder id
 --  * @'toLazyText' ('singleton' c) = 'L.singleton' c@
 --
 singleton :: Char -> Builder
-singleton c = putChar c
+singleton c = writeAtMost 2 $ \ marr o ->
+    if n < 0x10000
+    then A.unsafeWrite marr o (fromIntegral n) >> return 1
+    else do
+        A.unsafeWrite marr o lo
+        A.unsafeWrite marr (o+1) hi
+        return 2
+  where n = ord c
+        m = n - 0x10000
+        lo = fromIntegral $ (m `shiftR` 10) + 0xD800
+        hi = fromIntegral $ (m .&. 0x3FF) + 0xDC00
 {-# INLINE singleton #-}
 
 ------------------------------------------------------------------------
@@ -229,20 +241,6 @@ mapBuilder f = Builder (fmap f .)
 
 ------------------------------------------------------------------------
 
-putChar :: Char -> Builder
-putChar c
-    | n < 0x10000 = writeN 1 $ \marr o -> A.unsafeWrite marr o (fromIntegral n)
-    | otherwise   = writeN 2 $ \marr o -> do
-          A.unsafeWrite marr o lo
-          A.unsafeWrite marr (o+1) hi
-  where n = ord c
-        m = n - 0x10000
-        lo = fromIntegral $ (m `shiftR` 10) + 0xD800
-        hi = fromIntegral $ (m .&. 0x3FF) + 0xDC00
-{-# INLINE putChar #-}
-
-------------------------------------------------------------------------
-
 -- | Ensure that there are at least @n@ many elements available.
 ensureFree :: Int -> Builder
 ensureFree !n = withSize $ \ l ->
@@ -251,18 +249,21 @@ ensureFree !n = withSize $ \ l ->
     else flush `append'` withBuffer (const (newBuffer (max n smallChunkSize)))
 {-# INLINE [0] ensureFree #-}
 
+writeAtMost :: Int -> (forall s. A.MArray s -> Int -> ST s Int) -> Builder
+writeAtMost n f = ensureFree n `append'` withBuffer (writeBuffer f)
+{-# INLINE [0] writeAtMost #-}
+
 -- | Ensure that @n@ many elements are available, and then use @f@ to
 -- write some elements into the memory.
 writeN :: Int -> (forall s. A.MArray s -> Int -> ST s ()) -> Builder
-writeN n f = ensureFree n `append'` withBuffer (writeNBuffer n f)
-{-# INLINE [0] writeN #-}
+writeN n f = writeAtMost n (\ p o -> f p o >> return n)
+{-# INLINE writeN #-}
 
-writeNBuffer :: Int -> (A.MArray s -> Int -> ST s ()) -> (Buffer s)
-             -> ST s (Buffer s)
-writeNBuffer n f (Buffer p o u l) = do
-    f p (o+u)
+writeBuffer :: (A.MArray s -> Int -> ST s Int) -> Buffer s -> ST s (Buffer s)
+writeBuffer f (Buffer p o u l) = do
+    n <- f p (o+u)
     return $! Buffer p o (u+n) (l-n)
-{-# INLINE writeNBuffer #-}
+{-# INLINE writeBuffer #-}
 
 newBuffer :: Int -> ST s (Buffer s)
 newBuffer size = do
@@ -275,27 +276,31 @@ newBuffer size = do
 
 -- This function makes GHC understand that 'writeN' and 'ensureFree'
 -- are *not* recursive in the precense of the rewrite rules below.
--- This is not needed with GHC 6.14+.
+-- This is not needed with GHC 7+.
 append' :: Builder -> Builder -> Builder
 append' (Builder f) (Builder g) = Builder (f . g)
 {-# INLINE append' #-}
 
 {-# RULES
 
-"append/writeN" forall a b (f::forall s. A.MArray s -> Int -> ST s ())
-                           (g::forall s. A.MArray s -> Int -> ST s ()) ws.
-        append (writeN a f) (append (writeN b g) ws) =
-            append (writeN (a+b) (\marr o -> f marr o >> g marr (o+a))) ws
+"append/writeAtMost" forall a b (f::forall s. A.MArray s -> Int -> ST s Int)
+                           (g::forall s. A.MArray s -> Int -> ST s Int) ws.
+    append (writeAtMost a f) (append (writeAtMost b g) ws) =
+        append (writeAtMost (a+b) (\marr o -> f marr o >>= \ n -> 
+                                    g marr (o+n) >>= \ m ->
+                                    let s = n+m in s `seq` return s)) ws
 
-"writeN/writeN" forall a b (f::forall s. A.MArray s -> Int -> ST s ())
-                           (g::forall s. A.MArray s -> Int -> ST s ()).
-        append (writeN a f) (writeN b g) =
-            writeN (a+b) (\marr o -> f marr o >> g marr (o+a))
+"writeAtMost/writeAtMost" forall a b (f::forall s. A.MArray s -> Int -> ST s Int)
+                           (g::forall s. A.MArray s -> Int -> ST s Int).
+    append (writeAtMost a f) (writeAtMost b g) =
+        writeAtMost (a+b) (\marr o -> f marr o >>= \ n -> 
+                            g marr (o+n) >>= \ m ->
+                            let s = n+m in s `seq` return s)
 
 "ensureFree/ensureFree" forall a b .
-        append (ensureFree a) (ensureFree b) = ensureFree (max a b)
+    append (ensureFree a) (ensureFree b) = ensureFree (max a b)
 
 "flush/flush"
-        append flush flush = flush
+    append flush flush = flush
 
  #-}
