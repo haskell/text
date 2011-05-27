@@ -90,7 +90,7 @@ instance String.IsString Builder where
     {-# INLINE fromString #-}
 
 instance Show Builder where
-    show = L.unpack . toLazyText
+    show = show . toLazyText
 
 instance Eq Builder where
     a == b = toLazyText a == toLazyText b
