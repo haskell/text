@@ -1,5 +1,5 @@
 name:           text
-version:        0.11.0.9
+version:        0.12.0.0
 homepage:       https://bitbucket.org/bos/text
 bug-reports:    https://bitbucket.org/bos/text/issues
 synopsis:       An efficient packed Unicode text type.
@@ -87,6 +87,8 @@ library
     Data.Text.Internal
     Data.Text.Lazy
     Data.Text.Lazy.Builder
+    Data.Text.Lazy.Builder.Int
+    Data.Text.Lazy.Builder.RealFloat
     Data.Text.Lazy.Encoding
     Data.Text.Lazy.IO
     Data.Text.Lazy.Internal
@@ -104,6 +106,7 @@ library
     Data.Text.Fusion.Internal
     Data.Text.Fusion.Size
     Data.Text.IO.Internal
+    Data.Text.Lazy.Builder.Functions
     Data.Text.Lazy.Encoding.Fusion
     Data.Text.Lazy.Fusion
     Data.Text.Lazy.Search
@@ -114,6 +117,7 @@ library
     Data.Text.Util
 
   build-depends:
+    array,
     base       < 5,
     bytestring >= 0.9 && < 1.0
   if impl(ghc >= 6.10)
@@ -131,6 +135,14 @@ library
     ghc-prof-options: -auto-all
     ghc-options: -Werror
     cpp-options: -DASSERTS
+
+  if impl(ghc >= 6.11)
+    cpp-options: -DINTEGER_GMP
+    build-depends: integer-gmp >= 0.2 && < 0.3
+
+  if impl(ghc >= 6.9) && impl(ghc < 6.11)
+    cpp-options: -DINTEGER_GMP
+    build-depends: integer >= 0.1 && < 0.2
 
 source-repository head
   type:     mercurial
