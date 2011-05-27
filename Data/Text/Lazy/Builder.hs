@@ -92,6 +92,12 @@ instance String.IsString Builder where
 instance Show Builder where
     show = L.unpack . toLazyText
 
+instance Eq Builder where
+    a == b = toLazyText a == toLazyText b
+
+instance Ord Builder where
+    a <= b = toLazyText a <= toLazyText b
+
 ------------------------------------------------------------------------
 
 -- | /O(1)./ The empty @Builder@, satisfying
