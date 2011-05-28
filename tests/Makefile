@@ -23,7 +23,7 @@ lib-srcs := $(shell grep '^  *Data' ../text.cabal | \
 
 cabal := $(shell which cabal 2>/dev/null)
 
-all: bm qc coverage regressions
+all: qc coverage regressions
 
 lib: $(lib)
 
@@ -78,11 +78,6 @@ Regressions.o: TestUtils.o
 regressions: Regressions.o TestUtils.o
 	$(ghc) $(ghc-test-flags) -o $@ $^ $(lib)
 
-Benchmarks.o: ghc-opt-flags = -O
-bm Benchmarks.o: ghc-flags += -package utf8-string
-bm: Benchmarks.o
-	$(ghc) $(ghc-flags) -o $@ $^ $(lib)
-
 SlowFunctions.o: ghc-opt-flags = -O2
 SearchBench.o: ghc-opt-flags = -O
 %.o: %.hs
@@ -98,4 +93,4 @@ text-testdata.tar.bz2:
 	curl -O http://projects.haskell.org/text/text-testdata.tar.bz2
 
 clean:
-	-rm -rf *.o *.hi *.tix bm qc qc-hpc stdio-hpc hpcdir .hpc coverage-html
+	-rm -rf *.o *.hi *.tix qc qc-hpc stdio-hpc hpcdir .hpc coverage-html
