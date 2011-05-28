@@ -39,4 +39,5 @@ them all. Instead, use the `-l` flag to get a list of benchmarks:
 
     ./dist/build/benchmarks/benchmarks
 
-And run the ones you want to inspect.
+And run the ones you want to inspect. If you want to configure the benchmarks
+further, the exact parameters can be changed in `src/Data/Text/Benchmarks.hs`.
