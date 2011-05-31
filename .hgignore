@@ -1,4 +1,4 @@
-^dist$
+^(?:dist|tests/benchmarks/dist)$
 ^tests/benchmarks/.*\.txt$
 ^tests/text-testdata.tar.bz2$
 ^tests/(?:\.hpc|bm|qc|qc-hpc|stdio-hpc|text/test)$
