@@ -1,9 +1,10 @@
-Name:                benchmarks
-Version:             0.1
+Name:                text-benchmarks
+Version:             0.0.0.0
 Synopsis:            Benchmarks for the text package
-Homepage:            http://bitbucket.org/bos/text
+Description:         Benchmarks for the text package
+Homepage:            https://bitbucket.org/bos/text
 License:             BSD3
-License-file:        LICENSE
+License-file:        ../../LICENSE
 Author:              Jasper Van der Jeugt <jaspervdj@gmail.com>,
                      Bryan O'Sullivan <bos@serpentine.com>,
                      Tom Harper <rtomharper@googlemail.com>,
@@ -14,7 +15,7 @@ Build-type:          Simple
 
 Cabal-version:       >=1.2
 
-Executable benchmarks
+Executable text-benchmarks
   Hs-source-dirs: src ../..
   Main-is:        Data/Text/Benchmarks.hs
   Ghc-options:    -Wall -O2
