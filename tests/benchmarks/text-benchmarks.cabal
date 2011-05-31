@@ -1,26 +1,26 @@
-Name:                text-benchmarks
-Version:             0.0.0.0
-Synopsis:            Benchmarks for the text package
-Description:         Benchmarks for the text package
-Homepage:            https://bitbucket.org/bos/text
-License:             BSD3
-License-file:        ../../LICENSE
-Author:              Jasper Van der Jeugt <jaspervdj@gmail.com>,
+name:                text-benchmarks
+version:             0.0.0.0
+synopsis:            Benchmarks for the text package
+description:         Benchmarks for the text package
+homepage:            https://bitbucket.org/bos/text
+license:             BSD3
+license-file:        ../../LICENSE
+author:              Jasper Van der Jeugt <jaspervdj@gmail.com>,
                      Bryan O'Sullivan <bos@serpentine.com>,
                      Tom Harper <rtomharper@googlemail.com>,
                      Duncan Coutts <duncan@haskell.org>
-Maintainer:          jaspervdj@gmail.com
-Category:            Text
-Build-type:          Simple
+maintainer:          jaspervdj@gmail.com
+category:            Text
+build-type:          Simple
 
-Cabal-version:       >=1.2
+cabal-version:       >=1.2
 
-Executable text-benchmarks
-  Hs-source-dirs: src ../..
-  Main-is:        Data/Text/Benchmarks.hs
-  Ghc-options:    -Wall -O2
-  Cpp-options:    -DHAVE_DEEPSEQ
-  Build-depends:  base              >= 4   && < 5,
+executable text-benchmarks
+  hs-source-dirs: src ../..
+  main-is:        Data/Text/Benchmarks.hs
+  ghc-options:    -Wall -O2
+  cpp-options:    -DHAVE_DEEPSEQ
+  build-depends:  base              >= 4   && < 5,
                   criterion         >= 0.5 && < 0.6,
                   bytestring        >= 0.9 && < 0.10,
                   deepseq           >= 1.1 && < 1.2,
