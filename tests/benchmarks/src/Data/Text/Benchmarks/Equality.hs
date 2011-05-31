@@ -24,6 +24,8 @@ benchmark fp = return $ bgroup "Equality"
         B.readFile fp >>= evaluate . func . B.lines
     , bench "LazyByteString" $
         BL.readFile fp >>= evaluate . func . BL.lines
+    , bench "String" $
+        readFile fp >>= evaluate . func . lines
     ]
 
 -- | Frequency of most-appearing line (from the first 100 lines)
