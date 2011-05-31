@@ -758,7 +758,7 @@ foldr f z t = S.foldr f z (stream t)
 {-# INLINE foldr #-}
 
 -- | /O(n)/ A variant of 'foldr' that has no starting value argument,
--- and thust must be applied to a non-empty 'Text'.  Subject to
+-- and thus must be applied to a non-empty 'Text'.  Subject to
 -- fusion.
 foldr1 :: (Char -> Char -> Char) -> Text -> Char
 foldr1 f t = S.foldr1 f (stream t)
