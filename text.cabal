@@ -45,31 +45,16 @@ extra-source-files:
     README.markdown
     -- scripts/CaseFolding.txt
     -- scripts/SpecialCasing.txt
-    scripts/ApiCompare.hs
-    scripts/Arsec.hs
-    scripts/CaseFolding.hs
-    scripts/CaseMapping.hs
-    scripts/SpecialCasing.hs
-    tests/Benchmarks.hs
+    scripts/*.hs
+    tests/*.hs
     tests/Makefile
-    tests/Properties.hs
-    tests/QuickCheckUtils.hs
-    tests/SlowFunctions.hs
-    tests/StdioCoverage.hs
-    tests/TestUtils.hs
-    tests/benchmarks/Cut.hs
-    tests/benchmarks/DecodeUtf8.hs
-    tests/benchmarks/EncodeUtf8.hs
-    tests/benchmarks/Equality.hs
-    tests/benchmarks/FileIndices.hs
-    tests/benchmarks/FileRead.hs
-    tests/benchmarks/FoldLines.hs
-    tests/benchmarks/HtmlCombinator.hs
-    tests/benchmarks/Makefile
-    tests/benchmarks/Replace.hs
-    tests/benchmarks/ReplaceTags.hs
-    tests/benchmarks/fileread.py
-    tests/benchmarks/fileread_c.c
+    tests/README.markdown
+    tests/benchmarks/Setup.hs
+    tests/benchmarks/python/*.py
+    tests/benchmarks/ruby/*.rb
+    tests/benchmarks/src/Data/Text/*.hs
+    tests/benchmarks/src/Data/Text/Benchmarks/*.hs
+    tests/benchmarks/text-benchmarks.cabal
     tests/cover-stdio.sh
 
 flag developer
