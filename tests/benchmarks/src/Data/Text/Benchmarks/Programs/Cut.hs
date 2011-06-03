@@ -1,6 +1,6 @@
--- | Cut into a file, selecting certain columns (e.g. lines 10 to 40)
+-- | Cut into a file, selecting certain columns (e.g. columns 10 to 40)
 --
-module Data.Text.Benchmarks.Cut
+module Data.Text.Benchmarks.Programs.Cut
     ( benchmark
     ) where
 
