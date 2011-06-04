@@ -10,7 +10,6 @@ import System.FilePath ((</>))
 import System.IO (IOMode (WriteMode), openFile, hSetEncoding, utf8)
 
 import qualified Data.Text.Benchmarks.Builder as Builder
-import qualified Data.Text.Benchmarks.CaseMap as CaseMap
 import qualified Data.Text.Benchmarks.DecodeUtf8 as DecodeUtf8
 import qualified Data.Text.Benchmarks.EncodeUtf8 as EncodeUtf8
 import qualified Data.Text.Benchmarks.Equality as Equality
@@ -39,7 +38,6 @@ benchmarks = do
     -- Traditional benchmarks
     bs <- sequence
         [ Builder.benchmark
-        , CaseMap.benchmark (tf "russian.txt") sink
         , DecodeUtf8.benchmark (tf "russian.txt")
         , EncodeUtf8.benchmark sink "επανάληψη 竺法蘭共譯"
         , Equality.benchmark (tf "japanese.txt")
