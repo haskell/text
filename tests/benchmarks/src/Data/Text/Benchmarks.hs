@@ -26,6 +26,7 @@ import qualified Data.Text.Benchmarks.StripBrackets as StripBrackets
 import qualified Data.Text.Benchmarks.WordCount as WordCount
 
 import qualified Data.Text.Benchmarks.Programs.Cut as Programs.Cut
+import qualified Data.Text.Benchmarks.Programs.Throughput as Programs.Throughput
 
 main :: IO ()
 main = benchmarks >>= defaultMain
@@ -57,6 +58,7 @@ benchmarks = do
     -- Program-like benchmarks
     ps <- bgroup "Programs" `fmap` sequence
         [ Programs.Cut.benchmark (tf "russian.txt") sink 20 40
+        , Programs.Throughput.benchmark (tf "russian.txt") sink
         ]
 
     return $ bs ++ [ps]
