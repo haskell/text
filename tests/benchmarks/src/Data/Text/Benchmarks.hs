@@ -21,11 +21,11 @@ import qualified Data.Text.Benchmarks.Ordering as Ordering
 import qualified Data.Text.Benchmarks.Pure as Pure
 import qualified Data.Text.Benchmarks.ReadNumbers as ReadNumbers
 import qualified Data.Text.Benchmarks.Replace as Replace
-import qualified Data.Text.Benchmarks.StripBrackets as StripBrackets
 import qualified Data.Text.Benchmarks.WordCount as WordCount
 
 import qualified Data.Text.Benchmarks.Programs.Cut as Programs.Cut
 import qualified Data.Text.Benchmarks.Programs.Sort as Programs.Sort
+import qualified Data.Text.Benchmarks.Programs.StripTags as Programs.StripTags
 import qualified Data.Text.Benchmarks.Programs.Throughput as Programs.Throughput
 
 main :: IO ()
@@ -50,7 +50,6 @@ benchmarks = do
         , Pure.benchmark (tf "japanese.txt")
         , ReadNumbers.benchmark (tf "numbers.txt")
         , Replace.benchmark (tf "russian.txt") sink "принимая" "своем"
-        , StripBrackets.benchmark (tf "russian.txt") sink
         , WordCount.benchmark (tf "russian.txt")
         ]
 
@@ -58,6 +57,7 @@ benchmarks = do
     ps <- bgroup "Programs" `fmap` sequence
         [ Programs.Cut.benchmark (tf "russian.txt") sink 20 40
         , Programs.Sort.benchmark (tf "russian.txt") sink
+        , Programs.StripTags.benchmark (tf "yiwiki.xml") sink
         , Programs.Throughput.benchmark (tf "russian.txt") sink
         ]
 
