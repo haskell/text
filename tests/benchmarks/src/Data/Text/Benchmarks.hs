@@ -48,7 +48,7 @@ benchmarks = do
         , Ordering.benchmark (tf "russian.txt")
         , Pure.benchmark (tf "japanese.txt")
         , ReadNumbers.benchmark (tf "numbers.txt")
-        , Replace.benchmark (tf "russian.txt") sink "принимая" "своем"
+        , Replace.benchmark (tf "russian.txt") "принимая" "своем"
         , Search.benchmark (tf "russian.txt") "принимая"
         , WordCount.benchmark (tf "russian.txt")
         ]
