@@ -21,7 +21,7 @@ import qualified Data.Text.Benchmarks.Pure as Pure
 import qualified Data.Text.Benchmarks.ReadNumbers as ReadNumbers
 import qualified Data.Text.Benchmarks.Replace as Replace
 import qualified Data.Text.Benchmarks.Search as Search
-import qualified Data.Text.Benchmarks.WordCount as WordCount
+import qualified Data.Text.Benchmarks.WordFrequencies as WordFrequencies
 
 import qualified Data.Text.Benchmarks.Programs.Cut as Programs.Cut
 import qualified Data.Text.Benchmarks.Programs.Sort as Programs.Sort
@@ -50,7 +50,7 @@ benchmarks = do
         , ReadNumbers.benchmark (tf "numbers.txt")
         , Replace.benchmark (tf "russian.txt") "принимая" "своем"
         , Search.benchmark (tf "russian.txt") "принимая"
-        , WordCount.benchmark (tf "russian.txt")
+        , WordFrequencies.benchmark (tf "russian.txt")
         ]
 
     -- Program-like benchmarks
