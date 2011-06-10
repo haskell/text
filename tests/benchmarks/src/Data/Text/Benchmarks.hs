@@ -13,7 +13,6 @@ import qualified Data.Text.Benchmarks.Builder as Builder
 import qualified Data.Text.Benchmarks.DecodeUtf8 as DecodeUtf8
 import qualified Data.Text.Benchmarks.EncodeUtf8 as EncodeUtf8
 import qualified Data.Text.Benchmarks.Equality as Equality
-import qualified Data.Text.Benchmarks.FileIndices as FileIndices
 import qualified Data.Text.Benchmarks.FileRead as FileRead
 import qualified Data.Text.Benchmarks.FoldLines as FoldLines
 import qualified Data.Text.Benchmarks.HtmlCombinator as HtmlCombinator
@@ -21,6 +20,7 @@ import qualified Data.Text.Benchmarks.Ordering as Ordering
 import qualified Data.Text.Benchmarks.Pure as Pure
 import qualified Data.Text.Benchmarks.ReadNumbers as ReadNumbers
 import qualified Data.Text.Benchmarks.Replace as Replace
+import qualified Data.Text.Benchmarks.Search as Search
 import qualified Data.Text.Benchmarks.WordCount as WordCount
 
 import qualified Data.Text.Benchmarks.Programs.Cut as Programs.Cut
@@ -42,7 +42,6 @@ benchmarks = do
         , DecodeUtf8.benchmark (tf "russian.txt")
         , EncodeUtf8.benchmark sink "επανάληψη 竺法蘭共譯"
         , Equality.benchmark (tf "japanese.txt")
-        , FileIndices.benchmark (tf "russian.txt") "принимая"
         , FileRead.benchmark (tf "russian.txt")
         , FoldLines.benchmark (tf "russian.txt")
         , HtmlCombinator.benchmark sink
@@ -50,6 +49,7 @@ benchmarks = do
         , Pure.benchmark (tf "japanese.txt")
         , ReadNumbers.benchmark (tf "numbers.txt")
         , Replace.benchmark (tf "russian.txt") sink "принимая" "своем"
+        , Search.benchmark (tf "russian.txt") "принимая"
         , WordCount.benchmark (tf "russian.txt")
         ]
 
