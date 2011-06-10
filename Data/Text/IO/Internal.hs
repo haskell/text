@@ -19,6 +19,7 @@ module Data.Text.IO.Internal
     ) where
 
 #if __GLASGOW_HASKELL__ >= 612
+import Control.Exception (catch)
 import Data.IORef (readIORef, writeIORef)
 import Data.Text (Text)
 import Data.Text.Fusion (unstream)
@@ -31,6 +32,7 @@ import GHC.IO.Buffer (Buffer(..), CharBuffer, RawCharBuffer, bufferAdjustL,
                       withRawBuffer, writeCharBuf)
 import GHC.IO.Handle.Internals (ioe_EOF, readTextDevice, wantReadableHandle_)
 import GHC.IO.Handle.Types (Handle__(..), Newline(..))
+import Prelude hiding (catch)
 import System.IO (Handle)
 import System.IO.Error (isEOFError)
 import qualified Data.Text as T

@@ -38,8 +38,8 @@ module Data.Text.Lazy.IO
     ) where
 
 import Data.Text.Lazy (Text)
-import Prelude hiding (appendFile, getContents, getLine, interact, putStr,
-                       putStrLn, readFile, writeFile)
+import Prelude hiding (appendFile, catch, getContents, getLine, interact,
+                       putStr, putStrLn, readFile, writeFile)
 import System.IO (Handle, IOMode(..), hPutChar, openFile, stdin, stdout,
                   withFile)
 import qualified Data.Text.IO as T
@@ -49,7 +49,7 @@ import Data.Text.Lazy.Encoding (decodeUtf8)
 import qualified Data.ByteString.Char8 as S8
 import qualified Data.ByteString.Lazy.Char8 as L8
 #else
-import Control.Exception (throw)
+import Control.Exception (catch, throwIO)
 import Control.Monad (when)
 import Data.IORef (readIORef)
 import Data.Text.IO.Internal (hGetLineWith, readChunk)
@@ -134,7 +134,7 @@ lazyReadBuffered h hh@Handle__{..} = do
            then return $ if isEmptyBuffer buf
                          then (hh', empty)
                          else (hh', L.singleton '\r')
-           else throw (augmentIOError e "hGetContents" h)
+           else throwIO (augmentIOError e "hGetContents" h)
 #endif
 
 -- | Read a single line from a handle.
