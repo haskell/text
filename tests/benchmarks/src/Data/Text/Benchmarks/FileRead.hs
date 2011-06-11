@@ -1,5 +1,9 @@
 -- | Benchmarks simple file reading
 --
+-- Tested in this benchmark:
+--
+-- * Reading a file from the disk
+--
 module Data.Text.Benchmarks.FileRead
     ( benchmark
     ) where

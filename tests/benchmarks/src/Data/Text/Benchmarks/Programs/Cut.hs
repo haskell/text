@@ -1,5 +1,17 @@
 -- | Cut into a file, selecting certain columns (e.g. columns 10 to 40)
 --
+-- Tested in this benchmark:
+--
+-- * Reading the file
+--
+-- * Splitting into lines
+--
+-- * Taking a number of characters from the lines
+--
+-- * Joining the lines
+--
+-- * Writing back to a handle
+--
 module Data.Text.Benchmarks.Programs.Cut
     ( benchmark
     ) where

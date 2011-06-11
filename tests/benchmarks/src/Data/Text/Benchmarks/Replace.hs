@@ -1,5 +1,9 @@
 -- | Replace a string by another string
 --
+-- Tested in this benchmark:
+--
+-- * Search and replace of a pattern in a text
+--
 module Data.Text.Benchmarks.Replace
     ( benchmark
     ) where

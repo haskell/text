@@ -1,5 +1,13 @@
 -- | A word frequency count using the different string types
 --
+-- Tested in this benchmark:
+--
+-- * Splitting into words
+--
+-- * Converting to lowercase
+--
+-- * Comparing: Eq/Ord instances
+--
 module Data.Text.Benchmarks.WordFrequencies
     ( benchmark
     ) where

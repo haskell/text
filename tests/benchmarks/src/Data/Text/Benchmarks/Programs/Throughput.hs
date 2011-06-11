@@ -6,6 +6,14 @@
 -- do any actual encoding/decoding here, while String and Text do have UTF-8
 -- encoding/decoding.
 --
+-- Tested in this benchmark:
+--
+-- * Reading the file
+--
+-- * Replacing text between HTML tags (<>) with whitespace
+--
+-- * Writing back to a handle
+--
 module Data.Text.Benchmarks.Programs.Throughput
     ( benchmark
     ) where

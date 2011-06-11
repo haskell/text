@@ -1,5 +1,9 @@
 -- | Testing the internal builder monoid
 --
+-- Tested in this benchmark:
+--
+-- * Concatenating many small strings using a builder
+--
 {-# LANGUAGE OverloadedStrings #-}
 module Data.Text.Benchmarks.Builder
     ( benchmark

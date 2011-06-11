@@ -2,6 +2,14 @@
 --
 -- This program was originally contributed by Petr Prokhorenkov.
 --
+-- Tested in this benchmark:
+--
+-- * Reading the file
+--
+-- * Replacing text between HTML tags (<>) with whitespace
+--
+-- * Writing back to a handle
+--
 {-# OPTIONS_GHC -fspec-constr-count=5 #-}
 module Data.Text.Benchmarks.Programs.StripTags
     ( benchmark

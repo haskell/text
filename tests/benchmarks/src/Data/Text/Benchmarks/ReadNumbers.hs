@@ -12,6 +12,10 @@
 -- The different benchmarks will only take into account the values they can
 -- parse.
 --
+-- Tested in this benchmark:
+--
+-- * Lexing/parsing of different numerical types
+--
 module Data.Text.Benchmarks.ReadNumbers
     ( benchmark
     ) where
@@ -40,14 +44,14 @@ benchmark fp = do
     b <- B.lines `fmap` B.readFile fp
     bl <- BL.lines `fmap` BL.readFile fp
     return $ bgroup "ReadNumbers"
-        [ bench "DecimalString" $     whnf (int . string readDec) s
+        [ bench "DecimalString"     $ whnf (int . string readDec) s
         , bench "HexadecimalString" $ whnf (int . string readHex) s
-        , bench "DoubleString" $      whnf (double . string readFloat) s
+        , bench "DoubleString"      $ whnf (double . string readFloat) s
 
-        , bench "DecimalText" $     whnf (int . text (T.signed T.decimal)) t
+        , bench "DecimalText"     $ whnf (int . text (T.signed T.decimal)) t
         , bench "HexadecimalText" $ whnf (int . text (T.signed T.hexadecimal)) t
-        , bench "DoubleText" $      whnf (double . text T.double) t
-        , bench "RationalText" $    whnf (double . text T.rational) t
+        , bench "DoubleText"      $ whnf (double . text T.double) t
+        , bench "RationalText"    $ whnf (double . text T.rational) t
 
         , bench "DecimalLazyText" $
             whnf (int . text (TL.signed TL.decimal)) tl
@@ -58,10 +62,8 @@ benchmark fp = do
         , bench "RationalLazyText" $
             whnf (double . text TL.rational) tl
 
-        , bench "DecimalByteString" $
-            whnf (int . byteString B.readInt) b
-        , bench "DoubleByteString" $
-            whnf (double . byteString B.readDouble) b
+        , bench "DecimalByteString" $ whnf (int . byteString B.readInt) b
+        , bench "DoubleByteString"  $ whnf (double . byteString B.readDouble) b
 
         , bench "DecimalLazyByteString" $
             whnf (int . byteString BL.readInt) bl

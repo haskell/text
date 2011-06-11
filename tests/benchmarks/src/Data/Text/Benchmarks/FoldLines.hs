@@ -1,6 +1,10 @@
 -- | Read a file line-by-line using handles, and perform a fold over the lines.
 -- The fold is used here to calculate the number of lines in the file.
 --
+-- Tested in this benchmark:
+--
+-- * Buffered, line-based IO
+--
 {-# LANGUAGE BangPatterns #-}
 module Data.Text.Benchmarks.FoldLines
     ( benchmark
@@ -14,7 +18,7 @@ import qualified Data.Text.IO as T
 
 benchmark :: FilePath -> IO Benchmark
 benchmark fp = return $ bgroup "ReadLines"
-    [ bench "Text" $       withHandle $ foldLinesT (\n _ -> n + 1) (0 :: Int)
+    [ bench "Text"       $ withHandle $ foldLinesT (\n _ -> n + 1) (0 :: Int)
     , bench "ByteString" $ withHandle $ foldLinesB (\n _ -> n + 1) (0 :: Int)
     ]
   where

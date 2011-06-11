@@ -1,3 +1,17 @@
+-- | Test decoding of UTF-8
+--
+-- Tested in this benchmark:
+--
+-- * Decoding bytes using UTF-8
+--
+-- In some tests:
+--
+-- * Taking the length of the result
+--
+-- * Taking the init of the result
+--
+-- The latter are used for testing stream fusion.
+--
 module Data.Text.Benchmarks.DecodeUtf8
     ( benchmark
     ) where

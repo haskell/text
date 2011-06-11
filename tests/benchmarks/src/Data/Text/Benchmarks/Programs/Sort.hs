@@ -1,5 +1,17 @@
 -- | This benchmark sorts the lines of a file, like the @sort@ unix utility.
 --
+-- Tested in this benchmark:
+--
+-- * Reading the file
+--
+-- * Splitting into lines
+--
+-- * Sorting the lines
+--
+-- * Joining the lines
+--
+-- * Writing back to a handle
+--
 {-# LANGUAGE OverloadedStrings #-}
 module Data.Text.Benchmarks.Programs.Sort
     ( benchmark
