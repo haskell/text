@@ -33,10 +33,10 @@ def fold_paragraph(paragraph, max_width)
 
   paragraph.drop(1).each do |word|
     if width + word.length + 1 <= max_width
-      str << ' ' + word
+      str << ' ' << word
       width += word.length + 1
     else
-      str << "\n" + word
+      str << "\n" << word
       width = word.length
     end
   end
