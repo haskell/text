@@ -23,6 +23,7 @@ import qualified Data.Text.Benchmarks.WordFrequencies as WordFrequencies
 
 import qualified Data.Text.Benchmarks.Programs.BigTable as Programs.BigTable
 import qualified Data.Text.Benchmarks.Programs.Cut as Programs.Cut
+import qualified Data.Text.Benchmarks.Programs.Fold as Programs.Fold
 import qualified Data.Text.Benchmarks.Programs.Sort as Programs.Sort
 import qualified Data.Text.Benchmarks.Programs.StripTags as Programs.StripTags
 import qualified Data.Text.Benchmarks.Programs.Throughput as Programs.Throughput
@@ -54,6 +55,7 @@ benchmarks = do
     ps <- bgroup "Programs" `fmap` sequence
         [ Programs.BigTable.benchmark sink
         , Programs.Cut.benchmark (tf "russian.txt") sink 20 40
+        , Programs.Fold.benchmark (tf "russian.txt") sink
         , Programs.Sort.benchmark (tf "russian.txt") sink
         , Programs.StripTags.benchmark (tf "yiwiki.xml") sink
         , Programs.Throughput.benchmark (tf "russian.txt") sink
