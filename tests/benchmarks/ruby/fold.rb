@@ -10,7 +10,7 @@ def fold(filename, max_width)
     file.each_line do |line|
       # If we encounter an empty line, we reformat and dump the current
       # paragraph
-      if line.strip.empty? then
+      if line.strip.empty?
         puts fold_paragraph(paragraph, max_width)
         puts
         paragraph = []
@@ -32,11 +32,11 @@ def fold_paragraph(paragraph, max_width)
   width = str.length
 
   paragraph.drop(1).each do |word|
-    if width + word.length + 1 <= max_width then
-      str += ' ' + word
+    if width + word.length + 1 <= max_width
+      str << ' ' + word
       width += word.length + 1
     else
-      str += "\n" + word
+      str << "\n" + word
       width = word.length
     end
   end
