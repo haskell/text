@@ -1,3 +1,5 @@
+-- | General quicktest properties for the text library
+--
 {-# LANGUAGE BangPatterns, FlexibleInstances, OverloadedStrings,
              ScopedTypeVariables, TypeSynonymInstances, CPP #-}
 {-# OPTIONS_GHC -fno-enable-rewrite-rules #-}
@@ -45,7 +47,7 @@ import qualified Data.Text.UnsafeShift as U
 import qualified System.IO as IO
 
 import Data.Text.Tests.QuickCheckUtils
-import Data.Text.Tests.TestUtils
+import Data.Text.Tests.Utils
 import qualified Data.Text.Tests.SlowFunctions as Slow
 
 t_pack_unpack       = (T.unpack . T.pack) `eq` id
@@ -683,420 +685,421 @@ shorten n t@(S.Stream arr off len)
     | n > 0     = S.Stream arr off (smaller (exactSize n) len) 
     | otherwise = t
 
-tests :: [Test]
-tests = [
-  testGroup "creation/elimination" [
-    testProperty "t_pack_unpack" t_pack_unpack,
-    testProperty "tl_pack_unpack" tl_pack_unpack,
-    testProperty "t_stream_unstream" t_stream_unstream,
-    testProperty "tl_stream_unstream" tl_stream_unstream,
-    testProperty "t_reverse_stream" t_reverse_stream,
-    testProperty "t_singleton" t_singleton,
-    testProperty "tl_singleton" tl_singleton,
-    testProperty "tl_unstreamChunks" tl_unstreamChunks,
-    testProperty "tl_chunk_unchunk" tl_chunk_unchunk,
-    testProperty "tl_from_to_strict" tl_from_to_strict
-  ],
-
-  testGroup "transcoding" [
-    testProperty "t_ascii" t_ascii,
-    testProperty "tl_ascii" tl_ascii,
-    testProperty "t_utf8" t_utf8,
-    testProperty "t_utf8'" t_utf8',
-    testProperty "tl_utf8" tl_utf8,
-    testProperty "tl_utf8'" tl_utf8',
-    testProperty "t_utf16LE" t_utf16LE,
-    testProperty "tl_utf16LE" tl_utf16LE,
-    testProperty "t_utf16BE" t_utf16BE,
-    testProperty "tl_utf16BE" tl_utf16BE,
-    testProperty "t_utf32LE" t_utf32LE,
-    testProperty "tl_utf32LE" tl_utf32LE,
-    testProperty "t_utf32BE" t_utf32BE,
-    testProperty "tl_utf32BE" tl_utf32BE,
-    testGroup "errors" [
-      testProperty "t_utf8_err" t_utf8_err,
-      testProperty "t_utf8_err'" t_utf8_err'
-    ]
-  ],
-
-  testGroup "instances" [
-    testProperty "s_Eq" s_Eq,
-    testProperty "sf_Eq" sf_Eq,
-    testProperty "t_Eq" t_Eq,
-    testProperty "tl_Eq" tl_Eq,
-    testProperty "s_Ord" s_Ord,
-    testProperty "sf_Ord" sf_Ord,
-    testProperty "t_Ord" t_Ord,
-    testProperty "tl_Ord" tl_Ord,
-    testProperty "t_Read" t_Read,
-    testProperty "tl_Read" tl_Read,
-    testProperty "t_Show" t_Show,
-    testProperty "tl_Show" tl_Show,
-    testProperty "t_mappend" t_mappend,
-    testProperty "tl_mappend" tl_mappend,
-    testProperty "t_mconcat" t_mconcat,
-    testProperty "tl_mconcat" tl_mconcat,
-    testProperty "t_mempty" t_mempty,
-    testProperty "tl_mempty" tl_mempty,
-    testProperty "t_IsString" t_IsString,
-    testProperty "tl_IsString" tl_IsString
-  ],
-
-  testGroup "basics" [
-    testProperty "s_cons" s_cons,
-    testProperty "s_cons_s" s_cons_s,
-    testProperty "sf_cons" sf_cons,
-    testProperty "t_cons" t_cons,
-    testProperty "tl_cons" tl_cons,
-    testProperty "s_snoc" s_snoc,
-    testProperty "t_snoc" t_snoc,
-    testProperty "tl_snoc" tl_snoc,
-    testProperty "s_append" s_append,
-    testProperty "s_append_s" s_append_s,
-    testProperty "sf_append" sf_append,
-    testProperty "t_append" t_append,
-    testProperty "s_uncons" s_uncons,
-    testProperty "sf_uncons" sf_uncons,
-    testProperty "t_uncons" t_uncons,
-    testProperty "tl_uncons" tl_uncons,
-    testProperty "s_head" s_head,
-    testProperty "sf_head" sf_head,
-    testProperty "t_head" t_head,
-    testProperty "tl_head" tl_head,
-    testProperty "s_last" s_last,
-    testProperty "sf_last" sf_last,
-    testProperty "t_last" t_last,
-    testProperty "tl_last" tl_last,
-    testProperty "s_tail" s_tail,
-    testProperty "s_tail_s" s_tail_s,
-    testProperty "sf_tail" sf_tail,
-    testProperty "t_tail" t_tail,
-    testProperty "tl_tail" tl_tail,
-    testProperty "s_init" s_init,
-    testProperty "s_init_s" s_init_s,
-    testProperty "sf_init" sf_init,
-    testProperty "t_init" t_init,
-    testProperty "tl_init" tl_init,
-    testProperty "s_null" s_null,
-    testProperty "sf_null" sf_null,
-    testProperty "t_null" t_null,
-    testProperty "tl_null" tl_null,
-    testProperty "s_length" s_length,
-    testProperty "sf_length" sf_length,
-    testProperty "sl_length" sl_length,
-    testProperty "t_length" t_length,
-    testProperty "tl_length" tl_length,
-    testProperty "t_compareLength" t_compareLength,
-    testProperty "tl_compareLength" tl_compareLength
-  ],
-
-  testGroup "transformations" [
-    testProperty "s_map" s_map,
-    testProperty "s_map_s" s_map_s,
-    testProperty "sf_map" sf_map,
-    testProperty "t_map" t_map,
-    testProperty "tl_map" tl_map,
-    testProperty "t_intercalate" t_intercalate,
-    testProperty "tl_intercalate" tl_intercalate,
-    testProperty "s_intersperse" s_intersperse,
-    testProperty "s_intersperse_s" s_intersperse_s,
-    testProperty "sf_intersperse" sf_intersperse,
-    testProperty "t_intersperse" t_intersperse,
-    testProperty "tl_intersperse" tl_intersperse,
-    testProperty "t_transpose" t_transpose,
-    testProperty "tl_transpose" tl_transpose,
-    testProperty "t_reverse" t_reverse,
-    testProperty "tl_reverse" tl_reverse,
-    testProperty "t_reverse_short" t_reverse_short,
-    testProperty "t_replace" t_replace,
-    testProperty "tl_replace" tl_replace,
-
-    testGroup "case conversion" [
-      testProperty "s_toCaseFold_length" s_toCaseFold_length,
-      testProperty "sf_toCaseFold_length" sf_toCaseFold_length,
-      testProperty "t_toCaseFold_length" t_toCaseFold_length,
-      testProperty "tl_toCaseFold_length" tl_toCaseFold_length,
-      testProperty "t_toLower_length" t_toLower_length,
-      testProperty "t_toLower_lower" t_toLower_lower,
-      testProperty "tl_toLower_lower" tl_toLower_lower,
-      testProperty "t_toUpper_length" t_toUpper_length,
-      testProperty "t_toUpper_upper" t_toUpper_upper,
-      testProperty "tl_toUpper_upper" tl_toUpper_upper
+tests :: Test
+tests =
+  testGroup "Properties" [
+    testGroup "creation/elimination" [
+      testProperty "t_pack_unpack" t_pack_unpack,
+      testProperty "tl_pack_unpack" tl_pack_unpack,
+      testProperty "t_stream_unstream" t_stream_unstream,
+      testProperty "tl_stream_unstream" tl_stream_unstream,
+      testProperty "t_reverse_stream" t_reverse_stream,
+      testProperty "t_singleton" t_singleton,
+      testProperty "tl_singleton" tl_singleton,
+      testProperty "tl_unstreamChunks" tl_unstreamChunks,
+      testProperty "tl_chunk_unchunk" tl_chunk_unchunk,
+      testProperty "tl_from_to_strict" tl_from_to_strict
     ],
 
-    testGroup "justification" [
-      testProperty "s_justifyLeft" s_justifyLeft,
-      testProperty "s_justifyLeft_s" s_justifyLeft_s,
-      testProperty "sf_justifyLeft" sf_justifyLeft,
-      testProperty "t_justifyLeft" t_justifyLeft,
-      testProperty "tl_justifyLeft" tl_justifyLeft,
-      testProperty "t_justifyRight" t_justifyRight,
-      testProperty "tl_justifyRight" tl_justifyRight,
-      testProperty "t_center" t_center,
-      testProperty "tl_center" tl_center
-    ]
-  ],
-
-  testGroup "folds" [
-    testProperty "sf_foldl" sf_foldl,
-    testProperty "t_foldl" t_foldl,
-    testProperty "tl_foldl" tl_foldl,
-    testProperty "sf_foldl'" sf_foldl',
-    testProperty "t_foldl'" t_foldl',
-    testProperty "tl_foldl'" tl_foldl',
-    testProperty "sf_foldl1" sf_foldl1,
-    testProperty "t_foldl1" t_foldl1,
-    testProperty "tl_foldl1" tl_foldl1,
-    testProperty "t_foldl1'" t_foldl1',
-    testProperty "sf_foldl1'" sf_foldl1',
-    testProperty "tl_foldl1'" tl_foldl1',
-    testProperty "sf_foldr" sf_foldr,
-    testProperty "t_foldr" t_foldr,
-    testProperty "tl_foldr" tl_foldr,
-    testProperty "sf_foldr1" sf_foldr1,
-    testProperty "t_foldr1" t_foldr1,
-    testProperty "tl_foldr1" tl_foldr1,
-
-    testGroup "special" [
-      testProperty "s_concat_s" s_concat_s,
-      testProperty "sf_concat" sf_concat,
-      testProperty "t_concat" t_concat,
-      testProperty "tl_concat" tl_concat,
-      testProperty "sf_concatMap" sf_concatMap,
-      testProperty "t_concatMap" t_concatMap,
-      testProperty "tl_concatMap" tl_concatMap,
-      testProperty "sf_any" sf_any,
-      testProperty "t_any" t_any,
-      testProperty "tl_any" tl_any,
-      testProperty "sf_all" sf_all,
-      testProperty "t_all" t_all,
-      testProperty "tl_all" tl_all,
-      testProperty "sf_maximum" sf_maximum,
-      testProperty "t_maximum" t_maximum,
-      testProperty "tl_maximum" tl_maximum,
-      testProperty "sf_minimum" sf_minimum,
-      testProperty "t_minimum" t_minimum,
-      testProperty "tl_minimum" tl_minimum
-    ]
-  ],
-
-  testGroup "construction" [
-    testGroup "scans" [
-      testProperty "sf_scanl" sf_scanl,
-      testProperty "t_scanl" t_scanl,
-      testProperty "tl_scanl" tl_scanl,
-      testProperty "t_scanl1" t_scanl1,
-      testProperty "tl_scanl1" tl_scanl1,
-      testProperty "t_scanr" t_scanr,
-      testProperty "tl_scanr" tl_scanr,
-      testProperty "t_scanr1" t_scanr1,
-      testProperty "tl_scanr1" tl_scanr1
+    testGroup "transcoding" [
+      testProperty "t_ascii" t_ascii,
+      testProperty "tl_ascii" tl_ascii,
+      testProperty "t_utf8" t_utf8,
+      testProperty "t_utf8'" t_utf8',
+      testProperty "tl_utf8" tl_utf8,
+      testProperty "tl_utf8'" tl_utf8',
+      testProperty "t_utf16LE" t_utf16LE,
+      testProperty "tl_utf16LE" tl_utf16LE,
+      testProperty "t_utf16BE" t_utf16BE,
+      testProperty "tl_utf16BE" tl_utf16BE,
+      testProperty "t_utf32LE" t_utf32LE,
+      testProperty "tl_utf32LE" tl_utf32LE,
+      testProperty "t_utf32BE" t_utf32BE,
+      testProperty "tl_utf32BE" tl_utf32BE,
+      testGroup "errors" [
+        testProperty "t_utf8_err" t_utf8_err,
+        testProperty "t_utf8_err'" t_utf8_err'
+      ]
     ],
 
-    testGroup "mapAccum" [
-      testProperty "t_mapAccumL" t_mapAccumL,
-      testProperty "tl_mapAccumL" tl_mapAccumL,
-      testProperty "t_mapAccumR" t_mapAccumR,
-      testProperty "tl_mapAccumR" tl_mapAccumR
+    testGroup "instances" [
+      testProperty "s_Eq" s_Eq,
+      testProperty "sf_Eq" sf_Eq,
+      testProperty "t_Eq" t_Eq,
+      testProperty "tl_Eq" tl_Eq,
+      testProperty "s_Ord" s_Ord,
+      testProperty "sf_Ord" sf_Ord,
+      testProperty "t_Ord" t_Ord,
+      testProperty "tl_Ord" tl_Ord,
+      testProperty "t_Read" t_Read,
+      testProperty "tl_Read" tl_Read,
+      testProperty "t_Show" t_Show,
+      testProperty "tl_Show" tl_Show,
+      testProperty "t_mappend" t_mappend,
+      testProperty "tl_mappend" tl_mappend,
+      testProperty "t_mconcat" t_mconcat,
+      testProperty "tl_mconcat" tl_mconcat,
+      testProperty "t_mempty" t_mempty,
+      testProperty "tl_mempty" tl_mempty,
+      testProperty "t_IsString" t_IsString,
+      testProperty "tl_IsString" tl_IsString
     ],
 
-    testGroup "unfolds" [
-      testProperty "t_replicate" t_replicate,
-      testProperty "tl_replicate" tl_replicate,
-      testProperty "t_unfoldr" t_unfoldr,
-      testProperty "tl_unfoldr" tl_unfoldr,
-      testProperty "t_unfoldrN" t_unfoldrN,
-      testProperty "tl_unfoldrN" tl_unfoldrN
-    ]
-  ],
-
-  testGroup "substrings" [
-    testGroup "breaking" [
-      testProperty "s_take" s_take,
-      testProperty "s_take_s" s_take_s,
-      testProperty "sf_take" sf_take,
-      testProperty "t_take" t_take,
-      testProperty "tl_take" tl_take,
-      testProperty "s_drop" s_drop,
-      testProperty "s_drop_s" s_drop_s,
-      testProperty "sf_drop" sf_drop,
-      testProperty "t_drop" t_drop,
-      testProperty "tl_drop" tl_drop,
-      testProperty "s_take_drop" s_take_drop,
-      testProperty "s_take_drop_s" s_take_drop_s,
-      testProperty "s_takeWhile" s_takeWhile,
-      testProperty "s_takeWhile_s" s_takeWhile_s,
-      testProperty "sf_takeWhile" sf_takeWhile,
-      testProperty "t_takeWhile" t_takeWhile,
-      testProperty "tl_takeWhile" tl_takeWhile,
-      testProperty "sf_dropWhile" sf_dropWhile,
-      testProperty "s_dropWhile" s_dropWhile,
-      testProperty "s_dropWhile_s" s_dropWhile_s,
-      testProperty "t_dropWhile" t_dropWhile,
-      testProperty "tl_dropWhile" tl_dropWhile,
-      testProperty "t_dropWhileEnd" t_dropWhileEnd,
-      testProperty "tl_dropWhileEnd" tl_dropWhileEnd,
-      testProperty "t_dropAround" t_dropAround,
-      testProperty "tl_dropAround" tl_dropAround,
-      testProperty "t_stripStart" t_stripStart,
-      testProperty "tl_stripStart" tl_stripStart,
-      testProperty "t_stripEnd" t_stripEnd,
-      testProperty "tl_stripEnd" tl_stripEnd,
-      testProperty "t_strip" t_strip,
-      testProperty "tl_strip" tl_strip,
-      testProperty "t_splitAt" t_splitAt,
-      testProperty "tl_splitAt" tl_splitAt,
-      testProperty "t_span" t_span,
-      testProperty "tl_span" tl_span,
-      testProperty "t_breakOn_id" t_breakOn_id,
-      testProperty "tl_breakOn_id" tl_breakOn_id,
-      testProperty "t_breakOn_start" t_breakOn_start,
-      testProperty "tl_breakOn_start" tl_breakOn_start,
-      testProperty "t_breakOnEnd_end" t_breakOnEnd_end,
-      testProperty "tl_breakOnEnd_end" tl_breakOnEnd_end,
-      testProperty "t_break" t_break,
-      testProperty "tl_break" tl_break,
-      testProperty "t_group" t_group,
-      testProperty "tl_group" tl_group,
-      testProperty "t_groupBy" t_groupBy,
-      testProperty "tl_groupBy" tl_groupBy,
-      testProperty "t_inits" t_inits,
-      testProperty "tl_inits" tl_inits,
-      testProperty "t_tails" t_tails,
-      testProperty "tl_tails" tl_tails
+    testGroup "basics" [
+      testProperty "s_cons" s_cons,
+      testProperty "s_cons_s" s_cons_s,
+      testProperty "sf_cons" sf_cons,
+      testProperty "t_cons" t_cons,
+      testProperty "tl_cons" tl_cons,
+      testProperty "s_snoc" s_snoc,
+      testProperty "t_snoc" t_snoc,
+      testProperty "tl_snoc" tl_snoc,
+      testProperty "s_append" s_append,
+      testProperty "s_append_s" s_append_s,
+      testProperty "sf_append" sf_append,
+      testProperty "t_append" t_append,
+      testProperty "s_uncons" s_uncons,
+      testProperty "sf_uncons" sf_uncons,
+      testProperty "t_uncons" t_uncons,
+      testProperty "tl_uncons" tl_uncons,
+      testProperty "s_head" s_head,
+      testProperty "sf_head" sf_head,
+      testProperty "t_head" t_head,
+      testProperty "tl_head" tl_head,
+      testProperty "s_last" s_last,
+      testProperty "sf_last" sf_last,
+      testProperty "t_last" t_last,
+      testProperty "tl_last" tl_last,
+      testProperty "s_tail" s_tail,
+      testProperty "s_tail_s" s_tail_s,
+      testProperty "sf_tail" sf_tail,
+      testProperty "t_tail" t_tail,
+      testProperty "tl_tail" tl_tail,
+      testProperty "s_init" s_init,
+      testProperty "s_init_s" s_init_s,
+      testProperty "sf_init" sf_init,
+      testProperty "t_init" t_init,
+      testProperty "tl_init" tl_init,
+      testProperty "s_null" s_null,
+      testProperty "sf_null" sf_null,
+      testProperty "t_null" t_null,
+      testProperty "tl_null" tl_null,
+      testProperty "s_length" s_length,
+      testProperty "sf_length" sf_length,
+      testProperty "sl_length" sl_length,
+      testProperty "t_length" t_length,
+      testProperty "tl_length" tl_length,
+      testProperty "t_compareLength" t_compareLength,
+      testProperty "tl_compareLength" tl_compareLength
     ],
 
-    testGroup "breaking many" [
-      testProperty "t_findAppendId" t_findAppendId,
-      testProperty "tl_findAppendId" tl_findAppendId,
-      testProperty "t_findContains" t_findContains,
-      testProperty "tl_findContains" tl_findContains,
-      testProperty "sl_filterCount" sl_filterCount,
-      testProperty "t_findCount" t_findCount,
-      testProperty "tl_findCount" tl_findCount,
-      testProperty "t_splitOn_split" t_splitOn_split,
-      testProperty "tl_splitOn_split" tl_splitOn_split,
-      testProperty "t_splitOn_i" t_splitOn_i,
-      testProperty "tl_splitOn_i" tl_splitOn_i,
-      testProperty "t_split" t_split,
-      testProperty "t_split_count" t_split_count,
-      testProperty "t_split_splitOn" t_split_splitOn,
-      testProperty "tl_split" tl_split,
-      testProperty "t_chunksOf_same_lengths" t_chunksOf_same_lengths,
-      testProperty "t_chunksOf_length" t_chunksOf_length,
-      testProperty "tl_chunksOf" tl_chunksOf
+    testGroup "transformations" [
+      testProperty "s_map" s_map,
+      testProperty "s_map_s" s_map_s,
+      testProperty "sf_map" sf_map,
+      testProperty "t_map" t_map,
+      testProperty "tl_map" tl_map,
+      testProperty "t_intercalate" t_intercalate,
+      testProperty "tl_intercalate" tl_intercalate,
+      testProperty "s_intersperse" s_intersperse,
+      testProperty "s_intersperse_s" s_intersperse_s,
+      testProperty "sf_intersperse" sf_intersperse,
+      testProperty "t_intersperse" t_intersperse,
+      testProperty "tl_intersperse" tl_intersperse,
+      testProperty "t_transpose" t_transpose,
+      testProperty "tl_transpose" tl_transpose,
+      testProperty "t_reverse" t_reverse,
+      testProperty "tl_reverse" tl_reverse,
+      testProperty "t_reverse_short" t_reverse_short,
+      testProperty "t_replace" t_replace,
+      testProperty "tl_replace" tl_replace,
+
+      testGroup "case conversion" [
+        testProperty "s_toCaseFold_length" s_toCaseFold_length,
+        testProperty "sf_toCaseFold_length" sf_toCaseFold_length,
+        testProperty "t_toCaseFold_length" t_toCaseFold_length,
+        testProperty "tl_toCaseFold_length" tl_toCaseFold_length,
+        testProperty "t_toLower_length" t_toLower_length,
+        testProperty "t_toLower_lower" t_toLower_lower,
+        testProperty "tl_toLower_lower" tl_toLower_lower,
+        testProperty "t_toUpper_length" t_toUpper_length,
+        testProperty "t_toUpper_upper" t_toUpper_upper,
+        testProperty "tl_toUpper_upper" tl_toUpper_upper
+      ],
+
+      testGroup "justification" [
+        testProperty "s_justifyLeft" s_justifyLeft,
+        testProperty "s_justifyLeft_s" s_justifyLeft_s,
+        testProperty "sf_justifyLeft" sf_justifyLeft,
+        testProperty "t_justifyLeft" t_justifyLeft,
+        testProperty "tl_justifyLeft" tl_justifyLeft,
+        testProperty "t_justifyRight" t_justifyRight,
+        testProperty "tl_justifyRight" tl_justifyRight,
+        testProperty "t_center" t_center,
+        testProperty "tl_center" tl_center
+      ]
     ],
 
-    testGroup "lines and words" [
-      testProperty "t_lines" t_lines,
-      testProperty "tl_lines" tl_lines,
-    --testProperty "t_lines'" t_lines',
-      testProperty "t_words" t_words,
-      testProperty "tl_words" tl_words,
-      testProperty "t_unlines" t_unlines,
-      testProperty "tl_unlines" tl_unlines,
-      testProperty "t_unwords" t_unwords,
-      testProperty "tl_unwords" tl_unwords
+    testGroup "folds" [
+      testProperty "sf_foldl" sf_foldl,
+      testProperty "t_foldl" t_foldl,
+      testProperty "tl_foldl" tl_foldl,
+      testProperty "sf_foldl'" sf_foldl',
+      testProperty "t_foldl'" t_foldl',
+      testProperty "tl_foldl'" tl_foldl',
+      testProperty "sf_foldl1" sf_foldl1,
+      testProperty "t_foldl1" t_foldl1,
+      testProperty "tl_foldl1" tl_foldl1,
+      testProperty "t_foldl1'" t_foldl1',
+      testProperty "sf_foldl1'" sf_foldl1',
+      testProperty "tl_foldl1'" tl_foldl1',
+      testProperty "sf_foldr" sf_foldr,
+      testProperty "t_foldr" t_foldr,
+      testProperty "tl_foldr" tl_foldr,
+      testProperty "sf_foldr1" sf_foldr1,
+      testProperty "t_foldr1" t_foldr1,
+      testProperty "tl_foldr1" tl_foldr1,
+
+      testGroup "special" [
+        testProperty "s_concat_s" s_concat_s,
+        testProperty "sf_concat" sf_concat,
+        testProperty "t_concat" t_concat,
+        testProperty "tl_concat" tl_concat,
+        testProperty "sf_concatMap" sf_concatMap,
+        testProperty "t_concatMap" t_concatMap,
+        testProperty "tl_concatMap" tl_concatMap,
+        testProperty "sf_any" sf_any,
+        testProperty "t_any" t_any,
+        testProperty "tl_any" tl_any,
+        testProperty "sf_all" sf_all,
+        testProperty "t_all" t_all,
+        testProperty "tl_all" tl_all,
+        testProperty "sf_maximum" sf_maximum,
+        testProperty "t_maximum" t_maximum,
+        testProperty "tl_maximum" tl_maximum,
+        testProperty "sf_minimum" sf_minimum,
+        testProperty "t_minimum" t_minimum,
+        testProperty "tl_minimum" tl_minimum
+      ]
+    ],
+
+    testGroup "construction" [
+      testGroup "scans" [
+        testProperty "sf_scanl" sf_scanl,
+        testProperty "t_scanl" t_scanl,
+        testProperty "tl_scanl" tl_scanl,
+        testProperty "t_scanl1" t_scanl1,
+        testProperty "tl_scanl1" tl_scanl1,
+        testProperty "t_scanr" t_scanr,
+        testProperty "tl_scanr" tl_scanr,
+        testProperty "t_scanr1" t_scanr1,
+        testProperty "tl_scanr1" tl_scanr1
+      ],
+
+      testGroup "mapAccum" [
+        testProperty "t_mapAccumL" t_mapAccumL,
+        testProperty "tl_mapAccumL" tl_mapAccumL,
+        testProperty "t_mapAccumR" t_mapAccumR,
+        testProperty "tl_mapAccumR" tl_mapAccumR
+      ],
+
+      testGroup "unfolds" [
+        testProperty "t_replicate" t_replicate,
+        testProperty "tl_replicate" tl_replicate,
+        testProperty "t_unfoldr" t_unfoldr,
+        testProperty "tl_unfoldr" tl_unfoldr,
+        testProperty "t_unfoldrN" t_unfoldrN,
+        testProperty "tl_unfoldrN" tl_unfoldrN
+      ]
+    ],
+
+    testGroup "substrings" [
+      testGroup "breaking" [
+        testProperty "s_take" s_take,
+        testProperty "s_take_s" s_take_s,
+        testProperty "sf_take" sf_take,
+        testProperty "t_take" t_take,
+        testProperty "tl_take" tl_take,
+        testProperty "s_drop" s_drop,
+        testProperty "s_drop_s" s_drop_s,
+        testProperty "sf_drop" sf_drop,
+        testProperty "t_drop" t_drop,
+        testProperty "tl_drop" tl_drop,
+        testProperty "s_take_drop" s_take_drop,
+        testProperty "s_take_drop_s" s_take_drop_s,
+        testProperty "s_takeWhile" s_takeWhile,
+        testProperty "s_takeWhile_s" s_takeWhile_s,
+        testProperty "sf_takeWhile" sf_takeWhile,
+        testProperty "t_takeWhile" t_takeWhile,
+        testProperty "tl_takeWhile" tl_takeWhile,
+        testProperty "sf_dropWhile" sf_dropWhile,
+        testProperty "s_dropWhile" s_dropWhile,
+        testProperty "s_dropWhile_s" s_dropWhile_s,
+        testProperty "t_dropWhile" t_dropWhile,
+        testProperty "tl_dropWhile" tl_dropWhile,
+        testProperty "t_dropWhileEnd" t_dropWhileEnd,
+        testProperty "tl_dropWhileEnd" tl_dropWhileEnd,
+        testProperty "t_dropAround" t_dropAround,
+        testProperty "tl_dropAround" tl_dropAround,
+        testProperty "t_stripStart" t_stripStart,
+        testProperty "tl_stripStart" tl_stripStart,
+        testProperty "t_stripEnd" t_stripEnd,
+        testProperty "tl_stripEnd" tl_stripEnd,
+        testProperty "t_strip" t_strip,
+        testProperty "tl_strip" tl_strip,
+        testProperty "t_splitAt" t_splitAt,
+        testProperty "tl_splitAt" tl_splitAt,
+        testProperty "t_span" t_span,
+        testProperty "tl_span" tl_span,
+        testProperty "t_breakOn_id" t_breakOn_id,
+        testProperty "tl_breakOn_id" tl_breakOn_id,
+        testProperty "t_breakOn_start" t_breakOn_start,
+        testProperty "tl_breakOn_start" tl_breakOn_start,
+        testProperty "t_breakOnEnd_end" t_breakOnEnd_end,
+        testProperty "tl_breakOnEnd_end" tl_breakOnEnd_end,
+        testProperty "t_break" t_break,
+        testProperty "tl_break" tl_break,
+        testProperty "t_group" t_group,
+        testProperty "tl_group" tl_group,
+        testProperty "t_groupBy" t_groupBy,
+        testProperty "tl_groupBy" tl_groupBy,
+        testProperty "t_inits" t_inits,
+        testProperty "tl_inits" tl_inits,
+        testProperty "t_tails" t_tails,
+        testProperty "tl_tails" tl_tails
+      ],
+
+      testGroup "breaking many" [
+        testProperty "t_findAppendId" t_findAppendId,
+        testProperty "tl_findAppendId" tl_findAppendId,
+        testProperty "t_findContains" t_findContains,
+        testProperty "tl_findContains" tl_findContains,
+        testProperty "sl_filterCount" sl_filterCount,
+        testProperty "t_findCount" t_findCount,
+        testProperty "tl_findCount" tl_findCount,
+        testProperty "t_splitOn_split" t_splitOn_split,
+        testProperty "tl_splitOn_split" tl_splitOn_split,
+        testProperty "t_splitOn_i" t_splitOn_i,
+        testProperty "tl_splitOn_i" tl_splitOn_i,
+        testProperty "t_split" t_split,
+        testProperty "t_split_count" t_split_count,
+        testProperty "t_split_splitOn" t_split_splitOn,
+        testProperty "tl_split" tl_split,
+        testProperty "t_chunksOf_same_lengths" t_chunksOf_same_lengths,
+        testProperty "t_chunksOf_length" t_chunksOf_length,
+        testProperty "tl_chunksOf" tl_chunksOf
+      ],
+
+      testGroup "lines and words" [
+        testProperty "t_lines" t_lines,
+        testProperty "tl_lines" tl_lines,
+      --testProperty "t_lines'" t_lines',
+        testProperty "t_words" t_words,
+        testProperty "tl_words" tl_words,
+        testProperty "t_unlines" t_unlines,
+        testProperty "tl_unlines" tl_unlines,
+        testProperty "t_unwords" t_unwords,
+        testProperty "tl_unwords" tl_unwords
+      ]
+    ],
+
+    testGroup "predicates" [
+      testProperty "s_isPrefixOf" s_isPrefixOf,
+      testProperty "sf_isPrefixOf" sf_isPrefixOf,
+      testProperty "t_isPrefixOf" t_isPrefixOf,
+      testProperty "tl_isPrefixOf" tl_isPrefixOf,
+      testProperty "t_isSuffixOf" t_isSuffixOf,
+      testProperty "tl_isSuffixOf" tl_isSuffixOf,
+      testProperty "t_isInfixOf" t_isInfixOf,
+      testProperty "tl_isInfixOf" tl_isInfixOf,
+
+      testGroup "view" [
+        testProperty "t_stripPrefix" t_stripPrefix,
+        testProperty "tl_stripPrefix" tl_stripPrefix,
+        testProperty "t_stripSuffix" t_stripSuffix,
+        testProperty "tl_stripSuffix" tl_stripSuffix,
+        testProperty "t_commonPrefixes" t_commonPrefixes,
+        testProperty "tl_commonPrefixes" tl_commonPrefixes
+      ]
+    ],
+
+    testGroup "searching" [
+      testProperty "sf_elem" sf_elem,
+      testProperty "sf_filter" sf_filter,
+      testProperty "t_filter" t_filter,
+      testProperty "tl_filter" tl_filter,
+      testProperty "sf_findBy" sf_findBy,
+      testProperty "t_find" t_find,
+      testProperty "tl_find" tl_find,
+      testProperty "t_partition" t_partition,
+      testProperty "tl_partition" tl_partition
+    ],
+
+    testGroup "indexing" [
+      testProperty "sf_index" sf_index,
+      testProperty "t_index" t_index,
+      testProperty "tl_index" tl_index,
+      testProperty "t_findIndex" t_findIndex,
+      testProperty "t_count" t_count,
+      testProperty "tl_count" tl_count,
+      testProperty "t_indices" t_indices,
+      testProperty "tl_indices" tl_indices,
+      testProperty "t_indices_occurs" t_indices_occurs
+    ],
+
+    testGroup "zips" [
+      testProperty "t_zip" t_zip,
+      testProperty "tl_zip" tl_zip,
+      testProperty "sf_zipWith" sf_zipWith,
+      testProperty "t_zipWith" t_zipWith,
+      testProperty "tl_zipWith" tl_zipWith
+    ],
+
+    testGroup "regressions" [
+      testProperty "s_filter_eq" s_filter_eq
+    ],
+
+    testGroup "shifts" [
+      testProperty "shiftL_Int" shiftL_Int,
+      testProperty "shiftL_Word16" shiftL_Word16,
+      testProperty "shiftL_Word32" shiftL_Word32,
+      testProperty "shiftR_Int" shiftR_Int,
+      testProperty "shiftR_Word16" shiftR_Word16,
+      testProperty "shiftR_Word32" shiftR_Word32
+    ],
+
+    testGroup "builder" [
+      testProperty "t_builderSingleton" t_builderSingleton,
+      testProperty "t_builderFromText" t_builderFromText,
+      testProperty "t_builderAssociative" t_builderAssociative
+    ],
+
+    testGroup "read" [
+      testProperty "t_decimal" t_decimal,
+      testProperty "tl_decimal" tl_decimal,
+      testProperty "t_hexadecimal" t_hexadecimal,
+      testProperty "tl_hexadecimal" tl_hexadecimal,
+      testProperty "t_double" t_double,
+      testProperty "tl_double" tl_double,
+      testProperty "t_rational" t_rational,
+      testProperty "tl_rational" tl_rational
+    ],
+
+    testGroup "input-output" [
+      testProperty "t_write_read" t_write_read,
+      testProperty "tl_write_read" tl_write_read,
+      testProperty "t_write_read_line" t_write_read_line,
+      testProperty "tl_write_read_line" tl_write_read_line
+      -- These tests are subject to I/O race conditions when run under
+      -- test-framework-quickcheck2.
+      -- testProperty "t_put_get" t_put_get
+      -- testProperty "tl_put_get" tl_put_get
+    ],
+
+    testGroup "lowlevel" [
+      testProperty "t_dropWord16" t_dropWord16,
+      testProperty "t_takeWord16" t_takeWord16,
+      testProperty "t_take_drop_16" t_take_drop_16,
+      testProperty "t_use_from" t_use_from
     ]
-  ],
-
-  testGroup "predicates" [
-    testProperty "s_isPrefixOf" s_isPrefixOf,
-    testProperty "sf_isPrefixOf" sf_isPrefixOf,
-    testProperty "t_isPrefixOf" t_isPrefixOf,
-    testProperty "tl_isPrefixOf" tl_isPrefixOf,
-    testProperty "t_isSuffixOf" t_isSuffixOf,
-    testProperty "tl_isSuffixOf" tl_isSuffixOf,
-    testProperty "t_isInfixOf" t_isInfixOf,
-    testProperty "tl_isInfixOf" tl_isInfixOf,
-
-    testGroup "view" [
-      testProperty "t_stripPrefix" t_stripPrefix,
-      testProperty "tl_stripPrefix" tl_stripPrefix,
-      testProperty "t_stripSuffix" t_stripSuffix,
-      testProperty "tl_stripSuffix" tl_stripSuffix,
-      testProperty "t_commonPrefixes" t_commonPrefixes,
-      testProperty "tl_commonPrefixes" tl_commonPrefixes
-    ]
-  ],
-
-  testGroup "searching" [
-    testProperty "sf_elem" sf_elem,
-    testProperty "sf_filter" sf_filter,
-    testProperty "t_filter" t_filter,
-    testProperty "tl_filter" tl_filter,
-    testProperty "sf_findBy" sf_findBy,
-    testProperty "t_find" t_find,
-    testProperty "tl_find" tl_find,
-    testProperty "t_partition" t_partition,
-    testProperty "tl_partition" tl_partition
-  ],
-
-  testGroup "indexing" [
-    testProperty "sf_index" sf_index,
-    testProperty "t_index" t_index,
-    testProperty "tl_index" tl_index,
-    testProperty "t_findIndex" t_findIndex,
-    testProperty "t_count" t_count,
-    testProperty "tl_count" tl_count,
-    testProperty "t_indices" t_indices,
-    testProperty "tl_indices" tl_indices,
-    testProperty "t_indices_occurs" t_indices_occurs
-  ],
-
-  testGroup "zips" [
-    testProperty "t_zip" t_zip,
-    testProperty "tl_zip" tl_zip,
-    testProperty "sf_zipWith" sf_zipWith,
-    testProperty "t_zipWith" t_zipWith,
-    testProperty "tl_zipWith" tl_zipWith
-  ],
-
-  testGroup "regressions" [
-    testProperty "s_filter_eq" s_filter_eq
-  ],
-
-  testGroup "shifts" [
-    testProperty "shiftL_Int" shiftL_Int,
-    testProperty "shiftL_Word16" shiftL_Word16,
-    testProperty "shiftL_Word32" shiftL_Word32,
-    testProperty "shiftR_Int" shiftR_Int,
-    testProperty "shiftR_Word16" shiftR_Word16,
-    testProperty "shiftR_Word32" shiftR_Word32
-  ],
-
-  testGroup "builder" [
-    testProperty "t_builderSingleton" t_builderSingleton,
-    testProperty "t_builderFromText" t_builderFromText,
-    testProperty "t_builderAssociative" t_builderAssociative
-  ],
-
-  testGroup "read" [
-    testProperty "t_decimal" t_decimal,
-    testProperty "tl_decimal" tl_decimal,
-    testProperty "t_hexadecimal" t_hexadecimal,
-    testProperty "tl_hexadecimal" tl_hexadecimal,
-    testProperty "t_double" t_double,
-    testProperty "tl_double" tl_double,
-    testProperty "t_rational" t_rational,
-    testProperty "tl_rational" tl_rational
-  ],
-
-  testGroup "input-output" [
-    testProperty "t_write_read" t_write_read,
-    testProperty "tl_write_read" tl_write_read,
-    testProperty "t_write_read_line" t_write_read_line,
-    testProperty "tl_write_read_line" tl_write_read_line
-    -- These tests are subject to I/O race conditions when run under
-    -- test-framework-quickcheck2.
-    -- testProperty "t_put_get" t_put_get
-    -- testProperty "tl_put_get" tl_put_get
-  ],
-
-  testGroup "lowlevel" [
-    testProperty "t_dropWord16" t_dropWord16,
-    testProperty "t_takeWord16" t_takeWord16,
-    testProperty "t_take_drop_16" t_take_drop_16,
-    testProperty "t_use_from" t_use_from
   ]
- ]

@@ -50,7 +50,7 @@ import qualified Data.Text.Lazy.Fusion as TLF
 import qualified Data.Text.Lazy.Internal as TL
 import qualified System.IO as IO
 
-import Data.Text.Tests.TestUtils
+import Data.Text.Tests.Utils
 
 instance Random I16 where
     randomR = integralRandomR

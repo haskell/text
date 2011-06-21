@@ -6,7 +6,8 @@ module Main
 
 import Test.Framework (defaultMain)
 
-import Data.Text.Tests.Properties (tests)
+import qualified Data.Text.Tests.Properties as Properties
+import qualified Data.Text.Tests.Regressions as Regressions
 
 main :: IO ()
-main = defaultMain tests
+main = defaultMain [Properties.tests, Regressions.tests]
