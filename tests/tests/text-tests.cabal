@@ -15,9 +15,13 @@ build-type:          Simple
 
 cabal-version:       >=1.2
 
+flag hpc
+  description: Enable HPC to generate coverage reports
+  default:     False
+
 executable text-tests
   hs-source-dirs: src ../..
-  main-is:        Data/Text/Tests/Properties.hs
+  main-is:        Data/Text/Tests.hs
 
   ghc-options:
     -Wall
@@ -25,6 +29,11 @@ executable text-tests
     -O0
     -fno-warn-orphans
     -fno-warn-missing-signatures 
+
+  -- Optional HPC support
+  if flag(hpc)
+    ghc-options:
+      -fhpc
 
   cpp-options:
     -DASSERTS

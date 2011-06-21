@@ -1,6 +1,10 @@
 {-# LANGUAGE BangPatterns, FlexibleInstances, OverloadedStrings,
              ScopedTypeVariables, TypeSynonymInstances, CPP #-}
 {-# OPTIONS_GHC -fno-enable-rewrite-rules #-}
+module Data.Text.Tests.Properties
+    (
+      tests
+    ) where
 
 import Test.QuickCheck
 import Test.QuickCheck.Monadic
@@ -819,9 +823,6 @@ shorten :: Int -> S.Stream a -> S.Stream a
 shorten n t@(S.Stream arr off len)
     | n > 0     = S.Stream arr off (smaller (exactSize n) len) 
     | otherwise = t
-
-main :: IO ()
-main = defaultMain tests
 
 tests :: [Test]
 tests = [
