@@ -1,19 +1,19 @@
-name:                text-tests
-version:             0.0.0.0
-synopsis:            Functional tests for the text package
-description:         Functional tests for the text package
-homepage:            https://bitbucket.org/bos/text
-license:             BSD3
-license-file:        ../../LICENSE
-author:              Jasper Van der Jeugt <jaspervdj@gmail.com>,
-                     Bryan O'Sullivan <bos@serpentine.com>,
-                     Tom Harper <rtomharper@googlemail.com>,
-                     Duncan Coutts <duncan@haskell.org>
-maintainer:          Bryan O'Sullivan <bos@serpentine.com>
-category:            Text
-build-type:          Simple
+name:          text-tests
+version:       0.0.0.0
+synopsis:      Functional tests for the text package
+description:   Functional tests for the text package
+homepage:      https://bitbucket.org/bos/text
+license:       BSD3
+license-file:  ../../LICENSE
+author:        Jasper Van der Jeugt <jaspervdj@gmail.com>,
+               Bryan O'Sullivan <bos@serpentine.com>,
+               Tom Harper <rtomharper@googlemail.com>,
+               Duncan Coutts <duncan@haskell.org>
+maintainer:    Bryan O'Sullivan <bos@serpentine.com>
+category:      Text
+build-type:    Simple
 
-cabal-version:       >=1.2
+cabal-version: >=1.2
 
 flag hpc
   description: Enable HPC to generate coverage reports
@@ -48,3 +48,19 @@ executable text-tests
     random                     >= 1.0 && < 1.1,
     test-framework             >= 0.4 && < 0.5,
     test-framework-quickcheck2 >= 0.2 && < 0.3
+
+executable text-tests-stdio
+  hs-source-dirs: src ../..
+  main-is:        Data/Text/Tests/IO.hs
+
+  ghc-options:
+    -Wall
+    -threaded
+
+  -- Optional HPC support
+  if flag(hpc)
+    ghc-options:
+      -fhpc
+
+  build-depends:
+    base >= 4 && < 5
