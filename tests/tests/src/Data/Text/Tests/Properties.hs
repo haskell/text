@@ -50,21 +50,6 @@ import Data.Text.Tests.QuickCheckUtils
 import Data.Text.Tests.TestUtils
 import qualified Data.Text.Tests.SlowFunctions as Slow
 
--- Ensure that two potentially bottom values (in the sense of crashing
--- for some inputs, not looping infinitely) either both crash, or both
--- give comparable results for some input.
-(=^=) :: (Eq a, Show a) => a -> a -> Bool
-{-# NOINLINE (=^=) #-}
-i =^= j = unsafePerformIO $ do
-  x <- try (evaluate i)
-  y <- try (evaluate j)
-  case (x,y) of
-    (Left (_ :: SomeException), Left (_ :: SomeException))
-                       -> return True
-    (Right a, Right b) -> return (a == b)
-    e                  -> trace ("*** Divergence: " ++ show e) return False
-infix 4 =^=
-
 t_pack_unpack       = (T.unpack . T.pack) `eq` id
 tl_pack_unpack      = (TL.unpack . TL.pack) `eq` id
 t_stream_unstream   = (S.unstream . S.stream) `eq` id
