@@ -27,8 +27,6 @@ executable text-tests
     -Wall
     -threaded
     -O0
-    -fno-warn-orphans
-    -fno-warn-missing-signatures 
 
   -- Optional HPC support
   if flag(hpc)

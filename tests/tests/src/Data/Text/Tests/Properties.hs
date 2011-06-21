@@ -1,6 +1,7 @@
 {-# LANGUAGE BangPatterns, FlexibleInstances, OverloadedStrings,
              ScopedTypeVariables, TypeSynonymInstances, CPP #-}
 {-# OPTIONS_GHC -fno-enable-rewrite-rules #-}
+{-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Data.Text.Tests.Properties
     (
       tests
@@ -10,41 +11,38 @@ import Test.QuickCheck
 import Test.QuickCheck.Monadic
 import Text.Show.Functions ()
 
-import qualified Data.Bits as Bits (shiftL, shiftR)
-import Numeric (showHex)
+import Control.Arrow ((***), second)
+import Control.Exception (catch)
 import Data.Char (chr, isDigit, isHexDigit, isLower, isSpace, isUpper, ord)
 import Data.Monoid (Monoid(..))
 import Data.String (fromString)
-import Debug.Trace (trace)
-import Control.Arrow ((***), second)
-import Control.DeepSeq
-import Data.Word (Word8, Word16, Word32)
-import qualified Data.Text as T
-import qualified Data.Text.IO as T
-import qualified Data.Text.Lazy as TL
-import qualified Data.Text.Lazy.IO as TL
-import qualified Data.Text.Lazy.Internal as TL
-import qualified Data.Text.Lazy.Builder as TB
-import qualified Data.Text.Encoding as E
-import Data.Text.Read as T
-import Data.Text.Lazy.Read as TL
 import Data.Text.Encoding.Error
-import Control.Exception (SomeException, bracket, catch, evaluate, try)
 import Data.Text.Foreign
+import Data.Text.Fusion.Size
+import Data.Text.Lazy.Read as TL
+import Data.Text.Read as T
+import Data.Text.Search (indices)
+import Data.Word (Word8, Word16, Word32)
+import Numeric (showHex)
+import Prelude hiding (catch, replicate)
+import Test.Framework (Test, testGroup)
+import Test.Framework.Providers.QuickCheck2 (testProperty)
+import qualified Data.Bits as Bits (shiftL, shiftR)
+import qualified Data.ByteString as B
+import qualified Data.List as L
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as E
 import qualified Data.Text.Fusion as S
 import qualified Data.Text.Fusion.Common as S
-import Data.Text.Fusion.Size
+import qualified Data.Text.IO as T
+import qualified Data.Text.Lazy as TL
+import qualified Data.Text.Lazy.Builder as TB
 import qualified Data.Text.Lazy.Encoding as EL
 import qualified Data.Text.Lazy.Fusion as SL
-import qualified Data.Text.UnsafeShift as U
-import qualified Data.List as L
-import Prelude hiding (catch, replicate)
-import System.IO
-import System.IO.Unsafe (unsafePerformIO)
-import Test.Framework (Test, defaultMain, testGroup)
-import Test.Framework.Providers.QuickCheck2 (testProperty)
-import Data.Text.Search (indices)
+import qualified Data.Text.Lazy.IO as TL
 import qualified Data.Text.Lazy.Search as S (indices)
+import qualified Data.Text.UnsafeShift as U
+import qualified System.IO as IO
 
 import Data.Text.Tests.QuickCheckUtils
 import Data.Text.Tests.TestUtils
@@ -79,20 +77,10 @@ tl_utf32LE   = forAll genUnicode $ (EL.decodeUtf32LE . EL.encodeUtf32LE) `eq` id
 t_utf32BE    = forAll genUnicode $ (E.decodeUtf32BE . E.encodeUtf32BE) `eq` id
 tl_utf32BE   = forAll genUnicode $ (EL.decodeUtf32BE . EL.encodeUtf32BE) `eq` id
 
-data DecodeErr = DE String OnDecodeError
-
-instance Show DecodeErr where
-    show (DE d _) = "DE " ++ d
-
-instance Arbitrary DecodeErr where
-    arbitrary = oneof [ return $ DE "lenient" lenientDecode
-                      , return $ DE "ignore" ignore
-                      , return $ DE "strict" strictDecode
-                      , DE "replace" `fmap` arbitrary ]
-
 -- This is a poor attempt to ensure that the error handling paths on
 -- decode are exercised in some way.  Proper testing would be rather
 -- more involved.
+t_utf8_err :: DecodeErr -> B.ByteString -> Property
 t_utf8_err (DE _ de) bs = monadicIO $ do
   l <- run $ let len = T.length (E.decodeUtf8With de bs)
              in (len `seq` return (Right len)) `catch`
@@ -101,61 +89,10 @@ t_utf8_err (DE _ de) bs = monadicIO $ do
     Left err -> assert $ length (show err) >= 0
     Right n  -> assert $ n >= 0
 
+t_utf8_err' :: B.ByteString -> Property
 t_utf8_err' bs = monadicIO . assert $ case E.decodeUtf8' bs of
                                         Left err -> length (show err) >= 0
                                         Right t  -> T.length t >= 0
-
-class Stringy s where
-    packS    :: String -> s
-    unpackS  :: s -> String
-    splitAtS :: Int -> s -> (s,s)
-    packSChunkSize :: Int -> String -> s
-    packSChunkSize _ = packS
-
-instance Stringy String where
-    packS    = id
-    unpackS  = id
-    splitAtS = splitAt
-
-instance Stringy (S.Stream Char) where
-    packS        = S.streamList
-    unpackS      = S.unstreamList
-    splitAtS n s = (S.take n s, S.drop n s)
-
-instance Stringy T.Text where
-    packS    = T.pack
-    unpackS  = T.unpack
-    splitAtS = T.splitAt
-
-instance Stringy TL.Text where
-    packSChunkSize k = SL.unstreamChunks k . S.streamList
-    packS    = TL.pack
-    unpackS  = TL.unpack
-    splitAtS = ((TL.lazyInvariant *** TL.lazyInvariant) .) .
-               TL.splitAt . fromIntegral
-
--- Do two functions give the same answer?
-eq :: (Eq a, Show a) => (t -> a) -> (t -> a) -> t -> Bool
-eq a b s  = a s =^= b s
-
--- What about with the RHS packed?
-eqP :: (Eq a, Show a, Stringy s) =>
-       (String -> a) -> (s -> a) -> String -> Word8 -> Bool
-eqP f g s w  = eql "orig" (f s) (g t) &&
-               eql "mini" (f s) (g mini) &&
-               eql "head" (f sa) (g ta) &&
-               eql "tail" (f sb) (g tb)
-    where t             = packS s
-          mini          = packSChunkSize 10 s
-          (sa,sb)       = splitAt m s
-          (ta,tb)       = splitAtS m t
-          l             = length s
-          m | l == 0    = n
-            | otherwise = n `mod` l
-          n             = fromIntegral w
-          eql d a b
-            | a =^= b   = True
-            | otherwise = trace (d ++ ": " ++ show a ++ " /= " ++ show b) False
 
 s_Eq s            = (s==)    `eq` ((S.streamList s==) . S.streamList)
     where _types = s :: String
@@ -711,75 +648,12 @@ tl_rational = tl_read_rational TL.rational 1e-16
 
 -- Input and output.
 
--- Work around lack of Show instance for TextEncoding.
-data Encoding = E String TextEncoding
-
-instance Show Encoding where show (E n _) = "utf" ++ n
-
-instance Arbitrary Encoding where
-    arbitrary = oneof . map return $
-      [ E "8" utf8, E "8_bom" utf8_bom, E "16" utf16, E "16le" utf16le,
-        E "16be" utf16be, E "32" utf32, E "32le" utf32le, E "32be" utf32be ]
-
-windowsNewlineMode  = NewlineMode { inputNL = CRLF, outputNL = CRLF }
-
--- Newline and NewlineMode have standard Show instance from GHC 7 onwards
-#if __GLASGOW_HASKELL__ < 700
-instance Show Newline where
-    show CRLF = "CRLF"
-    show LF   = "LF"
-
-instance Show NewlineMode where
-    show (NewlineMode i o) = "NewlineMode { inputNL = " ++ show i ++
-                             ", outputNL = " ++ show o ++ " }"
-# endif
-
-instance Arbitrary NewlineMode where
-    arbitrary = oneof . map return $
-      [ noNewlineTranslation, universalNewlineMode, nativeNewlineMode,
-        windowsNewlineMode ]
-
-instance Arbitrary BufferMode where
-    arbitrary = oneof [ return NoBuffering,
-                        return LineBuffering,
-                        return (BlockBuffering Nothing),
-                        (BlockBuffering . Just . (+1) . fromIntegral) `fmap`
-                        (arbitrary :: Gen Word16) ]
-
--- This test harness is complex!  What property are we checking?
---
--- Reading after writing a multi-line file should give the same
--- results as were written.
---
--- What do we vary while checking this property?
--- * The lines themselves, scrubbed to contain neither CR nor LF.  (By
---   working with a list of lines, we ensure that the data will
---   sometimes contain line endings.)
--- * Encoding.
--- * Newline translation mode.
--- * Buffering.
-write_read unline filt writer reader (E _ enc) nl buf ts =
-    monadicIO $ assert . (==t) =<< run act
-  where t = unline . map (filt (not . (`elem` "\r\n"))) $ ts
-        act = withTempFile $ \path h -> do
-                -- hSetEncoding h enc
-                hSetNewlineMode h nl
-                hSetBuffering h buf
-                () <- writer h t
-                hClose h
-                bracket (openFile path ReadMode) hClose $ \h' -> do
-                  -- hSetEncoding h' enc
-                  hSetNewlineMode h' nl
-                  hSetBuffering h' buf
-                  r <- reader h'
-                  r `deepseq` return r
-
 t_put_get = write_read T.unlines T.filter put get
-  where put h = withRedirect h stdout . T.putStr
-        get h = withRedirect h stdin T.getContents
+  where put h = withRedirect h IO.stdout . T.putStr
+        get h = withRedirect h IO.stdin T.getContents
 tl_put_get = write_read TL.unlines TL.filter put get
-  where put h = withRedirect h stdout . TL.putStr
-        get h = withRedirect h stdin TL.getContents
+  where put h = withRedirect h IO.stdout . TL.putStr
+        get h = withRedirect h IO.stdin TL.getContents
 t_write_read = write_read T.unlines T.filter T.hPutStr T.hGetContents
 tl_write_read = write_read TL.unlines TL.filter TL.hPutStr TL.hGetContents
 
