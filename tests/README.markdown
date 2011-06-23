@@ -15,7 +15,21 @@ properties), and benchmarks.
 Functional tests
 ----------------
 
-TODO
+The functional tests are located in the `tests` subdirectory. An overview of
+what's in that directory:
+
+    scripts           Various utility scripts
+    src               Source files of the testing code
+    text-tests.cabal  Cabal file which compiles all benchmarks
+    Makefile          Has targets for common tasks
+
+The `text-tests.cabal` builds:
+
+- A copy of the text library, sharing the source code, but exposing all internal
+  modules, for testing purposes
+- The different test suites
+
+To compile, run all tests, and generate a coverage report, simply use `make`.
 
 Benchmarks
 ----------
