@@ -181,6 +181,8 @@ s_map_s f         = map f  `eqP` (unpackS . S.unstream . S.map f)
 sf_map p f        = (map f . L.filter p)  `eqP` (unpackS . S.map f . S.filter p)
 t_map f           = map f  `eqP` (unpackS . T.map f)
 tl_map f          = map f  `eqP` (unpackS . TL.map f)
+s_intercalate c   = L.intercalate c `eq`
+                    (unpackS . S.intercalate (packS c) . map packS)
 t_intercalate c   = L.intercalate c `eq`
                     (unpackS . T.intercalate (packS c) . map packS)
 tl_intercalate c  = L.intercalate c `eq`
@@ -343,6 +345,9 @@ tl_mapAccumR f z  = L.mapAccumR f z `eqP` (second unpackS . TL.mapAccumR f z)
 
 replicate n l = concat (L.replicate n l)
 
+s_replicate n     = replicate m `eq`
+                    (unpackS . S.replicateI (fromIntegral m) . packS)
+    where m = fromIntegral (n :: Word8)
 t_replicate n     = replicate m `eq` (unpackS . T.replicate m . packS)
     where m = fromIntegral (n :: Word8)
 tl_replicate n    = replicate m `eq`
@@ -425,14 +430,18 @@ t_breakOn_id s      = squid `eq` (uncurry T.append . T.breakOn s)
 tl_breakOn_id s     = squid `eq` (uncurry TL.append . TL.breakOn s)
   where squid t | TL.null s  = error "empty"
                 | otherwise = t
-t_breakOn_start (NotEmpty s) t = let (_,m) = T.breakOn s t
-                               in T.null m || s `T.isPrefixOf` m
-tl_breakOn_start (NotEmpty s) t = let (_,m) = TL.breakOn s t
-                                in TL.null m || s `TL.isPrefixOf` m
-t_breakOnEnd_end (NotEmpty s) t = let (m,_) = T.breakOnEnd s t
-                                in T.null m || s `T.isSuffixOf` m
-tl_breakOnEnd_end (NotEmpty s) t = let (m,_) = TL.breakOnEnd s t
-                                in TL.null m || s `TL.isSuffixOf` m
+t_breakOn_start (NotEmpty s) t =
+    let (k,m) = T.breakOn s t
+    in k `T.isPrefixOf` t && (T.null m || s `T.isPrefixOf` m)
+tl_breakOn_start (NotEmpty s) t =
+    let (k,m) = TL.breakOn s t
+    in k `TL.isPrefixOf` t && TL.null m || s `TL.isPrefixOf` m
+t_breakOnEnd_end (NotEmpty s) t =
+    let (m,k) = T.breakOnEnd s t
+    in k `T.isSuffixOf` t && (T.null m || s `T.isSuffixOf` m)
+tl_breakOnEnd_end (NotEmpty s) t =
+    let (m,k) = TL.breakOnEnd s t
+    in k `TL.isSuffixOf` t && (TL.null m || s `TL.isSuffixOf` m)
 t_break p       = L.break p     `eqP` (unpack2 . T.break p)
 tl_break p      = L.break p     `eqP` (unpack2 . TL.break p)
 t_group           = L.group       `eqP` (map unpackS . T.group)
@@ -799,6 +808,7 @@ tests =
       testProperty "sf_map" sf_map,
       testProperty "t_map" t_map,
       testProperty "tl_map" tl_map,
+      testProperty "s_intercalate" s_intercalate,
       testProperty "t_intercalate" t_intercalate,
       testProperty "tl_intercalate" tl_intercalate,
       testProperty "s_intersperse" s_intersperse,
@@ -904,6 +914,7 @@ tests =
       ],
 
       testGroup "unfolds" [
+        testProperty "s_replicate" s_replicate,
         testProperty "t_replicate" t_replicate,
         testProperty "tl_replicate" tl_replicate,
         testProperty "t_unfoldr" t_unfoldr,
