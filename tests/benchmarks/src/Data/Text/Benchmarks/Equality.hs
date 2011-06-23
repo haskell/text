@@ -1,9 +1,12 @@
 -- | Compare a string with a copy of itself that is identical except
 -- for the last character.
 --
+-- Tested in this benchmark:
+--
+-- * Comparison of strings (Eq instance)
+--
 module Data.Text.Benchmarks.Equality
-    (
-      benchmark
+    ( benchmark
     ) where
 
 import Criterion (Benchmark, bgroup, bench, whnf)

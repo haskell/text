@@ -1,12 +1,26 @@
 -- | Read numbers from a file with a just a number on each line, find the
--- minimum of those numbers.
+-- minimum of those numbers. The file contains different kinds of numbers:
+--
+-- * Decimals
+--
+-- * Hexadecimals
+--
+-- * Floating point numbers
+--
+-- * Floating point numbers in scientific notation
+--
+-- The different benchmarks will only take into account the values they can
+-- parse.
+--
+-- Tested in this benchmark:
+--
+-- * Lexing/parsing of different numerical types
 --
 module Data.Text.Benchmarks.ReadNumbers
     ( benchmark
     ) where
 
-import Control.Exception (evaluate)
-import Criterion (Benchmark, bgroup, bench)
+import Criterion (Benchmark, bgroup, bench, whnf)
 import Data.List (foldl')
 import Numeric (readDec, readFloat, readHex)
 import qualified Data.ByteString.Char8 as B
@@ -14,49 +28,48 @@ import qualified Data.ByteString.Lazy.Char8 as BL
 import qualified Data.ByteString.Lex.Double as B
 import qualified Data.ByteString.Lex.Lazy.Double as BL
 import qualified Data.Text as T
-import qualified Data.Text.Encoding as T
+import qualified Data.Text.IO as T
 import qualified Data.Text.Lazy as TL
-import qualified Data.Text.Lazy.Encoding as TL
+import qualified Data.Text.Lazy.IO as TL
 import qualified Data.Text.Lazy.Read as TL
 import qualified Data.Text.Read as T
 
 benchmark :: FilePath -> IO Benchmark
-benchmark fp = return $ bgroup "ReadNumbers"
-    [ bench "DecimalString" $ readFile fp >>= evaluate .
-        int . string readDec . lines
-    , bench "HexadecimalString" $ readFile fp >>= evaluate .
-        int . string readHex . lines
-    , bench "DoubleString" $ readFile fp >>= evaluate .
-        double . string readFloat . lines
+benchmark fp = do
+    -- Read all files into lines: string, text, lazy text, bytestring, lazy
+    -- bytestring
+    s <- lines `fmap` readFile fp
+    t <- T.lines `fmap` T.readFile fp
+    tl <- TL.lines `fmap` TL.readFile fp
+    b <- B.lines `fmap` B.readFile fp
+    bl <- BL.lines `fmap` BL.readFile fp
+    return $ bgroup "ReadNumbers"
+        [ bench "DecimalString"     $ whnf (int . string readDec) s
+        , bench "HexadecimalString" $ whnf (int . string readHex) s
+        , bench "DoubleString"      $ whnf (double . string readFloat) s
 
-    , bench "DecimalText" $ B.readFile fp >>= evaluate .
-        int . text (T.signed T.decimal) . T.lines . T.decodeUtf8
-    , bench "HexadecimalText" $ B.readFile fp >>= evaluate .
-        int . text (T.signed T.hexadecimal) . T.lines . T.decodeUtf8
-    , bench "DoubleText" $ B.readFile fp >>= evaluate .
-        double . text T.double . T.lines . T.decodeUtf8
-    , bench "RationalText" $ B.readFile fp >>= evaluate .
-        double . text T.rational . T.lines . T.decodeUtf8
+        , bench "DecimalText"     $ whnf (int . text (T.signed T.decimal)) t
+        , bench "HexadecimalText" $ whnf (int . text (T.signed T.hexadecimal)) t
+        , bench "DoubleText"      $ whnf (double . text T.double) t
+        , bench "RationalText"    $ whnf (double . text T.rational) t
 
-    , bench "DecimalLazyText" $ BL.readFile fp >>= evaluate .
-        int . text (TL.signed TL.decimal) . TL.lines . TL.decodeUtf8
-    , bench "HexadecimalLazyText" $ BL.readFile fp >>= evaluate .
-        int . text (TL.signed TL.hexadecimal) . TL.lines . TL.decodeUtf8
-    , bench "DoubleLazyText" $ BL.readFile fp >>= evaluate .
-        double . text TL.double . TL.lines . TL.decodeUtf8
-    , bench "RationalLazyText" $ BL.readFile fp >>= evaluate .
-        double . text TL.rational . TL.lines . TL.decodeUtf8
+        , bench "DecimalLazyText" $
+            whnf (int . text (TL.signed TL.decimal)) tl
+        , bench "HexadecimalLazyText" $
+            whnf (int . text (TL.signed TL.hexadecimal)) tl
+        , bench "DoubleLazyText" $
+            whnf (double . text TL.double) tl
+        , bench "RationalLazyText" $
+            whnf (double . text TL.rational) tl
 
-    , bench "DecimalByteString" $ B.readFile fp >>= evaluate .
-        int . byteString B.readInt . B.lines
-    , bench "DoubleByteString" $ B.readFile fp >>= evaluate .
-        double . byteString B.readDouble . B.lines
+        , bench "DecimalByteString" $ whnf (int . byteString B.readInt) b
+        , bench "DoubleByteString"  $ whnf (double . byteString B.readDouble) b
 
-    , bench "DecimalLazyByteString" $ BL.readFile fp >>= evaluate .
-        int . byteString BL.readInt . BL.lines
-    , bench "DoubleLazyByteString" $ BL.readFile fp >>= evaluate .
-        double . byteString BL.readDouble . BL.lines
-    ]
+        , bench "DecimalLazyByteString" $
+            whnf (int . byteString BL.readInt) bl
+        , bench "DoubleLazyByteString" $
+            whnf (double . byteString BL.readDouble) bl
+        ]
   where
     -- Used for fixing types
     int :: Int -> Int

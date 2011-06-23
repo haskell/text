@@ -1,7 +1,13 @@
 -- | Create a large HTML table and dump it to a handle
 --
+-- Tested in this benchmark:
+--
+-- * Creating a large HTML document using a builder
+--
+-- * Writing to a handle
+--
 {-# LANGUAGE OverloadedStrings #-}
-module Data.Text.Benchmarks.HtmlCombinator
+module Data.Text.Benchmarks.Programs.BigTable
     ( benchmark
     ) where
 
@@ -13,7 +19,7 @@ import System.IO (Handle)
 import qualified Data.Text as T
 
 benchmark :: Handle -> IO Benchmark
-benchmark sink = return $ bench "HtmlCombinator" $ do
+benchmark sink = return $ bench "BigTable" $ do
     hPutStr sink "Content-Type: text/html\n\n<table>"
     hPutStr sink . toLazyText . makeTable =<< rows
     hPutStr sink "</table>"
