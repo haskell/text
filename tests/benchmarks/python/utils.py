@@ -16,7 +16,3 @@ def benchmark(f):
         sys.stderr.write('Run {0}: {1}\n'.format(i, result))
         total += result
     return total / runs
-
-def with_utf8_file(filename, f):
-    contents = open(filename).read().decode('utf-8')
-    return f(contents)

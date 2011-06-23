@@ -2,21 +2,24 @@
 
 import utils, sys
 
-def strip_brackets(string):
+def strip_tags(filename):
+    string = open(filename, encoding='utf-8').read()
+
     d = 0
-    out = ''
+    out = []
+
     for c in string:
-        if c == '{' or c == '[': d += 1
+        if c == '<': d += 1
 
         if d > 0:
             out += ' '
         else:
             out += c
 
-        if c == '}' or c == ']': d -= 1
+        if c == '>': d -= 1
 
-    return out
+    print(''.join(out))
 
 for f in sys.argv[1:]:
-    t = utils.benchmark(lambda: utils.with_utf8_file(f, strip_brackets))
+    t = utils.benchmark(lambda: strip_tags(f))
     sys.stderr.write('{0}: {1}\n'.format(f, t))

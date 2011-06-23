@@ -12,9 +12,3 @@ def benchmark(&block)
 
   total / runs 
 end
-
-def with_utf8_file(filename)
-  File.open(filename, 'r:utf-8') do |file|
-    yield file.read
-  end
-end

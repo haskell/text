@@ -1,95 +1,43 @@
+-- | Test decoding of UTF-8
+--
+-- Tested in this benchmark:
+--
+-- * Decoding bytes using UTF-8
+--
+-- In some tests:
+--
+-- * Taking the length of the result
+--
+-- * Taking the init of the result
+--
+-- The latter are used for testing stream fusion.
+--
 module Data.Text.Benchmarks.DecodeUtf8
     ( benchmark
     ) where
 
-import Control.DeepSeq (rnf)
-import Criterion (Benchmark, bgroup, bench)
-import System.IO (IOMode (ReadMode), openFile, hGetContents, hSetEncoding, utf8)
+import Criterion (Benchmark, bgroup, bench, nf)
 import qualified Codec.Binary.UTF8.Generic as U8
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
-import qualified Data.Text.IO as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as TL
-import qualified Data.Text.Lazy.IO as TL
 
 benchmark :: FilePath -> IO Benchmark
-benchmark fp = return $ bgroup "DecodeUtf8"
-    [ bench "Strict" $ do
-        bs <- B.readFile fp
-        rnf (T.decodeUtf8 bs) `seq` return ()
-
-    , bench "StrictLength" $ do
-        bs <- B.readFile fp
-        rnf (T.length $ T.decodeUtf8 bs) `seq` return ()
-
-    , bench "StrictInitLength" $ do
-        bs <- B.readFile fp
-        rnf (T.length $ T.init $ T.decodeUtf8 bs) `seq` return ()
-
-    , bench "StrictIO" $ do
-        h <- openFile fp ReadMode
-        hSetEncoding h utf8
-        t <- T.hGetContents h
-        rnf t `seq` return ()
-
-    , bench "StrictLengthIO" $ do
-        h <- openFile fp ReadMode
-        hSetEncoding h utf8
-        t <- T.hGetContents h
-        rnf (T.length t) `seq` return ()
-
-    , bench "Lazy" $ do
-        bs <- BL.readFile fp
-        rnf (TL.decodeUtf8 bs) `seq` return ()
-
-    , bench "LazyLength" $ do
-        bs <- BL.readFile fp
-        rnf (TL.length $ TL.decodeUtf8 bs) `seq` return ()
-
-    , bench "LazyInitLength" $ do
-        bs <- BL.readFile fp
-        rnf (TL.length $ TL.init $ TL.decodeUtf8 bs) `seq` return ()
-
-    , bench "LazyIO" $ do
-        h <- openFile fp ReadMode
-        hSetEncoding h utf8
-        t <- TL.hGetContents h
-        rnf t `seq` return ()
-
-    , bench "LazyLengthIO" $ do
-        h <- openFile fp ReadMode
-        hSetEncoding h utf8
-        t <- TL.hGetContents h
-        rnf (TL.length t) `seq` return ()
-
-    , bench "String" $ do
-        h <- openFile fp ReadMode
-        hSetEncoding h utf8
-        t <- hGetContents h
-        rnf t `seq` return ()
-
-    , bench "StringLength" $ do
-        h <- openFile fp ReadMode
-        hSetEncoding h utf8
-        t <- hGetContents h
-        rnf (length t) `seq` return ()
-
-    , bench "LazyStringUtf8" $ do
-        s <- U8.toString `fmap` BL.readFile fp
-        rnf s `seq` return ()
-
-    , bench "LazyStringUtf8Length" $ do
-        s <- U8.toString `fmap` BL.readFile fp
-        rnf (length s) `seq` return ()
-
-    , bench "StrictStringUtf8" $ do
-        s <- U8.toString `fmap` B.readFile fp
-        rnf s `seq` return ()
-
-    , bench "StrictStringUtf8Length" $ do
-        s <- U8.toString `fmap` B.readFile fp
-        rnf (length s) `seq` return ()
-    ]
+benchmark fp = do
+    bs  <- B.readFile fp
+    lbs <- BL.readFile fp
+    return $ bgroup "DecodeUtf8"
+        [ bench "Strict" $ nf T.decodeUtf8 bs
+        , bench "StrictLength" $ nf (T.length . T.decodeUtf8) bs
+        , bench "StrictInitLength" $ nf (T.length . T.init . T.decodeUtf8) bs
+        , bench "Lazy" $ nf TL.decodeUtf8 lbs
+        , bench "LazyLength" $ nf (TL.length . TL.decodeUtf8) lbs
+        , bench "LazyInitLength" $ nf (TL.length . TL.init . TL.decodeUtf8) lbs
+        , bench "StrictStringUtf8" $ nf U8.toString bs
+        , bench "StrictStringUtf8Length" $ nf (length . U8.toString) bs
+        , bench "LazyStringUtf8" $ nf U8.toString lbs
+        , bench "LazyStringUtf8Length" $ nf (length . U8.toString) lbs
+        ]

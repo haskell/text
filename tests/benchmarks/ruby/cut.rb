@@ -2,14 +2,15 @@
 
 require './utils.rb'
 
-def sort(filename)
+def cut(filename, l, r)
   File.open(filename, 'r:utf-8') do |file|
-    content = file.read
-    puts content.lines.sort.join
+    file.each_line do |line|
+      puts line[l, r - l]
+    end
   end
 end
 
 ARGV.each do |f|
-  t = benchmark { sort(f) }
+  t = benchmark { cut(f, 20, 40) }
   STDERR.puts "#{f}: #{t}"
 end

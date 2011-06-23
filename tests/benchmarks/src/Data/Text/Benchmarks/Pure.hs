@@ -1,5 +1,9 @@
 -- | Benchmarks various pure functions from the Text library
 --
+-- Tested in this benchmark:
+--
+-- * Most pure functions defined the string types
+--
 {-# LANGUAGE BangPatterns, GADTs, MagicHash #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Data.Text.Benchmarks.Pure
