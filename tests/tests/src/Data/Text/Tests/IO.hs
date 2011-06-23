@@ -1,11 +1,20 @@
+-- | Program which exposes some haskell functions as an exutable. The results
+-- and coverage of this module is meant to be checked using a shell script.
+--
+module Main
+    (
+      main
+    ) where
+
+import System.Environment (getArgs)
+import System.Exit (exitFailure)
+import System.IO (hPutStrLn, stderr)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.IO as TL
-import System.Environment (getArgs)
-import System.Exit (exitFailure)
-import System.IO (hPutStrLn, stderr)
 
+main :: IO ()
 main = do
   args <- getArgs
   case args of

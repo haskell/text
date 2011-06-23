@@ -1,6 +1,11 @@
 #!/bin/bash
 
-exe=./stdio-hpc
+if [[ $# < 1 ]]; then
+    echo "Usage: $0 <exe>"
+    exit 1
+fi
+
+exe=$1
 
 rm -f $exe.tix
 
