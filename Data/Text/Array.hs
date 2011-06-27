@@ -1,9 +1,9 @@
-{-# LANGUAGE BangPatterns, CPP, MagicHash, Rank2Types, RecordWildCards,
-    UnboxedTuples #-}
+{-# LANGUAGE BangPatterns, CPP, ForeignFunctionInterface, MagicHash, Rank2Types,
+    RecordWildCards, UnboxedTuples, UnliftedFFITypes #-}
 {-# OPTIONS_GHC -fno-warn-unused-matches #-}
 -- |
 -- Module      : Data.Text.Array
--- Copyright   : (c) 2009, 2010 Bryan O'Sullivan
+-- Copyright   : (c) 2009, 2010, 2011 Bryan O'Sullivan
 --
 -- License     : BSD-style
 -- Maintainer  : bos@serpentine.com, rtomharper@googlemail.com,
@@ -60,14 +60,16 @@ if (_k_) < 0 || (_k_) >= (_len_) then error ("Data.Text.Array." ++ (_func_) ++ "
 #if defined(ASSERTS)
 import Control.Exception (assert)
 #endif
+import Control.Monad.ST (unsafeIOToST)
 import Data.Bits ((.&.), xor)
+import Data.Text.Unsafe.Base (inlinePerformIO)
 import Data.Text.UnsafeShift (shiftL, shiftR)
+import Foreign.C.Types (CInt, CSize)
 import GHC.Base (ByteArray#, MutableByteArray#, Int(..),
-                 indexWord16Array#, indexWordArray#, newByteArray#,
-                 readWord16Array#, readWordArray#, unsafeCoerce#,
-                 writeWord16Array#, writeWordArray#)
+                 indexWord16Array#, newByteArray#,
+                 unsafeCoerce#, writeWord16Array#)
 import GHC.ST (ST(..), runST)
-import GHC.Word (Word16(..), Word(..))
+import GHC.Word (Word16(..))
 import Prelude hiding (length, read)
 
 -- | Immutable array type.
@@ -140,23 +142,6 @@ unsafeIndex Array{..} i@(I# i#) =
     case indexWord16Array# aBA i# of r# -> (W16# r#)
 {-# INLINE unsafeIndex #-}
 
--- | Unchecked read of an immutable array.  May return garbage or
--- crash on an out-of-bounds access.
-unsafeIndexWord :: Array -> Int -> Word
-unsafeIndexWord Array{..} i@(I# i#) =
-  CHECK_BOUNDS("unsafeIndexWord",aLen`div`wordFactor,i)
-    case indexWordArray# aBA i# of r# -> (W# r#)
-{-# INLINE unsafeIndexWord #-}
-
--- | Unchecked read of a mutable array.  May return garbage or
--- crash on an out-of-bounds access.
-unsafeRead :: MArray s -> Int -> ST s Word16
-unsafeRead MArray{..} i@(I# i#) = ST $ \s# ->
-  CHECK_BOUNDS("unsafeRead",maLen,i)
-  case readWord16Array# maBA i# s# of
-    (# s2#, r# #) -> (# s2#, W16# r# #)
-{-# INLINE unsafeRead #-}
-
 -- | Unchecked write of a mutable array.  May return garbage or crash
 -- on an out-of-bounds access.
 unsafeWrite :: MArray s -> Int -> Word16 -> ST s ()
@@ -165,24 +150,6 @@ unsafeWrite MArray{..} i@(I# i#) (W16# e#) = ST $ \s1# ->
   case writeWord16Array# maBA i# e# s1# of
     s2# -> (# s2#, () #)
 {-# INLINE unsafeWrite #-}
-
--- | Unchecked read of a mutable array.  May return garbage or
--- crash on an out-of-bounds access.
-unsafeReadWord :: MArray s -> Int -> ST s Word
-unsafeReadWord MArray{..} i@(I# i#) = ST $ \s# ->
-  CHECK_BOUNDS("unsafeRead64",maLen`div`wordFactor,i)
-  case readWordArray# maBA i# s# of
-    (# s2#, r# #) -> (# s2#, W# r# #)
-{-# INLINE unsafeReadWord #-}
-
--- | Unchecked write of a mutable array.  May return garbage or crash
--- on an out-of-bounds access.
-unsafeWriteWord :: MArray s -> Int -> Word -> ST s ()
-unsafeWriteWord MArray{..} i@(I# i#) (W# e#) = ST $ \s1# ->
-  CHECK_BOUNDS("unsafeWriteWord",maLen`div`wordFactor,i)
-  case writeWordArray# maBA i# e# s1# of
-    s2# -> (# s2#, () #)
-{-# INLINE unsafeWriteWord #-}
 
 -- | Convert an immutable array to a list.
 toList :: Array -> Int -> Int -> [Word16]
@@ -207,15 +174,6 @@ run2 k = runST (do
                  arr <- unsafeFreeze marr
                  return (arr,b))
 
--- | The amount to divide or multiply by to switch between units of
--- 'Word16' and units of 'Word'.
-wordFactor :: Int
-wordFactor = SIZEOF_HSWORD `shiftR` 1
-
--- | Indicate whether an offset is word-aligned.
-wordAligned :: Int -> Bool
-wordAligned i = i .&. (wordFactor - 1) == 0
-
 -- | Copy some elements of a mutable array.
 copyM :: MArray s               -- ^ Destination
       -> Int                    -- ^ Destination offset
@@ -223,49 +181,33 @@ copyM :: MArray s               -- ^ Destination
       -> Int                    -- ^ Source offset
       -> Int                    -- ^ Count
       -> ST s ()
-copyM dest didx src sidx count =
+copyM dest didx src sidx count
+    | count <= 0 = return ()
+    | otherwise =
 #if defined(ASSERTS)
     assert (sidx + count <= length src) .
-    assert (didx + count <= length dest) $
+    assert (didx + count <= length dest) .
 #endif
-    if srem == 0 && drem == 0
-    then fast_loop 0
-    else slow_loop 0
-    where
-      (swidx,srem) = sidx `divMod` wordFactor
-      (dwidx,drem) = didx `divMod` wordFactor
-      nwds         = count `div` wordFactor
-      fast_loop !i
-          | i >= nwds = slow_loop (i * wordFactor)
-          | otherwise = do w <- unsafeReadWord src (swidx+i)
-                           unsafeWriteWord dest (dwidx+i) w
-                           fast_loop (i+1)
-      slow_loop !i
-          | i >= count= return ()
-          | otherwise = do unsafeRead src (sidx+i) >>= unsafeWrite dest (didx+i)
-                           slow_loop (i+1)
+    unsafeIOToST $ memcpyM (maBA dest) (fromIntegral didx)
+                           (maBA src) (fromIntegral sidx)
+                           (fromIntegral count)
+{-# INLINE copyM #-}
 
 -- | Copy some elements of an immutable array.
 copyI :: MArray s               -- ^ Destination
       -> Int                    -- ^ Destination offset
       -> Array                  -- ^ Source
       -> Int                    -- ^ Source offset
-      -> Int                    -- ^ First offset in source /not/ to
+      -> Int                    -- ^ First offset in destination /not/ to
                                 -- copy (i.e. /not/ length)
       -> ST s ()
 copyI dest i0 src j0 top
-    | wordAligned i0 && wordAligned j0 = fast (i0 `div` wordFactor) (j0 `div` wordFactor)
-    | otherwise = slow i0 j0
-  where
-    topwds = top `div` wordFactor
-    fast !i !j
-        | i >= topwds = slow (i * wordFactor) (j * wordFactor)
-        | otherwise   = do unsafeWriteWord dest i (src `unsafeIndexWord` j)
-                           fast (i+1) (j+1)
-    slow !i !j
-        | i >= top  = return ()
-        | otherwise = do unsafeWrite dest i (src `unsafeIndex` j)
-                         slow (i+1) (j+1)
+    | i0 >= top = return ()
+    | otherwise = unsafeIOToST $
+                  memcpyI (maBA dest) (fromIntegral i0)
+                          (aBA src) (fromIntegral j0)
+                          (fromIntegral (top-i0))
+{-# INLINE copyI #-}
 
 -- | Compare portions of two arrays for equality.  No bounds checking
 -- is performed.
@@ -275,22 +217,18 @@ equal :: Array                  -- ^ First
       -> Int                    -- ^ Offset into second
       -> Int                    -- ^ Count
       -> Bool
-equal arrA offA arrB offB count
-    | wordAligned offA && wordAligned offB = fast 0
-    | otherwise                            = slow 0
-  where
-    countWords = count `div` wordFactor
-    fast !i
-        | i >= countWords = slow (i * wordFactor)
-        | a /= b          = False
-        | otherwise       = fast (i+1)
-        where a     = unsafeIndexWord arrA (offAW+i)
-              b     = unsafeIndexWord arrB (offBW+i)
-              offAW = offA `div` wordFactor
-              offBW = offB `div` wordFactor
-    slow !i
-        | i >= count = True
-        | a /= b     = False
-        | otherwise  = slow (i+1)
-        where a = unsafeIndex arrA (offA+i)
-              b = unsafeIndex arrB (offB+i)
+equal arrA offA arrB offB count = inlinePerformIO $ do
+  i <- memcmp (aBA arrA) (fromIntegral offA)
+                     (aBA arrB) (fromIntegral offB) (fromIntegral count)
+  return $! i == 0
+{-# INLINE equal #-}
+
+foreign import ccall unsafe "_hs_text_memcpy" memcpyI
+    :: MutableByteArray# s -> CSize -> ByteArray# -> CSize -> CSize -> IO ()
+
+foreign import ccall unsafe "_hs_text_memcmp" memcmp
+    :: ByteArray# -> CSize -> ByteArray# -> CSize -> CSize -> IO CInt
+
+foreign import ccall unsafe "_hs_text_memcpy" memcpyM
+    :: MutableByteArray# s -> CSize -> MutableByteArray# s -> CSize -> CSize
+    -> IO ()

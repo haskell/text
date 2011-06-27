@@ -17,6 +17,7 @@ cabal-version:       >=1.2
 
 executable text-benchmarks
   hs-source-dirs: src ../..
+  c-sources:      ../../cbits/cbits.c
   main-is:        Data/Text/Benchmarks.hs
   ghc-options:    -Wall -O2
   cpp-options:    -DHAVE_DEEPSEQ

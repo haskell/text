@@ -24,9 +24,7 @@ executable text-tests
   main-is:        Data/Text/Tests.hs
 
   ghc-options:
-    -Wall
-    -threaded
-    -O0
+    -Wall -threaded -O0 -rtsopts
 
   if flag(hpc)
     ghc-options:
@@ -54,8 +52,7 @@ executable text-tests-stdio
   main-is:        Data/Text/Tests/IO.hs
 
   ghc-options:
-    -Wall
-    -threaded
+    -Wall -threaded -rtsopts
 
   -- Optional HPC support
   if flag(hpc)
@@ -68,6 +65,7 @@ executable text-tests-stdio
 
 library
   hs-source-dirs: ../..
+  c-sources: ../../cbits/cbits.c
   exposed-modules:
     Data.Text
     Data.Text.Array
@@ -103,6 +101,7 @@ library
     Data.Text.Lazy.Search
     Data.Text.Search
     Data.Text.Unsafe
+    Data.Text.Unsafe.Base
     Data.Text.UnsafeChar
     Data.Text.UnsafeShift
     Data.Text.Util

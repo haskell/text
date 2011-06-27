@@ -1,5 +1,5 @@
 name:           text
-version:        0.11.1.1
+version:        0.11.1.2
 homepage:       https://bitbucket.org/bos/text
 bug-reports:    https://bitbucket.org/bos/text/issues
 synopsis:       An efficient packed Unicode text type.
@@ -37,7 +37,7 @@ author:         Bryan O'Sullivan <bos@serpentine.com>
 maintainer:     Bryan O'Sullivan <bos@serpentine.com>
                 Tom Harper <rtomharper@googlemail.com>
                 Duncan Coutts <duncan@haskell.org>
-copyright:      2008-2009 Tom Harper, 2009-2010 Bryan O'Sullivan
+copyright:      2009-2011 Bryan O'Sullivan, 2008-2009 Tom Harper
 category:       Data, Text
 build-type:     Simple
 cabal-version:  >= 1.6
@@ -46,8 +46,6 @@ extra-source-files:
     -- scripts/CaseFolding.txt
     -- scripts/SpecialCasing.txt
     scripts/*.hs
-    tests/*.hs
-    tests/Makefile
     tests/README.markdown
     tests/benchmarks/Setup.hs
     tests/benchmarks/python/*.py
@@ -55,13 +53,20 @@ extra-source-files:
     tests/benchmarks/src/Data/Text/*.hs
     tests/benchmarks/src/Data/Text/Benchmarks/*.hs
     tests/benchmarks/text-benchmarks.cabal
-    tests/cover-stdio.sh
+    tests/tests/.ghci
+    tests/tests/Makefile
+    tests/tests/scripts/*.sh
+    tests/tests/src/Data/Text/*.hs
+    tests/tests/src/Data/Text/Tests/*.hs
+    tests/tests/text-tests.cabal
 
 flag developer
   description: operate in developer mode
   default: False
 
 library
+  c-sources: cbits/cbits.c
+
   exposed-modules:
     Data.Text
     Data.Text.Array
@@ -98,6 +103,7 @@ library
     Data.Text.Lazy.Search
     Data.Text.Search
     Data.Text.Unsafe
+    Data.Text.Unsafe.Base
     Data.Text.UnsafeChar
     Data.Text.UnsafeShift
     Data.Text.Util
