@@ -152,36 +152,38 @@ encodeUtf8 (Text arr off len) = unsafePerformIO $ do
     loop n1 m1 ptr = go n1 m1
      where
       go !n !m
-        | n-off == len = return $! PS fp 0 m
-        | size-m < 4 = {-# SCC "encodeUtf8/resize" #-} do
-            let newSize = size `shiftL` 1
-            fp' <- mallocByteString newSize
-            withForeignPtr fp' $ \ptr' -> memcpy ptr' ptr (fromIntegral m)
-            start newSize n m fp'
+        | n-off == len = return (PS fp 0 m)
         | otherwise = do
             let poke8 k v = poke (ptr `plusPtr` k) (fromIntegral v :: Word8)
-                w = A.unsafeIndex arr n
-            case undefined of
-             _| w <= 0x7F  -> do
+                ensure k act
+                  | size-m >= k = act
+                  | otherwise = {-# SCC "resizeUtf8/ensure" #-} do
+                      let newSize = size `shiftL` 1
+                      fp' <- mallocByteString newSize
+                      withForeignPtr fp' $ \ptr' ->
+                        memcpy ptr' ptr (fromIntegral m)
+                      start newSize n m fp'
+                {-# INLINE ensure #-}
+            case A.unsafeIndex arr n of
+             w| w <= 0x7F  -> ensure 1 $ do
                   poke8 m w
                   go (n+1) (m+1)
-              | w <= 0x7FF -> do
+              | w <= 0x7FF -> ensure 2 $ do
                   poke8 m     $ (w `shiftR` 6) + 0xC0
                   poke8 (m+1) $ (w .&. 0x3f) + 0x80
                   go (n+1) (m+2)
-              | 0xD800 <= w && w <= 0xDBFF -> do
+              | 0xD800 <= w && w <= 0xDBFF -> ensure 4 $ do
                   let c = ord $ U16.chr2 w (A.unsafeIndex arr (n+1))
                   poke8 m     $ (c `shiftR` 18) + 0xF0
                   poke8 (m+1) $ ((c `shiftR` 12) .&. 0x3F) + 0x80
                   poke8 (m+2) $ ((c `shiftR` 6) .&. 0x3F) + 0x80
                   poke8 (m+3) $ (c .&. 0x3F) + 0x80
                   go (n+2) (m+4)
-              | otherwise -> do
+              | otherwise -> ensure 3 $ do
                   poke8 m     $ (w `shiftR` 12) + 0xE0
                   poke8 (m+1) $ ((w `shiftR` 6) .&. 0x3F) + 0x80
                   poke8 (m+2) $ (w .&. 0x3F) + 0x80
                   go (n+1) (m+3)
-{- INLINE encodeUtf8 #-}
 
 -- | Decode text from little endian UTF-16 encoding.
 decodeUtf16LEWith :: OnDecodeError -> ByteString -> Text
