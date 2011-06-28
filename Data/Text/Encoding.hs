@@ -144,7 +144,7 @@ decodeUtf8' = unsafePerformIO . try . evaluate . decodeUtf8With strictDecode
 -- | Encode text using UTF-8 encoding.
 encodeUtf8 :: Text -> ByteString
 encodeUtf8 (Text arr off len) = unsafePerformIO $ do
-  let size0 = min len 4
+  let size0 = max len 4
   mallocByteString size0 >>= start size0 off 0
  where
   start size n0 m0 fp = withForeignPtr fp $ loop n0 m0
