@@ -90,34 +90,42 @@ decodeUtf8With onErr bs = textP (fst a) 0 (snd a)
  where
   a   = A.run2 (A.new len >>= outer 0 0)
   len = B.length bs
+  idx = B.unsafeIndex bs
+  desc = "Data.Text.Encoding.decodeUtf8: Invalid UTF-8 stream"
   outer n0 m0 arr = go n0 m0
    where
-    go !n !m = do
-      let x1 = idx m
-          x2 = idx (m + 1)
-          x3 = idx (m + 2)
-          x4 = idx (m + 3)
-          idx = B.unsafeIndex bs
-      case undefined of
-       _| m >= len -> return (arr,n)
-        | U8.validate1 x1 -> do
-           A.unsafeWrite arr n (fromIntegral x1)
-           go (n+1) (m+1)
-        | m+1 < len && U8.validate2 x1 x2 -> do
-           w <- unsafeWrite arr n (U8.chr2 x1 x2)
-           go (n+w) (m+2)
-        | m+2 < len && U8.validate3 x1 x2 x3 -> do
-           w <- unsafeWrite arr n (U8.chr3 x1 x2 x3)
-           go (n+w) (m+3)
-        | m+3 < len && U8.validate4 x1 x2 x3 x4 -> do
-           w <- unsafeWrite arr n (U8.chr4 x1 x2 x3 x4)
-           go (n+w) (m+4)
-        | otherwise -> case onErr desc (Just x1) of
-                         Nothing -> go n (m+1)
-                         Just c -> do
-                           w <- unsafeWrite arr n c
-                           go (n+w) (m+1)
-  desc = "Data.Text.Encoding.decodeUtf8: Invalid UTF-8 stream"
+    go !n !m =
+      if m < len
+      then let !x1 = idx m
+               !m1 = m + 1
+               barf = case onErr desc (Just x1) of
+                        Nothing -> go n m1
+                        Just c -> do
+                          w <- unsafeWrite arr n c
+                          go (n+w) m1
+           in if U8.validate1 x1 then do
+                A.unsafeWrite arr n (fromIntegral x1)
+                go (n+1) m1
+              else if m1 < len then
+                let !x2 = idx m1; !m2 = m + 2 in
+                if U8.validate2 x1 x2 then do
+                  w <- unsafeWrite arr n (U8.chr2 x1 x2)
+                  go (n+w) m2
+                else if m2 < len then
+                  let !x3 = idx m2; !m3 = m + 3 in
+                  if U8.validate3 x1 x2 x3 then do
+                    w <- unsafeWrite arr n (U8.chr3 x1 x2 x3)
+                    go (n+w) m3
+                  else if m3 < len then
+                    let !x4 = idx m3 in
+                    if U8.validate4 x1 x2 x3 x4 then do
+                      w <- unsafeWrite arr n (U8.chr4 x1 x2 x3 x4)
+                      go (n+w) (m+4)
+                    else barf
+                  else barf
+                else barf
+              else barf
+      else return (arr,n)
 {-# INLINE[0] decodeUtf8With #-}
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text that is known
