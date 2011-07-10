@@ -23,7 +23,8 @@ import Data.ByteString.Internal (ByteString(..))
 import Foreign.Ptr (Ptr, plusPtr)
 import Foreign.ForeignPtr (withForeignPtr)
 import Data.Word (Word8)
-import Criterion (Benchmark, bgroup, bench, nf)
+import qualified Criterion as C
+import Criterion (Benchmark, bgroup, nf)
 import qualified Codec.Binary.UTF8.Generic as U8
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
@@ -32,10 +33,11 @@ import qualified Data.Text.Encoding as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as TL
 
-benchmark :: FilePath -> IO Benchmark
-benchmark fp = do
+benchmark :: String -> FilePath -> IO Benchmark
+benchmark kind fp = do
     bs  <- B.readFile fp
     lbs <- BL.readFile fp
+    let bench name = C.bench (name ++ "+" ++ kind)
     return $ bgroup "DecodeUtf8"
         [ bench "Strict" $ nf T.decodeUtf8 bs
         , bench "IConv" $ iconv bs
