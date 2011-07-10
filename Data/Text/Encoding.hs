@@ -1,4 +1,5 @@
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns, ForeignFunctionInterface, MagicHash,
+    UnliftedFFITypes #-}
 -- |
 -- Module      : Data.Text.Encoding
 -- Copyright   : (c) 2008, 2009 Tom Harper,
@@ -47,23 +48,25 @@ module Data.Text.Encoding
     ) where
 
 import Control.Exception (evaluate, try)
+import Control.Monad.ST (unsafeIOToST, unsafeSTToIO)
 import Data.Bits ((.&.))
 import Data.ByteString as B
 import Data.ByteString.Internal as B
-import Data.ByteString.Unsafe as B
 import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode)
 import Data.Text.Internal (Text(..), textP)
 import Data.Text.UnsafeChar (ord, unsafeWrite)
 import Data.Text.UnsafeShift (shiftL, shiftR)
 import Data.Word (Word8)
+import Foreign.C.Types (CSize)
 import Foreign.ForeignPtr (withForeignPtr)
-import Foreign.Ptr (plusPtr)
-import Foreign.Storable (poke)
+import Foreign.Marshal.Utils (with)
+import Foreign.Ptr (Ptr, plusPtr)
+import Foreign.Storable (peek, poke)
+import GHC.Base (MutableByteArray#)
 import System.IO.Unsafe (unsafePerformIO)
 import qualified Data.Text.Array as A
 import qualified Data.Text.Encoding.Fusion as E
 import qualified Data.Text.Encoding.Utf16 as U16
-import qualified Data.Text.Encoding.Utf8 as U8
 import qualified Data.Text.Fusion as F
 
 -- $strict
@@ -86,47 +89,31 @@ decodeASCII bs = F.unstream (E.streamASCII bs)
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text.
 decodeUtf8With :: OnDecodeError -> ByteString -> Text
-decodeUtf8With onErr bs = textP (fst a) 0 (snd a)
+decodeUtf8With onErr (PS fp off len) = textP (fst a) 0 (snd a)
  where
-  a   = A.run2 (A.new len >>= outer 0 0)
-  len = B.length bs
-  idx = B.unsafeIndex bs
+  a = A.run2 (A.new len >>= unsafeIOToST . go)
   desc = "Data.Text.Encoding.decodeUtf8: Invalid UTF-8 stream"
-  outer n0 m0 arr = go n0 m0
-   where
-    go !n !m =
-      if m < len
-      then let !x1 = idx m
-               !m1 = m + 1
-               barf = case onErr desc (Just x1) of
-                        Nothing -> go n m1
-                        Just c -> do
-                          w <- unsafeWrite arr n c
-                          go (n+w) m1
-           in if U8.validate1 x1 then do
-                A.unsafeWrite arr n (fromIntegral x1)
-                go (n+1) m1
-              else if m1 < len then
-                let !x2 = idx m1; !m2 = m + 2 in
-                if U8.validate2 x1 x2 then do
-                  w <- unsafeWrite arr n (U8.chr2 x1 x2)
-                  go (n+w) m2
-                else if m2 < len then
-                  let !x3 = idx m2; !m3 = m + 3 in
-                  if U8.validate3 x1 x2 x3 then do
-                    w <- unsafeWrite arr n (U8.chr3 x1 x2 x3)
-                    go (n+w) m3
-                  else if m3 < len then
-                    let !x4 = idx m3 in
-                    if U8.validate4 x1 x2 x3 x4 then do
-                      w <- unsafeWrite arr n (U8.chr4 x1 x2 x3 x4)
-                      go (n+w) (m+4)
-                    else barf
-                  else barf
-                else barf
-              else barf
-      else return (arr,n)
-{-# INLINE[0] decodeUtf8With #-}
+  go dest = withForeignPtr fp $ \ptr ->
+    with (0::CSize) $ \destOffPtr -> do
+      let end = ptr `plusPtr` (off + len)
+          loop curPtr = do
+            curPtr' <- c_decode_utf8 (A.maBA dest) destOffPtr curPtr end
+            if curPtr' == end
+              then do
+                n <- peek destOffPtr
+                return (dest,fromIntegral n)
+              else do
+                x <- peek curPtr'
+                case onErr desc (Just x) of
+                  Nothing -> loop $ curPtr' `plusPtr` 1
+                  Just c -> do
+                    destOff <- peek destOffPtr
+                    w <- unsafeSTToIO $
+                         unsafeWrite dest (fromIntegral destOff) c
+                    poke destOffPtr (destOff + fromIntegral w)
+                    loop $ curPtr' `plusPtr` 1
+      loop (ptr `plusPtr` off)
+{- INLINE[0] decodeUtf8With #-}
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text that is known
 -- to be valid.
@@ -268,3 +255,7 @@ encodeUtf32LE txt = E.unstream (E.restreamUtf32LE (F.stream txt))
 encodeUtf32BE :: Text -> ByteString
 encodeUtf32BE txt = E.unstream (E.restreamUtf32BE (F.stream txt))
 {-# INLINE encodeUtf32BE #-}
+
+foreign import ccall unsafe "_hs_text_decode_utf8" c_decode_utf8
+    :: MutableByteArray# s -> Ptr CSize
+    -> Ptr Word8 -> Ptr Word8 -> IO (Ptr Word8)
