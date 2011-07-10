@@ -39,6 +39,7 @@ benchmarks = do
     -- Traditional benchmarks
     bs <- sequence
         [ Builder.benchmark
+        , DecodeUtf8.benchmark "html" (tf "libya-chinese.html")
         , DecodeUtf8.benchmark "xml" (tf "yiwiki.xml")
         , DecodeUtf8.benchmark "ascii" (tf "ascii.txt")
         , DecodeUtf8.benchmark "russian" (tf "russian.txt")
