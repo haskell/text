@@ -68,4 +68,4 @@ benchmarks = do
     return $ bs ++ [ps]
   where
     -- Location of a test file
-    tf = ("../text/test" </>)
+    tf = ("../text-test-data" </>)
