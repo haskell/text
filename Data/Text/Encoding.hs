@@ -82,10 +82,13 @@ import qualified Data.Text.Fusion as F
 -- 'decodeUtf8With' allows the programmer to determine what to do on a
 -- decoding error.
 
--- | Decode a 'ByteString' containing 7-bit ASCII encoded text.
+-- | /Deprecated/.  Decode a 'ByteString' containing 7-bit ASCII
+-- encoded text.
+--
+-- This function is deprecated.  Use 'decodeUtf8' instead.
 decodeASCII :: ByteString -> Text
-decodeASCII bs = F.unstream (E.streamASCII bs)
-{-# INLINE decodeASCII #-}
+decodeASCII = decodeUtf8
+{-# DEPRECATED decodeASCII "Use decodeUtf8 instead" #-}
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text.
 decodeUtf8With :: OnDecodeError -> ByteString -> Text

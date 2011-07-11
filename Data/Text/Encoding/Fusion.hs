@@ -61,6 +61,7 @@ streamASCII bs = Stream next 0 (maxSize l)
           | otherwise = Yield (unsafeChr8 x1) (i+1)
           where
             x1 = B.unsafeIndex bs i
+{-# DEPRECATED streamASCII "Do not use this function" #-}
 {-# INLINE [0] streamASCII #-}
 
 -- | /O(n)/ Convert a 'ByteString' into a 'Stream Char', using UTF-8
