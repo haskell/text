@@ -48,6 +48,7 @@ extra-source-files:
     scripts/*.hs
     tests/README.markdown
     tests/benchmarks/Setup.hs
+    tests/benchmarks/cbits/*.c
     tests/benchmarks/python/*.py
     tests/benchmarks/ruby/*.rb
     tests/benchmarks/src/Data/Text/*.hs

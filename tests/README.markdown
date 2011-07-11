@@ -1,13 +1,19 @@
 Tests
 =====
 
-This directory contains the tests for the Text library. To run these tests, you
-will need the test data from:
+This directory contains the tests for the Text library. To run these
+tests, you will need the test data from one of the following
+locations:
 
-    http://projects.haskell.org/text/text-testdata.tar.bz2
+* Mercurial master repository:
+  [bitbucket.org/bos/text-test-data](https://bitbucket.org/bos/text-test-data)
 
-You should extract that archive to the same directory as this README (some tests
-rely on this).
+* Git mirror repository:
+  [github.com/bos/text-test-data](https://github.com/bos/text-test-data)
+
+You should clone that repository to the same directory as this `README`
+file, then run `make` to uncompress the test files.  Many tests will
+fail if the test files are missing.
 
 There are two categories of tests: functional tests (including QuickCheck
 properties), and benchmarks.
