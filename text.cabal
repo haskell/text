@@ -131,7 +131,7 @@ library
 
   if impl(ghc >= 6.11)
     cpp-options: -DINTEGER_GMP
-    build-depends: integer-gmp >= 0.2 && < 0.3
+    build-depends: integer-gmp >= 0.2 && < 0.4
 
   if impl(ghc >= 6.9) && impl(ghc < 6.11)
     cpp-options: -DINTEGER_GMP
