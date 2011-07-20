@@ -69,7 +69,7 @@ instance Num Size where
                           {-# INLINE f #-}
 
 add :: Int -> Int -> Int
-add m n | mn >    0 = mn
+add m n | mn >=   0 = mn
         | otherwise = overflowError
   where mn = m + n
 {-# INLINE add #-}
