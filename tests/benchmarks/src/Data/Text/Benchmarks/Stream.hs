@@ -14,11 +14,13 @@ module Data.Text.Benchmarks.Stream
 import Control.DeepSeq (NFData (..))
 import Criterion (Benchmark, bgroup, bench, nf)
 import Data.Text.Fusion.Internal (Step (..), Stream (..))
-import qualified Data.ByteString as B
-import qualified Data.ByteString.Lazy as BL
+import qualified Data.Text.Encoding as T
 import qualified Data.Text.Encoding.Error as E
 import qualified Data.Text.Encoding.Fusion as T
+import qualified Data.Text.IO as T
+import qualified Data.Text.Lazy.Encoding as TL
 import qualified Data.Text.Lazy.Encoding.Fusion as TL
+import qualified Data.Text.Lazy.IO as TL
 
 instance NFData a => NFData (Stream a) where
     -- Currently, this implementation does not force evaluation of the size hint
@@ -31,13 +33,41 @@ instance NFData a => NFData (Stream a) where
 
 benchmark :: FilePath -> IO Benchmark
 benchmark fp = do
-    -- Load data
-    bs  <- B.readFile fp
-    lbs <- BL.readFile fp
+    -- Different formats
+    t  <- T.readFile fp
+    let !utf8    = T.encodeUtf8 t
+        !utf16le = T.encodeUtf16LE t
+        !utf16be = T.encodeUtf16BE t
+        !utf32le = T.encodeUtf32LE t
+        !utf32be = T.encodeUtf32BE t
+
+    -- Once again for the lazy variants
+    tl <- TL.readFile fp
+    let !utf8L    = TL.encodeUtf8 tl
+        !utf16leL = TL.encodeUtf16LE tl
+        !utf16beL = TL.encodeUtf16BE tl
+        !utf32leL = TL.encodeUtf32LE tl
+        !utf32beL = TL.encodeUtf32BE tl
 
     return $ bgroup "Stream"
         [ bgroup "streamUtf8"
-            [ bench "Text"     $ nf (T.streamUtf8 E.lenientDecode) bs
-            , bench "LazyText" $ nf (TL.streamUtf8 E.lenientDecode) lbs
+            [ bench "Text"     $ nf (T.streamUtf8 E.lenientDecode) utf8
+            , bench "LazyText" $ nf (TL.streamUtf8 E.lenientDecode) utf8L
+            ]
+        , bgroup "streamUtf16LE"
+            [ bench "Text"     $ nf (T.streamUtf16LE E.lenientDecode) utf16le
+            , bench "LazyText" $ nf (TL.streamUtf16LE E.lenientDecode) utf16leL
+            ]
+        , bgroup "streamUtf16BE"
+            [ bench "Text"     $ nf (T.streamUtf16BE E.lenientDecode) utf16be
+            , bench "LazyText" $ nf (TL.streamUtf16BE E.lenientDecode) utf16beL
+            ]
+        , bgroup "streamUtf32LE"
+            [ bench "Text"     $ nf (T.streamUtf32LE E.lenientDecode) utf32le
+            , bench "LazyText" $ nf (TL.streamUtf32LE E.lenientDecode) utf32leL
+            ]
+        , bgroup "streamUtf32BE"
+            [ bench "Text"     $ nf (T.streamUtf32BE E.lenientDecode) utf32be
+            , bench "LazyText" $ nf (TL.streamUtf32BE E.lenientDecode) utf32beL
             ]
         ]
