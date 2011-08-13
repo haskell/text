@@ -17,9 +17,12 @@ import Data.Text.Fusion.Internal (Step (..), Stream (..))
 import qualified Data.Text.Encoding as T
 import qualified Data.Text.Encoding.Error as E
 import qualified Data.Text.Encoding.Fusion as T
+import qualified Data.Text.Encoding.Fusion.Common as F
+import qualified Data.Text.Fusion as T
 import qualified Data.Text.IO as T
 import qualified Data.Text.Lazy.Encoding as TL
 import qualified Data.Text.Lazy.Encoding.Fusion as TL
+import qualified Data.Text.Lazy.Fusion as TL
 import qualified Data.Text.Lazy.IO as TL
 
 instance NFData a => NFData (Stream a) where
@@ -49,8 +52,19 @@ benchmark fp = do
         !utf32leL = TL.encodeUtf32LE tl
         !utf32beL = TL.encodeUtf32BE tl
 
+    -- For the functions which operate on streams
+    let !s = T.stream t
+
     return $ bgroup "Stream"
-        [ bgroup "streamUtf8"
+
+        -- Fusion
+        [ bgroup "stream" $
+            [ bench "Text"     $ nf T.stream t
+            , bench "LazyText" $ nf TL.stream tl
+            ]
+
+        -- Encoding.Fusion
+        , bgroup "streamUtf8"
             [ bench "Text"     $ nf (T.streamUtf8 E.lenientDecode) utf8
             , bench "LazyText" $ nf (TL.streamUtf8 E.lenientDecode) utf8L
             ]
@@ -70,4 +84,11 @@ benchmark fp = do
             [ bench "Text"     $ nf (T.streamUtf32BE E.lenientDecode) utf32be
             , bench "LazyText" $ nf (TL.streamUtf32BE E.lenientDecode) utf32beL
             ]
+
+        -- Encoding.Fusion.Common
+        , bench "restreamUtf8"    $ nf F.restreamUtf8 s
+        , bench "restreamUtf16LE" $ nf F.restreamUtf16LE s
+        , bench "restreamUtf16BE" $ nf F.restreamUtf16BE s
+        , bench "restreamUtf32LE" $ nf F.restreamUtf32LE s
+        , bench "restreamUtf32BE" $ nf F.restreamUtf32BE s
         ]
