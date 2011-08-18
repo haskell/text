@@ -21,15 +21,17 @@ import Criterion (Benchmark, bgroup, bench)
 import Data.Monoid (mconcat)
 import System.IO (Handle, hPutStr)
 import qualified Data.ByteString as B
+import qualified Data.ByteString.Char8 as BC
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString.Lazy.Char8 as BLC
-import qualified Data.ByteString.Char8 as BC
 import qualified Data.List as L
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as T
 import qualified Data.Text.IO as T
 import qualified Data.Text.Lazy as TL
-import qualified Data.Text.Lazy.IO as TL
 import qualified Data.Text.Lazy.Builder as TLB
+import qualified Data.Text.Lazy.Encoding as TL
+import qualified Data.Text.Lazy.IO as TL
 
 benchmark :: FilePath -> Handle -> IO Benchmark
 benchmark i o = return $ bgroup "Sort"
@@ -38,7 +40,12 @@ benchmark i o = return $ bgroup "Sort"
     , bench "LazyByteString" $ BL.readFile i >>= BL.hPutStr o . lazyByteString
     , bench "Text" $ T.readFile i >>= T.hPutStr o . text
     , bench "LazyText" $ TL.readFile i >>= TL.hPutStr o . lazyText
-    , bench "TextBuilder" $ T.readFile i >>= TL.hPutStr o . textBuilder
+    , bench "TextByteString" $ B.readFile i >>=
+        B.hPutStr o . T.encodeUtf8 . text . T.decodeUtf8
+    , bench "LazyTextByteString" $ BL.readFile i >>=
+        BL.hPutStr o . TL.encodeUtf8 . lazyText .  TL.decodeUtf8
+    , bench "TextBuilder" $ B.readFile i >>=
+        BL.hPutStr o . TL.encodeUtf8 . textBuilder . T.decodeUtf8
     ]
 
 string :: String -> String

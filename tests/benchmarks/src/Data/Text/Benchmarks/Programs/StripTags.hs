@@ -22,12 +22,14 @@ import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as BC
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as T
+import qualified Data.Text.IO as T
 
 benchmark :: FilePath -> Handle -> IO Benchmark
 benchmark i o = return $ bgroup "StripTags"
     [ bench "String" $ readFile i >>= hPutStr o . string
     , bench "ByteString" $ B.readFile i >>= B.hPutStr o . byteString
-    , bench "Text" $
+    , bench "Text" $ T.readFile i >>= T.hPutStr o . text
+    , bench "TextByteString" $
         B.readFile i >>= B.hPutStr o . T.encodeUtf8 . text . T.decodeUtf8
     ]
 

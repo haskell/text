@@ -22,7 +22,9 @@ import Criterion (Benchmark, bgroup, bench)
 import System.IO (Handle, hPutStr)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
+import qualified Data.Text.Encoding as T
 import qualified Data.Text.IO as T
+import qualified Data.Text.Lazy.Encoding as TL
 import qualified Data.Text.Lazy.IO as TL
 
 benchmark :: FilePath -> Handle -> IO Benchmark
@@ -32,4 +34,8 @@ benchmark fp sink = return $ bgroup "Throughput"
     , bench "LazyByteString" $ BL.readFile fp >>= BL.hPutStr sink
     , bench "Text" $ T.readFile fp >>= T.hPutStr sink
     , bench "LazyText" $ TL.readFile fp >>= TL.hPutStr sink
+    , bench "TextByteString" $
+        B.readFile fp >>= B.hPutStr sink . T.encodeUtf8 .  T.decodeUtf8
+    , bench "LazyTextByteString" $
+        BL.readFile fp >>= BL.hPutStr sink . TL.encodeUtf8 . TL.decodeUtf8
     ]
