@@ -19,15 +19,15 @@ library to provide these facilities.
 # Get involved!
 
 Please report bugs via the
-[bitbucket issue tracker](http://bitbucket.org/bos/text/issues).
+[github issue tracker](https://github.com/bos/text/issues).
 
-Master [Mercurial repository](http://bitbucket.org/bos/text):
-
-* `hg clone http://bitbucket.org/bos/text`
-
-There's also a [git mirror](http://github.com/bos/text):
+Master [git repository](https://github.com/bos/text):
 
 * `git clone git://github.com/bos/text.git`
+
+There's also a [Mercurial mirror](https://bitbucket.org/bos/text):
+
+* `hg clone https://bitbucket.org/bos/text`
 
 (You can create and contribute changes using either Mercurial or git.)
 
