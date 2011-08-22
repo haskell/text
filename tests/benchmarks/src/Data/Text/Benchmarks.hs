@@ -19,6 +19,7 @@ import qualified Data.Text.Benchmarks.Pure as Pure
 import qualified Data.Text.Benchmarks.ReadNumbers as ReadNumbers
 import qualified Data.Text.Benchmarks.Replace as Replace
 import qualified Data.Text.Benchmarks.Search as Search
+import qualified Data.Text.Benchmarks.Stream as Stream
 import qualified Data.Text.Benchmarks.WordFrequencies as WordFrequencies
 
 import qualified Data.Text.Benchmarks.Programs.BigTable as Programs.BigTable
@@ -52,6 +53,7 @@ benchmarks = do
         , ReadNumbers.benchmark (tf "numbers.txt")
         , Replace.benchmark (tf "russian.txt") "принимая" "своем"
         , Search.benchmark (tf "russian.txt") "принимая"
+        , Stream.benchmark (tf "russian.txt")
         , WordFrequencies.benchmark (tf "russian.txt")
         ]
 
