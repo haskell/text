@@ -3,7 +3,8 @@
 -- Module      : Data.Text.Fusion.Internal
 -- Copyright   : (c) Tom Harper 2008-2009,
 --               (c) Bryan O'Sullivan 2009,
---               (c) Duncan Coutts 2009
+--               (c) Duncan Coutts 2009,
+--               (c) Jasper Van der Jeugt 2011
 --
 -- License     : BSD-style
 -- Maintainer  : bos@serpentine.com, rtomharper@googlemail.com,
@@ -19,7 +20,7 @@ module Data.Text.Fusion.Internal
     , M(..)
     , M8
     , PairS(..)
-    , S(..)
+    , RS(..)
     , Step(..)
     , Stream(..)
     , Switch(..)
@@ -39,7 +40,11 @@ data M a = N
 type M8 = M Word8
 
 -- Restreaming state.
-data S s = S !s !M8 !M8 !M8
+data RS s
+    = RS0 !s
+    | RS1 !s {-# UNPACK #-} !Word8
+    | RS2 !s {-# UNPACK #-} !Word8 {-# UNPACK #-} !Word8
+    | RS3 !s {-# UNPACK #-} !Word8 {-# UNPACK #-} !Word8 {-# UNPACK #-} !Word8
 
 infixl 2 :*:
 data PairS a b = !a :*: !b
