@@ -80,7 +80,7 @@ indices needle@(Chunk n ns) _haystack@(Chunk k ks)
                              Chunk y ys -> buildTable y ys g 0 msk skp
             | otherwise = go (g+1) (i+1) (msk .|. swizzle c) skp'
             where c                = A.unsafeIndex xarr (xoff+i)
-                  skp' | c == z    = nlen - fromIntegral g - 2
+                  skp' | c == z    = nlen - g - 2
                        | otherwise = skp
                   xlast = xlen - 1
     -- | Check whether an attempt to index into the haystack at the
