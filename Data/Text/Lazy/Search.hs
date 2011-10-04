@@ -77,9 +77,10 @@ indices needle@(Chunk n ns) _haystack@(Chunk k ks)
         go !(g::Int64) !i !msk !skp
             | i >= xlast = case xs of
                              Empty      -> (msk .|. swizzle z) :*: skp
-                             Chunk y ys -> buildTable y ys g 0 msk skp
-            | otherwise = go (g+1) (i+1) (msk .|. swizzle c) skp'
+                             Chunk y ys -> buildTable y ys g 0 msk' skp'
+            | otherwise = go (g+1) (i+1) msk' skp'
             where c                = A.unsafeIndex xarr (xoff+i)
+                  msk'             = msk .|. swizzle c
                   skp' | c == z    = nlen - g - 2
                        | otherwise = skp
                   xlast = xlen - 1
