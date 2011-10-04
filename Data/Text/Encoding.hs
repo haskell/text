@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, ForeignFunctionInterface, MagicHash,
+{-# LANGUAGE BangPatterns, CPP, ForeignFunctionInterface, MagicHash,
     UnliftedFFITypes #-}
 -- |
 -- Module      : Data.Text.Encoding
@@ -48,7 +48,11 @@ module Data.Text.Encoding
     ) where
 
 import Control.Exception (evaluate, try)
+#if __GLASGOW_HASKELL__ >= 702
+import Control.Monad.ST.Unsafe (unsafeIOToST, unsafeSTToIO)
+#else
 import Control.Monad.ST (unsafeIOToST, unsafeSTToIO)
+#endif
 import Data.Bits ((.&.))
 import Data.ByteString as B
 import Data.ByteString.Internal as B
