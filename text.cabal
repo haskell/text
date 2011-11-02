@@ -1,5 +1,5 @@
 name:           text
-version:        0.11.1.7
+version:        0.11.1.8
 homepage:       https://github.com/bos/text
 bug-reports:    https://github.com/bos/text/issues
 synopsis:       An efficient packed Unicode text type.
@@ -150,7 +150,7 @@ test-suite tests
   build-depends:
     base                       >= 4   && < 5,
     bytestring                 >= 0.9 && < 0.10,
-    deepseq                    >= 1.1 && < 1.2,
+    deepseq                    >= 1.1,
     directory                  >= 1.0 && < 1.2,
     random                     >= 1.0 && < 1.1,
     QuickCheck                 >= 2.4 && < 2.5,

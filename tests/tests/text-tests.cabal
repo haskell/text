@@ -38,7 +38,7 @@ executable text-tests
     text-tests,
     base                       >= 4   && < 5,
     bytestring                 >= 0.9 && < 0.10,
-    deepseq                    >= 1.1 && < 1.2,
+    deepseq                    >= 1.1,
     directory                  >= 1.1 && < 1.2,
     random                     >= 1.0 && < 1.1,
     QuickCheck                 >= 2.4 && < 2.5,
@@ -119,6 +119,6 @@ library
     array,
     base        >= 4   && < 5,
     bytestring  >= 0.9 && < 1.0,
-    deepseq     >= 1.1 && < 1.2,
+    deepseq     >= 1.1,
     integer-gmp >= 0.2 && < 0.3,
     ghc-prim    >= 0.2 && < 0.3
