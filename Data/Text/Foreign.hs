@@ -33,7 +33,11 @@ module Data.Text.Foreign
 #if defined(ASSERTS)
 import Control.Exception (assert)
 #endif
+#if __GLASGOW_HASKELL__ >= 702
+import Control.Monad.ST.Unsafe (unsafeIOToST)
+#else
 import Control.Monad.ST (unsafeIOToST)
+#endif
 import Data.Text.Internal (Text(..), empty)
 import Data.Text.Unsafe (lengthWord16)
 import qualified Data.Text.Array as A

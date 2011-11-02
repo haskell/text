@@ -60,7 +60,11 @@ if (_k_) < 0 || (_k_) >= (_len_) then error ("Data.Text.Array." ++ (_func_) ++ "
 #if defined(ASSERTS)
 import Control.Exception (assert)
 #endif
+#if __GLASGOW_HASKELL__ >= 702
+import Control.Monad.ST.Unsafe (unsafeIOToST)
+#else
 import Control.Monad.ST (unsafeIOToST)
+#endif
 import Data.Bits ((.&.), xor)
 import Data.Text.Unsafe.Base (inlinePerformIO)
 import Data.Text.UnsafeShift (shiftL, shiftR)
