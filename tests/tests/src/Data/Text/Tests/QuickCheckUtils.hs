@@ -276,13 +276,13 @@ windowsNewlineMode = IO.NewlineMode
 
 -- Newline and NewlineMode have standard Show instance from GHC 7 onwards
 #if __GLASGOW_HASKELL__ < 700
-instance Show Newline where
-    show CRLF = "CRLF"
-    show LF   = "LF"
+instance Show IO.Newline where
+    show IO.CRLF = "CRLF"
+    show IO.LF   = "LF"
 
-instance Show NewlineMode where
-    show (NewlineMode i o) = "NewlineMode { inputNL = " ++ show i ++
-                             ", outputNL = " ++ show o ++ " }"
+instance Show IO.NewlineMode where
+    show (IO.NewlineMode i o) = "NewlineMode { inputNL = " ++ show i ++
+                                ", outputNL = " ++ show o ++ " }"
 # endif
 
 instance Arbitrary IO.NewlineMode where
