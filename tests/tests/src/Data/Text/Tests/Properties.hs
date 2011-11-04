@@ -1096,6 +1096,7 @@ tests =
       testProperty "tl_rational" tl_rational
     ],
 
+    {-
     testGroup "input-output" [
       testProperty "t_write_read" t_write_read,
       testProperty "tl_write_read" tl_write_read,
@@ -1106,6 +1107,7 @@ tests =
       -- testProperty "t_put_get" t_put_get
       -- testProperty "tl_put_get" tl_put_get
     ],
+    -}
 
     testGroup "lowlevel" [
       testProperty "t_dropWord16" t_dropWord16,
