@@ -320,7 +320,7 @@ write_read :: (NFData a, Eq a)
            -> IO.BufferMode
            -> [a]
            -> Property
-write_read unline filt writer reader (E _ enc) nl buf ts =
+write_read unline filt writer reader (E _ _) nl buf ts =
     monadicIO $ assert . (==t) =<< run act
   where t = unline . map (filt (not . (`elem` "\r\n"))) $ ts
         act = withTempFile $ \path h -> do
