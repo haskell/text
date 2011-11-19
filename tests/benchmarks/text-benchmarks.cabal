@@ -23,7 +23,7 @@ executable text-benchmarks
   ghc-options:    -Wall -O2
   cpp-options:    -DHAVE_DEEPSEQ
   build-depends:  base              >= 4   && < 5,
-                  criterion         >= 0.5 && < 0.6,
+                  criterion         >= 0.5 && < 0.7,
                   bytestring        >= 0.9 && < 0.10,
                   deepseq           >= 1.1 && < 1.2,
                   filepath          >= 1.1 && < 1.3,
