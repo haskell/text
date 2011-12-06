@@ -1056,7 +1056,7 @@ splitAtWord x (Chunk c@(T.Text arr off len) cs)
 -- >   where (prefix, match) = breakOn needle haystack
 --
 -- If you need to break a string by a substring repeatedly (e.g. you
--- want to break on every instance of a substring), use 'find'
+-- want to break on every instance of a substring), use 'breakOnAll'
 -- instead, as it has lower startup overhead.
 --
 -- This function is strict in its first argument, and lazy in its
