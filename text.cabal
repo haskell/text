@@ -1,5 +1,5 @@
 name:           text
-version:        0.11.1.10
+version:        0.11.1.11
 homepage:       https://github.com/bos/text
 bug-reports:    https://github.com/bos/text/issues
 synopsis:       An efficient packed Unicode text type.
