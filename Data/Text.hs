@@ -1081,11 +1081,13 @@ splitAt n t@(Text arr off len)
 -- of @t@ of elements that satisfy @p@, and whose second is the
 -- remainder of the list.
 span :: (Char -> Bool) -> Text -> (Text, Text)
-span p t@(Text arr off len) = (textP arr off k, textP arr (off+k) (len-k))
-  where k = loop 0
-        loop !i | i >= len || not (p c) = i
-                | otherwise             = loop (i+d)
-            where Iter c d              = iter t i
+span p t@(Text arr off len) = (hd,tl)
+  where hd = textP arr off k
+        tl = textP arr (off+k) (len-k)
+        !k = loop 0
+        loop !i | i < len && p c = loop (i+d)
+                | otherwise      = i
+            where Iter c d       = iter t i
 {-# INLINE span #-}
 
 -- | /O(n)/ 'break' is like 'span', but the prefix returned is
