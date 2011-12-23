@@ -167,7 +167,9 @@ encodeUtf8 (Text arr off len) = unsafePerformIO $ do
                       start newSize n m fp'
                 {-# INLINE ensure #-}
             case A.unsafeIndex arr n of
-             w| w <= 0x7F  -> poke8 m w >> go (n+1) (m+1)
+             w| w <= 0x7F  -> ensure 1 $ do
+                  poke8 m w
+                  go (n+1) (m+1)
               | w <= 0x7FF -> ensure 2 $ do
                   poke8 m     $ (w `shiftR` 6) + 0xC0
                   poke8 (m+1) $ (w .&. 0x3f) + 0x80
