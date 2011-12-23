@@ -2,9 +2,9 @@
     UnliftedFFITypes #-}
 -- |
 -- Module      : Data.Text.Encoding
--- Copyright   : (c) 2008, 2009 Tom Harper,
---               (c) 2009, 2010 Bryan O'Sullivan,
---               (c) 2009 Duncan Coutts
+-- Copyright   : (c) 2009, 2010, 2011 Bryan O'Sullivan,
+--               (c) 2009 Duncan Coutts,
+--               (c) 2008, 2009 Tom Harper
 --
 -- License     : BSD-style
 -- Maintainer  : bos@serpentine.com, rtomharper@googlemail.com,
@@ -175,7 +175,8 @@ encodeUtf8 (Text arr off len) = unsafePerformIO $ do
                   -- special-case this assumption.
                   let end = ptr `plusPtr` size
                       ascii !t !u
-                        | t == offLen || u == end || v >= 0x80 = go t (u `minusPtr` ptr)
+                        | t == offLen || u == end || v >= 0x80 =
+                            go t (u `minusPtr` ptr)
                         | otherwise = do
                             poke u (fromIntegral v :: Word8)
                             ascii (t+1) (u `plusPtr` 1)

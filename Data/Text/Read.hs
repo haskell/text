@@ -1,12 +1,11 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, UnboxedTuples #-}
 
 -- |
 -- Module      : Data.Text.Read
--- Copyright   : (c) 2010 Bryan O'Sullivan
+-- Copyright   : (c) 2010, 2011 Bryan O'Sullivan
 --
 -- License     : BSD-style
--- Maintainer  : bos@serpentine.com, rtomharper@googlemail.com,
---               duncan@haskell.org
+-- Maintainer  : bos@serpentine.com
 -- Stability   : experimental
 -- Portability : GHC
 --
@@ -23,8 +22,11 @@ module Data.Text.Read
 
 import Control.Monad (liftM)
 import Data.Char (isDigit, isHexDigit, ord)
+import Data.Int (Int8, Int16, Int32, Int64)
 import Data.Ratio ((%))
 import Data.Text as T
+import Data.Text.Private (span_)
+import Data.Word (Word, Word8, Word16, Word32, Word64)
 
 -- | Read some text.  If the read succeeds, return its value and the
 -- remaining text, otherwise an error message.
@@ -43,11 +45,20 @@ type Reader a = Text -> Either String (a,Text)
 -- 'Integer' for your result type.
 decimal :: Integral a => Reader a
 {-# SPECIALIZE decimal :: Reader Int #-}
+{-# SPECIALIZE decimal :: Reader Int8 #-}
+{-# SPECIALIZE decimal :: Reader Int16 #-}
+{-# SPECIALIZE decimal :: Reader Int32 #-}
+{-# SPECIALIZE decimal :: Reader Int64 #-}
 {-# SPECIALIZE decimal :: Reader Integer #-}
+{-# SPECIALIZE decimal :: Reader Word #-}
+{-# SPECIALIZE decimal :: Reader Word8 #-}
+{-# SPECIALIZE decimal :: Reader Word16 #-}
+{-# SPECIALIZE decimal :: Reader Word32 #-}
+{-# SPECIALIZE decimal :: Reader Word64 #-}
 decimal txt
     | T.null h  = Left "input does not start with a digit"
     | otherwise = Right (T.foldl' go 0 h, t)
-  where (h,t)  = T.span isDigit txt
+  where (# h,t #)  = span_ isDigit txt
         go n d = (n * 10 + fromIntegral (digitToInt d))
 
 -- | Read a hexadecimal integer, consisting of an optional leading
@@ -64,7 +75,16 @@ decimal txt
 -- 'Integer' for your result type.
 hexadecimal :: Integral a => Reader a
 {-# SPECIALIZE hexadecimal :: Reader Int #-}
+{-# SPECIALIZE hexadecimal :: Reader Int8 #-}
+{-# SPECIALIZE hexadecimal :: Reader Int16 #-}
+{-# SPECIALIZE hexadecimal :: Reader Int32 #-}
+{-# SPECIALIZE hexadecimal :: Reader Int64 #-}
 {-# SPECIALIZE hexadecimal :: Reader Integer #-}
+{-# SPECIALIZE hexadecimal :: Reader Word #-}
+{-# SPECIALIZE hexadecimal :: Reader Word8 #-}
+{-# SPECIALIZE hexadecimal :: Reader Word16 #-}
+{-# SPECIALIZE hexadecimal :: Reader Word32 #-}
+{-# SPECIALIZE hexadecimal :: Reader Word64 #-}
 hexadecimal txt
     | h == "0x" || h == "0X" = hex t
     | otherwise              = hex txt
@@ -72,11 +92,20 @@ hexadecimal txt
 
 hex :: Integral a => Reader a
 {-# SPECIALIZE hex :: Reader Int #-}
+{-# SPECIALIZE hex :: Reader Int8 #-}
+{-# SPECIALIZE hex :: Reader Int16 #-}
+{-# SPECIALIZE hex :: Reader Int32 #-}
+{-# SPECIALIZE hex :: Reader Int64 #-}
 {-# SPECIALIZE hex :: Reader Integer #-}
+{-# SPECIALIZE hex :: Reader Word #-}
+{-# SPECIALIZE hex :: Reader Word8 #-}
+{-# SPECIALIZE hex :: Reader Word16 #-}
+{-# SPECIALIZE hex :: Reader Word32 #-}
+{-# SPECIALIZE hex :: Reader Word64 #-}
 hex txt
     | T.null h  = Left "input does not start with a hexadecimal digit"
     | otherwise = Right (T.foldl' go 0 h, t)
-  where (h,t)  = T.span isHexDigit txt
+  where (# h,t #)  = span_ isHexDigit txt
         go n d = (n * 16 + fromIntegral (hexDigitToInt d))
 
 hexDigitToInt :: Char -> Int
@@ -114,7 +143,7 @@ signed f = runP (signa (P f))
 --
 -- >rational "3.foo" == Right (3.0, ".foo")
 -- >rational "3e"    == Right (3.0, "e")
-rational :: RealFloat a => Reader a
+rational :: Fractional a => Reader a
 {-# SPECIALIZE rational :: Reader Double #-}
 rational = floaty $ \real frac fracDenom -> fromRational $
                      real % 1 + frac % fracDenom
@@ -138,6 +167,10 @@ double = floaty $ \real frac fracDenom ->
 
 signa :: Num a => Parser a -> Parser a
 {-# SPECIALIZE signa :: Parser Int -> Parser Int #-}
+{-# SPECIALIZE signa :: Parser Int8 -> Parser Int8 #-}
+{-# SPECIALIZE signa :: Parser Int16 -> Parser Int16 #-}
+{-# SPECIALIZE signa :: Parser Int32 -> Parser Int32 #-}
+{-# SPECIALIZE signa :: Parser Int64 -> Parser Int64 #-}
 {-# SPECIALIZE signa :: Parser Integer -> Parser Integer #-}
 signa p = do
   sign <- perhaps '+' $ char (\c -> c == '-' || c == '+')
@@ -168,7 +201,7 @@ char p = P $ \t -> case T.uncons t of
 
 data T = T !Integer !Int
 
-floaty :: RealFloat a => (Integer -> Integer -> Integer -> a) -> Reader a
+floaty :: Fractional a => (Integer -> Integer -> Integer -> a) -> Reader a
 {-# INLINE floaty #-}
 floaty f = runP $ do
   sign <- perhaps '+' $ char (\c -> c == '-' || c == '+')

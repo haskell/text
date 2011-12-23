@@ -1,11 +1,11 @@
-{-# LANGUAGE BangPatterns, CPP, Rank2Types #-}
+{-# LANGUAGE BangPatterns, CPP, Rank2Types, UnboxedTuples #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 -- |
 -- Module      : Data.Text
--- Copyright   : (c) 2008, 2009 Tom Harper,
---               (c) 2009, 2010 Bryan O'Sullivan,
---               (c) 2009 Duncan Coutts
+-- Copyright   : (c) 2009, 2010, 2011 Bryan O'Sullivan,
+--               (c) 2009 Duncan Coutts,
+--               (c) 2008, 2009 Tom Harper
 --
 -- License     : BSD-style
 -- Maintainer  : bos@serpentine.com, rtomharper@googlemail.com,
@@ -208,6 +208,7 @@ import Data.String (IsString(..))
 import qualified Data.Text.Fusion as S
 import qualified Data.Text.Fusion.Common as S
 import Data.Text.Fusion (stream, reverseStream, unstream)
+import Data.Text.Private (span_)
 import Data.Text.Internal (Text(..), empty, firstf, safe, text, textP)
 import qualified Prelude as P
 import Data.Text.Unsafe (Iter(..), iter, iter_, lengthWord16, reverseIter,
@@ -1081,13 +1082,8 @@ splitAt n t@(Text arr off len)
 -- of @t@ of elements that satisfy @p@, and whose second is the
 -- remainder of the list.
 span :: (Char -> Bool) -> Text -> (Text, Text)
-span p t@(Text arr off len) = (hd,tl)
-  where hd = textP arr off k
-        tl = textP arr (off+k) (len-k)
-        !k = loop 0
-        loop !i | i < len && p c = loop (i+d)
-                | otherwise      = i
-            where Iter c d       = iter t i
+span p t = case span_ p t of
+             (# hd,tl #) -> (hd,tl)
 {-# INLINE span #-}
 
 -- | /O(n)/ 'break' is like 'span', but the prefix returned is
@@ -1182,7 +1178,7 @@ split _ t@(Text _off _arr 0) = [t]
 split p t = loop t
     where loop s | null s'   = [l]
                  | otherwise = l : loop (unsafeTail s')
-              where (l, s') = break p s
+              where (# l, s' #) = span_ (not . p) s
 {-# INLINE split #-}
 
 -- | /O(n)/ Splits a 'Text' into components of length @k@.  The last
@@ -1397,7 +1393,7 @@ lines ps | null ps   = []
          | otherwise = h : if null t
                            then []
                            else lines (unsafeTail t)
-    where (h,t) = span (/= '\n') ps
+    where (# h,t #) = span_ (/= '\n') ps
 {-# INLINE lines #-}
 
 {-
