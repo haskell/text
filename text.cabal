@@ -65,6 +65,7 @@ flag developer
 
 library
   c-sources: cbits/cbits.c
+  cc-options: -Wall
 
   exposed-modules:
     Data.Text

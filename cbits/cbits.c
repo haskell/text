@@ -6,9 +6,10 @@
  * See http://bjoern.hoehrmann.de/utf-8/decoder/dfa/ for details.
  */
 
-#include <string.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 void _hs_text_memcpy(void *dest, size_t doff, const void *src, size_t soff,
 		     size_t n)
@@ -130,4 +131,72 @@ _hs_text_decode_utf8(uint16_t *dest, size_t *destoff,
   *destoff = d - dest;
 
   return s;
+}
+
+uint8_t *_hs_text_encode_utf8(size_t *plen,
+			      const uint16_t const *src, size_t srcoff)
+{
+  size_t srclen = *plen;
+  size_t destlen = srclen > 4 ? srclen : 4;
+  uint8_t *dest = malloc(destlen);
+  uint8_t *d = dest;
+  const uint8_t const *dend = dest + destlen;
+  const uint16_t const *s = src + srcoff;
+  const uint16_t const *srcend = s + srclen;
+  
+  do {
+    const uint16_t w = *s++;
+    if (w < 0x80) {
+      if (dend - d < 1) {
+	destlen *= 2;
+	uint8_t *newdest = realloc(dest, destlen);
+	d = newdest + (d - dest);
+	dest = newdest;
+	dend = newdest + destlen;
+      }
+      *d++ = w;
+      while (s < srcend && d < dend && *s < 0x80) {
+	*d++ = *s++;
+      }
+    } else if (w < 0x800) {
+      if (dend - d < 2) {
+	destlen *= 2;
+	uint8_t *newdest = realloc(dest, destlen);
+	d = newdest + (d - dest);
+	dest = newdest;
+	dend = newdest + destlen;
+      }
+      *d++ = 0xc0 | (w >> 6);
+      *d++ = 0x80 | (w & 0x3f);
+    } else if (w >= 0xd800 && w < 0xdc00) {
+      if (dend - d < 4) {
+	destlen *= 2;
+	uint8_t *newdest = realloc(dest, destlen);
+	d = newdest + (d - dest);
+	dest = newdest;
+	dend = newdest + destlen;
+      }
+      const uint32_t c = (((((uint32_t) w) - 0xd800) << 10) |
+			  (((uint32_t) *s++) - 0xdc00)) + 0x10000;
+      *d++ = 0xf0 | (c >> 18);
+      *d++ = 0x80 | ((c >> 12) & 0x3f);
+      *d++ = 0x80 | ((c >> 6) & 0x3f);
+      *d++ = 0x80 | (c & 0x3f);
+    } else {
+      if (dend - d < 3) {
+	destlen *= 2;
+	uint8_t *newdest = realloc(dest, destlen);
+	d = newdest + (d - dest);
+	dest = newdest;
+	dend = newdest + destlen;
+      }
+      *d++ = 0xe0 | (w >> 12);
+      *d++ = 0x80 | ((w >> 6) & 0x3f);
+      *d++ = 0x80 | (w & 0x3f);
+    }
+  } while (s < srcend);
+
+  *plen = d - dest;
+
+  return dest;
 }

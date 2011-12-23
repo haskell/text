@@ -53,24 +53,22 @@ import Control.Monad.ST.Unsafe (unsafeIOToST, unsafeSTToIO)
 #else
 import Control.Monad.ST (unsafeIOToST, unsafeSTToIO)
 #endif
-import Data.Bits ((.&.))
 import Data.ByteString as B
 import Data.ByteString.Internal as B
 import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode)
 import Data.Text.Internal (Text(..), textP)
-import Data.Text.UnsafeChar (ord, unsafeWrite)
-import Data.Text.UnsafeShift (shiftL, shiftR)
+import Data.Text.UnsafeChar (unsafeWrite)
 import Data.Word (Word8)
 import Foreign.C.Types (CSize)
-import Foreign.ForeignPtr (withForeignPtr)
+import Foreign.ForeignPtr (newForeignPtr, withForeignPtr)
 import Foreign.Marshal.Utils (with)
 import Foreign.Ptr (Ptr, plusPtr)
 import Foreign.Storable (peek, poke)
-import GHC.Base (MutableByteArray#)
+import GHC.Base (ByteArray#, MutableByteArray#)
 import System.IO.Unsafe (unsafePerformIO)
 import qualified Data.Text.Array as A
 import qualified Data.Text.Encoding.Fusion as E
-import qualified Data.Text.Encoding.Utf16 as U16
+
 import qualified Data.Text.Fusion as F
 
 -- $strict
@@ -145,45 +143,14 @@ decodeUtf8' = unsafePerformIO . try . evaluate . decodeUtf8With strictDecode
 
 -- | Encode text using UTF-8 encoding.
 encodeUtf8 :: Text -> ByteString
-encodeUtf8 (Text arr off len) = unsafePerformIO $ do
-  let size0 = max len 4
-  mallocByteString size0 >>= start size0 off 0
- where
-  start size n0 m0 fp = withForeignPtr fp $ loop n0 m0
-   where
-    loop n1 m1 ptr = go n1 m1
-     where
-      go !n !m
-        | n == off+len = return (PS fp 0 m)
-        | otherwise = do
-            let poke8 k v = poke (ptr `plusPtr` k) (fromIntegral v :: Word8)
-                ensure k act
-                  | size-m >= k = act
-                  | otherwise = {-# SCC "resizeUtf8/ensure" #-} do
-                      let newSize = size `shiftL` 1
-                      fp' <- mallocByteString newSize
-                      withForeignPtr fp' $ \ptr' ->
-                        memcpy ptr' ptr (fromIntegral m)
-                      start newSize n m fp'
-                {-# INLINE ensure #-}
-            case A.unsafeIndex arr n of
-             w| w <= 0x7F  -> poke8 m w >> go (n+1) (m+1)
-              | w <= 0x7FF -> ensure 2 $ do
-                  poke8 m     $ (w `shiftR` 6) + 0xC0
-                  poke8 (m+1) $ (w .&. 0x3f) + 0x80
-                  go (n+1) (m+2)
-              | 0xD800 <= w && w <= 0xDBFF -> ensure 4 $ do
-                  let c = ord $ U16.chr2 w (A.unsafeIndex arr (n+1))
-                  poke8 m     $ (c `shiftR` 18) + 0xF0
-                  poke8 (m+1) $ ((c `shiftR` 12) .&. 0x3F) + 0x80
-                  poke8 (m+2) $ ((c `shiftR` 6) .&. 0x3F) + 0x80
-                  poke8 (m+3) $ (c .&. 0x3F) + 0x80
-                  go (n+2) (m+4)
-              | otherwise -> ensure 3 $ do
-                  poke8 m     $ (w `shiftR` 12) + 0xE0
-                  poke8 (m+1) $ ((w `shiftR` 6) .&. 0x3F) + 0x80
-                  poke8 (m+2) $ (w .&. 0x3F) + 0x80
-                  go (n+1) (m+3)
+encodeUtf8 (Text arr off len)
+    | len == 0  = empty
+    | otherwise = unsafePerformIO $ do
+  with (fromIntegral len ::CSize) $ \lenPtr -> do
+    dptr <- c_encode_utf8 lenPtr (A.aBA arr) (fromIntegral off)
+    fp <- newForeignPtr c_free_finalizer dptr
+    dlen <- peek lenPtr
+    return (PS fp 0 (fromIntegral dlen))
 
 -- | Decode text from little endian UTF-16 encoding.
 decodeUtf16LEWith :: OnDecodeError -> ByteString -> Text
@@ -264,3 +231,6 @@ encodeUtf32BE txt = E.unstream (E.restreamUtf32BE (F.stream txt))
 foreign import ccall unsafe "_hs_text_decode_utf8" c_decode_utf8
     :: MutableByteArray# s -> Ptr CSize
     -> Ptr Word8 -> Ptr Word8 -> IO (Ptr Word8)
+
+foreign import ccall unsafe "_hs_text_encode_utf8" c_encode_utf8
+    :: Ptr CSize -> ByteArray# -> CSize -> IO (Ptr Word8)
