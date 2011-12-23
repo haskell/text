@@ -154,7 +154,7 @@ encodeUtf8 (Text arr off len) = unsafePerformIO $ do
     loop n1 m1 ptr = go n1 m1
      where
       go !n !m
-        | n-off == len = return (PS fp 0 m)
+        | n == off+len = return (PS fp 0 m)
         | otherwise = do
             let poke8 k v = poke (ptr `plusPtr` k) (fromIntegral v :: Word8)
                 ensure k act
@@ -167,9 +167,7 @@ encodeUtf8 (Text arr off len) = unsafePerformIO $ do
                       start newSize n m fp'
                 {-# INLINE ensure #-}
             case A.unsafeIndex arr n of
-             w| w <= 0x7F  -> ensure 1 $ do
-                  poke8 m w
-                  go (n+1) (m+1)
+             w| w <= 0x7F  -> poke8 m w >> go (n+1) (m+1)
               | w <= 0x7FF -> ensure 2 $ do
                   poke8 m     $ (w `shiftR` 6) + 0xC0
                   poke8 (m+1) $ (w .&. 0x3f) + 0x80
