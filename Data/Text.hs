@@ -1439,8 +1439,6 @@ isPrefixOf a@(Text _ _ alen) b@(Text _ _ blen) =
 {-# RULES
 "TEXT isPrefixOf -> fused" [~1] forall s t.
     isPrefixOf s t = S.isPrefixOf (stream s) (stream t)
-"TEXT isPrefixOf -> unfused" [1] forall s t.
-    S.isPrefixOf (stream s) (stream t) = isPrefixOf s t
   #-}
 
 -- | /O(n)/ The 'isSuffixOf' function takes two 'Text's and returns
