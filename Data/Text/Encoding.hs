@@ -45,6 +45,10 @@ module Data.Text.Encoding
     , encodeUtf16BE
     , encodeUtf32LE
     , encodeUtf32BE
+    
+    -- * Generic encoding of Text
+    , encodeStreamWithB
+    , encodeTextWithB
     ) where
 
 import Control.Exception (evaluate, try)
@@ -56,6 +60,8 @@ import Control.Monad.ST (unsafeIOToST, unsafeSTToIO)
 import Data.Bits ((.&.))
 import Data.ByteString as B
 import Data.ByteString.Internal as B
+import Data.ByteString.Lazy.Builder.Internal as B
+import Data.ByteString.Lazy.Builder.BasicEncoding.Internal as B
 import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode)
 import Data.Text.Internal (Text(..), textP)
 import Data.Text.UnsafeChar (ord, unsafeWrite)
@@ -278,3 +284,29 @@ encodeUtf32BE txt = E.unstream (E.restreamUtf32BE (F.stream txt))
 foreign import ccall unsafe "_hs_text_decode_utf8" c_decode_utf8
     :: MutableByteArray# s -> Ptr CSize
     -> Ptr Word8 -> Ptr Word8 -> IO (Ptr Word8)
+
+-- | Encode all elements of a 'F.Stream' using a 'B.BoundedEncoding'.
+{-# INLINE encodeStreamWithB #-}
+encodeStreamWithB :: B.BoundedEncoding a -> F.Stream a -> B.Builder
+encodeStreamWithB be = 
+    \(F.Stream next s0 _) -> B.builder $ step next s0
+  where
+    bound = B.sizeBound be
+    step next s0 k (B.BufferRange op0 ope0) = 
+        go s0 op0
+      where
+        go s !op = case next s of
+          F.Done       -> k (B.BufferRange op ope0)
+          F.Skip s'    -> go s' op
+          F.Yield x s'
+            | op `plusPtr` bound <= ope0 -> B.runB be x op >>= go s'
+            | otherwise                  -> 
+                return $ B.bufferFull bound op (step next s k)
+
+
+-- | 
+-- | /Subject to fusion./
+-- Encode all 'Char's of a 'T.Text' using a 'B.BoundedEncoding'.
+{-# INLINE encodeTextWithB #-}
+encodeTextWithB :: B.BoundedEncoding Char -> Text -> B.Builder
+encodeTextWithB be = encodeStreamWithB be . F.stream
