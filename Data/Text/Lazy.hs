@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE BangPatterns, CPP #-}
+{-# LANGUAGE BangPatterns, CPP, MagicHash #-}
 -- |
 -- Module      : Data.Text.Lazy
 -- Copyright   : (c) 2009, 2010 Bryan O'Sullivan
@@ -195,6 +195,8 @@ import qualified Prelude as P
 #if defined(HAVE_DEEPSEQ)
 import Control.DeepSeq (NFData(..))
 #endif
+import qualified Data.ByteString.Lazy as B (fromChunks)
+import Data.ByteString.Unsafe (unsafePackAddress)
 import Data.Int (Int64)
 import qualified Data.List as L
 import Data.Char (isSpace)
@@ -212,11 +214,14 @@ import qualified Data.Text.Fusion.Common as S
 import qualified Data.Text.Unsafe as T
 import qualified Data.Text.Lazy.Fusion as S
 import Data.Text.Fusion.Internal (PairS(..))
+import Data.Text.Lazy.Encoding (decodeUtf8)
 import Data.Text.Lazy.Fusion (stream, unstream)
 import Data.Text.Lazy.Internal (Text(..), chunk, empty, foldlChunks, foldrChunks)
 import Data.Text.Internal (firstf, safe, textP)
 import qualified Data.Text.Util as U
 import Data.Text.Lazy.Search (indices)
+import GHC.CString
+import GHC.Prim
 
 -- $fusion
 --
@@ -321,6 +326,16 @@ instance Monoid Text where
 
 instance IsString Text where
     fromString = pack
+
+textLiteral# :: Addr# -> Text
+textLiteral# addr# = T.inlinePerformIO $ do
+    bytesStrict <- unsafePackAddress addr#
+    let bytesLazy = B.fromChunks [bytesStrict]
+    P.return $ decodeUtf8 bytesLazy
+
+{-# RULES "Overloaded literal strings" forall s. unstream (S.streamList (P.map safe (unpackCString# s))) = textLiteral# s #-}
+
+{-# RULES "Overloaded literal strings utf8" forall s. unstream (S.streamList (P.map safe (unpackCStringUtf8# s))) = textLiteral# s #-}
 
 #if defined(HAVE_DEEPSEQ)
 instance NFData Text where

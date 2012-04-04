@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, CPP, Rank2Types, UnboxedTuples #-}
+{-# LANGUAGE BangPatterns, CPP, MagicHash, Rank2Types, UnboxedTuples #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 -- |
@@ -201,18 +201,20 @@ import Data.Data (mkNoRepType)
 import Data.Data (mkNorepType)
 #endif
 import Control.Monad (foldM)
+import Data.ByteString.Unsafe (unsafePackAddress)
 import qualified Data.Text.Array as A
 import qualified Data.List as L
 import Data.Monoid (Monoid(..))
 import Data.String (IsString(..))
+import Data.Text.Encoding (decodeUtf8)
 import qualified Data.Text.Fusion as S
 import qualified Data.Text.Fusion.Common as S
 import Data.Text.Fusion (stream, reverseStream, unstream)
 import Data.Text.Private (span_)
 import Data.Text.Internal (Text(..), empty, firstf, safe, text, textP)
 import qualified Prelude as P
-import Data.Text.Unsafe (Iter(..), iter, iter_, lengthWord16, reverseIter,
-                         unsafeHead, unsafeTail)
+import Data.Text.Unsafe (Iter(..), iter, iter_, inlinePerformIO, lengthWord16,
+                         reverseIter, unsafeHead, unsafeTail)
 import Data.Text.UnsafeChar (unsafeChr)
 import qualified Data.Text.Util as U
 import qualified Data.Text.Encoding.Utf16 as U16
@@ -222,6 +224,8 @@ import Data.ByteString (ByteString)
 import qualified Data.Text.Lazy as L
 import Data.Int (Int64)
 #endif
+import GHC.CString (unpackCString#, unpackCStringUtf8#)
+import GHC.Prim
 
 -- $strict
 --
@@ -317,6 +321,13 @@ instance Monoid Text where
 
 instance IsString Text where
     fromString = pack
+
+textLiteral# :: Addr# -> Text
+textLiteral# addr# = inlinePerformIO $ unsafePackAddress addr# P.>>= return . decodeUtf8
+
+{-# RULES "Overloaded literal strings" forall s. unstream (S.streamList (P.map safe (unpackCString# s))) = textLiteral# s #-}
+
+{-# RULES "Overloaded literal strings utf8" forall s. unstream (S.streamList (P.map safe (unpackCStringUtf8# s))) = textLiteral# s #-}
 
 #if defined(HAVE_DEEPSEQ)
 instance NFData Text
