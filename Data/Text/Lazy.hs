@@ -217,7 +217,11 @@ import Data.Text.Lazy.Internal (Text(..), chunk, empty, foldlChunks, foldrChunks
 import Data.Text.Internal (firstf, safe, textP)
 import qualified Data.Text.Util as U
 import Data.Text.Lazy.Search (indices)
+#if __GLASGOW_HASKELL__ >= 702
 import qualified GHC.CString as GHC
+#else
+import qualified GHC.Base as GHC
+#endif
 import GHC.Prim (Addr#)
 
 -- $fusion

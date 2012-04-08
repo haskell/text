@@ -159,7 +159,7 @@ streamCString# addr = Stream step 0 unknownSize
                       in Yield c (i+4)
       where b      = I# (ord# b#)
             next n = I# (ord# (at# (i+n))) - 0x80
-            b#     = at# i
+            !b#    = at# i
     at# (I# i#) = indexCharOffAddr# addr i#
     chr (I# i#) = C# (chr# i#)
 {-# INLINE [0] streamCString# #-}

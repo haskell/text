@@ -222,7 +222,11 @@ import Data.ByteString (ByteString)
 import qualified Data.Text.Lazy as L
 import Data.Int (Int64)
 #endif
+#if __GLASGOW_HASKELL__ >= 702
 import qualified GHC.CString as GHC
+#else
+import qualified GHC.Base as GHC
+#endif
 import GHC.Prim (Addr#)
 
 -- $strict
