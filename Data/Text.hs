@@ -1,9 +1,9 @@
-{-# LANGUAGE BangPatterns, CPP, Rank2Types, UnboxedTuples #-}
+{-# LANGUAGE BangPatterns, CPP, MagicHash, Rank2Types, UnboxedTuples #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
 -- |
 -- Module      : Data.Text
--- Copyright   : (c) 2009, 2010, 2011 Bryan O'Sullivan,
+-- Copyright   : (c) 2009, 2010, 2011, 2012 Bryan O'Sullivan,
 --               (c) 2009 Duncan Coutts,
 --               (c) 2008, 2009 Tom Harper
 --
@@ -222,6 +222,8 @@ import Data.ByteString (ByteString)
 import qualified Data.Text.Lazy as L
 import Data.Int (Int64)
 #endif
+import qualified GHC.CString as GHC
+import GHC.Prim (Addr#)
 
 -- $strict
 --
@@ -371,6 +373,19 @@ pack = unstream . S.streamList . L.map safe
 unpack :: Text -> String
 unpack = S.unstreamList . stream
 {-# INLINE [1] unpack #-}
+
+-- | /O(n)/ Convert a literal string into a Text.
+unpackCString# :: Addr# -> Text
+unpackCString# addr# = unstream (S.streamCString# addr#)
+{-# NOINLINE unpackCString# #-}
+
+{-# RULES "TEXT literal" forall a.
+    unstream (S.streamList (L.map safe (GHC.unpackCString# a)))
+      = unpackCString# a #-}
+
+{-# RULES "TEXT literal UTF8" forall a.
+    unstream (S.streamList (L.map safe (GHC.unpackCStringUtf8# a)))
+      = unpackCString# a #-}
 
 -- | /O(1)/ Convert a character into a Text.  Subject to fusion.
 -- Performs replacement on invalid scalar values.

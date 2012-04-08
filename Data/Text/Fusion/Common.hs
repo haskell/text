@@ -1,7 +1,7 @@
-{-# LANGUAGE BangPatterns, Rank2Types #-}
+{-# LANGUAGE BangPatterns, MagicHash, Rank2Types #-}
 -- |
 -- Module      : Data.Text.Fusion.Common
--- Copyright   : (c) Bryan O'Sullivan 2009
+-- Copyright   : (c) Bryan O'Sullivan 2009, 2012
 --
 -- License     : BSD-style
 -- Maintainer  : bos@serpentine.com, rtomharper@googlemail.com,
@@ -17,6 +17,7 @@ module Data.Text.Fusion.Common
       singleton
     , streamList
     , unstreamList
+    , streamCString#
 
     -- * Basic interface
     , cons
@@ -104,10 +105,13 @@ import Prelude (Bool(..), Char, Eq(..), Int, Integral, Maybe(..),
                 (&&), fromIntegral, otherwise)
 import qualified Data.List as L
 import qualified Prelude as P
+import Data.Bits (shiftL)
 import Data.Int (Int64)
 import Data.Text.Fusion.Internal
 import Data.Text.Fusion.CaseMapping (foldMapping, lowerMapping, upperMapping)
 import Data.Text.Fusion.Size
+import GHC.Prim (Addr#, chr#, indexCharOffAddr#, ord#)
+import GHC.Types (Char(..), Int(..))
 
 singleton :: Char -> Stream Char
 singleton c = Stream next False 1
@@ -130,6 +134,35 @@ unstreamList (Stream next s0 _len) = unfold s0
 {-# INLINE [0] unstreamList #-}
 
 {-# RULES "STREAM streamList/unstreamList fusion" forall s. streamList (unstreamList s) = s #-}
+
+-- | Stream the UTF-8-like packed encoding used by GHC to represent
+-- constant strings in generated code.
+--
+-- This encoding uses the byte sequence "\xc0\x80" to represent NUL,
+-- and the string is NUL-terminated.
+streamCString# :: Addr# -> Stream Char
+streamCString# addr = Stream step 0 unknownSize
+  where
+    step !i
+        | b == 0    = Done
+        | b <= 0x7f = Yield (C# b#) (i+1)
+        | b <= 0xdf = let !c = chr $ ((b-0xc0) `shiftL` 6) + next 1
+                      in Yield c (i+2)
+        | b <= 0xef = let !c = chr $ ((b-0xe0) `shiftL` 12) +
+                                      (next 1  `shiftL` 6) +
+                                       next 2
+                      in Yield c (i+3)
+        | otherwise = let !c = chr $ ((b-0xf0) `shiftL` 18) +
+                                      (next 1  `shiftL` 12) +
+                                      (next 2  `shiftL` 6) +
+                                       next 3
+                      in Yield c (i+4)
+      where b      = I# (ord# b#)
+            next n = I# (ord# (at# (i+n))) - 0x80
+            b#     = at# i
+    at# (I# i#) = indexCharOffAddr# addr i#
+    chr (I# i#) = C# (chr# i#)
+{-# INLINE [0] streamCString# #-}
 
 -- ----------------------------------------------------------------------------
 -- * Basic stream functions

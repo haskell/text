@@ -1,8 +1,8 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE BangPatterns, CPP #-}
+{-# LANGUAGE BangPatterns, MagicHash, CPP #-}
 -- |
 -- Module      : Data.Text.Lazy
--- Copyright   : (c) 2009, 2010 Bryan O'Sullivan
+-- Copyright   : (c) 2009, 2010, 2012 Bryan O'Sullivan
 --
 -- License     : BSD-style
 -- Maintainer  : bos@serpentine.com, rtomharper@googlemail.com,
@@ -217,6 +217,8 @@ import Data.Text.Lazy.Internal (Text(..), chunk, empty, foldlChunks, foldrChunks
 import Data.Text.Internal (firstf, safe, textP)
 import qualified Data.Text.Util as U
 import Data.Text.Lazy.Search (indices)
+import qualified GHC.CString as GHC
+import GHC.Prim (Addr#)
 
 -- $fusion
 --
@@ -350,6 +352,19 @@ pack = unstream . S.streamList . L.map safe
 unpack :: Text -> String
 unpack t = S.unstreamList (stream t)
 {-# INLINE [1] unpack #-}
+
+-- | /O(n)/ Convert a literal string into a Text.
+unpackCString# :: Addr# -> Text
+unpackCString# addr# = unstream (S.streamCString# addr#)
+{-# NOINLINE unpackCString# #-}
+
+{-# RULES "TEXT literal" forall a.
+    unstream (S.streamList (L.map safe (GHC.unpackCString# a)))
+      = unpackCString# a #-}
+
+{-# RULES "TEXT literal UTF8" forall a.
+    unstream (S.streamList (L.map safe (GHC.unpackCStringUtf8# a)))
+      = unpackCString# a #-}
 
 -- | /O(1)/ Convert a character into a Text.  Subject to fusion.
 -- Performs replacement on invalid scalar values.
