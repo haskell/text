@@ -26,6 +26,7 @@ module Data.Text.IO
     , appendFile
     -- * Operations on handles
     , hGetContents
+    , hGetChunk
     , hGetLine
     , hPutStr
     , hPutStrLn
@@ -96,6 +97,22 @@ writeFile p = withFile p WriteMode . flip hPutStr
 -- | Write a string the end of a file.
 appendFile :: FilePath -> Text -> IO ()
 appendFile p = withFile p AppendMode . flip hPutStr
+
+-- | Read a single chunk of strict text from a 'Handle'.
+hGetChunk :: Handle -> IO Text
+hGetChunk h = wantReadableHandle "hGetChunk" h readSingleChunk
+ where
+  readSingleChunk hh@Handle__{..} = do
+    let catchError e
+          | isEOFError e = do
+              buf <- readIORef haCharBuffer
+              return $ if isEmptyBuffer buf
+                       then T.empty
+                       else T.singleton '\r'
+          | otherwise = throwIO (augmentIOError e "hGetChunk" h)
+    buf <- readIORef haCharBuffer
+    t <- readChunk hh buf `catch` catchError
+    return (hh, t)
 
 -- | Read the remaining contents of a 'Handle' as a string.  The
 -- 'Handle' is closed once the contents have been read, or if an
