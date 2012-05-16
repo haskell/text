@@ -72,6 +72,10 @@ flag developer
   description: operate in developer mode
   default: False
 
+flag integer-simple
+  description: Use the simple integer library instead of GMP
+  default: False
+
 library
   c-sources: cbits/cbits.c
 
@@ -138,8 +142,13 @@ library
     cpp-options: -DASSERTS
 
   if impl(ghc >= 6.11)
-    cpp-options: -DINTEGER_GMP
-    build-depends: integer-gmp >= 0.2 && < 0.5
+    if flag(integer-simple)
+      cpp-options: -DINTEGER_SIMPLE
+      build-depends: integer-simple >= 0.1 && < 0.5
+    else
+      cpp-options: -DINTEGER_GMP
+      build-depends: integer-gmp >= 0.2 && < 0.5
+   
 
   if impl(ghc >= 6.9) && impl(ghc < 6.11)
     cpp-options: -DINTEGER_GMP

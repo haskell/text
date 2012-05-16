@@ -27,12 +27,16 @@ import GHC.Types (Int(..))
 #ifdef  __GLASGOW_HASKELL__
 # if __GLASGOW_HASKELL__ < 611
 import GHC.Integer.Internals
-# else
+# elif defined(INTEGER_GMP)
 import GHC.Integer.GMP.Internals
+# elif defined(INTEGER_SIMPLE)
+import GHC.Integer
+# else
+# error "You need to use either GMP or integer-simple."
 # endif
 #endif
 
-#ifdef INTEGER_GMP
+#if defined(INTEGER_GMP) || defined(INTEGER_SIMPLE)
 # define PAIR(a,b) (# a,b #)
 #else
 # define PAIR(a,b) (a,b)
@@ -93,8 +97,13 @@ int = decimal
 data T = T !Integer !Int
 
 integer :: Int -> Integer -> Builder
+#ifdef INTEGER_GMP
 integer 10 (S# i#) = decimal (I# i#)
 integer 16 (S# i#) = hexadecimal (I# i#)
+#else
+integer 10 i = decimal i
+integer 16 i = hexadecimal i
+#endif
 integer base i
     | i < 0     = singleton '-' <> go (-i)
     | otherwise = go i
