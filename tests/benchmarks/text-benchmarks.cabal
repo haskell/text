@@ -24,7 +24,7 @@ executable text-benchmarks
   cpp-options:    -DHAVE_DEEPSEQ
   build-depends:  base              >= 4   && < 5,
                   criterion         >= 0.5 && < 0.7,
-                  bytestring        >= 0.9 && < 0.10,
+                  bytestring        >= 0.9,
                   deepseq           >= 1.1 && < 1.2,
                   filepath          >= 1.1 && < 1.3,
                   directory         >= 1.1 && < 1.2,

@@ -124,7 +124,7 @@ library
   build-depends:
     array,
     base       < 5,
-    bytestring >= 0.9 && < 1.0
+    bytestring >= 0.9
   if impl(ghc >= 6.10)
     build-depends:
       ghc-prim, base >= 4, deepseq >= 1.1.0.0
@@ -168,7 +168,7 @@ test-suite tests
 
   build-depends:
     base                       >= 4   && < 5,
-    bytestring                 >= 0.9 && < 0.10,
+    bytestring                 >= 0.9,
     deepseq                    >= 1.1,
     ghc-prim,
     directory                  >= 1.0 && < 1.2,
