@@ -51,6 +51,7 @@ import Prelude (Bool(..), Char, Maybe(..), Monad(..), Int,
                 fromIntegral, otherwise)
 import Data.Bits ((.&.))
 import Data.Text.Internal (Text(..))
+import Data.Text.Private (Run(..), runText)
 import Data.Text.UnsafeChar (ord, unsafeChr, unsafeWrite)
 import Data.Text.UnsafeShift (shiftL, shiftR)
 import qualified Data.Text.Array as A
@@ -94,15 +95,15 @@ reverseStream (Text arr off len) = Stream next (off+len-1) (maxSize len)
 
 -- | /O(n)/ Convert a 'Stream Char' into a 'Text'.
 unstream :: Stream Char -> Text
-unstream (Stream next0 s0 len) = I.textP (P.fst a) 0 (P.snd a)
+unstream (Stream next0 s0 len) = a
   where
-    a = A.run2 (A.new mlen >>= \arr -> outer arr mlen s0 0)
+    a = runText (A.new mlen >>= \arr -> outer arr mlen s0 0)
       where mlen = upperBound 4 len
     outer arr top = loop
       where
         loop !s !i =
             case next0 s of
-              Done          -> return (arr, i)
+              Done          -> return (Run arr i)
               Skip s'       -> loop s' i
               Yield x s'
                 | j >= top  -> {-# SCC "unstream/resize" #-} do
