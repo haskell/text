@@ -97,10 +97,12 @@ reverseStream (Text arr off len) = Stream next (off+len-1) (maxSize len)
 unstream :: Stream Char -> Text
 unstream (Stream next0 s0 len) = a
   where
-    a = runText (\done -> A.new mlen >>= \arr -> outer done arr mlen s0 0)
+    a = runText (\done -> A.new mlen >>= \arr -> first done arr mlen s0 0)
       where mlen = upperBound 4 len
-    outer done arr top = loop
-      where
+    first done = outer
+     where
+      outer arr top = loop
+       where
         loop !s !i =
             case next0 s of
               Done          -> done arr i
@@ -110,7 +112,7 @@ unstream (Stream next0 s0 len) = a
                                let top' = (top + 1) `shiftL` 1
                                arr' <- A.new top'
                                A.copyM arr' 0 arr 0 top
-                               outer done arr' top' s i
+                               outer arr' top' s i
                 | otherwise -> do d <- unsafeWrite arr i x
                                   loop s' (i+d)
                 where j | ord x < 0x10000 = i
