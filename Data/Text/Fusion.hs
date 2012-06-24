@@ -95,13 +95,10 @@ reverseStream (Text arr off len) = Stream next (off+len-1) (maxSize len)
 
 -- | /O(n)/ Convert a 'Stream Char' into a 'Text'.
 unstream :: Stream Char -> Text
-unstream (Stream next0 s0 len) = a
-  where
-    a = runText (\done -> A.new mlen >>= \arr -> first done arr mlen s0 0)
-      where mlen = upperBound 4 len
-    first done = outer
-     where
-      outer arr top = loop
+unstream (Stream next0 s0 len) = runText $ \done -> do
+  let mlen = upperBound 4 len
+  arr0 <- A.new mlen
+  let outer arr top = loop
        where
         loop !s !i =
             case next0 s of
@@ -117,6 +114,7 @@ unstream (Stream next0 s0 len) = a
                                   loop s' (i+d)
                 where j | ord x < 0x10000 = i
                         | otherwise       = i + 1
+  outer arr0 mlen s0 0
 {-# INLINE [0] unstream #-}
 {-# RULES "STREAM stream/unstream fusion" forall s. stream (unstream s) = s #-}
 
