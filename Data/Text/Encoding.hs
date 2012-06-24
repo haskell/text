@@ -57,7 +57,8 @@ import Data.Bits ((.&.))
 import Data.ByteString as B
 import Data.ByteString.Internal as B
 import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode)
-import Data.Text.Internal (Text(..), textP)
+import Data.Text.Internal (Text(..))
+import Data.Text.Private (runText)
 import Data.Text.UnsafeChar (ord, unsafeWrite)
 import Data.Text.UnsafeShift (shiftL, shiftR)
 import Data.Word (Word8)
@@ -96,30 +97,30 @@ decodeASCII = decodeUtf8
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text.
 decodeUtf8With :: OnDecodeError -> ByteString -> Text
-decodeUtf8With onErr (PS fp off len) = textP (fst a) 0 (snd a)
+decodeUtf8With onErr (PS fp off len) = runText $ \done -> do
+  let go dest = withForeignPtr fp $ \ptr ->
+        with (0::CSize) $ \destOffPtr -> do
+          let end = ptr `plusPtr` (off + len)
+              loop curPtr = do
+                curPtr' <- c_decode_utf8 (A.maBA dest) destOffPtr curPtr end
+                if curPtr' == end
+                  then do
+                    n <- peek destOffPtr
+                    unsafeSTToIO (done dest (fromIntegral n))
+                  else do
+                    x <- peek curPtr'
+                    case onErr desc (Just x) of
+                      Nothing -> loop $ curPtr' `plusPtr` 1
+                      Just c -> do
+                        destOff <- peek destOffPtr
+                        w <- unsafeSTToIO $
+                             unsafeWrite dest (fromIntegral destOff) c
+                        poke destOffPtr (destOff + fromIntegral w)
+                        loop $ curPtr' `plusPtr` 1
+          loop (ptr `plusPtr` off)
+  (unsafeIOToST . go) =<< A.new len
  where
-  a = A.run2 (A.new len >>= unsafeIOToST . go)
   desc = "Data.Text.Encoding.decodeUtf8: Invalid UTF-8 stream"
-  go dest = withForeignPtr fp $ \ptr ->
-    with (0::CSize) $ \destOffPtr -> do
-      let end = ptr `plusPtr` (off + len)
-          loop curPtr = do
-            curPtr' <- c_decode_utf8 (A.maBA dest) destOffPtr curPtr end
-            if curPtr' == end
-              then do
-                n <- peek destOffPtr
-                return (dest,fromIntegral n)
-              else do
-                x <- peek curPtr'
-                case onErr desc (Just x) of
-                  Nothing -> loop $ curPtr' `plusPtr` 1
-                  Just c -> do
-                    destOff <- peek destOffPtr
-                    w <- unsafeSTToIO $
-                         unsafeWrite dest (fromIntegral destOff) c
-                    poke destOffPtr (destOff + fromIntegral w)
-                    loop $ curPtr' `plusPtr` 1
-      loop (ptr `plusPtr` off)
 {- INLINE[0] decodeUtf8With #-}
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text that is known
