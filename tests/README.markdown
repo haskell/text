@@ -1,8 +1,15 @@
 Tests
 =====
 
-This directory contains the tests for the Text library. To run these
-tests, you will need the test data from one of the following
+This directory contains the tests for the Text library.
+
+There are two categories of tests: functional tests (including QuickCheck
+properties) and benchmarks.
+
+Prerequisites
+-------------
+
+To run these tests, you will need the test data from one of the following
 locations:
 
 * Mercurial master repository:
@@ -11,12 +18,10 @@ locations:
 * Git mirror repository:
   [github.com/bos/text-test-data](https://github.com/bos/text-test-data)
 
-You should clone that repository to the same directory as this `README`
-file, then run `make` to uncompress the test files.  Many tests will
-fail if the test files are missing.
-
-There are two categories of tests: functional tests (including QuickCheck
-properties), and benchmarks.
+You should clone that repository to the same directory as this `README` file
+(your clone must be named `text-test-data` locally), then run `make -C
+text-test-data` to uncompress the test files.  Many tests will fail if the
+test files are missing.
 
 Functional tests
 ----------------
@@ -43,19 +48,19 @@ Benchmarks
 The benchmarks are located in the `benchmarks` subdirectory. An overview of
 what's in that directory:
 
-    python            Python implementations of some benchmarks
-    ruby              Ruby implementations of some benchmarks
-    src               Source files of the haskell benchmarks
-    benchmarks.cabal  Cabal file which compiles all benchmarks
-    Makefile          Has targets for common tasks
+    python                 Python implementations of some benchmarks
+    ruby                   Ruby implementations of some benchmarks
+    src                    Source files of the haskell benchmarks
+    text-benchmarks.cabal  Cabal file which compiles all benchmarks
+    Makefile               Has targets for common tasks
 
 To compile the benchmarks, navigate to the `benchmarks` subdirectory and run
 `cabal configure && cabal build`. Then, you can run the benchmarks using:
 
     ./dist/build/benchmarks/benchmarks
 
-However, since there quite a lot of benchmarks, you usually don't want to run
-them all. Instead, use the `-l` flag to get a list of benchmarks:
+However, since there's quite a lot of benchmarks, you usually don't want to
+run them all. Instead, use the `-l` flag to get a list of benchmarks:
 
     ./dist/build/benchmarks/benchmarks
 
