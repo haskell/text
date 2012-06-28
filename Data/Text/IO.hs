@@ -38,7 +38,11 @@ module Data.Text.IO
     ) where
 
 import Data.Text (Text)
-import Prelude hiding (appendFile, catch, getContents, getLine, interact,
+import Prelude hiding (appendFile,
+#if !MIN_VERSION_base(4,6,0)
+                       catch,
+#endif
+                       getContents, getLine, interact,
                        putStr, putStrLn, readFile, writeFile)
 import System.IO (Handle, IOMode(..), hPutChar, openFile, stdin, stdout,
                   withFile)
