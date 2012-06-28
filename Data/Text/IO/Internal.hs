@@ -32,7 +32,9 @@ import GHC.IO.Buffer (Buffer(..), CharBuffer, RawCharBuffer, bufferAdjustL,
                       withRawBuffer, writeCharBuf)
 import GHC.IO.Handle.Internals (ioe_EOF, readTextDevice, wantReadableHandle_)
 import GHC.IO.Handle.Types (Handle__(..), Newline(..))
+#if !MIN_VERSION_base(4,6,0)
 import Prelude hiding (catch)
+#endif
 import System.IO (Handle)
 import System.IO.Error (isEOFError)
 import qualified Data.Text as T

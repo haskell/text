@@ -26,7 +26,11 @@ import Data.Text.Read as T
 import Data.Text.Search (indices)
 import Data.Word (Word8, Word16, Word32)
 import Numeric (showHex)
-import Prelude hiding (catch, replicate)
+import Prelude hiding (
+#if !MIN_VERSION_base(4,6,0)
+  catch,
+#endif
+  replicate)
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import qualified Data.Bits as Bits (shiftL, shiftR)
