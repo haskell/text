@@ -60,7 +60,7 @@ extra-source-files:
     benchmarks/src/Data/Text/Benchmarks/*.hs
     benchmarks/text-benchmarks.cabal
     scripts/*.hs
-    tests/README.markdown
+    tests-and-benchmarks.markdown
     tests/.ghci
     tests/Makefile
     tests/scripts/*.sh

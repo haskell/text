@@ -1,16 +1,11 @@
-Tests
-=====
-
-This directory contains the tests for the Text library.
-
-There are two categories of tests: functional tests (including QuickCheck
-properties) and benchmarks.
+Tests and benchmarks
+====================
 
 Prerequisites
 -------------
 
-To run these tests, you will need the test data from one of the following
-locations:
+To run the tests and benchmarks, you will need the test data, which
+you can clone from one of the following locations:
 
 * Mercurial master repository:
   [bitbucket.org/bos/text-test-data](https://bitbucket.org/bos/text-test-data)
@@ -18,10 +13,10 @@ locations:
 * Git mirror repository:
   [github.com/bos/text-test-data](https://github.com/bos/text-test-data)
 
-You should clone that repository to the same directory as this `README` file
-(your clone must be named `text-test-data` locally), then run `make -C
-text-test-data` to uncompress the test files.  Many tests will fail if the
-test files are missing.
+You should clone that repository into the `tests` subdirectory (your
+clone must be named `text-test-data` locally), then run `make -C
+tests/text-test-data` to uncompress the test files.  Many tests and
+benchmarks will fail if the test files are missing.
 
 Functional tests
 ----------------
@@ -29,10 +24,10 @@ Functional tests
 The functional tests are located in the `tests` subdirectory. An overview of
 what's in that directory:
 
-    scripts           Various utility scripts
-    src               Source files of the testing code
-    text-tests.cabal  Cabal file which compiles all benchmarks
     Makefile          Has targets for common tasks
+    Tests             Source files of the testing code
+    scripts           Various utility scripts
+    text-tests.cabal  Cabal file that compiles all benchmarks
 
 The `text-tests.cabal` builds:
 
@@ -48,11 +43,11 @@ Benchmarks
 The benchmarks are located in the `benchmarks` subdirectory. An overview of
 what's in that directory:
 
+    Makefile               Has targets for common tasks
+    haskell                Source files of the haskell benchmarks
     python                 Python implementations of some benchmarks
     ruby                   Ruby implementations of some benchmarks
-    src                    Source files of the haskell benchmarks
     text-benchmarks.cabal  Cabal file which compiles all benchmarks
-    Makefile               Has targets for common tasks
 
 To compile the benchmarks, navigate to the `benchmarks` subdirectory and run
 `cabal configure && cabal build`. Then, you can run the benchmarks using:
@@ -65,4 +60,4 @@ run them all. Instead, use the `-l` flag to get a list of benchmarks:
     ./dist/build/benchmarks/benchmarks
 
 And run the ones you want to inspect. If you want to configure the benchmarks
-further, the exact parameters can be changed in `src/Data/Text/Benchmarks.hs`.
+further, the exact parameters can be changed in `Benchmarks.hs`.

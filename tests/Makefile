@@ -1,8 +1,12 @@
 coverage: build coverage/hpc_index.html
 
-build:
+build: text-test-data
 	cabal configure -fhpc
 	cabal build
+
+text-test-data:
+	hg clone https://bitbucket.org/bos/text-test-data
+	$(MAKE) -C text-test-data
 
 coverage/text-tests.tix:
 	-mkdir -p coverage
