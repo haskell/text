@@ -54,18 +54,18 @@ extra-source-files:
     README.markdown
     benchmarks/Setup.hs
     benchmarks/cbits/*.c
+    benchmarks/haskell/*.hs
+    benchmarks/haskell/Benchmarks/*.hs
     benchmarks/python/*.py
     benchmarks/ruby/*.rb
-    benchmarks/src/Data/Text/*.hs
-    benchmarks/src/Data/Text/Benchmarks/*.hs
     benchmarks/text-benchmarks.cabal
     scripts/*.hs
     tests-and-benchmarks.markdown
+    tests/*.hs
     tests/.ghci
     tests/Makefile
+    tests/Tests/*.hs
     tests/scripts/*.sh
-    tests/src/Data/Text/*.hs
-    tests/src/Data/Text/Tests/*.hs
     tests/text-tests.cabal
 
 flag developer
@@ -157,7 +157,7 @@ library
 test-suite tests
   type:           exitcode-stdio-1.0
   hs-source-dirs: . tests/tests/src
-  main-is:        Data/Text/Tests.hs
+  main-is:        tests/Tests.hs
   c-sources:      cbits/cbits.c
 
   ghc-options:
