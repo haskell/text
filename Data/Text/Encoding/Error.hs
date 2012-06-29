@@ -88,7 +88,7 @@ showUnicodeException (EncodeError desc (Just c))
     = "Cannot encode character '\\x" ++ showHex (fromEnum c) ("': " ++ desc)
 showUnicodeException (EncodeError desc Nothing)
     = "Cannot encode input: " ++ desc
-                     
+
 instance Show UnicodeException where
     show = showUnicodeException
 

@@ -14,7 +14,7 @@
 -- Horspool, Sunday, and Lundh.
 --
 -- References:
--- 
+--
 -- * R. S. Boyer, J. S. Moore: A Fast String Searching Algorithm.
 --   Communications of the ACM, 20, 10, 762-772 (1977)
 --

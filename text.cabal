@@ -3,7 +3,7 @@ version:        0.11.2.2
 homepage:       https://github.com/bos/text
 bug-reports:    https://github.com/bos/text/issues
 synopsis:       An efficient packed Unicode text type.
-description:    
+description:
     .
     An efficient packed, immutable Unicode text type (both strict and
     lazy), with a powerful loop fusion optimization framework.
@@ -148,7 +148,7 @@ library
     else
       cpp-options: -DINTEGER_GMP
       build-depends: integer-gmp >= 0.2 && < 0.5
-   
+
 
   if impl(ghc >= 6.9) && impl(ghc < 6.11)
     cpp-options: -DINTEGER_GMP

@@ -5,7 +5,7 @@
 -- Module      : Data.Text.Lazy.Builder
 -- Copyright   : (c) 2010 Johan Tibell
 -- License     : BSD3-style (see LICENSE)
--- 
+--
 -- Maintainer  : Johan Tibell <johan.tibell@gmail.com>
 -- Stability   : experimental
 -- Portability : portable to Hugs and GHC
@@ -139,7 +139,7 @@ append (Builder f) (Builder g) = Builder (f . g)
 
 -- TODO: Experiment to find the right threshold.
 copyLimit :: Int
-copyLimit = 128                                 
+copyLimit = 128
 
 -- This function attempts to merge small @Text@ values instead of
 -- treating each value as its own chunk.  We may not always want this.
@@ -292,14 +292,14 @@ append' (Builder f) (Builder g) = Builder (f . g)
 "append/writeAtMost" forall a b (f::forall s. A.MArray s -> Int -> ST s Int)
                            (g::forall s. A.MArray s -> Int -> ST s Int) ws.
     append (writeAtMost a f) (append (writeAtMost b g) ws) =
-        append (writeAtMost (a+b) (\marr o -> f marr o >>= \ n -> 
+        append (writeAtMost (a+b) (\marr o -> f marr o >>= \ n ->
                                     g marr (o+n) >>= \ m ->
                                     let s = n+m in s `seq` return s)) ws
 
 "writeAtMost/writeAtMost" forall a b (f::forall s. A.MArray s -> Int -> ST s Int)
                            (g::forall s. A.MArray s -> Int -> ST s Int).
     append (writeAtMost a f) (writeAtMost b g) =
-        writeAtMost (a+b) (\marr o -> f marr o >>= \ n -> 
+        writeAtMost (a+b) (\marr o -> f marr o >>= \ n ->
                             g marr (o+n) >>= \ m ->
                             let s = n+m in s `seq` return s)
 

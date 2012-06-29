@@ -16,7 +16,7 @@
 module Data.Text.Lazy.IO
     (
     -- * Performance
-    -- $performance 
+    -- $performance
 
     -- * Locale support
     -- $locale
@@ -119,7 +119,7 @@ lazyRead h = unsafeInterleaveIO $
     case haType hh of
       ClosedHandle     -> return (hh, L.empty)
       SemiClosedHandle -> lazyReadBuffered h hh
-      _                -> ioException 
+      _                -> ioException
                           (IOError (Just h) IllegalOperation "hGetContents"
                            "illegal handle type" Nothing Nothing)
 

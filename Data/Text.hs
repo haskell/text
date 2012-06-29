@@ -167,7 +167,7 @@ module Data.Text
     , partition
 
     -- , findSubstring
-    
+
     -- * Indexing
     -- $index
     , index
@@ -330,7 +330,7 @@ instance NFData Text
 
 -- This instance preserves data abstraction at the cost of inefficiency.
 -- We omit reflection services for the sake of data abstraction.
--- 
+--
 -- This instance was created by copying the behavior of Data.Set and
 -- Data.Map. If you feel a mistake has been made, please feel free to
 -- submit improvements.
@@ -1129,7 +1129,7 @@ findAIndexOrEnd q t@(Text _arr _off len) = go 0
     where go !i | i >= len || q c       = i
                 | otherwise             = go (i+d)
                 where Iter c d          = iter t i
-    
+
 -- | /O(n)/ Group characters in a string by equality.
 group :: Text -> [Text]
 group = groupBy (==)
@@ -1162,7 +1162,7 @@ tails t | null t    = [empty]
 -- > splitOn "\r\n" "a\r\nb\r\nd\r\ne" == ["a","b","d","e"]
 -- > splitOn "aaa"  "aaaXaaaXaaaXaaa"  == ["","X","X","X",""]
 -- > splitOn "x"    "x"                == ["",""]
--- 
+--
 -- and
 --
 -- > intercalate s . splitOn s         == id

@@ -88,7 +88,7 @@ text reader = foldl' go 1000000
   where
     go z t = case reader t of Left _       -> z
                               Right (n, _) -> min n z
-    
+
 byteString :: (Ord a, Num a) => (t -> Maybe (a,t)) -> [t] -> a
 byteString reader = foldl' go 1000000
   where

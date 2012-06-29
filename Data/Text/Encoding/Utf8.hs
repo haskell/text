@@ -146,7 +146,7 @@ validate3 x1 x2 x3 = validate3_1 || validate3_2 || validate3_3 || validate3_4
 validate4 :: Word8 -> Word8 -> Word8 -> Word8 -> Bool
 {-# INLINE validate4 #-}
 validate4 x1 x2 x3 x4 = validate4_1 || validate4_2 || validate4_3
-  where 
+  where
     validate4_1 = x1 == 0xF0 &&
                   between x2 0x90 0xBF &&
                   between x3 0x80 0xBF &&

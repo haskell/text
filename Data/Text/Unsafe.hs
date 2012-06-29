@@ -24,7 +24,7 @@ module Data.Text.Unsafe
     , takeWord16
     , dropWord16
     ) where
-     
+
 #if defined(ASSERTS)
 import Control.Exception (assert)
 #endif

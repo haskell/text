@@ -15,7 +15,7 @@ module Data.Text.Unsafe.Base
       inlineInterleaveST
     , inlinePerformIO
     ) where
-     
+
 import GHC.ST (ST(..))
 #if defined(__GLASGOW_HASKELL__)
 # if __GLASGOW_HASKELL__ >= 611

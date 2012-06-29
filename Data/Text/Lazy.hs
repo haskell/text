@@ -174,7 +174,7 @@ module Data.Text.Lazy
     , partition
 
     -- , findSubstring
-    
+
     -- * Indexing
     , index
     , count
@@ -921,7 +921,7 @@ drop i t0
     | otherwise = drop' i t0
   where drop' 0 ts           = ts
         drop' _ Empty        = Empty
-        drop' n (Chunk t ts) 
+        drop' n (Chunk t ts)
             | n < len   = Chunk (T.drop (fromIntegral n) t) ts
             | otherwise = drop' (n - len) ts
             where len   = fromIntegral (T.length t)
@@ -1209,7 +1209,7 @@ tails ts@(Chunk t ts')
 -- > splitOn "\r\n" "a\r\nb\r\nd\r\ne" == ["a","b","d","e"]
 -- > splitOn "aaa"  "aaaXaaaXaaaXaaa"  == ["","X","X","X",""]
 -- > splitOn "x"    "x"                == ["",""]
--- 
+--
 -- and
 --
 -- > intercalate s . splitOn s         == id

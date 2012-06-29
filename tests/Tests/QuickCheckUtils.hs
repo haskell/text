@@ -24,7 +24,7 @@ module Tests.QuickCheckUtils
     , eqP
 
     , Encoding (..)
-    
+
     , write_read
     ) where
 
@@ -67,7 +67,7 @@ genUnicode = fmap fromString string where
     string = sized $ \n ->
         do k <- choose (0,n)
            sequence [ char | _ <- [1..k] ]
-    
+
     excluding :: [a -> Bool] -> Gen a -> Gen a
     excluding bad gen = loop
       where
@@ -76,14 +76,14 @@ genUnicode = fmap fromString string where
           if or (map ($ x) bad)
             then loop
             else return x
-    
+
     reserved = [lowSurrogate, highSurrogate, noncharacter]
     lowSurrogate c = c >= 0xDC00 && c <= 0xDFFF
     highSurrogate c = c >= 0xD800 && c <= 0xDBFF
     noncharacter c = masked == 0xFFFE || masked == 0xFFFF
       where
-        masked = c .&. 0xFFFF 
-    
+        masked = c .&. 0xFFFF
+
     ascii = choose (0,0x7F)
     plane0 = choose (0xF0, 0xFFFF)
     plane1 = oneof [ choose (0x10000, 0x10FFF)
@@ -109,7 +109,7 @@ genUnicode = fmap fromString string where
                    ]
     plane14 = choose (0xE0000, 0xE0FFF)
     planes = [ascii, plane0, plane1, plane2, plane14]
-    
+
     char = chr `fmap` excluding reserved (oneof planes)
 
 -- For tests that have O(n^2) running times or input sizes, resize

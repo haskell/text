@@ -85,8 +85,8 @@ hGetLineLoop hh@Handle__{..} = go where
 maybeFillReadBuffer :: Handle__ -> CharBuffer -> IO (Maybe CharBuffer)
 maybeFillReadBuffer handle_ buf
   = catch (Just `fmap` getSomeCharacters handle_ buf) $ \e ->
-      if isEOFError e 
-      then return Nothing 
+      if isEOFError e
+      then return Nothing
       else ioError e
 
 unpack :: RawCharBuffer -> Int -> Int -> IO Text

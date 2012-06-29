@@ -8,7 +8,7 @@
 --               duncan@haskell.org
 -- Stability   : experimental
 -- Portability : GHC
--- 
+--
 -- A module containing private 'Text' internals. This exposes the
 -- 'Text' representation and low level construction functions.
 -- Modules which extend the 'Text' system may need to use this module.

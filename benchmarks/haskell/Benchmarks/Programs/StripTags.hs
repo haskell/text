@@ -14,7 +14,7 @@
 module Benchmarks.Programs.StripTags
     ( benchmark
     ) where
-     
+
 import Criterion (Benchmark, bgroup, bench)
 import Data.List (mapAccumL)
 import System.IO (Handle, hPutStr)

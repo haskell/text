@@ -16,7 +16,7 @@
 module Data.Text.IO
     (
     -- * Performance
-    -- $performance 
+    -- $performance
 
     -- * Locale support
     -- $locale
@@ -133,7 +133,7 @@ hGetContents h = do
     ts <- readChunks
     (hh', _) <- hClose_help hh
     return (hh'{haType=ClosedHandle}, T.concat ts)
-  
+
 -- | Use a more efficient buffer size if we're reading in
 -- block-buffered mode with the default buffer size.  When we can
 -- determine the size of the handle we're reading, set the buffer size
@@ -167,7 +167,7 @@ hPutStr h = B.hPutStr h . encodeUtf8
 #else
 -- This function is lifted almost verbatim from GHC.IO.Handle.Text.
 hPutStr h t = do
-  (buffer_mode, nl) <- 
+  (buffer_mode, nl) <-
        wantWritableHandle "hPutStr" h $ \h_ -> do
                      bmode <- getSpareBuffer h_
                      return (bmode, haOutputNL h_)
@@ -249,7 +249,7 @@ writeBlocksRaw h buf0 (Stream next0 s0 _len) = outer s0 buf0
 
 -- This function is completely lifted from GHC.IO.Handle.Text.
 getSpareBuffer :: Handle__ -> IO (BufferMode, CharBuffer)
-getSpareBuffer Handle__{haCharBuffer=ref, 
+getSpareBuffer Handle__{haCharBuffer=ref,
                         haBuffers=spare_ref,
                         haBufferMode=mode}
  = do
@@ -270,7 +270,7 @@ getSpareBuffer Handle__{haCharBuffer=ref,
 -- This function is completely lifted from GHC.IO.Handle.Text.
 commitBuffer :: Handle -> RawCharBuffer -> Int -> Int -> Bool -> Bool
              -> IO CharBuffer
-commitBuffer hdl !raw !sz !count flush release = 
+commitBuffer hdl !raw !sz !count flush release =
   wantWritableHandle "commitAndReleaseBuffer" hdl $
      commitBuffer' raw sz count flush release
 {-# INLINE commitBuffer #-}
