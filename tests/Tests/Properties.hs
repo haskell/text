@@ -41,6 +41,7 @@ import qualified Data.Text.IO as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Builder as TB
 import qualified Data.Text.Lazy.Builder.Int as TB
+import qualified Data.Text.Lazy.Builder.RealFloat as TB
 import qualified Data.Text.Lazy.Encoding as EL
 import qualified Data.Text.Lazy.Fusion as SL
 import qualified Data.Text.Lazy.IO as TL
@@ -655,6 +656,12 @@ tb_hexadecimal_word16 (a::Word16) = tb_hex a
 tb_hexadecimal_word32 (a::Word32) = tb_hex a
 tb_hexadecimal_word64 (a::Word64) = tb_hex a
 
+tb_realfloat :: (RealFloat a, Show a) => a -> Bool
+tb_realfloat = (TB.toLazyText . TB.realFloat) `eq` (TL.pack . show)
+
+tb_realfloat_float (a::Float) = tb_realfloat a
+tb_realfloat_double (a::Double) = tb_realfloat a
+
 -- Reading.
 
 t_decimal (n::Int) s =
@@ -1140,6 +1147,10 @@ tests =
         testProperty "tb_hexadecimal_word16" tb_hexadecimal_word16,
         testProperty "tb_hexadecimal_word32" tb_hexadecimal_word32,
         testProperty "tb_hexadecimal_word64" tb_hexadecimal_word64
+      ],
+      testGroup "realfloat" [
+        testProperty "tb_realfloat_double" tb_realfloat_double,
+        testProperty "tb_realfloat_float" tb_realfloat_float
       ],
       testProperty "tb_fromText" tb_fromText,
       testProperty "tb_singleton" tb_singleton

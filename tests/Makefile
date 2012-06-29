@@ -10,7 +10,7 @@ text-test-data:
 
 coverage/text-tests.tix:
 	-mkdir -p coverage
-	./dist/build/text-tests/text-tests
+	./dist/build/text-tests/text-tests -a 10000 -j8
 	mv text-tests.tix $@
 
 coverage/text-tests-stdio.tix:
