@@ -16,6 +16,7 @@ import Text.Show.Functions ()
 import Control.Arrow ((***), second)
 import Control.Exception (catch)
 import Data.Char (chr, isDigit, isHexDigit, isLower, isSpace, isUpper, ord)
+import Data.Int (Int8)
 import Data.Monoid (Monoid(..))
 import Data.String (fromString)
 import Data.Text.Encoding.Error
@@ -39,6 +40,7 @@ import qualified Data.Text.Fusion.Common as S
 import qualified Data.Text.IO as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Builder as TB
+import qualified Data.Text.Lazy.Builder.Int as TB
 import qualified Data.Text.Lazy.Encoding as EL
 import qualified Data.Text.Lazy.Fusion as SL
 import qualified Data.Text.Lazy.IO as TL
@@ -610,16 +612,23 @@ shiftR_Word32 = shiftR :: Word32 -> Property
 
 -- Builder.
 
-t_builderSingleton = id `eqP`
-                     (unpackS . TB.toLazyText . mconcat . map TB.singleton)
-t_builderFromText = L.concat `eq` (unpackS . TB.toLazyText . mconcat .
+tb_singleton = id `eqP`
+               (unpackS . TB.toLazyText . mconcat . map TB.singleton)
+tb_fromText = L.concat `eq` (unpackS . TB.toLazyText . mconcat .
                                    map (TB.fromText . packS))
-t_builderAssociative s1 s2 s3 =
+tb_associative s1 s2 s3 =
     TB.toLazyText (b1 `mappend` (b2 `mappend` b3)) ==
     TB.toLazyText ((b1 `mappend` b2) `mappend` b3)
   where b1 = TB.fromText (packS s1)
         b2 = TB.fromText (packS s2)
         b3 = TB.fromText (packS s3)
+
+-- Numeric builder stuff.
+
+tb_decimal :: (Integral a, Show a) => a -> Bool
+tb_decimal = (TB.toLazyText . TB.decimal) `eq` (TL.pack . show)
+
+tb_decimal_int8 (a::Int8) = tb_decimal a
 
 -- Reading.
 
@@ -691,7 +700,7 @@ s_filter_eq s = S.filter p t == S.streamList (filter p s)
 -- themselves.
 shorten :: Int -> S.Stream a -> S.Stream a
 shorten n t@(S.Stream arr off len)
-    | n > 0     = S.Stream arr off (smaller (exactSize n) len) 
+    | n > 0     = S.Stream arr off (smaller (exactSize n) len)
     | otherwise = t
 
 tests :: Test
@@ -1080,9 +1089,10 @@ tests =
     ],
 
     testGroup "builder" [
-      testProperty "t_builderSingleton" t_builderSingleton,
-      testProperty "t_builderFromText" t_builderFromText,
-      testProperty "t_builderAssociative" t_builderAssociative
+      testProperty "tb_associative" tb_associative,
+      testProperty "tb_decimal_int8" tb_decimal_int8,
+      testProperty "tb_fromText" tb_fromText,
+      testProperty "tb_singleton" tb_singleton
     ],
 
     testGroup "read" [
