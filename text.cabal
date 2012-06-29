@@ -61,12 +61,12 @@ extra-source-files:
     benchmarks/text-benchmarks.cabal
     scripts/*.hs
     tests/README.markdown
-    tests/tests/.ghci
-    tests/tests/Makefile
-    tests/tests/scripts/*.sh
-    tests/tests/src/Data/Text/*.hs
-    tests/tests/src/Data/Text/Tests/*.hs
-    tests/tests/text-tests.cabal
+    tests/.ghci
+    tests/Makefile
+    tests/scripts/*.sh
+    tests/src/Data/Text/*.hs
+    tests/src/Data/Text/Tests/*.hs
+    tests/text-tests.cabal
 
 flag developer
   description: operate in developer mode

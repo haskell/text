@@ -1,5 +1,5 @@
 {-# LANGUAGE BangPatterns #-}
-module Data.Text.Tests.SlowFunctions
+module Tests.SlowFunctions
     (
       indices
     , splitOn

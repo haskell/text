@@ -4,7 +4,7 @@
              ScopedTypeVariables, TypeSynonymInstances, CPP #-}
 {-# OPTIONS_GHC -fno-enable-rewrite-rules #-}
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
-module Data.Text.Tests.Properties
+module Tests.Properties
     (
       tests
     ) where
@@ -46,9 +46,9 @@ import qualified Data.Text.Lazy.Search as S (indices)
 import qualified Data.Text.UnsafeShift as U
 import qualified System.IO as IO
 
-import Data.Text.Tests.QuickCheckUtils
-import Data.Text.Tests.Utils
-import qualified Data.Text.Tests.SlowFunctions as Slow
+import Tests.QuickCheckUtils
+import Tests.Utils
+import qualified Tests.SlowFunctions as Slow
 
 t_pack_unpack       = (T.unpack . T.pack) `eq` id
 tl_pack_unpack      = (TL.unpack . TL.pack) `eq` id

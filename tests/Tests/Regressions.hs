@@ -1,7 +1,7 @@
 -- | Regression tests for specific bugs.
 --
 {-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
-module Data.Text.Tests.Regressions
+module Tests.Regressions
     (
       tests
     ) where
@@ -18,7 +18,7 @@ import qualified Data.Text.Lazy.Encoding as LE
 import qualified Test.Framework as F
 import qualified Test.Framework.Providers.HUnit as F
 
-import Data.Text.Tests.Utils (withTempFile)
+import Tests.Utils (withTempFile)
 
 -- Reported by Michael Snoyman: UTF-8 encoding a large lazy bytestring
 -- caused either a segfault or attempt to allocate a negative number

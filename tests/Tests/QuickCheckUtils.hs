@@ -1,10 +1,10 @@
 -- | This module provides quickcheck utilities, e.g. arbitrary and show
 -- instances, and comparison functions, so we can focus on the actual properties
--- in the 'Data.Text.Tests.Properties' module.
+-- in the 'Tests.Properties' module.
 --
 {-# LANGUAGE CPP, FlexibleInstances, TypeSynonymInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-module Data.Text.Tests.QuickCheckUtils
+module Tests.QuickCheckUtils
     (
       genUnicode
     , unsquare
@@ -50,7 +50,7 @@ import qualified Data.Text.Lazy.Fusion as TLF
 import qualified Data.Text.Lazy.Internal as TL
 import qualified System.IO as IO
 
-import Data.Text.Tests.Utils
+import Tests.Utils
 
 instance Random I16 where
     randomR = integralRandomR

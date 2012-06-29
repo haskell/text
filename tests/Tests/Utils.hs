@@ -1,7 +1,7 @@
 -- | Miscellaneous testing utilities
 --
 {-# LANGUAGE ScopedTypeVariables #-}
-module Data.Text.Tests.Utils
+module Tests.Utils
     (
       (=^=)
     , withRedirect
