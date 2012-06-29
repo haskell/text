@@ -16,7 +16,7 @@ import Text.Show.Functions ()
 import Control.Arrow ((***), second)
 import Control.Exception (catch)
 import Data.Char (chr, isDigit, isHexDigit, isLower, isSpace, isUpper, ord)
-import Data.Int (Int8)
+import Data.Int (Int8, Int16, Int32, Int64)
 import Data.Monoid (Monoid(..))
 import Data.String (fromString)
 import Data.Text.Encoding.Error
@@ -25,7 +25,7 @@ import Data.Text.Fusion.Size
 import Data.Text.Lazy.Read as TL
 import Data.Text.Read as T
 import Data.Text.Search (indices)
-import Data.Word (Word8, Word16, Word32)
+import Data.Word (Word, Word8, Word16, Word32, Word64)
 import Numeric (showHex)
 import Prelude hiding (catch, replicate)
 import Test.Framework (Test, testGroup)
@@ -628,7 +628,32 @@ tb_associative s1 s2 s3 =
 tb_decimal :: (Integral a, Show a) => a -> Bool
 tb_decimal = (TB.toLazyText . TB.decimal) `eq` (TL.pack . show)
 
+tb_decimal_integer (a::Integer) = tb_decimal a
+tb_decimal_int (a::Int) = tb_decimal a
 tb_decimal_int8 (a::Int8) = tb_decimal a
+tb_decimal_int16 (a::Int16) = tb_decimal a
+tb_decimal_int32 (a::Int32) = tb_decimal a
+tb_decimal_int64 (a::Int64) = tb_decimal a
+tb_decimal_word (a::Word) = tb_decimal a
+tb_decimal_word8 (a::Word8) = tb_decimal a
+tb_decimal_word16 (a::Word16) = tb_decimal a
+tb_decimal_word32 (a::Word32) = tb_decimal a
+tb_decimal_word64 (a::Word64) = tb_decimal a
+
+tb_hex :: (Integral a, Show a) => a -> Bool
+tb_hex = (TB.toLazyText . TB.hexadecimal) `eq` (TL.pack . flip showHex "")
+
+tb_hexadecimal_integer (a::Integer) = tb_hex a
+tb_hexadecimal_int (a::Int) = tb_hex a
+tb_hexadecimal_int8 (a::Int8) = tb_hex a
+tb_hexadecimal_int16 (a::Int16) = tb_hex a
+tb_hexadecimal_int32 (a::Int32) = tb_hex a
+tb_hexadecimal_int64 (a::Int64) = tb_hex a
+tb_hexadecimal_word (a::Word) = tb_hex a
+tb_hexadecimal_word8 (a::Word8) = tb_hex a
+tb_hexadecimal_word16 (a::Word16) = tb_hex a
+tb_hexadecimal_word32 (a::Word32) = tb_hex a
+tb_hexadecimal_word64 (a::Word64) = tb_hex a
 
 -- Reading.
 
@@ -1090,7 +1115,32 @@ tests =
 
     testGroup "builder" [
       testProperty "tb_associative" tb_associative,
-      testProperty "tb_decimal_int8" tb_decimal_int8,
+      testGroup "decimal" [
+        testProperty "tb_decimal_int" tb_decimal_int,
+        testProperty "tb_decimal_int8" tb_decimal_int8,
+        testProperty "tb_decimal_int16" tb_decimal_int16,
+        testProperty "tb_decimal_int32" tb_decimal_int32,
+        testProperty "tb_decimal_int64" tb_decimal_int64,
+        testProperty "tb_decimal_integer" tb_decimal_integer,
+        testProperty "tb_decimal_word" tb_decimal_word,
+        testProperty "tb_decimal_word8" tb_decimal_word8,
+        testProperty "tb_decimal_word16" tb_decimal_word16,
+        testProperty "tb_decimal_word32" tb_decimal_word32,
+        testProperty "tb_decimal_word64" tb_decimal_word64
+      ],
+      testGroup "hexadecimal" [
+        testProperty "tb_hexadecimal_int" tb_hexadecimal_int,
+        testProperty "tb_hexadecimal_int8" tb_hexadecimal_int8,
+        testProperty "tb_hexadecimal_int16" tb_hexadecimal_int16,
+        testProperty "tb_hexadecimal_int32" tb_hexadecimal_int32,
+        testProperty "tb_hexadecimal_int64" tb_hexadecimal_int64,
+        testProperty "tb_hexadecimal_integer" tb_hexadecimal_integer,
+        testProperty "tb_hexadecimal_word" tb_hexadecimal_word,
+        testProperty "tb_hexadecimal_word8" tb_hexadecimal_word8,
+        testProperty "tb_hexadecimal_word16" tb_hexadecimal_word16,
+        testProperty "tb_hexadecimal_word32" tb_hexadecimal_word32,
+        testProperty "tb_hexadecimal_word64" tb_hexadecimal_word64
+      ],
       testProperty "tb_fromText" tb_fromText,
       testProperty "tb_singleton" tb_singleton
     ],
