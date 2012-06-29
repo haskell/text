@@ -4,7 +4,7 @@
 --
 -- * Search and replace of a pattern in a text
 --
-module Data.Text.Benchmarks.Replace
+module Benchmarks.Replace
     ( benchmark
     ) where
 

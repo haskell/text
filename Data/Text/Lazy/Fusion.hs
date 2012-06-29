@@ -47,6 +47,8 @@ stream text = Stream next (text :*: 0) unknownSize
         where Iter c d = iter t i
 {-# INLINE [0] stream #-}
 
+data UC s = UC s {-# UNPACK #-} !Int
+
 -- | /O(n)/ Convert a 'Stream Char' into a 'Text', using the given
 -- chunk size.
 unstreamChunks :: Int -> Stream Char -> Text
@@ -59,12 +61,12 @@ unstreamChunks chunkSize (Stream next s0 len0)
                 Done       -> Empty
                 Skip s'    -> outer s'
                 Yield x s' -> I.Text arr 0 len `chunk` outer s''
-                  where (arr,(s'',len)) = A.run2 fill
+                  where (arr, UC s'' len) = A.run2 fill
                         fill = do a <- A.new unknownLength
                                   unsafeWrite a 0 x >>= inner a unknownLength s'
                         unknownLength = 4
     inner marr len s !i
-        | i + 1 >= chunkSize = return (marr, (s,i))
+        | i + 1 >= chunkSize = return (marr, UC s i)
         | i + 1 >= len       = {-# SCC "unstreamChunks/resize" #-} do
             let newLen = min (len `shiftL` 1) chunkSize
             marr' <- A.new newLen
@@ -73,7 +75,7 @@ unstreamChunks chunkSize (Stream next s0 len0)
         | otherwise =
             {-# SCC "unstreamChunks/inner" #-}
             case next s of
-              Done        -> return (marr,(s,i))
+              Done        -> return (marr, UC s i)
               Skip s'     -> inner marr len s' i
               Yield x s'  -> do d <- unsafeWrite marr i x
                                 inner marr len s' (i+d)

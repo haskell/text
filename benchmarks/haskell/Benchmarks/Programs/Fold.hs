@@ -13,7 +13,7 @@
 -- * Writing back to a handle
 --
 {-# LANGUAGE OverloadedStrings #-}
-module Data.Text.Benchmarks.Programs.Fold
+module Benchmarks.Programs.Fold
     ( benchmark
     ) where
 

@@ -6,7 +6,7 @@
 -- * Buffered, line-based IO
 --
 {-# LANGUAGE BangPatterns #-}
-module Data.Text.Benchmarks.FoldLines
+module Benchmarks.FoldLines
     ( benchmark
     ) where
 

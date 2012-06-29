@@ -4,7 +4,7 @@
 --
 -- * Reading a file from the disk
 --
-module Data.Text.Benchmarks.FileRead
+module Benchmarks.FileRead
     ( benchmark
     ) where
 

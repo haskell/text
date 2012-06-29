@@ -7,7 +7,7 @@
 -- * Writing to a handle
 --
 {-# LANGUAGE OverloadedStrings #-}
-module Data.Text.Benchmarks.Programs.BigTable
+module Benchmarks.Programs.BigTable
     ( benchmark
     ) where
 

@@ -14,7 +14,7 @@
 --
 -- * Writing back to a handle
 --
-module Data.Text.Benchmarks.Programs.Throughput
+module Benchmarks.Programs.Throughput
     ( benchmark
     ) where
 

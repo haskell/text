@@ -5,7 +5,7 @@
 -- * Concatenating many small strings using a builder
 --
 {-# LANGUAGE OverloadedStrings #-}
-module Data.Text.Benchmarks.Builder
+module Benchmarks.Builder
     ( benchmark
     ) where
 

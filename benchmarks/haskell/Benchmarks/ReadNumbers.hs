@@ -16,7 +16,7 @@
 --
 -- * Lexing/parsing of different numerical types
 --
-module Data.Text.Benchmarks.ReadNumbers
+module Benchmarks.ReadNumbers
     ( benchmark
     ) where
 

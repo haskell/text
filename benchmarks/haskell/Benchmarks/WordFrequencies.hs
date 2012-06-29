@@ -8,7 +8,7 @@
 --
 -- * Comparing: Eq/Ord instances
 --
-module Data.Text.Benchmarks.WordFrequencies
+module Benchmarks.WordFrequencies
     ( benchmark
     ) where
 

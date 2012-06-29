@@ -9,25 +9,25 @@ import Criterion.Main (Benchmark, defaultMain, bgroup)
 import System.FilePath ((</>))
 import System.IO (IOMode (WriteMode), openFile, hSetEncoding, utf8)
 
-import qualified Data.Text.Benchmarks.Builder as Builder
-import qualified Data.Text.Benchmarks.DecodeUtf8 as DecodeUtf8
-import qualified Data.Text.Benchmarks.EncodeUtf8 as EncodeUtf8
-import qualified Data.Text.Benchmarks.Equality as Equality
-import qualified Data.Text.Benchmarks.FileRead as FileRead
-import qualified Data.Text.Benchmarks.FoldLines as FoldLines
-import qualified Data.Text.Benchmarks.Pure as Pure
-import qualified Data.Text.Benchmarks.ReadNumbers as ReadNumbers
-import qualified Data.Text.Benchmarks.Replace as Replace
-import qualified Data.Text.Benchmarks.Search as Search
-import qualified Data.Text.Benchmarks.Stream as Stream
-import qualified Data.Text.Benchmarks.WordFrequencies as WordFrequencies
+import qualified Benchmarks.Builder as Builder
+import qualified Benchmarks.DecodeUtf8 as DecodeUtf8
+import qualified Benchmarks.EncodeUtf8 as EncodeUtf8
+import qualified Benchmarks.Equality as Equality
+import qualified Benchmarks.FileRead as FileRead
+import qualified Benchmarks.FoldLines as FoldLines
+import qualified Benchmarks.Pure as Pure
+import qualified Benchmarks.ReadNumbers as ReadNumbers
+import qualified Benchmarks.Replace as Replace
+import qualified Benchmarks.Search as Search
+import qualified Benchmarks.Stream as Stream
+import qualified Benchmarks.WordFrequencies as WordFrequencies
 
-import qualified Data.Text.Benchmarks.Programs.BigTable as Programs.BigTable
-import qualified Data.Text.Benchmarks.Programs.Cut as Programs.Cut
-import qualified Data.Text.Benchmarks.Programs.Fold as Programs.Fold
-import qualified Data.Text.Benchmarks.Programs.Sort as Programs.Sort
-import qualified Data.Text.Benchmarks.Programs.StripTags as Programs.StripTags
-import qualified Data.Text.Benchmarks.Programs.Throughput as Programs.Throughput
+import qualified Benchmarks.Programs.BigTable as Programs.BigTable
+import qualified Benchmarks.Programs.Cut as Programs.Cut
+import qualified Benchmarks.Programs.Fold as Programs.Fold
+import qualified Benchmarks.Programs.Sort as Programs.Sort
+import qualified Benchmarks.Programs.StripTags as Programs.StripTags
+import qualified Benchmarks.Programs.Throughput as Programs.Throughput
 
 main :: IO ()
 main = benchmarks >>= defaultMain

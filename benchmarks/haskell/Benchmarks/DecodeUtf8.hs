@@ -14,7 +14,7 @@
 --
 -- The latter are used for testing stream fusion.
 --
-module Data.Text.Benchmarks.DecodeUtf8
+module Benchmarks.DecodeUtf8
     ( benchmark
     ) where
 

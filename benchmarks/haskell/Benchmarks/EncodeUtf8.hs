@@ -6,7 +6,7 @@
 --
 -- * UTF-8 encoding it
 --
-module Data.Text.Benchmarks.EncodeUtf8
+module Benchmarks.EncodeUtf8
     ( benchmark
     ) where
 

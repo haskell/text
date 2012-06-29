@@ -49,18 +49,18 @@ category:       Data, Text
 build-type:     Simple
 cabal-version:  >= 1.8
 extra-source-files:
-    README.markdown
     -- scripts/CaseFolding.txt
     -- scripts/SpecialCasing.txt
+    README.markdown
+    benchmarks/Setup.hs
+    benchmarks/cbits/*.c
+    benchmarks/python/*.py
+    benchmarks/ruby/*.rb
+    benchmarks/src/Data/Text/*.hs
+    benchmarks/src/Data/Text/Benchmarks/*.hs
+    benchmarks/text-benchmarks.cabal
     scripts/*.hs
     tests/README.markdown
-    tests/benchmarks/Setup.hs
-    tests/benchmarks/cbits/*.c
-    tests/benchmarks/python/*.py
-    tests/benchmarks/ruby/*.rb
-    tests/benchmarks/src/Data/Text/*.hs
-    tests/benchmarks/src/Data/Text/Benchmarks/*.hs
-    tests/benchmarks/text-benchmarks.cabal
     tests/tests/.ghci
     tests/tests/Makefile
     tests/tests/scripts/*.sh

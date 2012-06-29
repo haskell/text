@@ -4,7 +4,7 @@
 --
 -- * Searching all occurences of a pattern using library routines
 --
-module Data.Text.Benchmarks.Search
+module Benchmarks.Search
     ( benchmark
     ) where
 

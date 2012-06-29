@@ -5,7 +5,7 @@
 --
 -- * Comparison of strings (Eq instance)
 --
-module Data.Text.Benchmarks.Equality
+module Benchmarks.Equality
     ( benchmark
     ) where
 

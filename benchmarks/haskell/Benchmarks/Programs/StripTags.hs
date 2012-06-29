@@ -11,7 +11,7 @@
 -- * Writing back to a handle
 --
 {-# OPTIONS_GHC -fspec-constr-count=5 #-}
-module Data.Text.Benchmarks.Programs.StripTags
+module Benchmarks.Programs.StripTags
     ( benchmark
     ) where
      

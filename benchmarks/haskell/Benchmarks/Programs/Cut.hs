@@ -12,7 +12,7 @@
 --
 -- * Writing back to a handle
 --
-module Data.Text.Benchmarks.Programs.Cut
+module Benchmarks.Programs.Cut
     ( benchmark
     ) where
 
