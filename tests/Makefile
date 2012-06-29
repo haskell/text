@@ -1,3 +1,5 @@
+count = 1000
+
 coverage: build coverage/hpc_index.html
 
 build: text-test-data
@@ -10,7 +12,7 @@ text-test-data:
 
 coverage/text-tests.tix:
 	-mkdir -p coverage
-	./dist/build/text-tests/text-tests -a 10000 -j8
+	./dist/build/text-tests/text-tests -a $(count)
 	mv text-tests.tix $@
 
 coverage/text-tests-stdio.tix:
