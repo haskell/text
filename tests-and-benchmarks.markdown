@@ -52,12 +52,12 @@ what's in that directory:
 To compile the benchmarks, navigate to the `benchmarks` subdirectory and run
 `cabal configure && cabal build`. Then, you can run the benchmarks using:
 
-    ./dist/build/benchmarks/benchmarks
+    ./dist/build/text-benchmarks/text-benchmarks
 
 However, since there's quite a lot of benchmarks, you usually don't want to
 run them all. Instead, use the `-l` flag to get a list of benchmarks:
 
-    ./dist/build/benchmarks/benchmarks
+    ./dist/build/text-benchmarks/text-benchmarks
 
 And run the ones you want to inspect. If you want to configure the benchmarks
 further, the exact parameters can be changed in `Benchmarks.hs`.
