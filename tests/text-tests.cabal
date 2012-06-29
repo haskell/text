@@ -69,35 +69,35 @@ library
     Data.Text.Array
     Data.Text.Encoding
     Data.Text.Encoding.Error
-    Data.Text.Foreign
-    Data.Text.IO
-    Data.Text.Internal
-    Data.Text.Lazy
-    Data.Text.Lazy.Builder
-    Data.Text.Lazy.Builder.Int
-    Data.Text.Lazy.Builder.RealFloat
-    Data.Text.Lazy.Encoding
-    Data.Text.Lazy.IO
-    Data.Text.Lazy.Internal
-    Data.Text.Lazy.Read
-    Data.Text.Read
     Data.Text.Encoding.Fusion
     Data.Text.Encoding.Fusion.Common
     Data.Text.Encoding.Utf16
     Data.Text.Encoding.Utf32
     Data.Text.Encoding.Utf8
+    Data.Text.Foreign
     Data.Text.Fusion
     Data.Text.Fusion.CaseMapping
     Data.Text.Fusion.Common
     Data.Text.Fusion.Internal
     Data.Text.Fusion.Size
+    Data.Text.IO
     Data.Text.IO.Internal
+    Data.Text.Internal
+    Data.Text.Lazy
+    Data.Text.Lazy.Builder
     Data.Text.Lazy.Builder.Functions
+    Data.Text.Lazy.Builder.Int
+    Data.Text.Lazy.Builder.RealFloat
     Data.Text.Lazy.Builder.RealFloat.Functions
+    Data.Text.Lazy.Encoding
     Data.Text.Lazy.Encoding.Fusion
     Data.Text.Lazy.Fusion
+    Data.Text.Lazy.IO
+    Data.Text.Lazy.Internal
+    Data.Text.Lazy.Read
     Data.Text.Lazy.Search
     Data.Text.Private
+    Data.Text.Read
     Data.Text.Search
     Data.Text.Unsafe
     Data.Text.Unsafe.Base
