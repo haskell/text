@@ -1,6 +1,6 @@
 {-# LANGUAGE BangPatterns, CPP, MagicHash, UnboxedTuples #-}
 
--- Module:      Data.Text.Lazy.Builder.Int
+-- Module:      Data.Text.Lazy.Builder.Intxo
 -- Copyright:   (c) 2011 MailRank, Inc.
 -- License:     BSD3
 -- Maintainer:  Bryan O'Sullivan <bos@serpentine.com>
@@ -19,6 +19,7 @@ import Data.Int (Int8, Int16, Int32, Int64)
 import Data.Monoid (mempty)
 import Data.Text.Lazy.Builder.Functions ((<>), i2d)
 import Data.Text.Lazy.Builder
+import Data.Text.Lazy (pack)
 import Data.Word (Word, Word8, Word16, Word32, Word64)
 import GHC.Base (quotInt, remInt)
 import GHC.Num (quotRemInteger)
@@ -43,23 +44,51 @@ import GHC.Integer
 #endif
 
 decimal :: Integral a => a -> Builder
-{-# SPECIALIZE decimal :: Int -> Builder #-}
 {-# SPECIALIZE decimal :: Int8 -> Builder #-}
-{-# SPECIALIZE decimal :: Int16 -> Builder #-}
-{-# SPECIALIZE decimal :: Int32 -> Builder #-}
-{-# SPECIALIZE decimal :: Int64 -> Builder #-}
-{-# SPECIALIZE decimal :: Word -> Builder #-}
-{-# SPECIALIZE decimal :: Word8 -> Builder #-}
-{-# SPECIALIZE decimal :: Word16 -> Builder #-}
-{-# SPECIALIZE decimal :: Word32 -> Builder #-}
-{-# SPECIALIZE decimal :: Word64 -> Builder #-}
+{-# RULES "decimal/Int" decimal = boundedDecimal :: Int -> Builder #-}
+{-# RULES "decimal/Int16" decimal = boundedDecimal :: Int16 -> Builder #-}
+{-# RULES "decimal/Int32" decimal = boundedDecimal :: Int32 -> Builder #-}
+{-# RULES "decimal/Int64" decimal = boundedDecimal :: Int64 -> Builder #-}
+{-# RULES "decimal/Word" decimal = positive :: Word -> Builder #-}
+{-# RULES "decimal/Word8" decimal = positive :: Word8 -> Builder #-}
+{-# RULES "decimal/Word16" decimal = positive :: Word16 -> Builder #-}
+{-# RULES "decimal/Word32" decimal = positive :: Word32 -> Builder #-}
+{-# RULES "decimal/Word64" decimal = positive :: Word64 -> Builder #-}
 {-# RULES "decimal/Integer" decimal = integer 10 :: Integer -> Builder #-}
 decimal i
-    | i < 0     = singleton '-' <> go (-i)
-    | otherwise = go i
-  where
-    go n | n < 10    = digit n
-         | otherwise = go (n `quot` 10) <> digit (n `rem` 10)
+  | i < 0     = singleton '-' <>
+                if i <= -128
+                then positive (-(i `quot` 10)) <> digit (-(i `rem` 10))
+                else positive (-i)
+  | otherwise = positive i
+
+boundedDecimal :: (Integral a, Bounded a) => a -> Builder
+{-# SPECIALIZE boundedDecimal :: Int -> Builder #-}
+{-# SPECIALIZE boundedDecimal :: Int8 -> Builder #-}
+{-# SPECIALIZE boundedDecimal :: Int16 -> Builder #-}
+{-# SPECIALIZE boundedDecimal :: Int32 -> Builder #-}
+{-# SPECIALIZE boundedDecimal :: Int64 -> Builder #-}
+boundedDecimal i
+    | i < 0     = singleton '-' <>
+                  if i == minBound
+                  then positive (-(i `quot` 10)) <> digit (-(i `rem` 10))
+                  else positive (-i)
+    | otherwise = positive i
+
+positive :: (Integral a) => a -> Builder
+{-# SPECIALIZE positive :: Int -> Builder #-}
+{-# SPECIALIZE positive :: Int8 -> Builder #-}
+{-# SPECIALIZE positive :: Int16 -> Builder #-}
+{-# SPECIALIZE positive :: Int32 -> Builder #-}
+{-# SPECIALIZE positive :: Int64 -> Builder #-}
+{-# SPECIALIZE positive :: Word -> Builder #-}
+{-# SPECIALIZE positive :: Word8 -> Builder #-}
+{-# SPECIALIZE positive :: Word16 -> Builder #-}
+{-# SPECIALIZE positive :: Word32 -> Builder #-}
+{-# SPECIALIZE positive :: Word64 -> Builder #-}
+positive = go
+  where go n | n < 10    = digit n
+             | otherwise = go (n `quot` 10) <> digit (n `rem` 10)
 
 hexadecimal :: Integral a => a -> Builder
 {-# SPECIALIZE hexadecimal :: Int -> Builder #-}
@@ -74,11 +103,12 @@ hexadecimal :: Integral a => a -> Builder
 {-# SPECIALIZE hexadecimal :: Word64 -> Builder #-}
 {-# RULES "hexadecimal/Integer" hexadecimal = integer 16 :: Integer -> Builder #-}
 hexadecimal i
-    | i < 0     = singleton '-' <> go (-i)
+    | i < 0     = error msg
     | otherwise = go i
   where
     go n | n < 16    = hexDigit n
          | otherwise = go (n `quot` 16) <> hexDigit (n `rem` 16)
+    msg = "Data.Text.Lazy.Builder.Int.hexadecimal: applied to negative number"
 
 digit :: Integral a => a -> Builder
 digit n = singleton $! i2d (fromIntegral n)
