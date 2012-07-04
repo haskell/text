@@ -1,6 +1,6 @@
 {-# LANGUAGE BangPatterns, CPP, MagicHash, UnboxedTuples #-}
 
--- Module:      Data.Text.Lazy.Builder.Intxo
+-- Module:      Data.Text.Lazy.Builder.Int
 -- Copyright:   (c) 2011 MailRank, Inc.
 -- License:     BSD3
 -- Maintainer:  Bryan O'Sullivan <bos@serpentine.com>
