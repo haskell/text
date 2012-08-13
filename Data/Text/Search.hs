@@ -39,6 +39,8 @@ import Data.Text.Fusion.Internal (PairS(..))
 import Data.Bits ((.|.), (.&.))
 import Data.Text.UnsafeShift (shiftL)
 
+data T = {-# UNPACK #-} !Word64 :* {-# UNPACK #-} !Int
+
 -- | /O(n+m)/ Find the offsets of all non-overlapping indices of
 -- @needle@ within @haystack@.  The offsets returned represent
 -- locations in the low-level array.
@@ -60,9 +62,8 @@ indices _needle@(Text narr noff nlen) _haystack@(Text harr hoff hlen)
     hindex k = A.unsafeIndex harr (hoff+k)
     hindex' k | k == hlen  = 0
               | otherwise = A.unsafeIndex harr (hoff+k)
-    (mask :: Word64) :*: skip  = buildTable 0 0 (nlen-2)
     buildTable !i !msk !skp
-        | i >= nlast           = (msk .|. swizzle z) :*: skp
+        | i >= nlast           = (msk .|. swizzle z) :* skp
         | otherwise            = buildTable (i+1) (msk .|. swizzle c) skp'
         where c                = nindex i
               skp' | c == z    = nlen - i - 2
@@ -81,6 +82,7 @@ indices _needle@(Text narr noff nlen) _haystack@(Text harr hoff hlen)
                     | c == z        = skip + 1
                     | otherwise     = 1
               nextInPattern         = mask .&. swizzle (hindex' (i+nlen)) == 0
+              !(mask :* skip)       = buildTable 0 0 (nlen-2)
     scanOne c = loop 0
         where loop !i | i >= hlen     = []
                       | hindex i == c = i : loop (i+1)
