@@ -35,3 +35,12 @@ executable text-benchmarks
                   ghc-prim,
                   stringsearch,
                   utf8-string
+
+executable text-multilang
+  hs-source-dirs: haskell
+  main-is:        Multilang.hs
+  ghc-options:    -Wall -O2
+  build-depends:  base == 4.*,
+                  bytestring,
+                  text,
+                  time
