@@ -35,7 +35,6 @@ module Data.Text.Search
 import qualified Data.Text.Array as A
 import Data.Word (Word64)
 import Data.Text.Internal (Text(..))
-import Data.Text.Fusion.Internal (PairS(..))
 import Data.Bits ((.|.), (.&.))
 import Data.Text.UnsafeShift (shiftL)
 

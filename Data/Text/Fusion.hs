@@ -60,7 +60,6 @@ import Data.Text.Fusion.Internal
 import Data.Text.Fusion.Size
 import qualified Data.Text.Internal as I
 import qualified Data.Text.Encoding.Utf16 as U16
-import qualified Prelude as P
 
 default(Int)
 

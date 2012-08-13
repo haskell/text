@@ -19,7 +19,6 @@ import Data.Int (Int8, Int16, Int32, Int64)
 import Data.Monoid (mempty)
 import Data.Text.Lazy.Builder.Functions ((<>), i2d)
 import Data.Text.Lazy.Builder
-import Data.Text.Lazy (pack)
 import Data.Word (Word, Word8, Word16, Word32, Word64)
 import GHC.Base (quotInt, remInt)
 import GHC.Num (quotRemInteger)
