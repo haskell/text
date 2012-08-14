@@ -38,7 +38,7 @@ module Data.Text.Lazy.IO
     ) where
 
 import Data.Text.Lazy (Text)
-import Prelude hiding (appendFile, catch, getContents, getLine, interact,
+import Prelude hiding (appendFile, getContents, getLine, interact,
                        putStr, putStrLn, readFile, writeFile)
 import System.IO (Handle, IOMode(..), hPutChar, openFile, stdin, stdout,
                   withFile)
@@ -49,7 +49,7 @@ import Data.Text.Lazy.Encoding (decodeUtf8)
 import qualified Data.ByteString.Char8 as S8
 import qualified Data.ByteString.Lazy.Char8 as L8
 #else
-import Control.Exception (catch, throwIO)
+import qualified Control.Exception as E
 import Control.Monad (when)
 import Data.IORef (readIORef)
 import Data.Text.IO.Internal (hGetLineWith, readChunk)
@@ -128,13 +128,13 @@ lazyReadBuffered h hh@Handle__{..} = do
    buf <- readIORef haCharBuffer
    (do t <- readChunk hh buf
        ts <- lazyRead h
-       return (hh, chunk t ts)) `catch` \e -> do
+       return (hh, chunk t ts)) `E.catch` \e -> do
          (hh', _) <- hClose_help hh
          if isEOFError e
            then return $ if isEmptyBuffer buf
                          then (hh', empty)
                          else (hh', L.singleton '\r')
-           else throwIO (augmentIOError e "hGetContents" h)
+           else E.throwIO (augmentIOError e "hGetContents" h)
 #endif
 
 -- | Read a single line from a handle.
