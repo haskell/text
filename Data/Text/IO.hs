@@ -38,7 +38,7 @@ module Data.Text.IO
     ) where
 
 import Data.Text (Text)
-import Prelude hiding (appendFile, catch, getContents, getLine, interact,
+import Prelude hiding (appendFile, getContents, getLine, interact,
                        putStr, putStrLn, readFile, writeFile)
 import System.IO (Handle, IOMode(..), hPutChar, openFile, stdin, stdout,
                   withFile)
@@ -46,7 +46,7 @@ import System.IO (Handle, IOMode(..), hPutChar, openFile, stdin, stdout,
 import qualified Data.ByteString.Char8 as B
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 #else
-import Control.Exception (catch, throwIO)
+import qualified Control.Exception as E
 import Control.Monad (liftM2, when)
 import Data.IORef (readIORef, writeIORef)
 import qualified Data.Text as T
@@ -123,10 +123,10 @@ hGetContents h = do
               return $ if isEmptyBuffer buf
                        then T.empty
                        else T.singleton '\r'
-          | otherwise = throwIO (augmentIOError e "hGetContents" h)
+          | otherwise = E.throwIO (augmentIOError e "hGetContents" h)
         readChunks = do
           buf <- readIORef haCharBuffer
-          t <- readChunk hh buf `catch` catchError
+          t <- readChunk hh buf `E.catch` catchError
           if T.null t
             then return [t]
             else (t:) `fmap` readChunks
@@ -144,10 +144,10 @@ chooseGoodBuffering h = do
   bufMode <- hGetBuffering h
   case bufMode of
     BlockBuffering Nothing -> do
-      d <- catch (liftM2 (-) (hFileSize h) (hTell h)) $ \(e::IOException) ->
+      d <- E.catch (liftM2 (-) (hFileSize h) (hTell h)) $ \(e::IOException) ->
            if ioe_type e == InappropriateType
            then return 16384 -- faster than the 2KB default
-           else throwIO e
+           else E.throwIO e
       when (d > 0) . hSetBuffering h . BlockBuffering . Just . fromIntegral $ d
     _ -> return ()
 #endif

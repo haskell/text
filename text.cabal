@@ -147,7 +147,7 @@ library
       build-depends: integer-simple >= 0.1 && < 0.5
     else
       cpp-options: -DINTEGER_GMP
-      build-depends: integer-gmp >= 0.2 && < 0.5
+      build-depends: integer-gmp >= 0.2 && < 0.6
 
 
   if impl(ghc >= 6.9) && impl(ghc < 6.11)
