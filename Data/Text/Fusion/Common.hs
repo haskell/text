@@ -776,7 +776,6 @@ isPrefixOf (Stream next1 s1 _) (Stream next2 s2 _) = loop (next1 s1) (next2 s2)
       loop (Yield x1 s1') (Yield x2 s2') = x1 == x2 &&
                                            loop (next1 s1') (next2 s2')
 {-# INLINE [0] isPrefixOf #-}
-{-# SPECIALISE isPrefixOf :: Stream Char -> Stream Char -> Bool #-}
 
 -- ----------------------------------------------------------------------------
 -- * Searching
