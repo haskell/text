@@ -98,20 +98,22 @@ writeFile p = withFile p WriteMode . flip hPutStr
 appendFile :: FilePath -> Text -> IO ()
 appendFile p = withFile p AppendMode . flip hPutStr
 
+catchError :: String -> Handle -> Handle__ -> IOError -> IO Text
+catchError caller h Handle__{..} err
+    | isEOFError err = do
+        buf <- readIORef haCharBuffer
+        return $ if isEmptyBuffer buf
+                 then T.empty
+                 else T.singleton '\r'
+    | otherwise = E.throwIO (augmentIOError err caller h)
+
 -- | Read a single chunk of strict text from a 'Handle'.
 hGetChunk :: Handle -> IO Text
 hGetChunk h = wantReadableHandle "hGetChunk" h readSingleChunk
  where
   readSingleChunk hh@Handle__{..} = do
-    let catchError e
-          | isEOFError e = do
-              buf <- readIORef haCharBuffer
-              return $ if isEmptyBuffer buf
-                       then T.empty
-                       else T.singleton '\r'
-          | otherwise = throwIO (augmentIOError e "hGetChunk" h)
     buf <- readIORef haCharBuffer
-    t <- readChunk hh buf `catch` catchError
+    t <- readChunk hh buf `E.catch` catchError "hGetChunk" h hh
     return (hh, t)
 
 -- | Read the remaining contents of a 'Handle' as a string.  The
@@ -134,16 +136,9 @@ hGetContents h = do
   wantReadableHandle "hGetContents" h readAll
  where
   readAll hh@Handle__{..} = do
-    let catchError e
-          | isEOFError e = do
-              buf <- readIORef haCharBuffer
-              return $ if isEmptyBuffer buf
-                       then T.empty
-                       else T.singleton '\r'
-          | otherwise = E.throwIO (augmentIOError e "hGetContents" h)
-        readChunks = do
+    let readChunks = do
           buf <- readIORef haCharBuffer
-          t <- readChunk hh buf `E.catch` catchError
+          t <- readChunk hh buf `E.catch` catchError "hGetContents" h hh
           if T.null t
             then return [t]
             else (t:) `fmap` readChunks
