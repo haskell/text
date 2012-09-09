@@ -107,7 +107,13 @@ catchError caller h Handle__{..} err
                  else T.singleton '\r'
     | otherwise = E.throwIO (augmentIOError err caller h)
 
--- | Read a single chunk of strict text from a 'Handle'.
+-- | /Experimental./ Read a single chunk of strict text from a
+-- 'Handle'. The size of the chunk depends on the amount of input
+-- currently buffered.
+--
+-- This function blocks only if there is no data available, and EOF
+-- has not yet been reached. Once EOF is reached, this function
+-- returns an empty string instead of throwing an exception.
 hGetChunk :: Handle -> IO Text
 hGetChunk h = wantReadableHandle "hGetChunk" h readSingleChunk
  where
