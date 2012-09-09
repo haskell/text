@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings,CPP #-}
+{-# LANGUAGE OverloadedStrings, CPP #-}
 #if __GLASGOW_HASKELL__ >= 702
 {-# LANGUAGE Trustworthy #-}
 #endif
