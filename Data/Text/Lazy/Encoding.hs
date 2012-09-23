@@ -20,6 +20,7 @@ module Data.Text.Lazy.Encoding
     -- * Decoding ByteStrings to Text
     -- $strict
       decodeASCII
+    , decodeLatin1
     , decodeUtf8
     , decodeUtf16LE
     , decodeUtf16BE
@@ -74,10 +75,14 @@ import qualified Data.Text.Lazy.Fusion as F
 -- | /Deprecated/.  Decode a 'ByteString' containing 7-bit ASCII
 -- encoded text.
 --
--- This function is deprecated.  Use 'decodeUtf8' instead.
+-- This function is deprecated.  Use 'decodeLatin1' instead.
 decodeASCII :: B.ByteString -> Text
 decodeASCII = decodeUtf8
 {-# DEPRECATED decodeASCII "Use decodeUtf8 instead" #-}
+
+-- | Decode a 'ByteString' containing Latin-1 (aka ISO-8859-1) encoded text.
+decodeLatin1 :: B.ByteString -> Text
+decodeLatin1 = foldr (chunk . TE.decodeLatin1) empty . B.toChunks
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text.
 decodeUtf8With :: OnDecodeError -> B.ByteString -> Text
