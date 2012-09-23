@@ -62,6 +62,20 @@ decode(uint32_t *state, uint32_t* codep, uint32_t byte) {
 }
 
 /*
+ * The ISO 8859-1 (aka latin-1) code points correspond exactly to the first 256 unicode
+ * code-points, therefore we can trivially convert from a latin-1 encoded bytestring to
+ * an UTF16 array
+ */
+void
+_hs_text_decode_latin1(uint16_t *dest, const uint8_t const *src,
+                       const uint8_t const *srcend)
+{
+  const uint8_t *p = src;
+  while (p != srcend)
+    *dest++ = *p++;
+}
+
+/*
  * A best-effort decoder. Runs until it hits either end of input or
  * the start of an invalid byte sequence.
  *
