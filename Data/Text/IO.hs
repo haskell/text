@@ -26,6 +26,7 @@ module Data.Text.IO
     , appendFile
     -- * Operations on handles
     , hGetContents
+    , hGetChunk
     , hGetLine
     , hPutStr
     , hPutStrLn
@@ -97,6 +98,30 @@ writeFile p = withFile p WriteMode . flip hPutStr
 appendFile :: FilePath -> Text -> IO ()
 appendFile p = withFile p AppendMode . flip hPutStr
 
+catchError :: String -> Handle -> Handle__ -> IOError -> IO Text
+catchError caller h Handle__{..} err
+    | isEOFError err = do
+        buf <- readIORef haCharBuffer
+        return $ if isEmptyBuffer buf
+                 then T.empty
+                 else T.singleton '\r'
+    | otherwise = E.throwIO (augmentIOError err caller h)
+
+-- | /Experimental./ Read a single chunk of strict text from a
+-- 'Handle'. The size of the chunk depends on the amount of input
+-- currently buffered.
+--
+-- This function blocks only if there is no data available, and EOF
+-- has not yet been reached. Once EOF is reached, this function
+-- returns an empty string instead of throwing an exception.
+hGetChunk :: Handle -> IO Text
+hGetChunk h = wantReadableHandle "hGetChunk" h readSingleChunk
+ where
+  readSingleChunk hh@Handle__{..} = do
+    buf <- readIORef haCharBuffer
+    t <- readChunk hh buf `E.catch` catchError "hGetChunk" h hh
+    return (hh, t)
+
 -- | Read the remaining contents of a 'Handle' as a string.  The
 -- 'Handle' is closed once the contents have been read, or if an
 -- exception is thrown.
@@ -117,16 +142,9 @@ hGetContents h = do
   wantReadableHandle "hGetContents" h readAll
  where
   readAll hh@Handle__{..} = do
-    let catchError e
-          | isEOFError e = do
-              buf <- readIORef haCharBuffer
-              return $ if isEmptyBuffer buf
-                       then T.empty
-                       else T.singleton '\r'
-          | otherwise = E.throwIO (augmentIOError e "hGetContents" h)
-        readChunks = do
+    let readChunks = do
           buf <- readIORef haCharBuffer
-          t <- readChunk hh buf `E.catch` catchError
+          t <- readChunk hh buf `E.catch` catchError "hGetContents" h hh
           if T.null t
             then return [t]
             else (t:) `fmap` readChunks
