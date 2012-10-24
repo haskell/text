@@ -114,7 +114,7 @@ instance IArray (MArray s) where
 -- | Create an uninitialized mutable array.
 new :: forall s. Int -> ST s (MArray s)
 new n
-  | n < 0 || n .&. highBit /= 0 = error $ "Data.Text.Array.new: size overflow"
+  | n < 0 || n .&. highBit /= 0 = array_size_error
   | otherwise = ST $ \s1# ->
        case newByteArray# len# s1# of
          (# s2#, marr# #) -> (# s2#, MArray marr#
@@ -125,6 +125,9 @@ new n
   where !(I# len#) = bytesInArray n
         highBit    = maxBound `xor` (maxBound `shiftR` 1)
 {-# INLINE new #-}
+
+array_size_error :: a
+array_size_error = error "Data.Text.Array.new: size overflow"
 
 -- | Freeze a mutable array. Do not mutate the 'MArray' afterwards!
 unsafeFreeze :: MArray s -> ST s Array
