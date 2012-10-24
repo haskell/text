@@ -61,7 +61,7 @@ unstreamChunks !chunkSize (Stream next s0 len0)
               case next s of
                 Done       -> Empty
                 Skip s'    -> outer s'
-                Yield x s' -> t `chunk` outer s''
+                Yield x s' -> t `Chunk` outer s''
                   where UC t s'' = runST fill
                         fill = do a <- A.new unknownLength
                                   unsafeWrite a 0 x >>= inner a unknownLength s'
