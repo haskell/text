@@ -218,8 +218,12 @@ head (Stream next s0 _len) = loop_head s0
       loop_head !s = case next s of
                       Yield x _ -> x
                       Skip s'   -> loop_head s'
-                      Done      -> streamError "head" "Empty stream"
+                      Done      -> head_empty
 {-# INLINE [0] head #-}
+
+head_empty :: a
+head_empty = streamError "head" "Empty stream"
+{-# NOINLINE head_empty #-}
 
 -- | /O(1)/ Returns the first character and remainder of a 'Stream
 -- Char', or 'Nothing' if empty.  Subject to array fusion.
