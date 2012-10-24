@@ -172,7 +172,7 @@ data C s = C0 !s
 
 -- | /O(n)/ Adds a character to the front of a Stream Char.
 cons :: Char -> Stream Char -> Stream Char
-cons w (Stream next0 s0 len) = Stream next (C1 s0) (len+1)
+cons !w (Stream next0 s0 len) = Stream next (C1 s0) (len+1)
     where
       next (C1 s) = Yield w (C0 s)
       next (C0 s) = case next0 s of
