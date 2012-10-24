@@ -52,7 +52,7 @@ data UC s = UC s {-# UNPACK #-} !Int
 -- | /O(n)/ Convert a 'Stream Char' into a 'Text', using the given
 -- chunk size.
 unstreamChunks :: Int -> Stream Char -> Text
-unstreamChunks chunkSize (Stream next s0 len0)
+unstreamChunks !chunkSize (Stream next s0 len0)
   | isEmpty len0 = Empty
   | otherwise    = outer s0
   where
@@ -65,7 +65,7 @@ unstreamChunks chunkSize (Stream next s0 len0)
                         fill = do a <- A.new unknownLength
                                   unsafeWrite a 0 x >>= inner a unknownLength s'
                         unknownLength = 4
-    inner marr len s !i
+    inner marr !len s !i
         | i + 1 >= chunkSize = return (marr, UC s i)
         | i + 1 >= len       = {-# SCC "unstreamChunks/resize" #-} do
             let newLen = min (len `shiftL` 1) chunkSize

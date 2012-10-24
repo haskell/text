@@ -181,6 +181,7 @@ run2 k = runST (do
                  (marr,b) <- k
                  arr <- unsafeFreeze marr
                  return (arr,b))
+{-# INLINE run2 #-}
 
 -- | Copy some elements of a mutable array.
 copyM :: MArray s               -- ^ Destination
