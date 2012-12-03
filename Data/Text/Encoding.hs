@@ -1,5 +1,8 @@
 {-# LANGUAGE BangPatterns, CPP, ForeignFunctionInterface, MagicHash,
     UnliftedFFITypes #-}
+#if __GLASGOW_HASKELL__ >= 702
+{-# LANGUAGE Trustworthy #-}
+#endif
 -- |
 -- Module      : Data.Text.Encoding
 -- Copyright   : (c) 2009, 2010, 2011 Bryan O'Sullivan,
@@ -23,6 +26,7 @@ module Data.Text.Encoding
     -- * Decoding ByteStrings to Text
     -- $strict
       decodeASCII
+    , decodeLatin1
     , decodeUtf8
     , decodeUtf16LE
     , decodeUtf16BE
@@ -57,7 +61,7 @@ import Data.Bits ((.&.))
 import Data.ByteString as B
 import Data.ByteString.Internal as B
 import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode)
-import Data.Text.Internal (Text(..))
+import Data.Text.Internal (Text(..), textP)
 import Data.Text.Private (runText)
 import Data.Text.UnsafeChar (ord, unsafeWrite)
 import Data.Text.UnsafeShift (shiftL, shiftR)
@@ -90,10 +94,22 @@ import qualified Data.Text.Fusion as F
 -- | /Deprecated/.  Decode a 'ByteString' containing 7-bit ASCII
 -- encoded text.
 --
--- This function is deprecated.  Use 'decodeUtf8' instead.
+-- This function is deprecated.  Use 'decodeLatin1' instead.
 decodeASCII :: ByteString -> Text
 decodeASCII = decodeUtf8
 {-# DEPRECATED decodeASCII "Use decodeUtf8 instead" #-}
+
+-- | Decode a 'ByteString' containing Latin-1 (aka ISO-8859-1) encoded text.
+--
+-- 'decodeLatin1' is semantically equivalent to
+--  @Data.Text.pack . Data.ByteString.Char8.unpack@
+decodeLatin1 :: ByteString -> Text
+decodeLatin1 (PS fp off len) = textP a 0 len
+ where
+  a = A.run (A.new len >>= unsafeIOToST . go)
+  go dest = withForeignPtr fp $ \ptr -> do
+    c_decode_latin1 (A.maBA dest) (ptr `plusPtr` off) (ptr `plusPtr` (off+len))
+    return dest
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text.
 decodeUtf8With :: OnDecodeError -> ByteString -> Text
@@ -279,3 +295,6 @@ encodeUtf32BE txt = E.unstream (E.restreamUtf32BE (F.stream txt))
 foreign import ccall unsafe "_hs_text_decode_utf8" c_decode_utf8
     :: MutableByteArray# s -> Ptr CSize
     -> Ptr Word8 -> Ptr Word8 -> IO (Ptr Word8)
+
+foreign import ccall unsafe "_hs_text_decode_latin1" c_decode_latin1
+    :: MutableByteArray# s -> Ptr Word8 -> Ptr Word8 -> IO ()

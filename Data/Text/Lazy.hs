@@ -1,5 +1,8 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE BangPatterns, MagicHash, CPP #-}
+#if __GLASGOW_HASKELL__ >= 702
+{-# LANGUAGE Trustworthy #-}
+#endif
 -- |
 -- Module      : Data.Text.Lazy
 -- Copyright   : (c) 2009, 2010, 2012 Bryan O'Sullivan

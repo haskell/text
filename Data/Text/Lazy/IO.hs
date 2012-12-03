@@ -1,4 +1,7 @@
 {-# LANGUAGE BangPatterns, CPP, RecordWildCards #-}
+#if __GLASGOW_HASKELL__ >= 702
+{-# LANGUAGE Trustworthy #-}
+#endif
 -- |
 -- Module      : Data.Text.Lazy.IO
 -- Copyright   : (c) 2009, 2010 Bryan O'Sullivan,
