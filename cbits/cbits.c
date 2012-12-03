@@ -62,6 +62,44 @@ decode(uint32_t *state, uint32_t* codep, uint32_t byte) {
 }
 
 /*
+ * The ISO 8859-1 (aka latin-1) code points correspond exactly to the first 256 unicode
+ * code-points, therefore we can trivially convert from a latin-1 encoded bytestring to
+ * an UTF16 array
+ */
+void
+_hs_text_decode_latin1(uint16_t *dest, const uint8_t const *src,
+                       const uint8_t const *srcend)
+{
+  const uint8_t *p = src;
+
+#if defined(__i386__) || defined(__x86_64__)
+  /* This optimization works on a little-endian systems by using
+     (aligned) 32-bit loads instead of 8-bit loads
+   */
+
+  /* consume unaligned prefix */
+  while (p != srcend && (uintptr_t)p & 0x3)
+    *dest++ = *p++;
+
+  /* iterate over 32-bit aligned loads */
+  while (p < srcend - 3) {
+    const uint32_t w = *((const uint32_t *)p);
+
+    *dest++ =  w        & 0xff;
+    *dest++ = (w >> 8)  & 0xff;
+    *dest++ = (w >> 16) & 0xff;
+    *dest++ = (w >> 24) & 0xff;
+
+    p += 4;
+  }
+#endif
+
+  /* handle unaligned suffix */
+  while (p != srcend)
+    *dest++ = *p++;
+}
+
+/*
  * A best-effort decoder. Runs until it hits either end of input or
  * the start of an invalid byte sequence.
  *
