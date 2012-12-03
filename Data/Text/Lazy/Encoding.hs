@@ -1,4 +1,7 @@
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns,CPP #-}
+#if __GLASGOW_HASKELL__ >= 702
+{-# LANGUAGE Trustworthy #-}
+#endif
 -- |
 -- Module      : Data.Text.Lazy.Encoding
 -- Copyright   : (c) 2009, 2010 Bryan O'Sullivan
