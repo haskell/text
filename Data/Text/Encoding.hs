@@ -61,7 +61,7 @@ import Data.Bits ((.&.))
 import Data.ByteString as B
 import Data.ByteString.Internal as B
 import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode)
-import Data.Text.Internal (Text(..), textP)
+import Data.Text.Internal (Text(..), safe, textP)
 import Data.Text.Private (runText)
 import Data.Text.UnsafeChar (ord, unsafeWrite)
 import Data.Text.UnsafeShift (shiftL, shiftR)
@@ -130,7 +130,7 @@ decodeUtf8With onErr (PS fp off len) = runText $ \done -> do
                       Just c -> do
                         destOff <- peek destOffPtr
                         w <- unsafeSTToIO $
-                             unsafeWrite dest (fromIntegral destOff) c
+                             unsafeWrite dest (fromIntegral destOff) (safe c)
                         poke destOffPtr (destOff + fromIntegral w)
                         loop $ curPtr' `plusPtr` 1
           loop (ptr `plusPtr` off)

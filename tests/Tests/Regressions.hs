@@ -8,10 +8,11 @@ module Tests.Regressions
 
 import Control.Exception (SomeException, handle)
 import System.IO
-import Test.HUnit (assertFailure)
+import Test.HUnit (assertBool, assertFailure)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as LB
 import qualified Data.Text as T
+import qualified Data.Text.Encoding as TE
 import qualified Data.Text.IO as T
 import qualified Data.Text.Lazy as LT
 import qualified Data.Text.Lazy.Encoding as LE
@@ -49,9 +50,18 @@ replicate_crash = handle (\(_::SomeException) -> return ()) $
     power | maxBound == (2147483647::Int) = 28
           | otherwise                     = 60 :: Int
 
+-- Reported by John Millikin: a UTF-8 decode error handler could
+-- return a bogus substitution character, which we would write without
+-- checking.
+utf8_decode_unsafe :: IO ()
+utf8_decode_unsafe = do
+  let t = TE.decodeUtf8With (\_ _ -> Just '\xdc00') "\x80"
+  assertBool "broken error recovery shouldn't break us" (t == "\xfffd")
+
 tests :: F.Test
 tests = F.testGroup "Regressions"
     [ F.testCase "hGetContents_crash" hGetContents_crash
     , F.testCase "lazy_encode_crash" lazy_encode_crash
     , F.testCase "replicate_crash" replicate_crash
+    , F.testCase "utf8_decode_unsafe" utf8_decode_unsafe
     ]
