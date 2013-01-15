@@ -18,7 +18,7 @@ module Benchmarks.DecodeUtf8
     ( benchmark
     ) where
 
-import Foreign.C.Types (CInt, CSize)
+import Foreign.C.Types
 import Data.ByteString.Internal (ByteString(..))
 import Foreign.Ptr (Ptr, plusPtr)
 import Foreign.ForeignPtr (withForeignPtr)
