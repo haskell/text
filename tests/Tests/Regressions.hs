@@ -10,6 +10,7 @@ import Control.Exception (SomeException, handle)
 import System.IO
 import Test.HUnit (assertBool, assertFailure)
 import qualified Data.ByteString as B
+import Data.ByteString.Char8 ()
 import qualified Data.ByteString.Lazy as LB
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
