@@ -4,7 +4,7 @@
 --
 -- * Most pure functions defined the string types
 --
-{-# LANGUAGE BangPatterns, GADTs, MagicHash #-}
+{-# LANGUAGE BangPatterns, CPP, GADTs, MagicHash #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Benchmarks.Pure
     ( benchmark
@@ -425,11 +425,13 @@ benchmark fp = do
     replicat n = concat . L.replicate n
     short = T.pack "short"
 
+#if !MIN_VERSION_bytestring(0,10,0)
 instance NFData BS.ByteString
 
 instance NFData BL.ByteString where
     rnf BL.Empty        = ()
     rnf (BL.Chunk _ ts) = rnf ts
+#endif
 
 data B where
     B :: NFData a => a -> B
