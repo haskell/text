@@ -23,6 +23,7 @@
 module Data.Text.Internal
     (
     -- * Types
+    -- $internals
       Text(..)
     -- * Construction
     , text
@@ -47,9 +48,9 @@ import Data.Typeable (Typeable)
 
 -- | A space efficient, packed, unboxed Unicode text type.
 data Text = Text
-    {-# UNPACK #-} !A.Array          -- payload
-    {-# UNPACK #-} !Int              -- offset
-    {-# UNPACK #-} !Int              -- length
+    {-# UNPACK #-} !A.Array          -- payload (Word16 elements)
+    {-# UNPACK #-} !Int              -- offset (units of Word16, not Char)
+    {-# UNPACK #-} !Int              -- length (units of Word16, not Char)
     deriving (Typeable)
 
 -- | Smart constructor.
@@ -90,7 +91,8 @@ showText (Text arr off len) =
 -- scalar values, but are unfortunately admitted as valid 'Char'
 -- values by Haskell.  They cannot be represented in a 'Text'.  This
 -- function remaps those code points to the Unicode replacement
--- character \"&#xfffd;\", and leaves other code points unchanged.
+-- character (U+FFFD, \'&#xfffd;\'), and leaves other code points
+-- unchanged.
 safe :: Char -> Char
 safe c
     | ord c .&. 0x1ff800 /= 0xd800 = c
@@ -101,3 +103,22 @@ safe c
 firstf :: (a -> c) -> Maybe (a,b) -> Maybe (c,b)
 firstf f (Just (a, b)) = Just (f a, b)
 firstf _  Nothing      = Nothing
+
+-- $internals
+--
+-- Internally, the 'Text' type is represented as an array of 'Word16'
+-- UTF-16 code units. The offset and length fields in the constructor
+-- are in these units, /not/ units of 'Char'.
+--
+-- Invariants that all functions must maintain:
+--
+-- * Since the 'Text' type uses UTF-16 internally, it cannot represent
+--   characters in the reserved surrogate code point range U+D800 to
+--   U+DFFF. To maintain this invariant, the 'safe' function maps
+--   'Char' values in this range to the replacement character (U+FFFD,
+--   \'&#xfffd;\').
+--
+-- * A leading (or \"high\") surrogate code unit (0xD800–0xDBFF) must
+--   always be followed by a trailing (or \"low\") surrogate code unit
+--   (0xDC00-0xDFFF). A trailing surrogate code unit must always be
+--   preceded by a leading surrogate code unit.
