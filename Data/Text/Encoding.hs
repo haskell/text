@@ -72,11 +72,11 @@ import Foreign.Marshal.Utils (with)
 import Foreign.Ptr (Ptr, minusPtr, plusPtr)
 import Foreign.Storable (peek, poke)
 import GHC.Base (MutableByteArray#)
-import System.IO.Unsafe (unsafePerformIO)
 import qualified Data.Text.Array as A
 import qualified Data.Text.Encoding.Fusion as E
 import qualified Data.Text.Encoding.Utf16 as U16
 import qualified Data.Text.Fusion as F
+import Data.Text.Unsafe (unsafeDupablePerformIO)
 
 -- $strict
 --
@@ -157,12 +157,12 @@ decodeUtf8 = decodeUtf8With strictDecode
 -- If the input contains any invalid UTF-8 data, the relevant
 -- exception will be returned, otherwise the decoded text.
 decodeUtf8' :: ByteString -> Either UnicodeException Text
-decodeUtf8' = unsafePerformIO . try . evaluate . decodeUtf8With strictDecode
+decodeUtf8' = unsafeDupablePerformIO . try . evaluate . decodeUtf8With strictDecode
 {-# INLINE decodeUtf8' #-}
 
 -- | Encode text using UTF-8 encoding.
 encodeUtf8 :: Text -> ByteString
-encodeUtf8 (Text arr off len) = unsafePerformIO $ do
+encodeUtf8 (Text arr off len) = unsafeDupablePerformIO $ do
   let size0 = max len 4
   mallocByteString size0 >>= start size0 off 0
  where

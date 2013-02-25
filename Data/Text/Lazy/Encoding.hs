@@ -52,7 +52,6 @@ import Control.Exception (evaluate, try)
 import Data.Bits ((.&.))
 import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode)
 import Data.Text.Lazy.Internal (Text(..), chunk, empty, foldrChunks)
-import System.IO.Unsafe (unsafePerformIO)
 import qualified Data.ByteString as S
 import qualified Data.ByteString.Lazy as B
 import qualified Data.ByteString.Lazy.Internal as B
@@ -61,6 +60,7 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text.Lazy.Encoding.Fusion as E
 import qualified Data.Text.Lazy.Fusion as F
+import Data.Text.Unsafe (unsafeDupablePerformIO)
 
 -- $strict
 --
@@ -149,7 +149,7 @@ decodeUtf8 = decodeUtf8With strictDecode
 -- input before it can return a result.  If you need lazy (streaming)
 -- decoding, use 'decodeUtf8With' in lenient mode.
 decodeUtf8' :: B.ByteString -> Either UnicodeException Text
-decodeUtf8' bs = unsafePerformIO $ do
+decodeUtf8' bs = unsafeDupablePerformIO $ do
                    let t = decodeUtf8 bs
                    try (evaluate (rnf t `seq` t))
   where
