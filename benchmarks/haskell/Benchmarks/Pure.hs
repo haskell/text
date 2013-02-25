@@ -27,8 +27,8 @@ import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Builder as TB
 import qualified Data.Text.Lazy.Encoding as TL
 
-benchmark :: FilePath -> IO Benchmark
-benchmark fp = do
+benchmark :: String -> FilePath -> IO Benchmark
+benchmark kind fp = do
     -- Evaluate stuff before actually running the benchmark, we don't want to
     -- count it here.
 
@@ -99,6 +99,10 @@ benchmark fp = do
             , benchBS  $ nf BS.unpack bsa
             , benchBSL $ nf BL.unpack bla
             , benchS   $ nf UTF8.toString bsa
+            ]
+        , bgroup "decode'"
+            [ benchT   $ nf T.decodeUtf8' bsa
+            , benchTL  $ nf TL.decodeUtf8' bla
             ]
         , bgroup "drop"
             [ benchT   $ nf (T.drop (ta_len `div` 3)) ta
@@ -405,11 +409,11 @@ benchmark fp = do
             ]
         ]
   where
-    benchS   = bench "String"
-    benchT   = bench "Text"
-    benchTL  = bench "LazyText"
-    benchBS  = bench "ByteString"
-    benchBSL = bench "LazyByteString"
+    benchS   = bench ("String+" ++ kind)
+    benchT   = bench ("Text+" ++ kind)
+    benchTL  = bench ("LazyText+" ++ kind)
+    benchBS  = bench ("ByteString+" ++ kind)
+    benchBSL = bench ("LazyByteString+" ++ kind)
 
     c  = 'й'
     p0 = (== c)
