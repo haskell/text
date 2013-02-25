@@ -49,7 +49,8 @@ benchmarks = do
         , Equality.benchmark (tf "japanese.txt")
         , FileRead.benchmark (tf "russian.txt")
         , FoldLines.benchmark (tf "russian.txt")
-        , Pure.benchmark (tf "japanese.txt")
+        , Pure.benchmark "tiny "(tf "tiny.txt")
+        , Pure.benchmark "japanese" (tf "japanese.txt")
         , ReadNumbers.benchmark (tf "numbers.txt")
         , Replace.benchmark (tf "russian.txt") "принимая" "своем"
         , Search.benchmark (tf "russian.txt") "принимая"
