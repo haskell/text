@@ -1,7 +1,8 @@
 {-# LANGUAGE BangPatterns, CPP, MagicHash, RankNTypes, UnboxedTuples #-}
 
 -- Module:      Data.Text.Lazy.Builder.Int
--- Copyright:   (c) 2011 MailRank, Inc.
+-- Copyright:   (c) 2013 Bryan O'Sullivan
+--              (c) 2011 MailRank, Inc.
 -- License:     BSD3
 -- Maintainer:  Bryan O'Sullivan <bos@serpentine.com>
 -- Stability:   experimental
@@ -121,9 +122,9 @@ countDigits :: (Integral a) => a -> Int
 {-# INLINE countDigits #-}
 countDigits v0 = go 1 (fromIntegral v0 :: Word64)
   where go !k v
-           | v < 10 = k
-           | v < 100 = k + 1
-           | v < 1000 = k + 2
+           | v < 10    = k
+           | v < 100   = k + 1
+           | v < 1000  = k + 2
            | v < 10000 = k + 3
            | otherwise = go (k+4) (v `quot` 10000)
 
