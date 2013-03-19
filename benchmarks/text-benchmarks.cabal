@@ -21,7 +21,7 @@ executable text-benchmarks
                   cbits/time_iconv.c
   main-is:        Benchmarks.hs
   ghc-options:    -Wall -O2
-  cpp-options:    -DHAVE_DEEPSEQ
+  cpp-options:    -DHAVE_DEEPSEQ -DINTEGER_GMP
   build-depends:  base == 4.*,
                   binary,
                   blaze-builder,
@@ -33,6 +33,7 @@ executable text-benchmarks
                   directory,
                   filepath,
                   ghc-prim,
+                  integer-gmp,
                   stringsearch,
                   utf8-string
 
