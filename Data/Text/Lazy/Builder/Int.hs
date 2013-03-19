@@ -119,7 +119,7 @@ i2w v = zero + fromIntegral v
 
 countDigits :: (Integral a) => a -> Int
 {-# INLINE countDigits #-}
-countDigits = go 1
+countDigits v0 = go 1 (fromIntegral v0 :: Word64)
   where go !k v
            | v < 10 = k
            | v < 100 = k + 1
