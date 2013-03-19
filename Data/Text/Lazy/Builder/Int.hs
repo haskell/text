@@ -18,7 +18,7 @@ module Data.Text.Lazy.Builder.Int
 import Data.Int (Int8, Int16, Int32, Int64)
 import Data.Monoid (mempty)
 import Data.Text.Lazy.Builder.Functions ((<>), i2d)
-import Data.Text.Lazy.Builder
+import Data.Text.Lazy.Builder.Internal
 import Data.Word (Word, Word8, Word16, Word32, Word64)
 import GHC.Base (quotInt, remInt)
 import GHC.Num (quotRemInteger)
@@ -67,11 +67,16 @@ boundedDecimal i = decimal' (== minBound) i
 decimal' :: (Integral a) => (a -> Bool) -> a -> Builder
 {-# INLINE decimal' #-}
 decimal' p i
-    | i < 0 = singleton '-' <>
-              if p i
-              then positive (-(i `quot` 10)) <> digit (-(i `rem` 10))
-              else positive (-i)
-    | otherwise = positive i
+    | i < 0 = if p i
+              then let j = -(i `quot` 10)
+                       n = countDigits j + 2
+                   in go n $ singleton '-' <>
+                             positive j <> digit (-(i `rem` 10))
+              else let j = -i
+                       n = countDigits j + 1
+                   in go n $ singleton '-' <> positive j
+    | otherwise = go (countDigits i) $ positive i
+ where go k b = ensureFree k `append'` b
 
 positive :: (Integral a) => a -> Builder
 {-# SPECIALIZE positive :: Int -> Builder #-}

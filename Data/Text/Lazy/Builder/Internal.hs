@@ -44,7 +44,8 @@ module Data.Text.Lazy.Builder.Internal
    , flush
 
      -- * Internal functions
-   , writeN
+   , append'
+   , ensureFree
    ) where
 
 import Control.Monad.ST (ST, runST)
