@@ -89,6 +89,16 @@ positive = go
   where go n | n < 10    = digit n
              | otherwise = go (n `quot` 10) <> digit (n `rem` 10)
 
+countDigits :: (Integral a) => a -> Int
+{-# INLINE countDigits #-}
+countDigits = go 1
+  where go !k v
+           | v < 10 = k
+           | v < 100 = k + 1
+           | v < 1000 = k + 2
+           | v < 10000 = k + 3
+           | otherwise = go (k+4) (v `quot` 10000)
+
 hexadecimal :: Integral a => a -> Builder
 {-# SPECIALIZE hexadecimal :: Int -> Builder #-}
 {-# SPECIALIZE hexadecimal :: Int8 -> Builder #-}
