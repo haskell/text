@@ -28,19 +28,23 @@
 -----------------------------------------------------------------------------
 
 module Data.Text.Lazy.Builder.Internal
-   ( -- * The Builder type
+   ( -- * Public API
+     -- ** The Builder type
      Builder
    , toLazyText
    , toLazyTextWith
 
-     -- * Constructing Builders
+     -- ** Constructing Builders
    , singleton
    , fromText
    , fromLazyText
    , fromString
 
-     -- * Flushing the buffer state
+     -- ** Flushing the buffer state
    , flush
+
+     -- * Internal functions
+   , writeN
    ) where
 
 import Control.Monad.ST (ST, runST)

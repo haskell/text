@@ -54,12 +54,7 @@ decimal :: Integral a => a -> Builder
 {-# RULES "decimal/Word32" decimal = positive :: Word32 -> Builder #-}
 {-# RULES "decimal/Word64" decimal = positive :: Word64 -> Builder #-}
 {-# RULES "decimal/Integer" decimal = integer 10 :: Integer -> Builder #-}
-decimal i
-  | i < 0     = singleton '-' <>
-                if i <= -128
-                then positive (-(i `quot` 10)) <> digit (-(i `rem` 10))
-                else positive (-i)
-  | otherwise = positive i
+decimal i = decimal' (<= -128) i
 
 boundedDecimal :: (Integral a, Bounded a) => a -> Builder
 {-# SPECIALIZE boundedDecimal :: Int -> Builder #-}
@@ -67,11 +62,15 @@ boundedDecimal :: (Integral a, Bounded a) => a -> Builder
 {-# SPECIALIZE boundedDecimal :: Int16 -> Builder #-}
 {-# SPECIALIZE boundedDecimal :: Int32 -> Builder #-}
 {-# SPECIALIZE boundedDecimal :: Int64 -> Builder #-}
-boundedDecimal i
-    | i < 0     = singleton '-' <>
-                  if i == minBound
-                  then positive (-(i `quot` 10)) <> digit (-(i `rem` 10))
-                  else positive (-i)
+boundedDecimal i = decimal' (== minBound) i
+
+decimal' :: (Integral a) => (a -> Bool) -> a -> Builder
+{-# INLINE decimal' #-}
+decimal' p i
+    | i < 0 = singleton '-' <>
+              if p i
+              then positive (-(i `quot` 10)) <> digit (-(i `rem` 10))
+              else positive (-i)
     | otherwise = positive i
 
 positive :: (Integral a) => a -> Builder
