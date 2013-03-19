@@ -15,12 +15,18 @@ build-type:          Simple
 
 cabal-version:       >=1.2
 
+flag llvm
+  description: use LLVM
+  default: False
+
 executable text-benchmarks
   hs-source-dirs: haskell ..
   c-sources:      ../cbits/cbits.c
                   cbits/time_iconv.c
   main-is:        Benchmarks.hs
   ghc-options:    -Wall -O2
+  if flag(llvm)
+    ghc-options:  -fllvm
   cpp-options:    -DHAVE_DEEPSEQ -DINTEGER_GMP
   build-depends:  base == 4.*,
                   binary,
