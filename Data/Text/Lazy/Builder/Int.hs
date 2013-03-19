@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, CPP, MagicHash, UnboxedTuples #-}
+{-# LANGUAGE BangPatterns, CPP, MagicHash, RankNTypes, UnboxedTuples #-}
 
 -- Module:      Data.Text.Lazy.Builder.Int
 -- Copyright:   (c) 2011 MailRank, Inc.
@@ -19,10 +19,12 @@ import Data.Int (Int8, Int16, Int32, Int64)
 import Data.Monoid (mempty)
 import Data.Text.Lazy.Builder.Functions ((<>), i2d)
 import Data.Text.Lazy.Builder.Internal
+import Data.Text.Array
 import Data.Word (Word, Word8, Word16, Word32, Word64)
 import GHC.Base (quotInt, remInt)
 import GHC.Num (quotRemInteger)
 import GHC.Types (Int(..))
+import Control.Monad.ST
 
 #ifdef  __GLASGOW_HASKELL__
 # if __GLASGOW_HASKELL__ < 611
@@ -69,14 +71,16 @@ decimal' :: (Integral a) => (a -> Bool) -> a -> Builder
 decimal' p i
     | i < 0 = if p i
               then let j = -(i `quot` 10)
-                       n = countDigits j + 2
-                   in go n $ singleton '-' <>
-                             positive j <> digit (-(i `rem` 10))
+                       !n = countDigits j
+                   in writeN (n + 2) $ \marr off -> do
+                       unsafeWrite marr off minus
+                       posDecimal marr (off+1) n j
+                       unsafeWrite marr (off+n+1) (i2w (-(i `rem` 10)))
               else let j = -i
-                       n = countDigits j + 1
-                   in go n $ singleton '-' <> positive j
-    | otherwise = go (countDigits i) $ positive i
- where go k b = ensureFree k `append'` b
+                       !n = countDigits j
+                   in writeN (n + 1) $ \marr off ->
+                       unsafeWrite marr off minus >> posDecimal marr (off+1) n j
+    | otherwise = positive i
 
 positive :: (Integral a) => a -> Builder
 {-# SPECIALIZE positive :: Int -> Builder #-}
@@ -89,9 +93,29 @@ positive :: (Integral a) => a -> Builder
 {-# SPECIALIZE positive :: Word16 -> Builder #-}
 {-# SPECIALIZE positive :: Word32 -> Builder #-}
 {-# SPECIALIZE positive :: Word64 -> Builder #-}
-positive = go
-  where go n | n < 10    = digit n
-             | otherwise = go (n `quot` 10) <> digit (n `rem` 10)
+positive i
+    | i < 10    = writeN 1 $ \marr off -> unsafeWrite marr off (i2w i)
+    | otherwise = let !n = countDigits i
+                  in writeN n $ \marr off -> posDecimal marr off n i
+
+posDecimal :: Integral a => forall s. MArray s -> Int -> Int -> a -> ST s ()
+{-# INLINE posDecimal #-}
+posDecimal marr off0 ds v0 = go (off0 + ds - 1) v0
+  where go off v
+           | v < 10 = unsafeWrite marr off (i2w v)
+           | otherwise = do
+          unsafeWrite marr off (i2w (v `rem` 10))
+          go (off-1) (v `div` 10)
+
+minus, zero :: Word16
+{-# INLINE minus #-}
+{-# INLINE zero #-}
+minus = 45
+zero = 48
+
+i2w :: (Integral a) => a -> Word16
+{-# INLINE i2w #-}
+i2w v = zero + fromIntegral v
 
 countDigits :: (Integral a) => a -> Int
 {-# INLINE countDigits #-}
