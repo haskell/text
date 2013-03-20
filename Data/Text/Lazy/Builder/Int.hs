@@ -125,8 +125,18 @@ countDigits v0 = go 1 (fromIntegral v0 :: Word64)
            | v < 10    = k
            | v < 100   = k + 1
            | v < 1000  = k + 2
-           | v < 10000 = k + 3
-           | otherwise = go (k+4) (v `quot` 10000)
+           | v < 1000000000000 =
+               k + if v < 100000000
+                   then if v < 1000000
+                        then if v < 10000
+                             then 3
+                             else 4 + fin v 100000
+                        else 6 + fin v 10000000
+                   else if v < 10000000000
+                        then 8 + fin v 1000000000
+                        else 10 + fin v 100000000000
+           | otherwise = go (k + 12) (v `quot` 1000000000000)
+        fin v n = if v >= n then 1 else 0
 
 hexadecimal :: Integral a => a -> Builder
 {-# SPECIALIZE hexadecimal :: Int -> Builder #-}
