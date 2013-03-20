@@ -12,7 +12,7 @@ module Benchmarks.Builder
 import Criterion (Benchmark, bgroup, bench, nf)
 import Data.Binary.Builder as B
 import Data.ByteString.Char8 ()
-import Data.Monoid (mconcat)
+import Data.Monoid (mconcat, mempty)
 import qualified Blaze.ByteString.Builder as Blaze
 import qualified Blaze.ByteString.Builder.Char.Utf8 as Blaze
 import qualified Data.ByteString as SB
@@ -44,6 +44,10 @@ benchmark = return $ bgroup "Builder"
           flip map numbers $ \m ->
           let n = negate m in
           (bench (show (length (show n))) $ nf (LTB.toLazyText . Int.decimal) n)
+        , bench "Empty" $ nf LTB.toLazyText mempty
+        , bgroup "Show" .
+          flip map numbers $ \n ->
+          (bench (show (length (show n))) $ nf show n)
         ]
       ]
     ]
