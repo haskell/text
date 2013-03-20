@@ -120,22 +120,22 @@ i2w v = zero + fromIntegral v
 
 countDigits :: (Integral a) => a -> Int
 {-# INLINE countDigits #-}
-countDigits v0 = go 1 (fromIntegral v0 :: Word64)
-  where go !k v
-           | v < 10    = k
-           | v < 100   = k + 1
-           | v < 1000  = k + 2
+countDigits v0 = go (fromIntegral v0 :: Word64)
+  where go v
+           | v < 10    = 1
+           | v < 100   = 2
+           | v < 1000  = 3
            | v < 1000000000000 =
-               k + if v < 100000000
-                   then if v < 1000000
-                        then if v < 10000
-                             then 3
-                             else 4 + fin v 100000
-                        else 6 + fin v 10000000
-                   else if v < 10000000000
-                        then 8 + fin v 1000000000
-                        else 10 + fin v 100000000000
-           | otherwise = go (k + 12) (v `quot` 1000000000000)
+               if v < 100000000
+               then if v < 1000000
+                    then if v < 10000
+                         then 4
+                         else 5 + fin v 100000
+                    else 7 + fin v 10000000
+               else if v < 10000000000
+                    then 9 + fin v 1000000000
+                    else 11 + fin v 100000000000
+           | otherwise = 12 + go (v `quot` 1000000000000)
         fin v n = if v >= n then 1 else 0
 
 hexadecimal :: Integral a => a -> Builder
