@@ -73,12 +73,13 @@ decimal' :: (Integral a) => (a -> Bool) -> a -> Builder
 {-# INLINE decimal' #-}
 decimal' p i
     | i < 0 = if p i
-              then let (q, r) = (-i) `quotRem` 10
-                       !n = countDigits q
+              then let (q, r) = i `quotRem` 10
+                       qq = -q
+                       !n = countDigits qq
                    in writeN (n + 2) $ \marr off -> do
                        unsafeWrite marr off minus
-                       posDecimal marr (off+1) n q
-                       unsafeWrite marr (off+n+1) (i2w r)
+                       posDecimal marr (off+1) n qq
+                       unsafeWrite marr (off+n+1) (i2w (-r))
               else let j = -i
                        !n = countDigits j
                    in writeN (n + 1) $ \marr off ->
