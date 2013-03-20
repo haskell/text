@@ -106,7 +106,7 @@ posDecimal marr off0 ds v0 = go (off0 + ds - 1) v0
            | v < 10 = unsafeWrite marr off (i2w v)
            | otherwise = do
           unsafeWrite marr off (i2w (v `rem` 10))
-          go (off-1) (v `div` 10)
+          go (off-1) (v `quot` 10)
 
 minus, zero :: Word16
 {-# INLINE minus #-}
