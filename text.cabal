@@ -1,5 +1,5 @@
 name:           text
-version:        0.11.2.3
+version:        0.11.2.4
 homepage:       https://github.com/bos/text
 bug-reports:    https://github.com/bos/text/issues
 synopsis:       An efficient packed Unicode text type.
@@ -109,6 +109,8 @@ library
     Data.Text.Fusion.Size
     Data.Text.IO.Internal
     Data.Text.Lazy.Builder.Functions
+    Data.Text.Lazy.Builder.Int.Digits
+    Data.Text.Lazy.Builder.Internal
     Data.Text.Lazy.Builder.RealFloat.Functions
     Data.Text.Lazy.Encoding.Fusion
     Data.Text.Lazy.Fusion
@@ -131,7 +133,7 @@ library
     cpp-options: -DHAVE_DEEPSEQ
   else
     build-depends: extensible-exceptions
-    extensions: PatternSignatures
+    extensions: ScopedTypeVariables
 
   ghc-options: -Wall -funbox-strict-fields -O2
   if impl(ghc >= 6.8)
@@ -149,16 +151,15 @@ library
       cpp-options: -DINTEGER_GMP
       build-depends: integer-gmp >= 0.2
 
-
   if impl(ghc >= 6.9) && impl(ghc < 6.11)
     cpp-options: -DINTEGER_GMP
     build-depends: integer >= 0.1 && < 0.2
 
 test-suite tests
   type:           exitcode-stdio-1.0
-  hs-source-dirs: tests
+  hs-source-dirs: tests .
   main-is:        Tests.hs
-  -- c-sources:      cbits/cbits.c
+  c-sources:      cbits/cbits.c
 
   ghc-options:
     -Wall -threaded -O0 -rtsopts
@@ -169,6 +170,7 @@ test-suite tests
   build-depends:
     HUnit >= 1.2,
     QuickCheck >= 2.4,
+    array,
     base,
     bytestring,
     deepseq,
@@ -177,8 +179,19 @@ test-suite tests
     random,
     test-framework >= 0.4,
     test-framework-hunit >= 0.2,
-    test-framework-quickcheck2 >= 0.2,
-    text
+    test-framework-quickcheck2 >= 0.2
+
+  if impl(ghc >= 6.11)
+    if flag(integer-simple)
+      cpp-options: -DINTEGER_SIMPLE
+      build-depends: integer-simple >= 0.1 && < 0.5
+    else
+      cpp-options: -DINTEGER_GMP
+      build-depends: integer-gmp >= 0.2
+
+  if impl(ghc >= 6.9) && impl(ghc < 6.11)
+    cpp-options: -DINTEGER_GMP
+    build-depends: integer >= 0.1 && < 0.2
 
 source-repository head
   type:     git

@@ -14,6 +14,7 @@ module Data.Text.Unsafe
     (
       inlineInterleaveST
     , inlinePerformIO
+    , unsafeDupablePerformIO
     , Iter(..)
     , iter
     , iter_
@@ -33,6 +34,11 @@ import Data.Text.Internal (Text(..))
 import Data.Text.Unsafe.Base (inlineInterleaveST, inlinePerformIO)
 import Data.Text.UnsafeChar (unsafeChr)
 import qualified Data.Text.Array as A
+#if __GLASGOW_HASKELL__ >= 611
+import GHC.IO (unsafeDupablePerformIO)
+#else
+import GHC.IOBase (unsafeDupablePerformIO)
+#endif
 
 -- | /O(1)/ A variant of 'head' for non-empty 'Text'. 'unsafeHead'
 -- omits the check for the empty case, so there is an obligation on

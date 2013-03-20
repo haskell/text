@@ -80,7 +80,7 @@ indices _needle@(Text narr noff nlen) _haystack@(Text harr hoff hlen)
               delta | nextInPattern = nlen + 1
                     | c == z        = skip + 1
                     | otherwise     = 1
-              nextInPattern         = mask .&. swizzle (hindex' (i+nlen)) == 0
+                where nextInPattern = mask .&. swizzle (hindex' (i+nlen)) == 0
               !(mask :* skip)       = buildTable 0 0 (nlen-2)
     scanOne c = loop 0
         where loop !i | i >= hlen     = []

@@ -44,12 +44,12 @@ import Data.Text.UnsafeShift (shiftL, shiftR)
 import Data.Word (Word8, Word16, Word32)
 import Foreign.ForeignPtr (withForeignPtr, ForeignPtr)
 import Foreign.Storable (pokeByteOff)
-import System.IO.Unsafe (unsafePerformIO)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Unsafe as B
 import qualified Data.Text.Encoding.Utf8 as U8
 import qualified Data.Text.Encoding.Utf16 as U16
 import qualified Data.Text.Encoding.Utf32 as U32
+import Data.Text.Unsafe (unsafeDupablePerformIO)
 
 streamASCII :: ByteString -> Stream Char
 streamASCII bs = Stream next 0 (maxSize l)
@@ -163,7 +163,7 @@ streamUtf32LE onErr bs = Stream next 0 (maxSize (l `shiftR` 2))
 
 -- | /O(n)/ Convert a 'Stream' 'Word8' to a 'ByteString'.
 unstream :: Stream Word8 -> ByteString
-unstream (Stream next s0 len) = unsafePerformIO $ do
+unstream (Stream next s0 len) = unsafeDupablePerformIO $ do
     let mlen = upperBound 4 len
     mallocByteString mlen >>= loop mlen 0 s0
     where

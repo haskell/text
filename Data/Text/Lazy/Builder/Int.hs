@@ -1,7 +1,8 @@
-{-# LANGUAGE BangPatterns, CPP, MagicHash, UnboxedTuples #-}
+{-# LANGUAGE BangPatterns, CPP, MagicHash, RankNTypes, UnboxedTuples #-}
 
 -- Module:      Data.Text.Lazy.Builder.Int
--- Copyright:   (c) 2011 MailRank, Inc.
+-- Copyright:   (c) 2013 Bryan O'Sullivan
+--              (c) 2011 MailRank, Inc.
 -- License:     BSD3
 -- Maintainer:  Bryan O'Sullivan <bos@serpentine.com>
 -- Stability:   experimental
@@ -17,12 +18,16 @@ module Data.Text.Lazy.Builder.Int
 
 import Data.Int (Int8, Int16, Int32, Int64)
 import Data.Monoid (mempty)
+import qualified Data.ByteString.Unsafe as B
 import Data.Text.Lazy.Builder.Functions ((<>), i2d)
-import Data.Text.Lazy.Builder
+import Data.Text.Lazy.Builder.Internal
+import Data.Text.Lazy.Builder.Int.Digits (digits)
+import Data.Text.Array
 import Data.Word (Word, Word8, Word16, Word32, Word64)
 import GHC.Base (quotInt, remInt)
 import GHC.Num (quotRemInteger)
 import GHC.Types (Int(..))
+import Control.Monad.ST
 
 #ifdef  __GLASGOW_HASKELL__
 # if __GLASGOW_HASKELL__ < 611
@@ -54,12 +59,7 @@ decimal :: Integral a => a -> Builder
 {-# RULES "decimal/Word32" decimal = positive :: Word32 -> Builder #-}
 {-# RULES "decimal/Word64" decimal = positive :: Word64 -> Builder #-}
 {-# RULES "decimal/Integer" decimal = integer 10 :: Integer -> Builder #-}
-decimal i
-  | i < 0     = singleton '-' <>
-                if i <= -128
-                then positive (-(i `quot` 10)) <> digit (-(i `rem` 10))
-                else positive (-i)
-  | otherwise = positive i
+decimal i = decimal' (<= -128) i
 
 boundedDecimal :: (Integral a, Bounded a) => a -> Builder
 {-# SPECIALIZE boundedDecimal :: Int -> Builder #-}
@@ -67,11 +67,22 @@ boundedDecimal :: (Integral a, Bounded a) => a -> Builder
 {-# SPECIALIZE boundedDecimal :: Int16 -> Builder #-}
 {-# SPECIALIZE boundedDecimal :: Int32 -> Builder #-}
 {-# SPECIALIZE boundedDecimal :: Int64 -> Builder #-}
-boundedDecimal i
-    | i < 0     = singleton '-' <>
-                  if i == minBound
-                  then positive (-(i `quot` 10)) <> digit (-(i `rem` 10))
-                  else positive (-i)
+boundedDecimal i = decimal' (== minBound) i
+
+decimal' :: (Integral a) => (a -> Bool) -> a -> Builder
+{-# INLINE decimal' #-}
+decimal' p i
+    | i < 0 = if p i
+              then let j = -(i `quot` 10)
+                       !n = countDigits j
+                   in writeN (n + 2) $ \marr off -> do
+                       unsafeWrite marr off minus
+                       posDecimal marr (off+1) n j
+                       unsafeWrite marr (off+n+1) (i2w (-(i `rem` 10)))
+              else let j = -i
+                       !n = countDigits j
+                   in writeN (n + 1) $ \marr off ->
+                       unsafeWrite marr off minus >> posDecimal marr (off+1) n j
     | otherwise = positive i
 
 positive :: (Integral a) => a -> Builder
@@ -85,9 +96,56 @@ positive :: (Integral a) => a -> Builder
 {-# SPECIALIZE positive :: Word16 -> Builder #-}
 {-# SPECIALIZE positive :: Word32 -> Builder #-}
 {-# SPECIALIZE positive :: Word64 -> Builder #-}
-positive = go
-  where go n | n < 10    = digit n
-             | otherwise = go (n `quot` 10) <> digit (n `rem` 10)
+positive i
+    | i < 10    = writeN 1 $ \marr off -> unsafeWrite marr off (i2w i)
+    | otherwise = let !n = countDigits i
+                  in writeN n $ \marr off -> posDecimal marr off n i
+
+posDecimal :: (Integral a) =>
+              forall s. MArray s -> Int -> Int -> a -> ST s ()
+{-# INLINE posDecimal #-}
+posDecimal marr off0 ds v0 = go (off0 + ds - 1) v0
+  where go off v
+           | v >= 100 = do
+               write2 off $ let u = v `rem` 100
+                            in u + u
+               go (off - 2) (v `quot` 100)
+           | v < 10    = unsafeWrite marr off (i2w v)
+           | otherwise = write2 off (v + v)
+        write2 off i = do
+          unsafeWrite marr off $ get (i + 1)
+          unsafeWrite marr (off - 1) $ get i
+        get i = fromIntegral $ B.unsafeIndex digits (fromIntegral i) :: Word16
+
+minus, zero :: Word16
+{-# INLINE minus #-}
+{-# INLINE zero #-}
+minus = 45
+zero = 48
+
+i2w :: (Integral a) => a -> Word16
+{-# INLINE i2w #-}
+i2w v = zero + fromIntegral v
+
+countDigits :: (Integral a) => a -> Int
+{-# INLINE countDigits #-}
+countDigits v0 = go 1 (fromIntegral v0 :: Word64)
+  where go !k v
+           | v < 10    = k
+           | v < 100   = k + 1
+           | v < 1000  = k + 2
+           | v < 1000000000000 =
+               k + if v < 100000000
+                   then if v < 1000000
+                        then if v < 10000
+                             then 3
+                             else 4 + fin v 100000
+                        else 6 + fin v 10000000
+                   else if v < 10000000000
+                        then 8 + fin v 1000000000
+                        else 10 + fin v 100000000000
+           | otherwise = go (k + 12) (v `quot` 1000000000000)
+        fin v n = if v >= n then 1 else 0
 
 hexadecimal :: Integral a => a -> Builder
 {-# SPECIALIZE hexadecimal :: Int -> Builder #-}

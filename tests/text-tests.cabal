@@ -87,6 +87,8 @@ library
     Data.Text.Lazy.Builder
     Data.Text.Lazy.Builder.Functions
     Data.Text.Lazy.Builder.Int
+    Data.Text.Lazy.Builder.Int.Digits
+    Data.Text.Lazy.Builder.Internal
     Data.Text.Lazy.Builder.RealFloat
     Data.Text.Lazy.Builder.RealFloat.Functions
     Data.Text.Lazy.Encoding

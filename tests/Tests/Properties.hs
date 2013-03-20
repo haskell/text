@@ -32,6 +32,7 @@ import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import qualified Data.Bits as Bits (shiftL, shiftR)
 import qualified Data.ByteString as B
+import qualified Data.ByteString.Lazy as BL
 import qualified Data.List as L
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as E
@@ -65,10 +66,20 @@ tl_unstreamChunks x = f 11 x == f 1000 x
 tl_chunk_unchunk    = (TL.fromChunks . TL.toChunks) `eq` id
 tl_from_to_strict   = (TL.fromStrict . TL.toStrict) `eq` id
 
+-- Note: this silently truncates code-points > 255 to 8-bit due to 'B.pack'
+encodeL1 :: T.Text -> B.ByteString
+encodeL1 = B.pack . map (fromIntegral . fromEnum) . T.unpack
+encodeLazyL1 :: TL.Text -> BL.ByteString
+encodeLazyL1 = BL.fromChunks . map encodeL1 . TL.toChunks
+
 t_ascii t    = E.decodeASCII (E.encodeUtf8 a) == a
     where a  = T.map (\c -> chr (ord c `mod` 128)) t
 tl_ascii t   = EL.decodeASCII (EL.encodeUtf8 a) == a
     where a  = TL.map (\c -> chr (ord c `mod` 128)) t
+t_latin1 t   = E.decodeLatin1 (encodeL1 a) == a
+    where a  = T.map (\c -> chr (ord c `mod` 256)) t
+tl_latin1 t  = EL.decodeLatin1 (encodeLazyL1 a) == a
+    where a  = TL.map (\c -> chr (ord c `mod` 256)) t
 t_utf8       = forAll genUnicode $ (E.decodeUtf8 . E.encodeUtf8) `eq` id
 t_utf8'      = forAll genUnicode $ (E.decodeUtf8' . E.encodeUtf8) `eq` (id . Right)
 tl_utf8      = forAll genUnicode $ (EL.decodeUtf8 . EL.encodeUtf8) `eq` id
@@ -754,6 +765,8 @@ tests =
     testGroup "transcoding" [
       testProperty "t_ascii" t_ascii,
       testProperty "tl_ascii" tl_ascii,
+      testProperty "t_latin1" t_latin1,
+      testProperty "tl_latin1" tl_latin1,
       testProperty "t_utf8" t_utf8,
       testProperty "t_utf8'" t_utf8',
       testProperty "tl_utf8" tl_utf8,

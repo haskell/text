@@ -1,5 +1,8 @@
 {-# LANGUAGE BangPatterns, CPP, MagicHash, Rank2Types, UnboxedTuples #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+#if __GLASGOW_HASKELL__ >= 702
+{-# LANGUAGE Trustworthy #-}
+#endif
 
 -- |
 -- Module      : Data.Text
@@ -370,7 +373,7 @@ compareText ta@(Text _arrA _offA lenA) tb@(Text _arrB _offB lenB)
 -- | /O(n)/ Convert a 'String' into a 'Text'.  Subject to
 -- fusion.  Performs replacement on invalid scalar values.
 pack :: String -> Text
-pack = unstream . S.streamList . L.map safe
+pack = unstream . S.map safe . S.streamList
 {-# INLINE [1] pack #-}
 
 -- | /O(n)/ Convert a Text into a String.  Subject to fusion.
@@ -378,17 +381,17 @@ unpack :: Text -> String
 unpack = S.unstreamList . stream
 {-# INLINE [1] unpack #-}
 
--- | /O(n)/ Convert a literal string into a Text.
+-- | /O(n)/ Convert a literal string into a Text.  Subject to fusion.
 unpackCString# :: Addr# -> Text
 unpackCString# addr# = unstream (S.streamCString# addr#)
 {-# NOINLINE unpackCString# #-}
 
 {-# RULES "TEXT literal" forall a.
-    unstream (S.streamList (L.map safe (GHC.unpackCString# a)))
+    unstream (S.map safe (S.streamList (GHC.unpackCString# a)))
       = unpackCString# a #-}
 
 {-# RULES "TEXT literal UTF8" forall a.
-    unstream (S.streamList (L.map safe (GHC.unpackCStringUtf8# a)))
+    unstream (S.map safe (S.streamList (GHC.unpackCStringUtf8# a)))
       = unpackCString# a #-}
 
 -- | /O(1)/ Convert a character into a Text.  Subject to fusion.
