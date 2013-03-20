@@ -108,14 +108,15 @@ posDecimal marr off0 ds v0 = go (off0 + ds - 1) v0
   where go off v
            | v >= 100 = do
                let (q, r) = v `quotRem` 100
-               write2 off (r + r)
+               write2 off r
                go (off - 2) q
            | v < 10    = unsafeWrite marr off (i2w v)
-           | otherwise = write2 off (v + v)
-        write2 off i = do
-          unsafeWrite marr off $ get (i + 1)
-          unsafeWrite marr (off - 1) $ get i
-        get i = fromIntegral $ B.unsafeIndex digits (fromIntegral i) :: Word16
+           | otherwise = write2 off v
+        write2 off i0 = do
+          let i = fromIntegral i0; j = i + i
+          unsafeWrite marr off $ get (j + 1)
+          unsafeWrite marr (off - 1) $ get j
+        get = fromIntegral . B.unsafeIndex digits
 
 minus, zero :: Word16
 {-# INLINE minus #-}
