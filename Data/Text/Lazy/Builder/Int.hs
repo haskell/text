@@ -107,9 +107,9 @@ posDecimal :: (Integral a) =>
 posDecimal marr off0 ds v0 = go (off0 + ds - 1) v0
   where go off v
            | v >= 100 = do
-               write2 off $ let u = v `rem` 100
-                            in u + u
-               go (off - 2) (v `quot` 100)
+               let (q, r) = v `quotRem` 100
+               write2 off (r + r)
+               go (off - 2) q
            | v < 10    = unsafeWrite marr off (i2w v)
            | otherwise = write2 off (v + v)
         write2 off i = do
