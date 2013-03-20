@@ -109,6 +109,7 @@ library
     Data.Text.Fusion.Size
     Data.Text.IO.Internal
     Data.Text.Lazy.Builder.Functions
+    Data.Text.Lazy.Builder.Int.Digits
     Data.Text.Lazy.Builder.Internal
     Data.Text.Lazy.Builder.RealFloat.Functions
     Data.Text.Lazy.Encoding.Fusion

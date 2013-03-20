@@ -18,8 +18,10 @@ module Data.Text.Lazy.Builder.Int
 
 import Data.Int (Int8, Int16, Int32, Int64)
 import Data.Monoid (mempty)
+import qualified Data.ByteString.Unsafe as B
 import Data.Text.Lazy.Builder.Functions ((<>), i2d)
 import Data.Text.Lazy.Builder.Internal
+import Data.Text.Lazy.Builder.Int.Digits (digits)
 import Data.Text.Array
 import Data.Word (Word, Word8, Word16, Word32, Word64)
 import GHC.Base (quotInt, remInt)
@@ -99,14 +101,21 @@ positive i
     | otherwise = let !n = countDigits i
                   in writeN n $ \marr off -> posDecimal marr off n i
 
-posDecimal :: Integral a => forall s. MArray s -> Int -> Int -> a -> ST s ()
+posDecimal :: (Integral a) =>
+              forall s. MArray s -> Int -> Int -> a -> ST s ()
 {-# INLINE posDecimal #-}
 posDecimal marr off0 ds v0 = go (off0 + ds - 1) v0
   where go off v
-           | v < 10 = unsafeWrite marr off (i2w v)
-           | otherwise = do
-          unsafeWrite marr off (i2w (v `rem` 10))
-          go (off-1) (v `quot` 10)
+           | v >= 100 = do
+               write2 off $ let u = v `rem` 100
+                            in u + u
+               go (off - 2) (v `quot` 100)
+           | v < 10    = unsafeWrite marr off (i2w v)
+           | otherwise = write2 off (v + v)
+        write2 off i = do
+          unsafeWrite marr off $ get (i + 1)
+          unsafeWrite marr (off - 1) $ get i
+        get i = fromIntegral $ B.unsafeIndex digits (fromIntegral i) :: Word16
 
 minus, zero :: Word16
 {-# INLINE minus #-}
