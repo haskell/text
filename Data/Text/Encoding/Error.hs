@@ -35,6 +35,7 @@ module Data.Text.Encoding.Error
     , replace
     ) where
 
+import Control.DeepSeq (NFData (..))
 #if __GLASGOW_HASKELL__ >= 610
 import Control.Exception (Exception, throw)
 #else
@@ -93,6 +94,10 @@ instance Show UnicodeException where
     show = showUnicodeException
 
 instance Exception UnicodeException
+
+instance NFData UnicodeException where
+    rnf (DecodeError desc w) = rnf desc `seq` rnf w `seq` ()
+    rnf (EncodeError desc c) = rnf desc `seq` rnf c `seq` ()
 
 -- | Throw a 'UnicodeException' if decoding fails.
 strictDecode :: OnDecodeError
