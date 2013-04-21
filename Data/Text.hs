@@ -183,6 +183,9 @@ module Data.Text
 
     -- -* Ordered text
     -- , sort
+
+    -- * Low level operations
+    , copy
     ) where
 
 import Prelude (Char, Bool(..), Int, Maybe(..), String,
@@ -1577,3 +1580,19 @@ emptyError fun = P.error $ "Data.Text." ++ fun ++ ": empty input"
 
 overflowError :: String -> a
 overflowError fun = P.error $ "Data.Text." ++ fun ++ ": size overflow"
+
+-- | /O(n)/ Make a distinct copy of the given string, sharing no
+-- storage with the original string.
+--
+-- As an example, suppose you read a large string, of which you need
+-- only a small portion.  If you do not use 'copy', the entire original
+-- array will be kept alive in memory by the smaller string. Making a
+-- copy \"breaks the link\" to the original array, allowing it to be
+-- garbage collected if there are no other live references to it.
+copy :: Text -> Text
+copy (Text arr off len) = Text (A.run go) 0 len
+  where
+    go = do
+      marr <- A.new len
+      A.copyI marr 0 arr off len
+      return marr

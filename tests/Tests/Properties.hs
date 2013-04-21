@@ -733,6 +733,8 @@ t_take_drop_16 m t = T.append (takeWord16 n t) (dropWord16 n t) == t
   where n = small m
 t_use_from t = monadicIO $ assert . (==t) =<< run (useAsPtr t fromPtr)
 
+t_copy t = T.copy t == t
+
 -- Regression tests.
 s_filter_eq s = S.filter p t == S.streamList (filter p s)
     where p = (/= S.last t)
@@ -1197,6 +1199,7 @@ tests =
       testProperty "t_dropWord16" t_dropWord16,
       testProperty "t_takeWord16" t_takeWord16,
       testProperty "t_take_drop_16" t_take_drop_16,
-      testProperty "t_use_from" t_use_from
+      testProperty "t_use_from" t_use_from,
+      testProperty "t_copy" t_copy
     ]
   ]
