@@ -160,18 +160,22 @@ hexadecimal :: Integral a => a -> Builder
 {-# SPECIALIZE hexadecimal :: Word16 -> Builder #-}
 {-# SPECIALIZE hexadecimal :: Word32 -> Builder #-}
 {-# SPECIALIZE hexadecimal :: Word64 -> Builder #-}
-{-# RULES "hexadecimal/Integer" hexadecimal = integer 16 :: Integer -> Builder #-}
+{-# RULES "hexadecimal/Integer"
+    hexadecimal = hexInteger :: Integer -> Builder #-}
 hexadecimal i
-    | i < 0     = error msg
+    | i < 0     = error hexErrMsg
     | otherwise = go i
   where
     go n | n < 16    = hexDigit n
          | otherwise = go (n `quot` 16) <> hexDigit (n `rem` 16)
-    msg = "Data.Text.Lazy.Builder.Int.hexadecimal: applied to negative number"
 
-digit :: Integral a => a -> Builder
-digit n = singleton $! i2d (fromIntegral n)
-{-# INLINE digit #-}
+hexInteger :: Integer -> Builder
+hexInteger i
+    | i < 0     = error hexErrMsg
+    | otherwise = integer 16 i
+
+hexErrMsg :: String
+hexErrMsg = "Data.Text.Lazy.Builder.Int.hexadecimal: applied to negative number"
 
 hexDigit :: Integral a => a -> Builder
 hexDigit n
@@ -244,7 +248,7 @@ integer base i
     pblock = loop maxDigits
       where
         loop !d !n
-            | d == 1    = digit n
-            | otherwise = loop (d-1) q <> digit r
+            | d == 1    = hexDigit n
+            | otherwise = loop (d-1) q <> hexDigit r
             where q = n `quotInt` base
                   r = n `remInt` base
