@@ -189,7 +189,7 @@ import Prelude (Char, Bool(..), Int, Maybe(..), String,
                 Eq(..), Ord(..), Ordering(..), (++),
                 Read(..), Show(..),
                 (&&), (||), (+), (-), (.), ($), ($!), (>>), (*),
-                div, maxBound, not, return, otherwise)
+                maxBound, not, return, otherwise, quot)
 #if defined(HAVE_DEEPSEQ)
 import Control.DeepSeq (NFData)
 #endif
@@ -734,7 +734,7 @@ center k c t
     | otherwise = replicateChar l c `append` t `append` replicateChar r c
   where len = length t
         d   = k - len
-        r   = d `div` 2
+        r   = d `quot` 2
         l   = d - r
 {-# INLINE center #-}
 
@@ -906,11 +906,11 @@ mapAccumR f z0 = second reverse . S.mapAccumL g z0 . reverseStream
 -- @t@ repeated @n@ times.
 replicate :: Int -> Text -> Text
 replicate n t@(Text a o l)
-    | n <= 0 || l <= 0      = empty
-    | n == 1                = t
-    | isSingleton t         = replicateChar n (unsafeHead t)
-    | n <= maxBound `div` l = Text (A.run x) 0 len
-    | otherwise             = overflowError "replicate"
+    | n <= 0 || l <= 0       = empty
+    | n == 1                 = t
+    | isSingleton t          = replicateChar n (unsafeHead t)
+    | n <= maxBound `quot` l = Text (A.run x) 0 len
+    | otherwise              = overflowError "replicate"
   where
     len = l * n
     x = do

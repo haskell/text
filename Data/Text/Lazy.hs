@@ -193,7 +193,7 @@ module Data.Text.Lazy
 import Prelude (Char, Bool(..), Maybe(..), String,
                 Eq(..), Ord(..), Ordering(..), Read(..), Show(..),
                 (&&), (||), (+), (-), (.), ($), (++),
-                div, error, flip, fmap, fromIntegral, not, otherwise)
+                error, flip, fmap, fromIntegral, not, otherwise, quot)
 import qualified Prelude as P
 #if defined(HAVE_DEEPSEQ)
 import Control.DeepSeq (NFData(..))
@@ -628,7 +628,7 @@ center k c t
     | otherwise = replicateChar l c `append` t `append` replicateChar r c
   where len = length t
         d   = k - len
-        r   = d `div` 2
+        r   = d `quot` 2
         l   = d - r
 {-# INLINE center #-}
 
