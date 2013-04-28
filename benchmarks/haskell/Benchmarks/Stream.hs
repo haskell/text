@@ -86,7 +86,6 @@ benchmark fp = do
             ]
 
         -- Encoding.Fusion.Common
-        , bench "restreamUtf8"    $ nf F.restreamUtf8 s
         , bench "restreamUtf16LE" $ nf F.restreamUtf16LE s
         , bench "restreamUtf16BE" $ nf F.restreamUtf16BE s
         , bench "restreamUtf32LE" $ nf F.restreamUtf32LE s
