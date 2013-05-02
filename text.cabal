@@ -1,5 +1,5 @@
 name:           text
-version:        0.11.3.0
+version:        0.11.3.1
 homepage:       https://github.com/bos/text
 bug-reports:    https://github.com/bos/text/issues
 synopsis:       An efficient packed Unicode text type.
@@ -96,6 +96,7 @@ library
     Data.Text.Lazy.Internal
     Data.Text.Lazy.Read
     Data.Text.Read
+    Data.Text.Unsafe
   other-modules:
     Data.Text.Encoding.Fusion
     Data.Text.Encoding.Fusion.Common
@@ -117,7 +118,6 @@ library
     Data.Text.Lazy.Search
     Data.Text.Private
     Data.Text.Search
-    Data.Text.Unsafe
     Data.Text.Unsafe.Base
     Data.Text.UnsafeChar
     Data.Text.UnsafeShift
