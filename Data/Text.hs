@@ -177,7 +177,7 @@ module Data.Text
     , findIndex
     , count
 
-    -- * Zipping and unzipping
+    -- * Zipping
     , zip
     , zipWith
 
