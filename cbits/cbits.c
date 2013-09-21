@@ -123,13 +123,13 @@ _hs_text_decode_latin1(uint16_t *dest, const uint8_t const *src,
  *      state0 != UTF8_ACCEPT, UTF8_REJECT
  *
  */
-uint8_t const *
-_hs_text_decode_utf8_state(uint16_t *dest, size_t *destoff,
-                           const uint8_t const *src, const uint8_t const *srcend,
+const uint8_t *
+_hs_text_decode_utf8_state(uint16_t *const dest, size_t *destoff,
+                           const uint8_t *const src, const uint8_t *const srcend,
                            uint32_t *codepoint0, uint32_t *state0)
 {
   uint16_t *d = dest + *destoff;
-  const uint8_t const *s = src;
+  const uint8_t *s = src;
   uint32_t state = *state0;
   uint32_t codepoint = *codepoint0;
 
@@ -192,9 +192,9 @@ _hs_text_decode_utf8_state(uint16_t *dest, size_t *destoff,
 /*
  * Helper to decode buffer and discard final decoder state
  */
-uint8_t const *
-_hs_text_decode_utf8(uint16_t *dest, size_t *destoff,
-                     const uint8_t const *src, const uint8_t const *srcend)
+const uint8_t *
+_hs_text_decode_utf8(uint16_t *const dest, size_t *destoff,
+                     const uint8_t *const src, const uint8_t *const srcend)
 {
   uint32_t codepoint;
   uint32_t state = UTF8_ACCEPT;
