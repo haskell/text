@@ -93,6 +93,17 @@ tl_utf32LE   = forAll genUnicode $ (EL.decodeUtf32LE . EL.encodeUtf32LE) `eq` id
 t_utf32BE    = forAll genUnicode $ (E.decodeUtf32BE . E.encodeUtf32BE) `eq` id
 tl_utf32BE   = forAll genUnicode $ (EL.decodeUtf32BE . EL.encodeUtf32BE) `eq` id
 
+t_utf8_incr  = do
+        Positive n <- arbitrary
+        forAll genUnicode $ recode n `eq` id
+    where recode n = T.concat . feedChunksOf n (E.decodeUtf8With' strictDecode) . E.encodeUtf8
+          feedChunksOf :: Int -> (B.ByteString -> E.Decoder) -> B.ByteString -> [T.Text]
+          feedChunksOf n f bs
+            | B.null bs  = []
+            | otherwise  = let (a,b) = B.splitAt n bs
+                               E.Some t f' = f a
+                           in t : feedChunksOf n f' b
+
 -- This is a poor attempt to ensure that the error handling paths on
 -- decode are exercised in some way.  Proper testing would be rather
 -- more involved.
@@ -771,6 +782,7 @@ tests =
       testProperty "tl_latin1" tl_latin1,
       testProperty "t_utf8" t_utf8,
       testProperty "t_utf8'" t_utf8',
+      testProperty "t_utf8_incr" t_utf8_incr,
       testProperty "tl_utf8" tl_utf8,
       testProperty "tl_utf8'" tl_utf8',
       testProperty "t_utf16LE" t_utf16LE,
