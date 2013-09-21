@@ -26,8 +26,14 @@
 --
 -- > singleton 'a' `mappend` singleton 'b' `mappend` singleton 'c'
 --
--- as the latter associates @mappend@ to the left.
+-- as the latter associates @mappend@ to the left. Or, equivalently,
+-- prefer
 --
+--  > singleton 'a' <> singleton 'b' <> singleton 'c'
+--
+-- since the '<>' from recent versions of 'Data.Monoid' associates 
+-- to the right.
+
 -----------------------------------------------------------------------------
 
 module Data.Text.Lazy.Builder
