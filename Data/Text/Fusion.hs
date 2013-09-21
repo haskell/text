@@ -223,9 +223,9 @@ mapAccumL f z0 (Stream next0 s0 len) = (nz,I.textP na 0 nl)
                                arr' <- A.new top'
                                A.copyM arr' 0 arr 0 top
                                outer arr' top' z s i
-                | otherwise -> do let (z',c) = f z x
-                                  d <- unsafeWrite arr i c
+                | otherwise -> do d <- unsafeWrite arr i c
                                   loop z' s' (i+d)
-                where j | ord x < 0x10000 = i
+                where (z',c) = f z x
+                      j | ord c < 0x10000 = i
                         | otherwise       = i + 1
 {-# INLINE [0] mapAccumL #-}
