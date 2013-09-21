@@ -8,7 +8,7 @@ module Tests.Regressions
 
 import Control.Exception (SomeException, handle)
 import System.IO
-import Test.HUnit (assertBool, assertFailure)
+import Test.HUnit (assertBool, assertEqual, assertFailure)
 import qualified Data.ByteString as B
 import Data.ByteString.Char8 ()
 import qualified Data.ByteString.Lazy as LB
@@ -17,6 +17,7 @@ import qualified Data.Text.Encoding as TE
 import qualified Data.Text.IO as T
 import qualified Data.Text.Lazy as LT
 import qualified Data.Text.Lazy.Encoding as LE
+import qualified Data.Text.Unsafe as T
 import qualified Test.Framework as F
 import qualified Test.Framework.Providers.HUnit as F
 
@@ -59,10 +60,23 @@ utf8_decode_unsafe = do
   let t = TE.decodeUtf8With (\_ _ -> Just '\xdc00') "\x80"
   assertBool "broken error recovery shouldn't break us" (t == "\xfffd")
 
+-- Reported by Eric Seidel: we mishandled mapping Chars that fit in a
+-- single Word16 to Chars that require two.
+mapAccumL_resize :: IO ()
+mapAccumL_resize = do
+  let f a _ = (a, '\65536')
+      count = 5
+      val   = T.mapAccumL f 0 (T.replicate count "a")
+  assertEqual "mapAccumL should correctly fill buffers for two-word results"
+             (0, T.replicate count "\65536") val
+  assertEqual "mapAccumL should correctly size buffers for two-word results"
+             (count * 2) (T.lengthWord16 (snd val))
+
 tests :: F.Test
 tests = F.testGroup "Regressions"
     [ F.testCase "hGetContents_crash" hGetContents_crash
     , F.testCase "lazy_encode_crash" lazy_encode_crash
+    , F.testCase "mapAccumL_resize" mapAccumL_resize
     , F.testCase "replicate_crash" replicate_crash
     , F.testCase "utf8_decode_unsafe" utf8_decode_unsafe
     ]
