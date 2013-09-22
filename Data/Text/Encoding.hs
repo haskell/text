@@ -43,9 +43,11 @@ module Data.Text.Encoding
     , decodeUtf32LEWith
     , decodeUtf32BEWith
 
-    -- ** Streaming decoding with controllable error handling
-    , decodeUtf8With'
-    , Decoder(..)
+    -- ** Stream oriented decoding
+    -- $stream
+    , streamDecodeUtf8
+    , streamDecodeUtf8With
+    , Decoding(..)
 
     -- * Encoding Text to ByteStrings
     , encodeUtf8
@@ -65,6 +67,7 @@ import Control.Monad.ST (runST)
 import Data.Bits ((.&.))
 import Data.ByteString as B
 import Data.ByteString.Internal as B
+import Data.Text ()
 import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode)
 import Data.Text.Internal (Text(..), safe, textP)
 import Data.Text.Private (runText)
@@ -146,21 +149,85 @@ decodeUtf8With onErr (PS fp off len) = runText $ \done -> do
   desc = "Data.Text.Encoding.decodeUtf8: Invalid UTF-8 stream"
 {- INLINE[0] decodeUtf8With #-}
 
-data Decoder = Some !Text (ByteString -> Decoder)
+-- $stream
+--
+-- The 'streamDecodeUtf8' and 'streamDecodeUtf8With' functions accept
+-- a 'ByteString' that represents a possibly incomplete input (e.g. a
+-- packet from a network stream) that may not end on a UTF-8 boundary.
+--
+-- The first element of the result is the maximal chunk of 'Text' that
+-- can be decoded from the given input. The second is a function which
+-- accepts another 'ByteString'. That string will be assumed to
+-- directly follow the string that was passed as input to the original
+-- function, and it will in turn be decoded.
+--
+-- To help understand the use of these functions, consider the Unicode
+-- string @\"hi &#9731;\"@. If encoded as UTF-8, this becomes @\"hi
+-- \\xe2\\x98\\x83\"@; the final @\'&#9731;\'@ is encoded as 3 bytes.
+--
+-- Now suppose that we receive this encoded string as 3 packets that
+-- are split up on untidy boundaries: @[\"hi \\xe2\", \"\\x98\",
+-- \"\\x83\"]@. We cannot decode the entire Unicode string until we
+-- have received all three packets, but we would like to make progress
+-- as we receive each one.
+--
+-- @
+-- let 'Some' t0 f0 = 'streamDecodeUtf8' \"hi \\xe2\"
+-- t0 == \"hi \" :: 'Text'
+-- @
+--
+-- We use the continuation @f0@ to decode our second packet.
+--
+-- @
+-- let 'Some' t1 f1 = f0 \"\\x98\"
+-- t1 == \"\"
+-- @
+--
+-- We could not give @f0@ enough input to decode anything, so it
+-- returned an empty string. Once we feed our second continuation @f1@
+-- the last byte of input, it will make progress.
+--
+-- @
+-- let 'Some' t2 f2 = f1 \"\\x83\"
+-- t2 == \"&#9731;\"
+-- @
+--
+-- If given invalid input, an exception will be thrown by the function
+-- or continuation where it is encountered.
+
+-- | A stream oriented decoding result.
+data Decoding = Some Text (ByteString -> Decoding)
+
+instance Show Decoding where
+    showsPrec d (Some t _) = showParen (d > prec) $
+                             showString "Some " . showsPrec (prec+1) t
+      where prec = 10
 
 newtype CodePoint = CodePoint Word32 deriving (Num, Storable)
 newtype DecoderState = DecoderState Word32 deriving (Eq, Num, Storable)
 
-decodeUtf8With' :: OnDecodeError -> ByteString -> Decoder
-decodeUtf8With' onErr = decodeChunk 0 0
+-- | Decode, in a stream oriented way, a 'ByteString' containing UTF-8
+-- encoded text that is known to be valid.
+--
+-- If the input contains any invalid UTF-8 data, an exception will be
+-- thrown (either by this function or a continuation) that cannot be
+-- caught in pure code.  For more control over the handling of invalid
+-- data, use 'streamDecodeUtf8With'.
+streamDecodeUtf8 :: ByteString -> Decoding
+streamDecodeUtf8 = streamDecodeUtf8With strictDecode
+
+-- | Decode, in a stream oriented way, a 'ByteString' containing UTF-8
+-- encoded text.
+streamDecodeUtf8With :: OnDecodeError -> ByteString -> Decoding
+streamDecodeUtf8With onErr = decodeChunk 0 0
  where
   -- We create a slightly larger than necessary buffer to accommodate a
   -- potential surrogate pair started in the last buffer
-  decodeChunk :: CodePoint -> DecoderState -> ByteString -> Decoder
+  decodeChunk :: CodePoint -> DecoderState -> ByteString -> Decoding
   decodeChunk codepoint0 state0 (PS fp off len) =
     runST $ (unsafeIOToST . decodeChunkToBuffer) =<< A.new (len+1)
    where
-    decodeChunkToBuffer :: A.MArray s -> IO Decoder
+    decodeChunkToBuffer :: A.MArray s -> IO Decoding
     decodeChunkToBuffer dest = withForeignPtr fp $ \ptr ->
       with (0::CSize) $ \destOffPtr ->
       with codepoint0 $ \codepointPtr ->
@@ -191,10 +258,9 @@ decodeUtf8With' onErr = decodeChunk 0 0
                   chunkText <- unsafeSTToIO $ do
                       arr <- A.unsafeFreeze dest
                       return $! textP arr 0 (fromIntegral n)
-                  return $ Some chunkText $ decodeChunk codepoint state
+                  return $ Some chunkText (decodeChunk codepoint state)
         in loop (ptr `plusPtr` off)
-  desc = "Data.Text.Encoding.decodeUtf8With': Invalid UTF-8 stream"
-{- INLINE[0] decodeUtf8With' #-}
+  desc = "Data.Text.Encoding.streamDecodeUtf8With: Invalid UTF-8 stream"
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text that is known
 -- to be valid.

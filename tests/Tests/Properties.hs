@@ -101,8 +101,9 @@ tl_utf32BE   = forAll genUnicode $ (EL.decodeUtf32BE . EL.encodeUtf32BE) `eq` id
 t_utf8_incr  = do
         Positive n <- arbitrary
         forAll genUnicode $ recode n `eq` id
-    where recode n = T.concat . feedChunksOf n (E.decodeUtf8With' strictDecode) . E.encodeUtf8
-          feedChunksOf :: Int -> (B.ByteString -> E.Decoder) -> B.ByteString -> [T.Text]
+    where recode n = T.concat . feedChunksOf n E.streamDecodeUtf8 . E.encodeUtf8
+          feedChunksOf :: Int -> (B.ByteString -> E.Decoding) -> B.ByteString
+                       -> [T.Text]
           feedChunksOf n f bs
             | B.null bs  = []
             | otherwise  = let (a,b) = B.splitAt n bs
