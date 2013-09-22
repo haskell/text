@@ -154,7 +154,7 @@ newtype DecoderState = DecoderState Word32 deriving (Eq, Num, Storable)
 decodeUtf8With' :: OnDecodeError -> ByteString -> Decoder
 decodeUtf8With' onErr = decodeChunk 0 0
  where
-  -- We create a slightly larger than necessary buffer to accomodate a
+  -- We create a slightly larger than necessary buffer to accommodate a
   -- potential surrogate pair started in the last buffer
   decodeChunk :: CodePoint -> DecoderState -> ByteString -> Decoder
   decodeChunk codepoint0 state0 (PS fp off len) =
@@ -209,7 +209,7 @@ decodeUtf8 = decodeUtf8With strictDecode
 {-# RULES "STREAM stream/decodeUtf8 fusion" [1]
     forall bs. F.stream (decodeUtf8 bs) = E.streamUtf8 strictDecode bs #-}
 
--- | Decode a 'ByteString' containing UTF-8 encoded text..
+-- | Decode a 'ByteString' containing UTF-8 encoded text.
 --
 -- If the input contains any invalid UTF-8 data, the relevant
 -- exception will be returned, otherwise the decoded text.
