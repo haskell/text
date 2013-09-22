@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, CPP, ForeignFunctionInterface, MagicHash,
+{-# LANGUAGE BangPatterns, CPP, ForeignFunctionInterface, GeneralizedNewtypeDeriving, MagicHash,
     UnliftedFFITypes #-}
 #if __GLASGOW_HASKELL__ >= 702
 {-# LANGUAGE Trustworthy #-}
@@ -75,7 +75,7 @@ import Foreign.C.Types (CSize)
 import Foreign.ForeignPtr (withForeignPtr)
 import Foreign.Marshal.Utils (with)
 import Foreign.Ptr (Ptr, minusPtr, plusPtr)
-import Foreign.Storable (peek, poke)
+import Foreign.Storable (Storable, peek, poke)
 import GHC.Base (MutableByteArray#)
 import qualified Data.Text.Array as A
 import qualified Data.Text.Encoding.Fusion as E
@@ -148,16 +148,16 @@ decodeUtf8With onErr (PS fp off len) = runText $ \done -> do
 
 data Decoder = Some !Text (ByteString -> Decoder)
 
--- | (codepoint, state)
-type DecoderState = (Word32, Word32)
+newtype CodePoint = CodePoint Word32 deriving (Num, Storable)
+newtype DecoderState = DecoderState Word32 deriving (Eq, Num, Storable)
 
 decodeUtf8With' :: OnDecodeError -> ByteString -> Decoder
-decodeUtf8With' onErr = decodeChunk (0,0)
+decodeUtf8With' onErr = decodeChunk 0 0
  where
   -- We create a slightly larger than necessary buffer to accomodate a
   -- potential surrogate pair started in the last buffer
-  decodeChunk :: DecoderState -> ByteString -> Decoder
-  decodeChunk (codepoint0,state0) (PS fp off len) =
+  decodeChunk :: CodePoint -> DecoderState -> ByteString -> Decoder
+  decodeChunk codepoint0 state0 (PS fp off len) =
     runST $ (unsafeIOToST . decodeChunkToBuffer) =<< A.new (len+1)
    where
     decodeChunkToBuffer :: A.MArray s -> IO Decoder
@@ -191,7 +191,7 @@ decodeUtf8With' onErr = decodeChunk (0,0)
                   chunkText <- unsafeSTToIO $ do
                       arr <- A.unsafeFreeze dest
                       return $! textP arr 0 (fromIntegral n)
-                  return $ Some chunkText $ decodeChunk (codepoint, state)
+                  return $ Some chunkText $ decodeChunk codepoint state
         in loop (ptr `plusPtr` off)
   desc = "Data.Text.Encoding.decodeUtf8With': Invalid UTF-8 stream"
 {- INLINE[0] decodeUtf8With' #-}
@@ -356,7 +356,7 @@ foreign import ccall unsafe "_hs_text_decode_utf8" c_decode_utf8
 foreign import ccall unsafe "_hs_text_decode_utf8_state" c_decode_utf8_with_state
     :: MutableByteArray# s -> Ptr CSize
     -> Ptr Word8 -> Ptr Word8
-    -> Ptr Word32 -> Ptr Word32 -> IO (Ptr Word8)
+    -> Ptr CodePoint -> Ptr DecoderState -> IO (Ptr Word8)
 
 foreign import ccall unsafe "_hs_text_decode_latin1" c_decode_latin1
     :: MutableByteArray# s -> Ptr Word8 -> Ptr Word8 -> IO ()
