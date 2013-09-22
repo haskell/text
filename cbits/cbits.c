@@ -104,19 +104,36 @@ _hs_text_decode_latin1(uint16_t *dest, const uint8_t const *src,
  * the start of an invalid byte sequence.
  *
  * At exit, updates *destoff with the next offset to write to, and
- * returns the next source offset to read from.
+ * returns the next source offset to read from. Moreover, this function
+ * exposes the internal decoder state (state0 and codepoint0), allowing one
+ * to restart the decoder after it terminates (say, due to a partial codepoint).
+ *
+ * In particular, there are a few possible outcomes,
+ *
+ *   1) We decoded the buffer entirely:
+ *      In this case we return srcend
+ *      state0 == UTF8_ACCEPT
+ *
+ *   2) We met an invalid encoding
+ *      In this case we return the address of the first invalid byte
+ *      state0 == UTF8_REJECT
+ *
+ *   3) We reached the end of the buffer while decoding a codepoint
+ *      In this case we return a pointer to the first byte of the partial codepoint
+ *      state0 != UTF8_ACCEPT, UTF8_REJECT
+ *
  */
-uint8_t const *
-_hs_text_decode_utf8(uint16_t *dest, size_t *destoff,
-		     const uint8_t const *src, const uint8_t const *srcend)
+const uint8_t *
+_hs_text_decode_utf8_state(uint16_t *const dest, size_t *destoff,
+                           const uint8_t *const src, const uint8_t *const srcend,
+                           uint32_t *codepoint0, uint32_t *state0)
 {
   uint16_t *d = dest + *destoff;
-  const uint8_t const *s = src;
-  uint32_t state = UTF8_ACCEPT;
+  const uint8_t *s = src;
+  uint32_t state = *state0;
+  uint32_t codepoint = *codepoint0;
 
   while (s < srcend) {
-    uint32_t codepoint;
-
 #if defined(__i386__) || defined(__x86_64__)
     /*
      * This code will only work on a little-endian system that
@@ -161,11 +178,25 @@ _hs_text_decode_utf8(uint16_t *dest, size_t *destoff,
     }
   }
 
-  /* Error recovery - if we're not in a valid finishing state, back up. */
-  if (state != UTF8_ACCEPT)
+  /* Invalid encoding, back up to the errant character */
+  if (state == UTF8_REJECT)
     s -= 1;
 
   *destoff = d - dest;
+  *codepoint0 = codepoint;
+  *state0 = state;
 
   return s;
+}
+
+/*
+ * Helper to decode buffer and discard final decoder state
+ */
+const uint8_t *
+_hs_text_decode_utf8(uint16_t *const dest, size_t *destoff,
+                     const uint8_t *const src, const uint8_t *const srcend)
+{
+  uint32_t codepoint;
+  uint32_t state = UTF8_ACCEPT;
+  return _hs_text_decode_utf8_state(dest, destoff, src, srcend, &codepoint, &state);
 }

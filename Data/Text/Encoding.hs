@@ -43,6 +43,10 @@ module Data.Text.Encoding
     , decodeUtf32LEWith
     , decodeUtf32BEWith
 
+    -- ** Streaming decoding with controllable error handling
+    , decodeUtf8With'
+    , Decoder(..)
+
     -- * Encoding Text to ByteStrings
     , encodeUtf8
     , encodeUtf16LE
@@ -57,6 +61,7 @@ import Control.Monad.ST.Unsafe (unsafeIOToST, unsafeSTToIO)
 #else
 import Control.Monad.ST (unsafeIOToST, unsafeSTToIO)
 #endif
+import Control.Monad.ST (runST)
 import Data.Bits ((.&.))
 import Data.ByteString as B
 import Data.ByteString.Internal as B
@@ -65,7 +70,7 @@ import Data.Text.Internal (Text(..), safe, textP)
 import Data.Text.Private (runText)
 import Data.Text.UnsafeChar (ord, unsafeWrite)
 import Data.Text.UnsafeShift (shiftL, shiftR)
-import Data.Word (Word8)
+import Data.Word (Word8, Word32)
 import Foreign.C.Types (CSize)
 import Foreign.ForeignPtr (withForeignPtr)
 import Foreign.Marshal.Utils (with)
@@ -138,6 +143,56 @@ decodeUtf8With onErr (PS fp off len) = runText $ \done -> do
  where
   desc = "Data.Text.Encoding.decodeUtf8: Invalid UTF-8 stream"
 {- INLINE[0] decodeUtf8With #-}
+
+data Decoder = Some !Text (ByteString -> Decoder)
+
+-- | (codepoint, state)
+type DecoderState = (Word32, Word32)
+
+decodeUtf8With' :: OnDecodeError -> ByteString -> Decoder
+decodeUtf8With' onErr = decodeChunk (0,0)
+ where
+  -- We create a slightly larger than necessary buffer to accomodate a
+  -- potential surrogate pair started in the last buffer
+  decodeChunk :: DecoderState -> ByteString -> Decoder
+  decodeChunk (codepoint0,state0) (PS fp off len) =
+    runST $ (unsafeIOToST . decodeChunkToBuffer) =<< A.new (len+1)
+   where
+    decodeChunkToBuffer :: A.MArray s -> IO Decoder
+    decodeChunkToBuffer dest = withForeignPtr fp $ \ptr ->
+      with (0::CSize) $ \destOffPtr ->
+      with codepoint0 $ \codepointPtr ->
+      with state0 $ \statePtr ->
+        let end = ptr `plusPtr` (off + len)
+            loop curPtr = do
+              curPtr' <- c_decode_utf8_with_state (A.maBA dest) destOffPtr curPtr end
+                                                  codepointPtr statePtr
+              state <- peek statePtr
+              case state of
+                12 -> do
+                  -- We encountered an encoding error
+                  x <- peek curPtr'
+                  case onErr desc (Just x) of
+                    Nothing -> loop $ curPtr' `plusPtr` 1
+                    Just c -> do
+                      destOff <- peek destOffPtr
+                      w <- unsafeSTToIO $
+                           unsafeWrite dest (fromIntegral destOff) (safe c)
+                      poke destOffPtr (destOff + fromIntegral w)
+                      poke statePtr 0
+                      loop $ curPtr' `plusPtr` 1
+ 
+                _ -> do
+                  -- We encountered the end of the buffer while decoding
+                  n <- peek destOffPtr
+                  codepoint <- peek codepointPtr
+                  chunkText <- unsafeSTToIO $ do
+                      arr <- A.unsafeFreeze dest
+                      return $! textP arr 0 (fromIntegral n)
+                  return $ Some chunkText $ decodeChunk (codepoint, state)
+        in loop (ptr `plusPtr` off)
+  desc = "Data.Text.Encoding.decodeUtf8With': Invalid UTF-8 stream"
+{- INLINE[0] decodeUtf8With' #-}
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text that is known
 -- to be valid.
@@ -295,6 +350,11 @@ encodeUtf32BE txt = E.unstream (E.restreamUtf32BE (F.stream txt))
 foreign import ccall unsafe "_hs_text_decode_utf8" c_decode_utf8
     :: MutableByteArray# s -> Ptr CSize
     -> Ptr Word8 -> Ptr Word8 -> IO (Ptr Word8)
+
+foreign import ccall unsafe "_hs_text_decode_utf8_state" c_decode_utf8_with_state
+    :: MutableByteArray# s -> Ptr CSize
+    -> Ptr Word8 -> Ptr Word8
+    -> Ptr Word32 -> Ptr Word32 -> IO (Ptr Word8)
 
 foreign import ccall unsafe "_hs_text_decode_latin1" c_decode_latin1
     :: MutableByteArray# s -> Ptr Word8 -> Ptr Word8 -> IO ()
