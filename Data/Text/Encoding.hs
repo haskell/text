@@ -203,8 +203,8 @@ instance Show Decoding where
                              showString "Some " . showsPrec (prec+1) t
       where prec = 10
 
-newtype CodePoint = CodePoint Word32 deriving (Num, Storable)
-newtype DecoderState = DecoderState Word32 deriving (Eq, Num, Storable)
+newtype CodePoint = CodePoint Word32 deriving (Eq, Show, Num, Storable)
+newtype DecoderState = DecoderState Word32 deriving (Eq, Show, Num, Storable)
 
 -- | Decode, in a stream oriented way, a 'ByteString' containing UTF-8
 -- encoded text that is known to be valid.
