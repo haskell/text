@@ -83,6 +83,8 @@ import qualified Data.Text.Encoding.Utf16 as U16
 import qualified Data.Text.Fusion as F
 import Data.Text.Unsafe (unsafeDupablePerformIO)
 
+#include "text_cbits.h"
+
 -- $strict
 --
 -- All of the single-parameter functions for decoding bytestrings
@@ -169,7 +171,7 @@ decodeUtf8With' onErr = decodeChunk (0,0)
                                                   codepointPtr statePtr
               state <- peek statePtr
               case state of
-                12 -> do
+                UTF8_REJECT -> do
                   -- We encountered an encoding error
                   x <- peek curPtr'
                   case onErr desc (Just x) of
@@ -181,7 +183,7 @@ decodeUtf8With' onErr = decodeChunk (0,0)
                       poke destOffPtr (destOff + fromIntegral w)
                       poke statePtr 0
                       loop $ curPtr' `plusPtr` 1
- 
+
                 _ -> do
                   -- We encountered the end of the buffer while decoding
                   n <- peek destOffPtr

@@ -9,6 +9,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdio.h>
+#include "text_cbits.h"
 
 void _hs_text_memcpy(void *dest, size_t doff, const void *src, size_t soff,
 		     size_t n)

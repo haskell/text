@@ -77,7 +77,8 @@ flag integer-simple
   default: False
 
 library
-  c-sources: cbits/cbits.c
+  c-sources:    cbits/cbits.c
+  include-dirs: include
 
   exposed-modules:
     Data.Text
@@ -160,6 +161,7 @@ test-suite tests
   hs-source-dirs: tests .
   main-is:        Tests.hs
   c-sources:      cbits/cbits.c
+  include-dirs:   include
 
   ghc-options:
     -Wall -threaded -O0 -rtsopts
