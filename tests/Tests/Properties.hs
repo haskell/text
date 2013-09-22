@@ -1,7 +1,7 @@
 -- | General quicktest properties for the text library
 --
-{-# LANGUAGE BangPatterns, FlexibleInstances, OverloadedStrings,
-             ScopedTypeVariables, TypeSynonymInstances, CPP #-}
+{-# LANGUAGE BangPatterns, CPP, FlexibleInstances, OverloadedStrings,
+             ScopedTypeVariables, TypeSynonymInstances #-}
 {-# OPTIONS_GHC -fno-enable-rewrite-rules #-}
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Tests.Properties
@@ -27,7 +27,6 @@ import Data.Text.Read as T
 import Data.Text.Search (indices)
 import Data.Word (Word, Word8, Word16, Word32, Word64)
 import Numeric (showHex)
-import Prelude hiding (catch, replicate)
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import qualified Data.Bits as Bits (shiftL, shiftR)
@@ -53,6 +52,12 @@ import qualified System.IO as IO
 import Tests.QuickCheckUtils
 import Tests.Utils
 import qualified Tests.SlowFunctions as Slow
+
+#if MIN_VERSION_base(4,6,0)
+import Prelude hiding (replicate)
+#else
+import Prelude hiding (catch, replicate)
+#endif
 
 t_pack_unpack       = (T.unpack . T.pack) `eq` id
 tl_pack_unpack      = (TL.unpack . TL.pack) `eq` id
