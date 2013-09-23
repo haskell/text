@@ -8,3 +8,5 @@
 syntax: glob
 .\#*
 cabal-dev
+cabal.sandbox.config
+\.cabal-sandbox
