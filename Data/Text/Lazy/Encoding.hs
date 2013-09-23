@@ -49,15 +49,14 @@ module Data.Text.Lazy.Encoding
     ) where
 
 import Control.Exception (evaluate, try)
-import Data.Bits ((.&.))
 import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode)
 import Data.Text.Lazy.Internal (Text(..), chunk, empty, foldrChunks)
 import qualified Data.ByteString as S
 import qualified Data.ByteString.Lazy as B
 import qualified Data.ByteString.Lazy.Internal as B
-import qualified Data.ByteString.Unsafe as S
-import qualified Data.Text as T
+import qualified Data.ByteString.Unsafe as B
 import qualified Data.Text.Encoding as TE
+import qualified Data.Text.Lazy as L
 import qualified Data.Text.Lazy.Encoding.Fusion as E
 import qualified Data.Text.Lazy.Fusion as F
 import Data.Text.Unsafe (unsafeDupablePerformIO)
@@ -89,41 +88,20 @@ decodeLatin1 = foldr (chunk . TE.decodeLatin1) empty . B.toChunks
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text.
 decodeUtf8With :: OnDecodeError -> B.ByteString -> Text
-decodeUtf8With onErr bs0 = fast bs0
+decodeUtf8With onErr (B.Chunk b0 bs0) =
+    case TE.streamDecodeUtf8With onErr b0 of
+      TE.Some t l f -> chunk t (go f l bs0)
   where
-    decode = TE.decodeUtf8With onErr
-    fast (B.Chunk p ps) | isComplete p = chunk (decode p) (fast ps)
-                        | otherwise    = chunk (decode h) (slow t ps)
-      where (h,t) = S.splitAt pivot p
-            pivot | at 1      = len-1
-                  | at 2      = len-2
-                  | otherwise = len-3
-            len  = S.length p
-            at n = len >= n && S.unsafeIndex p (len-n) .&. 0xc0 == 0xc0
-    fast B.Empty = empty
-    slow i bs = {-# SCC "decodeUtf8With'/slow" #-}
-                case B.uncons bs of
-                  Just (w,bs') | isComplete i' -> chunk (decode i') (fast bs')
-                               | otherwise     -> slow i' bs'
-                    where i' = S.snoc i w
-                  Nothing -> case S.uncons i of
-                               Just (j,i') ->
-                                 case onErr desc (Just j) of
-                                   Nothing -> slow i' bs
-                                   Just c  -> Chunk (T.singleton c) (slow i' bs)
-                               Nothing ->
-                                 case onErr desc Nothing of
-                                   Nothing -> empty
-                                   Just c  -> Chunk (T.singleton c) empty
-    isComplete bs = {-# SCC "decodeUtf8With'/isComplete" #-}
-                    ix 1 .&. 0x80 == 0 ||
-                    (len >= 2 && ix 2 .&. 0xe0 == 0xc0) ||
-                    (len >= 3 && ix 3 .&. 0xf0 == 0xe0) ||
-                    (len >= 4 && ix 4 .&. 0xf8 == 0xf0)
-      where len = S.length bs
-            ix n = S.unsafeIndex bs (len-n)
+    go f0 _ (B.Chunk b bs) =
+      case f0 b of
+        TE.Some t l f -> chunk t (go f l bs)
+    go _ l _
+      | S.null l  = empty
+      | otherwise = case onErr desc (Just (B.unsafeHead l)) of
+                      Nothing -> empty
+                      Just c  -> L.singleton c
     desc = "Data.Text.Lazy.Encoding.decodeUtf8With: Invalid UTF-8 stream"
-{-# INLINE[0] decodeUtf8With #-}
+decodeUtf8With _ _ = empty
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text that is known
 -- to be valid.
