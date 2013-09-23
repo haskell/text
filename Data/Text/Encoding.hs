@@ -77,7 +77,7 @@ import Data.Word (Word8, Word32)
 import Foreign.C.Types (CSize)
 import Foreign.ForeignPtr (withForeignPtr)
 import Foreign.Marshal.Utils (with)
-import Foreign.Ptr (Ptr, minusPtr, plusPtr)
+import Foreign.Ptr (Ptr, minusPtr, nullPtr, plusPtr)
 import Foreign.Storable (Storable, peek, poke)
 import GHC.Base (MutableByteArray#)
 import qualified Data.Text.Array as A
@@ -196,12 +196,14 @@ decodeUtf8With onErr (PS fp off len) = runText $ \done -> do
 -- or continuation where it is encountered.
 
 -- | A stream oriented decoding result.
-data Decoding = Some Text (ByteString -> Decoding)
+data Decoding = Some Text ByteString (ByteString -> Decoding)
 
 instance Show Decoding where
-    showsPrec d (Some t _) = showParen (d > prec) $
-                             showString "Some " . showsPrec (prec+1) t
-      where prec = 10
+    showsPrec d (Some t bs _) = showParen (d > prec) $
+                                showString "Some " . showsPrec prec' t .
+                                showChar ' ' . showsPrec prec' bs .
+                                showString " _"
+      where prec = 10; prec' = prec + 1
 
 newtype CodePoint = CodePoint Word32 deriving (Eq, Show, Num, Storable)
 newtype DecoderState = DecoderState Word32 deriving (Eq, Show, Num, Storable)
@@ -224,7 +226,7 @@ streamDecodeUtf8With onErr = decodeChunk 0 0
   -- We create a slightly larger than necessary buffer to accommodate a
   -- potential surrogate pair started in the last buffer
   decodeChunk :: CodePoint -> DecoderState -> ByteString -> Decoding
-  decodeChunk codepoint0 state0 (PS fp off len) =
+  decodeChunk codepoint0 state0 bs@(PS fp off len) =
     runST $ (unsafeIOToST . decodeChunkToBuffer) =<< A.new (len+1)
    where
     decodeChunkToBuffer :: A.MArray s -> IO Decoding
@@ -232,10 +234,12 @@ streamDecodeUtf8With onErr = decodeChunk 0 0
       with (0::CSize) $ \destOffPtr ->
       with codepoint0 $ \codepointPtr ->
       with state0 $ \statePtr ->
+      with nullPtr $ \curPtrPtr ->
         let end = ptr `plusPtr` (off + len)
             loop curPtr = do
-              curPtr' <- c_decode_utf8_with_state (A.maBA dest) destOffPtr curPtr end
-                                                  codepointPtr statePtr
+              poke curPtrPtr curPtr
+              curPtr' <- c_decode_utf8_with_state (A.maBA dest) destOffPtr
+                         curPtrPtr end codepointPtr statePtr
               state <- peek statePtr
               case state of
                 UTF8_REJECT -> do
@@ -258,7 +262,10 @@ streamDecodeUtf8With onErr = decodeChunk 0 0
                   chunkText <- unsafeSTToIO $ do
                       arr <- A.unsafeFreeze dest
                       return $! textP arr 0 (fromIntegral n)
-                  return $ Some chunkText (decodeChunk codepoint state)
+                  lastPtr <- peek curPtrPtr
+                  let left = lastPtr `minusPtr` curPtr
+                  return $ Some chunkText (B.drop left bs)
+                           (decodeChunk codepoint state)
         in loop (ptr `plusPtr` off)
   desc = "Data.Text.Encoding.streamDecodeUtf8With: Invalid UTF-8 stream"
 
@@ -421,7 +428,7 @@ foreign import ccall unsafe "_hs_text_decode_utf8" c_decode_utf8
 
 foreign import ccall unsafe "_hs_text_decode_utf8_state" c_decode_utf8_with_state
     :: MutableByteArray# s -> Ptr CSize
-    -> Ptr Word8 -> Ptr Word8
+    -> Ptr (Ptr Word8) -> Ptr Word8
     -> Ptr CodePoint -> Ptr DecoderState -> IO (Ptr Word8)
 
 foreign import ccall unsafe "_hs_text_decode_latin1" c_decode_latin1

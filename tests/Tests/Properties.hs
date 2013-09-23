@@ -107,7 +107,7 @@ t_utf8_incr  = do
           feedChunksOf n f bs
             | B.null bs  = []
             | otherwise  = let (a,b) = B.splitAt n bs
-                               E.Some t f' = f a
+                               E.Some t _ f' = f a
                            in t : feedChunksOf n f' b
 
 -- This is a poor attempt to ensure that the error handling paths on

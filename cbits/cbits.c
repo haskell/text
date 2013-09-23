@@ -104,10 +104,13 @@ _hs_text_decode_latin1(uint16_t *dest, const uint8_t const *src,
  * A best-effort decoder. Runs until it hits either end of input or
  * the start of an invalid byte sequence.
  *
- * At exit, updates *destoff with the next offset to write to, and
- * returns the next source offset to read from. Moreover, this function
- * exposes the internal decoder state (state0 and codepoint0), allowing one
- * to restart the decoder after it terminates (say, due to a partial codepoint).
+ * At exit, we update *destoff with the next offset to write to, *src
+ * with the next source location past the last one successfully
+ * decoded, and return the next source location to read from.
+ *
+ * Moreover, we expose the internal decoder state (state0 and
+ * codepoint0), allowing one to restart the decoder after it
+ * terminates (say, due to a partial codepoint).
  *
  * In particular, there are a few possible outcomes,
  *
@@ -126,11 +129,12 @@ _hs_text_decode_latin1(uint16_t *dest, const uint8_t const *src,
  */
 const uint8_t *
 _hs_text_decode_utf8_state(uint16_t *const dest, size_t *destoff,
-                           const uint8_t *const src, const uint8_t *const srcend,
+                           const uint8_t **const src,
+                           const uint8_t *const srcend,
                            uint32_t *codepoint0, uint32_t *state0)
 {
   uint16_t *d = dest + *destoff;
-  const uint8_t *s = src;
+  const uint8_t *s = *src, *last = *src;
   uint32_t state = *state0;
   uint32_t codepoint = *codepoint0;
 
@@ -162,6 +166,7 @@ _hs_text_decode_utf8_state(uint16_t *const dest, size_t *destoff,
 	*d++ = (uint16_t) ((codepoint >> 16) & 0xff);
 	*d++ = (uint16_t) ((codepoint >> 24) & 0xff);
       }
+      last = s;
     }
 #endif
 
@@ -177,6 +182,7 @@ _hs_text_decode_utf8_state(uint16_t *const dest, size_t *destoff,
       *d++ = (uint16_t) (0xD7C0 + (codepoint >> 10));
       *d++ = (uint16_t) (0xDC00 + (codepoint & 0x3FF));
     }
+    last = s;
   }
 
   /* Invalid encoding, back up to the errant character */
@@ -186,6 +192,7 @@ _hs_text_decode_utf8_state(uint16_t *const dest, size_t *destoff,
   *destoff = d - dest;
   *codepoint0 = codepoint;
   *state0 = state;
+  *src = last;
 
   return s;
 }
@@ -195,9 +202,9 @@ _hs_text_decode_utf8_state(uint16_t *const dest, size_t *destoff,
  */
 const uint8_t *
 _hs_text_decode_utf8(uint16_t *const dest, size_t *destoff,
-                     const uint8_t *const src, const uint8_t *const srcend)
+                     const uint8_t *src, const uint8_t *const srcend)
 {
   uint32_t codepoint;
   uint32_t state = UTF8_ACCEPT;
-  return _hs_text_decode_utf8_state(dest, destoff, src, srcend, &codepoint, &state);
+  return _hs_text_decode_utf8_state(dest, destoff, &src, srcend, &codepoint, &state);
 }
