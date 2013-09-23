@@ -64,6 +64,7 @@ executable text-tests-stdio
 library
   hs-source-dirs: ..
   c-sources: ../cbits/cbits.c
+  include-dirs: ../include
   exposed-modules:
     Data.Text
     Data.Text.Array
