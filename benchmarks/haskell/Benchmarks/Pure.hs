@@ -18,7 +18,6 @@ import Data.Monoid (mappend, mempty)
 import GHC.Base (Char (..), Int (..), chr#, ord#, (+#))
 import qualified Data.ByteString.Char8 as BS
 import qualified Data.ByteString.Lazy.Char8 as BL
-import qualified Data.ByteString.Lazy.Internal as BL
 import qualified Data.ByteString.UTF8 as UTF8
 import qualified Data.List as L
 import qualified Data.Text as T
