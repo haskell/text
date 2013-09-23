@@ -20,6 +20,7 @@ module Benchmarks.DecodeUtf8
 
 import Foreign.C.Types
 import Data.ByteString.Internal (ByteString(..))
+import Data.ByteString.Lazy.Internal (ByteString(..))
 import Foreign.Ptr (Ptr, plusPtr)
 import Foreign.ForeignPtr (withForeignPtr)
 import Data.Word (Word8)
@@ -38,8 +39,15 @@ benchmark kind fp = do
     bs  <- B.readFile fp
     lbs <- BL.readFile fp
     let bench name = C.bench (name ++ "+" ++ kind)
+        decodeStream (Chunk b0 bs0) = case T.streamDecodeUtf8 b0 of
+                                        T.Some t0 _ f0 -> t0 : go f0 bs0
+          where go f (Chunk b bs1) = case f b of
+                                       T.Some t1 _ f1 -> t1 : go f1 bs1
+                go _ _ = []
+        decodeStream _ = []
     return $ bgroup "DecodeUtf8"
         [ bench "Strict" $ nf T.decodeUtf8 bs
+        , bench "Stream" $ nf decodeStream lbs
         , bench "IConv" $ iconv bs
         , bench "StrictLength" $ nf (T.length . T.decodeUtf8) bs
         , bench "StrictInitLength" $ nf (T.length . T.init . T.decodeUtf8) bs
@@ -52,7 +60,7 @@ benchmark kind fp = do
         , bench "LazyStringUtf8Length" $ nf (length . U8.toString) lbs
         ]
 
-iconv :: ByteString -> IO CInt
+iconv :: B.ByteString -> IO CInt
 iconv (PS fp off len) = withForeignPtr fp $ \ptr ->
                         time_iconv (ptr `plusPtr` off) (fromIntegral len)
 
