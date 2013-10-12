@@ -51,7 +51,7 @@ unsafeHead (Text arr off _len)
           n = A.unsafeIndex arr (off+1)
 {-# INLINE unsafeHead #-}
 
--- | /O(1)/ A variant of 'tail' for non-empty 'Text'. 'unsafeHead'
+-- | /O(1)/ A variant of 'tail' for non-empty 'Text'. 'unsafeTail'
 -- omits the check for the empty case, so there is an obligation on
 -- the programmer to provide a proof that the 'Text' is non-empty.
 unsafeTail :: Text -> Text
