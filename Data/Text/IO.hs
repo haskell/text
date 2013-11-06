@@ -46,10 +46,6 @@ import Prelude hiding (appendFile, getContents, getLine, interact,
                        putStr, putStrLn, readFile, writeFile)
 import System.IO (Handle, IOMode(..), hPutChar, openFile, stdin, stdout,
                   withFile)
-#if __GLASGOW_HASKELL__ <= 610
-import qualified Data.ByteString.Char8 as B
-import Data.Text.Encoding (decodeUtf8, encodeUtf8)
-#else
 import qualified Control.Exception as E
 import Control.Monad (liftM2, when)
 import Data.IORef (readIORef, writeIORef)
@@ -68,7 +64,6 @@ import GHC.IO.Handle.Types (BufferList(..), BufferMode(..), Handle__(..),
                             HandleType(..), Newline(..))
 import System.IO (hGetBuffering, hFileSize, hSetBuffering, hTell)
 import System.IO.Error (isEOFError)
-#endif
 
 -- $performance
 -- #performance#
@@ -137,9 +132,6 @@ hGetChunk h = wantReadableHandle "hGetChunk" h readSingleChunk
 -- result to construct its result.  For files more than a half of
 -- available RAM in size, this may result in memory exhaustion.
 hGetContents :: Handle -> IO Text
-#if __GLASGOW_HASKELL__ <= 610
-hGetContents = fmap decodeUtf8 . B.hGetContents
-#else
 hGetContents h = do
   chooseGoodBuffering h
   wantReadableHandle "hGetContents" h readAll
@@ -171,21 +163,13 @@ chooseGoodBuffering h = do
            else E.throwIO e
       when (d > 0) . hSetBuffering h . BlockBuffering . Just . fromIntegral $ d
     _ -> return ()
-#endif
 
 -- | Read a single line from a handle.
 hGetLine :: Handle -> IO Text
-#if __GLASGOW_HASKELL__ <= 610
-hGetLine = fmap decodeUtf8 . B.hGetLine
-#else
 hGetLine = hGetLineWith T.concat
-#endif
 
 -- | Write a string to a handle.
 hPutStr :: Handle -> Text -> IO ()
-#if __GLASGOW_HASKELL__ <= 610
-hPutStr h = B.hPutStr h . encodeUtf8
-#else
 -- This function is lifted almost verbatim from GHC.IO.Handle.Text.
 hPutStr h t = do
   (buffer_mode, nl) <-
@@ -295,7 +279,6 @@ commitBuffer hdl !raw !sz !count flush release =
   wantWritableHandle "commitAndReleaseBuffer" hdl $
      commitBuffer' raw sz count flush release
 {-# INLINE commitBuffer #-}
-#endif
 
 -- | Write a string to a handle, followed by a newline.
 hPutStrLn :: Handle -> Text -> IO ()

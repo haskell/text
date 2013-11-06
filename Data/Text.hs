@@ -201,11 +201,7 @@ import Control.Exception (assert)
 #endif
 import Data.Char (isSpace)
 import Data.Data (Data(gfoldl, toConstr, gunfold, dataTypeOf))
-#if __GLASGOW_HASKELL__ >= 612
 import Data.Data (mkNoRepType)
-#else
-import Data.Data (mkNorepType)
-#endif
 import Control.Monad (foldM)
 import qualified Data.Text.Array as A
 import qualified Data.List as L
@@ -350,11 +346,7 @@ instance Data Text where
   gfoldl f z txt = z pack `f` (unpack txt)
   toConstr _     = P.error "Data.Text.Text.toConstr"
   gunfold _ _    = P.error "Data.Text.Text.gunfold"
-#if __GLASGOW_HASKELL__ >= 612
   dataTypeOf _   = mkNoRepType "Data.Text.Text"
-#else
-  dataTypeOf _   = mkNorepType "Data.Text.Text"
-#endif
 
 -- | /O(n)/ Compare two 'Text' values lexicographically.
 compareText :: Text -> Text -> Ordering
