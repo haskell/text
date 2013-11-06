@@ -125,36 +125,25 @@ library
     Data.Text.Util
 
   build-depends:
-    array,
-    base       < 5,
-    bytestring >= 0.9
-  if impl(ghc >= 6.10)
-    build-depends:
-      ghc-prim, base >= 4, deepseq >= 1.1.0.0
-    cpp-options: -DHAVE_DEEPSEQ
-  else
-    build-depends: extensible-exceptions
-    extensions: ScopedTypeVariables
+    array      >= 0.3,
+    base       >= 4.2 && < 5,
+    bytestring >= 0.9,
+    deepseq    >= 1.1.0.0,
+    ghc-prim   >= 0.2
 
-  ghc-options: -Wall -funbox-strict-fields -O2
-  if impl(ghc >= 6.8)
-    ghc-options: -fwarn-tabs
+  cpp-options: -DHAVE_DEEPSEQ
+  ghc-options: -Wall -fwarn-tabs -funbox-strict-fields -O2
   if flag(developer)
     ghc-prof-options: -auto-all
     ghc-options: -Werror
     cpp-options: -DASSERTS
 
-  if impl(ghc >= 6.11)
-    if flag(integer-simple)
-      cpp-options: -DINTEGER_SIMPLE
-      build-depends: integer-simple >= 0.1 && < 0.5
-    else
-      cpp-options: -DINTEGER_GMP
-      build-depends: integer-gmp >= 0.2
-
-  if impl(ghc >= 6.9) && impl(ghc < 6.11)
+  if flag(integer-simple)
+    cpp-options: -DINTEGER_SIMPLE
+    build-depends: integer-simple >= 0.1 && < 0.5
+  else
     cpp-options: -DINTEGER_GMP
-    build-depends: integer >= 0.1 && < 0.2
+    build-depends: integer-gmp >= 0.2
 
 test-suite tests
   type:           exitcode-stdio-1.0
@@ -183,17 +172,12 @@ test-suite tests
     test-framework-hunit >= 0.2,
     test-framework-quickcheck2 >= 0.2
 
-  if impl(ghc >= 6.11)
-    if flag(integer-simple)
-      cpp-options: -DINTEGER_SIMPLE
-      build-depends: integer-simple >= 0.1 && < 0.5
-    else
-      cpp-options: -DINTEGER_GMP
-      build-depends: integer-gmp >= 0.2
-
-  if impl(ghc >= 6.9) && impl(ghc < 6.11)
+  if flag(integer-simple)
+    cpp-options: -DINTEGER_SIMPLE
+    build-depends: integer-simple >= 0.1 && < 0.5
+  else
     cpp-options: -DINTEGER_GMP
-    build-depends: integer >= 0.1 && < 0.2
+    build-depends: integer-gmp >= 0.2
 
 source-repository head
   type:     git

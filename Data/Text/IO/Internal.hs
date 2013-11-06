@@ -12,13 +12,10 @@
 
 module Data.Text.IO.Internal
     (
-#if __GLASGOW_HASKELL__ >= 612
       hGetLineWith
     , readChunk
-#endif
     ) where
 
-#if __GLASGOW_HASKELL__ >= 612
 import qualified Control.Exception as E
 import Data.IORef (readIORef, writeIORef)
 import Data.Text (Text)
@@ -163,4 +160,3 @@ readChunk hh@Handle__{..} buf = do
 
 sizeError :: String -> a
 sizeError loc = error $ "Data.Text.IO." ++ loc ++ ": bad internal buffer size"
-#endif

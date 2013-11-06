@@ -33,9 +33,7 @@ import GHC.Types (Int(..))
 import Control.Monad.ST
 
 #ifdef  __GLASGOW_HASKELL__
-# if __GLASGOW_HASKELL__ < 611
-import GHC.Integer.Internals
-# elif defined(INTEGER_GMP)
+# if defined(INTEGER_GMP)
 import GHC.Integer.GMP.Internals
 # elif defined(INTEGER_SIMPLE)
 import GHC.Integer

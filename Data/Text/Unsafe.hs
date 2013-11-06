@@ -34,11 +34,7 @@ import Data.Text.Internal (Text(..))
 import Data.Text.Unsafe.Base (inlineInterleaveST, inlinePerformIO)
 import Data.Text.UnsafeChar (unsafeChr)
 import qualified Data.Text.Array as A
-#if __GLASGOW_HASKELL__ >= 611
 import GHC.IO (unsafeDupablePerformIO)
-#else
-import GHC.IOBase (unsafeDupablePerformIO)
-#endif
 
 -- | /O(1)/ A variant of 'head' for non-empty 'Text'. 'unsafeHead'
 -- omits the check for the empty case, so there is an obligation on
@@ -51,7 +47,7 @@ unsafeHead (Text arr off _len)
           n = A.unsafeIndex arr (off+1)
 {-# INLINE unsafeHead #-}
 
--- | /O(1)/ A variant of 'tail' for non-empty 'Text'. 'unsafeHead'
+-- | /O(1)/ A variant of 'tail' for non-empty 'Text'. 'unsafeTail'
 -- omits the check for the empty case, so there is an obligation on
 -- the programmer to provide a proof that the 'Text' is non-empty.
 unsafeTail :: Text -> Text

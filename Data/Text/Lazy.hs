@@ -202,11 +202,7 @@ import Data.Int (Int64)
 import qualified Data.List as L
 import Data.Char (isSpace)
 import Data.Data (Data(gfoldl, toConstr, gunfold, dataTypeOf))
-#if __GLASGOW_HASKELL__ >= 612
 import Data.Data (mkNoRepType)
-#else
-import Data.Data (mkNorepType)
-#endif
 import Data.Monoid (Monoid(..))
 import Data.String (IsString(..))
 import qualified Data.Text as T
@@ -341,11 +337,7 @@ instance Data Text where
   gfoldl f z txt = z pack `f` (unpack txt)
   toConstr _     = error "Data.Text.Lazy.Text.toConstr"
   gunfold _ _    = error "Data.Text.Lazy.Text.gunfold"
-#if __GLASGOW_HASKELL__ >= 612
   dataTypeOf _   = mkNoRepType "Data.Text.Lazy.Text"
-#else
-  dataTypeOf _   = mkNorepType "Data.Text.Lazy.Text"
-#endif
 
 -- | /O(n)/ Convert a 'String' into a 'Text'.
 --
