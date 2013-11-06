@@ -39,11 +39,7 @@ module Data.Text.Encoding.Error
     ) where
 
 import Control.DeepSeq (NFData (..))
-#if __GLASGOW_HASKELL__ >= 610
 import Control.Exception (Exception, throw)
-#else
-import Control.Exception.Extensible (Exception, throw)
-#endif
 import Data.Typeable (Typeable)
 import Data.Word (Word8)
 import Numeric (showHex)
