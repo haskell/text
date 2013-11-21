@@ -51,6 +51,7 @@ import Prelude (Bool(..), Char, Maybe(..), Monad(..), Int,
                 fromIntegral, otherwise)
 import Data.Bits ((.&.))
 import Data.Text.Internal (Text(..))
+import Data.Text.Private (runText)
 import Data.Text.UnsafeChar (ord, unsafeChr, unsafeWrite)
 import Data.Text.UnsafeShift (shiftL, shiftR)
 import qualified Data.Text.Array as A
@@ -59,7 +60,6 @@ import Data.Text.Fusion.Internal
 import Data.Text.Fusion.Size
 import qualified Data.Text.Internal as I
 import qualified Data.Text.Encoding.Utf16 as U16
-import qualified Prelude as P
 
 default(Int)
 
@@ -94,15 +94,14 @@ reverseStream (Text arr off len) = Stream next (off+len-1) (maxSize len)
 
 -- | /O(n)/ Convert a 'Stream Char' into a 'Text'.
 unstream :: Stream Char -> Text
-unstream (Stream next0 s0 len) = I.textP (P.fst a) 0 (P.snd a)
-  where
-    a = A.run2 (A.new mlen >>= \arr -> outer arr mlen s0 0)
-      where mlen = upperBound 4 len
-    outer arr top = loop
-      where
+unstream (Stream next0 s0 len) = runText $ \done -> do
+  let mlen = upperBound 4 len
+  arr0 <- A.new mlen
+  let outer arr top = loop
+       where
         loop !s !i =
             case next0 s of
-              Done          -> return (arr, i)
+              Done          -> done arr i
               Skip s'       -> loop s' i
               Yield x s'
                 | j >= top  -> {-# SCC "unstream/resize" #-} do
@@ -114,6 +113,7 @@ unstream (Stream next0 s0 len) = I.textP (P.fst a) 0 (P.snd a)
                                   loop s' (i+d)
                 where j | ord x < 0x10000 = i
                         | otherwise       = i + 1
+  outer arr0 mlen s0 0
 {-# INLINE [0] unstream #-}
 {-# RULES "STREAM stream/unstream fusion" forall s. stream (unstream s) = s #-}
 
@@ -223,9 +223,9 @@ mapAccumL f z0 (Stream next0 s0 len) = (nz,I.textP na 0 nl)
                                arr' <- A.new top'
                                A.copyM arr' 0 arr 0 top
                                outer arr' top' z s i
-                | otherwise -> do let (z',c) = f z x
-                                  d <- unsafeWrite arr i c
+                | otherwise -> do d <- unsafeWrite arr i c
                                   loop z' s' (i+d)
-                where j | ord x < 0x10000 = i
+                where (z',c) = f z x
+                      j | ord c < 0x10000 = i
                         | otherwise       = i + 1
 {-# INLINE [0] mapAccumL #-}

@@ -15,14 +15,10 @@ module Data.Text.Unsafe.Base
       inlineInterleaveST
     , inlinePerformIO
     ) where
-     
+
 import GHC.ST (ST(..))
 #if defined(__GLASGOW_HASKELL__)
-# if __GLASGOW_HASKELL__ >= 611
 import GHC.IO (IO(IO))
-# else
-import GHC.IOBase (IO(IO))
-# endif
 import GHC.Base (realWorld#)
 #endif
 

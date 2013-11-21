@@ -12,14 +12,11 @@
 
 module Data.Text.IO.Internal
     (
-#if __GLASGOW_HASKELL__ >= 612
       hGetLineWith
     , readChunk
-#endif
     ) where
 
-#if __GLASGOW_HASKELL__ >= 612
-import Control.Exception (catch)
+import qualified Control.Exception as E
 import Data.IORef (readIORef, writeIORef)
 import Data.Text (Text)
 import Data.Text.Fusion (unstream)
@@ -32,7 +29,6 @@ import GHC.IO.Buffer (Buffer(..), CharBuffer, RawCharBuffer, bufferAdjustL,
                       withRawBuffer, writeCharBuf)
 import GHC.IO.Handle.Internals (ioe_EOF, readTextDevice, wantReadableHandle_)
 import GHC.IO.Handle.Types (Handle__(..), Newline(..))
-import Prelude hiding (catch)
 import System.IO (Handle)
 import System.IO.Error (isEOFError)
 import qualified Data.Text as T
@@ -84,9 +80,9 @@ hGetLineLoop hh@Handle__{..} = go where
 -- This function is lifted almost verbatim from GHC.IO.Handle.Text.
 maybeFillReadBuffer :: Handle__ -> CharBuffer -> IO (Maybe CharBuffer)
 maybeFillReadBuffer handle_ buf
-  = catch (Just `fmap` getSomeCharacters handle_ buf) $ \e ->
-      if isEOFError e 
-      then return Nothing 
+  = E.catch (Just `fmap` getSomeCharacters handle_ buf) $ \e ->
+      if isEOFError e
+      then return Nothing
       else ioError e
 
 unpack :: RawCharBuffer -> Int -> Int -> IO Text
@@ -164,4 +160,3 @@ readChunk hh@Handle__{..} buf = do
 
 sizeError :: String -> a
 sizeError loc = error $ "Data.Text.IO." ++ loc ++ ": bad internal buffer size"
-#endif

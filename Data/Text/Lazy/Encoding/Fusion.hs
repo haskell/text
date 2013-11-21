@@ -5,7 +5,7 @@
 -- Copyright   : (c) 2009, 2010 Bryan O'Sullivan
 --
 -- License     : BSD-style
--- Maintainer  : bos@serpentine.com, rtomharper@googlemail.com, 
+-- Maintainer  : bos@serpentine.com, rtomharper@googlemail.com,
 --               duncan@haskell.org
 -- Stability   : experimental
 -- Portability : portable
@@ -42,7 +42,7 @@ import Data.Word (Word8, Word16, Word32)
 import qualified Data.Text.Encoding.Utf8 as U8
 import qualified Data.Text.Encoding.Utf16 as U16
 import qualified Data.Text.Encoding.Utf32 as U32
-import System.IO.Unsafe (unsafePerformIO)
+import Data.Text.Unsafe (unsafeDupablePerformIO)
 import Foreign.ForeignPtr (withForeignPtr, ForeignPtr)
 import Foreign.Storable (pokeByteOff)
 import Data.ByteString.Internal (mallocByteString, memcpy)
@@ -272,7 +272,7 @@ streamUtf32LE onErr bs0 = Stream next (T bs0 S0 0) unknownSize
 -- | /O(n)/ Convert a 'Stream' 'Word8' to a lazy 'ByteString'.
 unstreamChunks :: Int -> Stream Word8 -> ByteString
 unstreamChunks chunkSize (Stream next s0 len0) = chunk s0 (upperBound 4 len0)
-  where chunk s1 len1 = unsafePerformIO $ do
+  where chunk s1 len1 = unsafeDupablePerformIO $ do
           let len = max 4 (min len1 chunkSize)
           mallocByteString len >>= loop len 0 s1
           where

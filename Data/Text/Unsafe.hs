@@ -14,6 +14,7 @@ module Data.Text.Unsafe
     (
       inlineInterleaveST
     , inlinePerformIO
+    , unsafeDupablePerformIO
     , Iter(..)
     , iter
     , iter_
@@ -24,7 +25,7 @@ module Data.Text.Unsafe
     , takeWord16
     , dropWord16
     ) where
-     
+
 #if defined(ASSERTS)
 import Control.Exception (assert)
 #endif
@@ -33,6 +34,7 @@ import Data.Text.Internal (Text(..))
 import Data.Text.Unsafe.Base (inlineInterleaveST, inlinePerformIO)
 import Data.Text.UnsafeChar (unsafeChr)
 import qualified Data.Text.Array as A
+import GHC.IO (unsafeDupablePerformIO)
 
 -- | /O(1)/ A variant of 'head' for non-empty 'Text'. 'unsafeHead'
 -- omits the check for the empty case, so there is an obligation on
@@ -45,7 +47,7 @@ unsafeHead (Text arr off _len)
           n = A.unsafeIndex arr (off+1)
 {-# INLINE unsafeHead #-}
 
--- | /O(1)/ A variant of 'tail' for non-empty 'Text'. 'unsafeHead'
+-- | /O(1)/ A variant of 'tail' for non-empty 'Text'. 'unsafeTail'
 -- omits the check for the empty case, so there is an obligation on
 -- the programmer to provide a proof that the 'Text' is non-empty.
 unsafeTail :: Text -> Text

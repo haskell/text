@@ -1,4 +1,7 @@
 {-# LANGUAGE BangPatterns, CPP, RecordWildCards, ScopedTypeVariables #-}
+#if __GLASGOW_HASKELL__ >= 702
+{-# LANGUAGE Trustworthy #-}
+#endif
 -- |
 -- Module      : Data.Text.IO
 -- Copyright   : (c) 2009, 2010 Bryan O'Sullivan,
@@ -16,7 +19,7 @@
 module Data.Text.IO
     (
     -- * Performance
-    -- $performance 
+    -- $performance
 
     -- * Locale support
     -- $locale
@@ -26,6 +29,7 @@ module Data.Text.IO
     , appendFile
     -- * Operations on handles
     , hGetContents
+    , hGetChunk
     , hGetLine
     , hPutStr
     , hPutStrLn
@@ -38,15 +42,11 @@ module Data.Text.IO
     ) where
 
 import Data.Text (Text)
-import Prelude hiding (appendFile, catch, getContents, getLine, interact,
+import Prelude hiding (appendFile, getContents, getLine, interact,
                        putStr, putStrLn, readFile, writeFile)
 import System.IO (Handle, IOMode(..), hPutChar, openFile, stdin, stdout,
                   withFile)
-#if __GLASGOW_HASKELL__ <= 610
-import qualified Data.ByteString.Char8 as B
-import Data.Text.Encoding (decodeUtf8, encodeUtf8)
-#else
-import Control.Exception (catch, throwIO)
+import qualified Control.Exception as E
 import Control.Monad (liftM2, when)
 import Data.IORef (readIORef, writeIORef)
 import qualified Data.Text as T
@@ -64,7 +64,6 @@ import GHC.IO.Handle.Types (BufferList(..), BufferMode(..), Handle__(..),
                             HandleType(..), Newline(..))
 import System.IO (hGetBuffering, hFileSize, hSetBuffering, hTell)
 import System.IO.Error (isEOFError)
-#endif
 
 -- $performance
 -- #performance#
@@ -97,6 +96,30 @@ writeFile p = withFile p WriteMode . flip hPutStr
 appendFile :: FilePath -> Text -> IO ()
 appendFile p = withFile p AppendMode . flip hPutStr
 
+catchError :: String -> Handle -> Handle__ -> IOError -> IO Text
+catchError caller h Handle__{..} err
+    | isEOFError err = do
+        buf <- readIORef haCharBuffer
+        return $ if isEmptyBuffer buf
+                 then T.empty
+                 else T.singleton '\r'
+    | otherwise = E.throwIO (augmentIOError err caller h)
+
+-- | /Experimental./ Read a single chunk of strict text from a
+-- 'Handle'. The size of the chunk depends on the amount of input
+-- currently buffered.
+--
+-- This function blocks only if there is no data available, and EOF
+-- has not yet been reached. Once EOF is reached, this function
+-- returns an empty string instead of throwing an exception.
+hGetChunk :: Handle -> IO Text
+hGetChunk h = wantReadableHandle "hGetChunk" h readSingleChunk
+ where
+  readSingleChunk hh@Handle__{..} = do
+    buf <- readIORef haCharBuffer
+    t <- readChunk hh buf `E.catch` catchError "hGetChunk" h hh
+    return (hh, t)
+
 -- | Read the remaining contents of a 'Handle' as a string.  The
 -- 'Handle' is closed once the contents have been read, or if an
 -- exception is thrown.
@@ -109,31 +132,21 @@ appendFile p = withFile p AppendMode . flip hPutStr
 -- result to construct its result.  For files more than a half of
 -- available RAM in size, this may result in memory exhaustion.
 hGetContents :: Handle -> IO Text
-#if __GLASGOW_HASKELL__ <= 610
-hGetContents = fmap decodeUtf8 . B.hGetContents
-#else
 hGetContents h = do
   chooseGoodBuffering h
   wantReadableHandle "hGetContents" h readAll
  where
   readAll hh@Handle__{..} = do
-    let catchError e
-          | isEOFError e = do
-              buf <- readIORef haCharBuffer
-              return $ if isEmptyBuffer buf
-                       then T.empty
-                       else T.singleton '\r'
-          | otherwise = throwIO (augmentIOError e "hGetContents" h)
-        readChunks = do
+    let readChunks = do
           buf <- readIORef haCharBuffer
-          t <- readChunk hh buf `catch` catchError
+          t <- readChunk hh buf `E.catch` catchError "hGetContents" h hh
           if T.null t
             then return [t]
             else (t:) `fmap` readChunks
     ts <- readChunks
     (hh', _) <- hClose_help hh
     return (hh'{haType=ClosedHandle}, T.concat ts)
-  
+
 -- | Use a more efficient buffer size if we're reading in
 -- block-buffered mode with the default buffer size.  When we can
 -- determine the size of the handle we're reading, set the buffer size
@@ -144,30 +157,22 @@ chooseGoodBuffering h = do
   bufMode <- hGetBuffering h
   case bufMode of
     BlockBuffering Nothing -> do
-      d <- catch (liftM2 (-) (hFileSize h) (hTell h)) $ \(e::IOException) ->
+      d <- E.catch (liftM2 (-) (hFileSize h) (hTell h)) $ \(e::IOException) ->
            if ioe_type e == InappropriateType
            then return 16384 -- faster than the 2KB default
-           else throwIO e
+           else E.throwIO e
       when (d > 0) . hSetBuffering h . BlockBuffering . Just . fromIntegral $ d
     _ -> return ()
-#endif
 
 -- | Read a single line from a handle.
 hGetLine :: Handle -> IO Text
-#if __GLASGOW_HASKELL__ <= 610
-hGetLine = fmap decodeUtf8 . B.hGetLine
-#else
 hGetLine = hGetLineWith T.concat
-#endif
 
 -- | Write a string to a handle.
 hPutStr :: Handle -> Text -> IO ()
-#if __GLASGOW_HASKELL__ <= 610
-hPutStr h = B.hPutStr h . encodeUtf8
-#else
 -- This function is lifted almost verbatim from GHC.IO.Handle.Text.
 hPutStr h t = do
-  (buffer_mode, nl) <- 
+  (buffer_mode, nl) <-
        wantWritableHandle "hPutStr" h $ \h_ -> do
                      bmode <- getSpareBuffer h_
                      return (bmode, haOutputNL h_)
@@ -249,7 +254,7 @@ writeBlocksRaw h buf0 (Stream next0 s0 _len) = outer s0 buf0
 
 -- This function is completely lifted from GHC.IO.Handle.Text.
 getSpareBuffer :: Handle__ -> IO (BufferMode, CharBuffer)
-getSpareBuffer Handle__{haCharBuffer=ref, 
+getSpareBuffer Handle__{haCharBuffer=ref,
                         haBuffers=spare_ref,
                         haBufferMode=mode}
  = do
@@ -270,11 +275,10 @@ getSpareBuffer Handle__{haCharBuffer=ref,
 -- This function is completely lifted from GHC.IO.Handle.Text.
 commitBuffer :: Handle -> RawCharBuffer -> Int -> Int -> Bool -> Bool
              -> IO CharBuffer
-commitBuffer hdl !raw !sz !count flush release = 
+commitBuffer hdl !raw !sz !count flush release =
   wantWritableHandle "commitAndReleaseBuffer" hdl $
      commitBuffer' raw sz count flush release
 {-# INLINE commitBuffer #-}
-#endif
 
 -- | Write a string to a handle, followed by a newline.
 hPutStrLn :: Handle -> Text -> IO ()

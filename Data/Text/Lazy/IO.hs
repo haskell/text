@@ -1,4 +1,7 @@
 {-# LANGUAGE BangPatterns, CPP, RecordWildCards #-}
+#if __GLASGOW_HASKELL__ >= 702
+{-# LANGUAGE Trustworthy #-}
+#endif
 -- |
 -- Module      : Data.Text.Lazy.IO
 -- Copyright   : (c) 2009, 2010 Bryan O'Sullivan,
@@ -16,7 +19,7 @@
 module Data.Text.Lazy.IO
     (
     -- * Performance
-    -- $performance 
+    -- $performance
 
     -- * Locale support
     -- $locale
@@ -38,18 +41,13 @@ module Data.Text.Lazy.IO
     ) where
 
 import Data.Text.Lazy (Text)
-import Prelude hiding (appendFile, catch, getContents, getLine, interact,
+import Prelude hiding (appendFile, getContents, getLine, interact,
                        putStr, putStrLn, readFile, writeFile)
 import System.IO (Handle, IOMode(..), hPutChar, openFile, stdin, stdout,
                   withFile)
 import qualified Data.Text.IO as T
 import qualified Data.Text.Lazy as L
-#if __GLASGOW_HASKELL__ <= 610
-import Data.Text.Lazy.Encoding (decodeUtf8)
-import qualified Data.ByteString.Char8 as S8
-import qualified Data.ByteString.Lazy.Char8 as L8
-#else
-import Control.Exception (catch, throwIO)
+import qualified Control.Exception as E
 import Control.Monad (when)
 import Data.IORef (readIORef)
 import Data.Text.IO.Internal (hGetLineWith, readChunk)
@@ -62,7 +60,6 @@ import GHC.IO.Handle.Types (Handle__(..), HandleType(..))
 import System.IO (BufferMode(..), hGetBuffering, hSetBuffering)
 import System.IO.Error (isEOFError)
 import System.IO.Unsafe (unsafeInterleaveIO)
-#endif
 
 -- $performance
 --
@@ -96,9 +93,6 @@ appendFile p = withFile p AppendMode . flip hPutStr
 -- | Lazily read the remaining contents of a 'Handle'.  The 'Handle'
 -- will be closed after the read completes, or on error.
 hGetContents :: Handle -> IO Text
-#if __GLASGOW_HASKELL__ <= 610
-hGetContents = fmap decodeUtf8 . L8.hGetContents
-#else
 hGetContents h = do
   chooseGoodBuffering h
   wantReadableHandle "hGetContents" h $ \hh -> do
@@ -119,7 +113,7 @@ lazyRead h = unsafeInterleaveIO $
     case haType hh of
       ClosedHandle     -> return (hh, L.empty)
       SemiClosedHandle -> lazyReadBuffered h hh
-      _                -> ioException 
+      _                -> ioException
                           (IOError (Just h) IllegalOperation "hGetContents"
                            "illegal handle type" Nothing Nothing)
 
@@ -128,22 +122,17 @@ lazyReadBuffered h hh@Handle__{..} = do
    buf <- readIORef haCharBuffer
    (do t <- readChunk hh buf
        ts <- lazyRead h
-       return (hh, chunk t ts)) `catch` \e -> do
+       return (hh, chunk t ts)) `E.catch` \e -> do
          (hh', _) <- hClose_help hh
          if isEOFError e
            then return $ if isEmptyBuffer buf
                          then (hh', empty)
                          else (hh', L.singleton '\r')
-           else throwIO (augmentIOError e "hGetContents" h)
-#endif
+           else E.throwIO (augmentIOError e "hGetContents" h)
 
 -- | Read a single line from a handle.
 hGetLine :: Handle -> IO Text
-#if __GLASGOW_HASKELL__ <= 610
-hGetLine = fmap (decodeUtf8 . L8.fromChunks . (:[])) . S8.hGetLine
-#else
 hGetLine = hGetLineWith L.fromChunks
-#endif
 
 -- | Write a string to a handle.
 hPutStr :: Handle -> Text -> IO ()

@@ -1,4 +1,7 @@
 {-# LANGUAGE CPP, DeriveDataTypeable #-}
+#if __GLASGOW_HASKELL__ >= 702
+{-# LANGUAGE Trustworthy #-}
+#endif
 -- |
 -- Module      : Data.Text.Encoding.Error
 -- Copyright   : (c) Bryan O'Sullivan 2009
@@ -35,11 +38,8 @@ module Data.Text.Encoding.Error
     , replace
     ) where
 
-#if __GLASGOW_HASKELL__ >= 610
+import Control.DeepSeq (NFData (..))
 import Control.Exception (Exception, throw)
-#else
-import Control.Exception.Extensible (Exception, throw)
-#endif
 import Data.Typeable (Typeable)
 import Data.Word (Word8)
 import Numeric (showHex)
@@ -88,11 +88,15 @@ showUnicodeException (EncodeError desc (Just c))
     = "Cannot encode character '\\x" ++ showHex (fromEnum c) ("': " ++ desc)
 showUnicodeException (EncodeError desc Nothing)
     = "Cannot encode input: " ++ desc
-                     
+
 instance Show UnicodeException where
     show = showUnicodeException
 
 instance Exception UnicodeException
+
+instance NFData UnicodeException where
+    rnf (DecodeError desc w) = rnf desc `seq` rnf w `seq` ()
+    rnf (EncodeError desc c) = rnf desc `seq` rnf c `seq` ()
 
 -- | Throw a 'UnicodeException' if decoding fails.
 strictDecode :: OnDecodeError

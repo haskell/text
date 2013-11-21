@@ -1,9 +1,12 @@
-{-# LANGUAGE BangPatterns, CPP, Rank2Types, UnboxedTuples #-}
+{-# LANGUAGE BangPatterns, CPP, MagicHash, Rank2Types, UnboxedTuples #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+#if __GLASGOW_HASKELL__ >= 702
+{-# LANGUAGE Trustworthy #-}
+#endif
 
 -- |
 -- Module      : Data.Text
--- Copyright   : (c) 2009, 2010, 2011 Bryan O'Sullivan,
+-- Copyright   : (c) 2009, 2010, 2011, 2012 Bryan O'Sullivan,
 --               (c) 2009 Duncan Coutts,
 --               (c) 2008, 2009 Tom Harper
 --
@@ -167,26 +170,29 @@ module Data.Text
     , partition
 
     -- , findSubstring
-    
+
     -- * Indexing
     -- $index
     , index
     , findIndex
     , count
 
-    -- * Zipping and unzipping
+    -- * Zipping
     , zip
     , zipWith
 
     -- -* Ordered text
     -- , sort
+
+    -- * Low level operations
+    , copy
     ) where
 
 import Prelude (Char, Bool(..), Int, Maybe(..), String,
                 Eq(..), Ord(..), Ordering(..), (++),
                 Read(..), Show(..),
                 (&&), (||), (+), (-), (.), ($), ($!), (>>), (*),
-                div, maxBound, not, return, otherwise)
+                maxBound, not, return, otherwise, quot)
 #if defined(HAVE_DEEPSEQ)
 import Control.DeepSeq (NFData)
 #endif
@@ -195,11 +201,7 @@ import Control.Exception (assert)
 #endif
 import Data.Char (isSpace)
 import Data.Data (Data(gfoldl, toConstr, gunfold, dataTypeOf))
-#if __GLASGOW_HASKELL__ >= 612
 import Data.Data (mkNoRepType)
-#else
-import Data.Data (mkNorepType)
-#endif
 import Control.Monad (foldM)
 import qualified Data.Text.Array as A
 import qualified Data.List as L
@@ -222,6 +224,12 @@ import Data.ByteString (ByteString)
 import qualified Data.Text.Lazy as L
 import Data.Int (Int64)
 #endif
+#if __GLASGOW_HASKELL__ >= 702
+import qualified GHC.CString as GHC
+#else
+import qualified GHC.Base as GHC
+#endif
+import GHC.Prim (Addr#)
 
 -- $strict
 --
@@ -324,7 +332,7 @@ instance NFData Text
 
 -- This instance preserves data abstraction at the cost of inefficiency.
 -- We omit reflection services for the sake of data abstraction.
--- 
+--
 -- This instance was created by copying the behavior of Data.Set and
 -- Data.Map. If you feel a mistake has been made, please feel free to
 -- submit improvements.
@@ -338,11 +346,7 @@ instance Data Text where
   gfoldl f z txt = z pack `f` (unpack txt)
   toConstr _     = P.error "Data.Text.Text.toConstr"
   gunfold _ _    = P.error "Data.Text.Text.gunfold"
-#if __GLASGOW_HASKELL__ >= 612
   dataTypeOf _   = mkNoRepType "Data.Text.Text"
-#else
-  dataTypeOf _   = mkNorepType "Data.Text.Text"
-#endif
 
 -- | /O(n)/ Compare two 'Text' values lexicographically.
 compareText :: Text -> Text -> Ordering
@@ -364,13 +368,26 @@ compareText ta@(Text _arrA _offA lenA) tb@(Text _arrB _offB lenB)
 -- | /O(n)/ Convert a 'String' into a 'Text'.  Subject to
 -- fusion.  Performs replacement on invalid scalar values.
 pack :: String -> Text
-pack = unstream . S.streamList . L.map safe
+pack = unstream . S.map safe . S.streamList
 {-# INLINE [1] pack #-}
 
 -- | /O(n)/ Convert a Text into a String.  Subject to fusion.
 unpack :: Text -> String
 unpack = S.unstreamList . stream
 {-# INLINE [1] unpack #-}
+
+-- | /O(n)/ Convert a literal string into a Text.  Subject to fusion.
+unpackCString# :: Addr# -> Text
+unpackCString# addr# = unstream (S.streamCString# addr#)
+{-# NOINLINE unpackCString# #-}
+
+{-# RULES "TEXT literal" forall a.
+    unstream (S.map safe (S.streamList (GHC.unpackCString# a)))
+      = unpackCString# a #-}
+
+{-# RULES "TEXT literal UTF8" forall a.
+    unstream (S.map safe (S.streamList (GHC.unpackCStringUtf8# a)))
+      = unpackCString# a #-}
 
 -- | /O(1)/ Convert a character into a Text.  Subject to fusion.
 -- Performs replacement on invalid scalar values.
@@ -712,7 +729,7 @@ center k c t
     | otherwise = replicateChar l c `append` t `append` replicateChar r c
   where len = length t
         d   = k - len
-        r   = d `div` 2
+        r   = d `quot` 2
         l   = d - r
 {-# INLINE center #-}
 
@@ -884,11 +901,11 @@ mapAccumR f z0 = second reverse . S.mapAccumL g z0 . reverseStream
 -- @t@ repeated @n@ times.
 replicate :: Int -> Text -> Text
 replicate n t@(Text a o l)
-    | n <= 0 || l <= 0      = empty
-    | n == 1                = t
-    | isSingleton t         = replicateChar n (unsafeHead t)
-    | n <= maxBound `div` l = Text (A.run x) 0 len
-    | otherwise             = overflowError "replicate"
+    | n <= 0 || l <= 0       = empty
+    | n == 1                 = t
+    | isSingleton t          = replicateChar n (unsafeHead t)
+    | n <= maxBound `quot` l = Text (A.run x) 0 len
+    | otherwise              = overflowError "replicate"
   where
     len = l * n
     x = do
@@ -1110,7 +1127,7 @@ findAIndexOrEnd q t@(Text _arr _off len) = go 0
     where go !i | i >= len || q c       = i
                 | otherwise             = go (i+d)
                 where Iter c d          = iter t i
-    
+
 -- | /O(n)/ Group characters in a string by equality.
 group :: Text -> [Text]
 group = groupBy (==)
@@ -1143,7 +1160,7 @@ tails t | null t    = [empty]
 -- > splitOn "\r\n" "a\r\nb\r\nd\r\ne" == ["a","b","d","e"]
 -- > splitOn "aaa"  "aaaXaaaXaaaXaaa"  == ["","X","X","X",""]
 -- > splitOn "x"    "x"                == ["",""]
--- 
+--
 -- and
 --
 -- > intercalate s . splitOn s         == id
@@ -1439,8 +1456,6 @@ isPrefixOf a@(Text _ _ alen) b@(Text _ _ blen) =
 {-# RULES
 "TEXT isPrefixOf -> fused" [~1] forall s t.
     isPrefixOf s t = S.isPrefixOf (stream s) (stream t)
-"TEXT isPrefixOf -> unfused" [1] forall s t.
-    S.isPrefixOf (stream s) (stream t) = isPrefixOf s t
   #-}
 
 -- | /O(n)/ The 'isSuffixOf' function takes two 'Text's and returns
@@ -1557,3 +1572,19 @@ emptyError fun = P.error $ "Data.Text." ++ fun ++ ": empty input"
 
 overflowError :: String -> a
 overflowError fun = P.error $ "Data.Text." ++ fun ++ ": size overflow"
+
+-- | /O(n)/ Make a distinct copy of the given string, sharing no
+-- storage with the original string.
+--
+-- As an example, suppose you read a large string, of which you need
+-- only a small portion.  If you do not use 'copy', the entire original
+-- array will be kept alive in memory by the smaller string. Making a
+-- copy \"breaks the link\" to the original array, allowing it to be
+-- garbage collected if there are no other live references to it.
+copy :: Text -> Text
+copy (Text arr off len) = Text (A.run go) 0 len
+  where
+    go = do
+      marr <- A.new len
+      A.copyI marr 0 arr off len
+      return marr

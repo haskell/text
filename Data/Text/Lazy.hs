@@ -1,8 +1,11 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE BangPatterns, CPP #-}
+{-# LANGUAGE BangPatterns, MagicHash, CPP #-}
+#if __GLASGOW_HASKELL__ >= 702
+{-# LANGUAGE Trustworthy #-}
+#endif
 -- |
 -- Module      : Data.Text.Lazy
--- Copyright   : (c) 2009, 2010 Bryan O'Sullivan
+-- Copyright   : (c) 2009, 2010, 2012 Bryan O'Sullivan
 --
 -- License     : BSD-style
 -- Maintainer  : bos@serpentine.com, rtomharper@googlemail.com,
@@ -174,7 +177,7 @@ module Data.Text.Lazy
     , partition
 
     -- , findSubstring
-    
+
     -- * Indexing
     , index
     , count
@@ -190,7 +193,7 @@ module Data.Text.Lazy
 import Prelude (Char, Bool(..), Maybe(..), String,
                 Eq(..), Ord(..), Ordering(..), Read(..), Show(..),
                 (&&), (||), (+), (-), (.), ($), (++),
-                div, error, flip, fmap, fromIntegral, not, otherwise)
+                error, flip, fmap, fromIntegral, not, otherwise, quot)
 import qualified Prelude as P
 #if defined(HAVE_DEEPSEQ)
 import Control.DeepSeq (NFData(..))
@@ -199,11 +202,7 @@ import Data.Int (Int64)
 import qualified Data.List as L
 import Data.Char (isSpace)
 import Data.Data (Data(gfoldl, toConstr, gunfold, dataTypeOf))
-#if __GLASGOW_HASKELL__ >= 612
 import Data.Data (mkNoRepType)
-#else
-import Data.Data (mkNorepType)
-#endif
 import Data.Monoid (Monoid(..))
 import Data.String (IsString(..))
 import qualified Data.Text as T
@@ -217,6 +216,12 @@ import Data.Text.Lazy.Internal (Text(..), chunk, empty, foldlChunks, foldrChunks
 import Data.Text.Internal (firstf, safe, textP)
 import qualified Data.Text.Util as U
 import Data.Text.Lazy.Search (indices)
+#if __GLASGOW_HASKELL__ >= 702
+import qualified GHC.CString as GHC
+#else
+import qualified GHC.Base as GHC
+#endif
+import GHC.Prim (Addr#)
 
 -- $fusion
 --
@@ -332,11 +337,7 @@ instance Data Text where
   gfoldl f z txt = z pack `f` (unpack txt)
   toConstr _     = error "Data.Text.Lazy.Text.toConstr"
   gunfold _ _    = error "Data.Text.Lazy.Text.gunfold"
-#if __GLASGOW_HASKELL__ >= 612
   dataTypeOf _   = mkNoRepType "Data.Text.Lazy.Text"
-#else
-  dataTypeOf _   = mkNorepType "Data.Text.Lazy.Text"
-#endif
 
 -- | /O(n)/ Convert a 'String' into a 'Text'.
 --
@@ -350,6 +351,19 @@ pack = unstream . S.streamList . L.map safe
 unpack :: Text -> String
 unpack t = S.unstreamList (stream t)
 {-# INLINE [1] unpack #-}
+
+-- | /O(n)/ Convert a literal string into a Text.
+unpackCString# :: Addr# -> Text
+unpackCString# addr# = unstream (S.streamCString# addr#)
+{-# NOINLINE unpackCString# #-}
+
+{-# RULES "TEXT literal" forall a.
+    unstream (S.streamList (L.map safe (GHC.unpackCString# a)))
+      = unpackCString# a #-}
+
+{-# RULES "TEXT literal UTF8" forall a.
+    unstream (S.streamList (L.map safe (GHC.unpackCStringUtf8# a)))
+      = unpackCString# a #-}
 
 -- | /O(1)/ Convert a character into a Text.  Subject to fusion.
 -- Performs replacement on invalid scalar values.
@@ -606,7 +620,7 @@ center k c t
     | otherwise = replicateChar l c `append` t `append` replicateChar r c
   where len = length t
         d   = k - len
-        r   = d `div` 2
+        r   = d `quot` 2
         l   = d - r
 {-# INLINE center #-}
 
@@ -902,7 +916,7 @@ drop i t0
     | otherwise = drop' i t0
   where drop' 0 ts           = ts
         drop' _ Empty        = Empty
-        drop' n (Chunk t ts) 
+        drop' n (Chunk t ts)
             | n < len   = Chunk (T.drop (fromIntegral n) t) ts
             | otherwise = drop' (n - len) ts
             where len   = fromIntegral (T.length t)
@@ -1190,7 +1204,7 @@ tails ts@(Chunk t ts')
 -- > splitOn "\r\n" "a\r\nb\r\nd\r\ne" == ["a","b","d","e"]
 -- > splitOn "aaa"  "aaaXaaaXaaaXaaa"  == ["","X","X","X",""]
 -- > splitOn "x"    "x"                == ["",""]
--- 
+--
 -- and
 --
 -- > intercalate s . splitOn s         == id
