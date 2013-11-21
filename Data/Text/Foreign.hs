@@ -21,6 +21,9 @@ module Data.Text.Foreign
     , fromPtr
     , useAsPtr
     , asForeignPtr
+    -- ** Encoding as UTF-8
+    , peekCStringLen
+    , withCStringLen
     -- * Unsafe conversion code
     , lengthWord16
     , unsafeCopyToPtr
@@ -38,14 +41,17 @@ import Control.Monad.ST.Unsafe (unsafeIOToST)
 #else
 import Control.Monad.ST (unsafeIOToST)
 #endif
+import Data.ByteString.Unsafe (unsafePackCStringLen, unsafeUseAsCStringLen)
+import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import Data.Text.Internal (Text(..), empty)
 import Data.Text.Unsafe (lengthWord16)
-import qualified Data.Text.Array as A
 import Data.Word (Word16)
+import Foreign.C.String (CStringLen)
+import Foreign.ForeignPtr (ForeignPtr, mallocForeignPtrArray, withForeignPtr)
 import Foreign.Marshal.Alloc (allocaBytes)
 import Foreign.Ptr (Ptr, castPtr, plusPtr)
-import Foreign.ForeignPtr (ForeignPtr, mallocForeignPtrArray, withForeignPtr)
 import Foreign.Storable (peek, poke)
+import qualified Data.Text.Array as A
 
 -- $interop
 --
@@ -148,3 +154,21 @@ asForeignPtr t@(Text _arr _off len) = do
   fp <- mallocForeignPtrArray len
   withForeignPtr fp $ unsafeCopyToPtr t
   return (fp, I16 len)
+
+-- | /O(n)/ Decode a C string with explicit length, which is assumed
+-- to have been encoded as UTF-8. If decoding fails, a
+-- 'UnicodeException' is thrown.
+peekCStringLen :: CStringLen -> IO Text
+peekCStringLen cs = do
+  bs <- unsafePackCStringLen cs
+  return $! decodeUtf8 bs
+
+-- | Marshal a 'Text' into a C string encoded as UTF-8 in temporary
+-- storage, with explicit length information. The encoded string may
+-- contain NUL bytes, and is not followed by a trailing NUL byte.
+--
+-- The temporary storage is freed when the subcomputation terminates
+-- (either normally or via an exception), so the pointer to the
+-- temporary storage must /not/ be used after this function returns.
+withCStringLen :: Text -> (CStringLen -> IO a) -> IO a
+withCStringLen t act = unsafeUseAsCStringLen (encodeUtf8 t) act

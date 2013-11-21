@@ -1,4 +1,7 @@
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns,CPP #-}
+#if __GLASGOW_HASKELL__ >= 702
+{-# LANGUAGE Trustworthy #-}
+#endif
 -- |
 -- Module      : Data.Text.Lazy.Encoding
 -- Copyright   : (c) 2009, 2010 Bryan O'Sullivan
@@ -20,6 +23,7 @@ module Data.Text.Lazy.Encoding
     -- * Decoding ByteStrings to Text
     -- $strict
       decodeASCII
+    , decodeLatin1
     , decodeUtf8
     , decodeUtf16LE
     , decodeUtf16BE
@@ -46,17 +50,20 @@ module Data.Text.Lazy.Encoding
 
 import Control.Exception (evaluate, try)
 import Data.Bits ((.&.))
+import Data.Monoid (mempty, (<>))
 import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode)
 import Data.Text.Lazy.Internal (Text(..), chunk, empty, foldrChunks)
-import System.IO.Unsafe (unsafePerformIO)
 import qualified Data.ByteString as S
 import qualified Data.ByteString.Lazy as B
 import qualified Data.ByteString.Lazy.Internal as B
 import qualified Data.ByteString.Unsafe as S
+import qualified Data.ByteString.Builder               as B
+import qualified Data.ByteString.Builder.Prim          as BP
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text.Lazy.Encoding.Fusion as E
 import qualified Data.Text.Lazy.Fusion as F
+import Data.Text.Unsafe (unsafeDupablePerformIO)
 
 -- $strict
 --
@@ -74,10 +81,14 @@ import qualified Data.Text.Lazy.Fusion as F
 -- | /Deprecated/.  Decode a 'ByteString' containing 7-bit ASCII
 -- encoded text.
 --
--- This function is deprecated.  Use 'decodeUtf8' instead.
+-- This function is deprecated.  Use 'decodeLatin1' instead.
 decodeASCII :: B.ByteString -> Text
 decodeASCII = decodeUtf8
 {-# DEPRECATED decodeASCII "Use decodeUtf8 instead" #-}
+
+-- | Decode a 'ByteString' containing Latin-1 (aka ISO-8859-1) encoded text.
+decodeLatin1 :: B.ByteString -> Text
+decodeLatin1 = foldr (chunk . TE.decodeLatin1) empty . B.toChunks
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text.
 decodeUtf8With :: OnDecodeError -> B.ByteString -> Text
@@ -141,7 +152,7 @@ decodeUtf8 = decodeUtf8With strictDecode
 -- input before it can return a result.  If you need lazy (streaming)
 -- decoding, use 'decodeUtf8With' in lenient mode.
 decodeUtf8' :: B.ByteString -> Either UnicodeException Text
-decodeUtf8' bs = unsafePerformIO $ do
+decodeUtf8' bs = unsafeDupablePerformIO $ do
                    let t = decodeUtf8 bs
                    try (evaluate (rnf t `seq` t))
   where
@@ -150,8 +161,13 @@ decodeUtf8' bs = unsafePerformIO $ do
 {-# INLINE decodeUtf8' #-}
 
 encodeUtf8 :: Text -> B.ByteString
-encodeUtf8 (Chunk c cs) = B.Chunk (TE.encodeUtf8 c) (encodeUtf8 cs)
-encodeUtf8 Empty        = B.Empty
+encodeUtf8 =
+    B.toLazyByteString . go
+  where
+    go Empty        = mempty
+    go (Chunk c cs) =
+        TE.encodeUtf8Escaped (BP.liftFixedToBounded BP.word8) c <> go cs
+
 
 -- | Decode text from little endian UTF-16 encoding.
 decodeUtf16LEWith :: OnDecodeError -> B.ByteString -> Text

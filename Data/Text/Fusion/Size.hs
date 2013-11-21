@@ -93,8 +93,8 @@ subtractSize _         _           = Unknown
 
 mul :: Int -> Int -> Int
 mul m n
-    | m <= maxBound `div` n = m * n
-    | otherwise             = overflowError
+    | m <= maxBound `quot` n = m * n
+    | otherwise              = overflowError
 {-# INLINE mul #-}
 
 mulSize :: Size -> Size -> Size

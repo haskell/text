@@ -9,6 +9,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdio.h>
+#include "text_cbits.h"
 
 void _hs_text_memcpy(void *dest, size_t doff, const void *src, size_t soff,
 		     size_t n)
@@ -47,7 +48,7 @@ static const uint8_t utf8d[] = {
   12, 0,12,12,12,12,12, 0,12, 0,12,12, 12,24,12,12,12,12,12,24,12,24,12,12,
   12,12,12,12,12,12,12,24,12,12,12,12, 12,24,12,12,12,12,12,12,12,24,12,12,
   12,12,12,12,12,12,12,36,12,36,12,12, 12,36,12,12,12,12,12,36,12,36,12,12,
-  12,36,12,12,12,12,12,12,12,12,12,12, 
+  12,36,12,12,12,12,12,12,12,12,12,12,
 };
 
 static inline uint32_t
@@ -62,23 +63,82 @@ decode(uint32_t *state, uint32_t* codep, uint32_t byte) {
 }
 
 /*
+ * The ISO 8859-1 (aka latin-1) code points correspond exactly to the first 256 unicode
+ * code-points, therefore we can trivially convert from a latin-1 encoded bytestring to
+ * an UTF16 array
+ */
+void
+_hs_text_decode_latin1(uint16_t *dest, const uint8_t const *src,
+                       const uint8_t const *srcend)
+{
+  const uint8_t *p = src;
+
+#if defined(__i386__) || defined(__x86_64__)
+  /* This optimization works on a little-endian systems by using
+     (aligned) 32-bit loads instead of 8-bit loads
+   */
+
+  /* consume unaligned prefix */
+  while (p != srcend && (uintptr_t)p & 0x3)
+    *dest++ = *p++;
+
+  /* iterate over 32-bit aligned loads */
+  while (p < srcend - 3) {
+    const uint32_t w = *((const uint32_t *)p);
+
+    *dest++ =  w        & 0xff;
+    *dest++ = (w >> 8)  & 0xff;
+    *dest++ = (w >> 16) & 0xff;
+    *dest++ = (w >> 24) & 0xff;
+
+    p += 4;
+  }
+#endif
+
+  /* handle unaligned suffix */
+  while (p != srcend)
+    *dest++ = *p++;
+}
+
+/*
  * A best-effort decoder. Runs until it hits either end of input or
  * the start of an invalid byte sequence.
  *
- * At exit, updates *destoff with the next offset to write to, and
- * returns the next source offset to read from.
+ * At exit, we update *destoff with the next offset to write to, *src
+ * with the next source location past the last one successfully
+ * decoded, and return the next source location to read from.
+ *
+ * Moreover, we expose the internal decoder state (state0 and
+ * codepoint0), allowing one to restart the decoder after it
+ * terminates (say, due to a partial codepoint).
+ *
+ * In particular, there are a few possible outcomes,
+ *
+ *   1) We decoded the buffer entirely:
+ *      In this case we return srcend
+ *      state0 == UTF8_ACCEPT
+ *
+ *   2) We met an invalid encoding
+ *      In this case we return the address of the first invalid byte
+ *      state0 == UTF8_REJECT
+ *
+ *   3) We reached the end of the buffer while decoding a codepoint
+ *      In this case we return a pointer to the first byte of the partial codepoint
+ *      state0 != UTF8_ACCEPT, UTF8_REJECT
+ *
  */
-uint8_t const *
-_hs_text_decode_utf8(uint16_t *dest, size_t *destoff,
-		     const uint8_t const *src, const uint8_t const *srcend)
+const uint8_t *
+_hs_text_decode_utf8_state(uint16_t *const dest, size_t *destoff,
+                           const uint8_t **const src,
+                           const uint8_t *const srcend,
+                           uint32_t *codepoint0, uint32_t *state0)
 {
   uint16_t *d = dest + *destoff;
-  const uint8_t const *s = src;
-  uint32_t state = UTF8_ACCEPT;
+  const uint8_t *s = *src, *last = *src;
+  uint32_t state = *state0;
+  uint32_t codepoint = *codepoint0;
 
   while (s < srcend) {
-    uint32_t codepoint;
-
 #if defined(__i386__) || defined(__x86_64__)
     /*
      * This code will only work on a little-endian system that
@@ -106,6 +166,7 @@ _hs_text_decode_utf8(uint16_t *dest, size_t *destoff,
 	*d++ = (uint16_t) ((codepoint >> 16) & 0xff);
 	*d++ = (uint16_t) ((codepoint >> 24) & 0xff);
       }
+      last = s;
     }
 #endif
 
@@ -121,13 +182,29 @@ _hs_text_decode_utf8(uint16_t *dest, size_t *destoff,
       *d++ = (uint16_t) (0xD7C0 + (codepoint >> 10));
       *d++ = (uint16_t) (0xDC00 + (codepoint & 0x3FF));
     }
+    last = s;
   }
 
-  /* Error recovery - if we're not in a valid finishing state, back up. */
-  if (state != UTF8_ACCEPT)
+  /* Invalid encoding, back up to the errant character */
+  if (state == UTF8_REJECT)
     s -= 1;
 
   *destoff = d - dest;
+  *codepoint0 = codepoint;
+  *state0 = state;
+  *src = last;
 
   return s;
+}
+
+/*
+ * Helper to decode buffer and discard final decoder state
+ */
+const uint8_t *
+_hs_text_decode_utf8(uint16_t *const dest, size_t *destoff,
+                     const uint8_t *src, const uint8_t *const srcend)
+{
+  uint32_t codepoint;
+  uint32_t state = UTF8_ACCEPT;
+  return _hs_text_decode_utf8_state(dest, destoff, &src, srcend, &codepoint, &state);
 }

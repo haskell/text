@@ -1,7 +1,7 @@
-{-# LANGUAGE BangPatterns, Rank2Types #-}
+{-# LANGUAGE BangPatterns, MagicHash, Rank2Types #-}
 -- |
 -- Module      : Data.Text.Fusion.Common
--- Copyright   : (c) Bryan O'Sullivan 2009
+-- Copyright   : (c) Bryan O'Sullivan 2009, 2012
 --
 -- License     : BSD-style
 -- Maintainer  : bos@serpentine.com, rtomharper@googlemail.com,
@@ -17,6 +17,7 @@ module Data.Text.Fusion.Common
       singleton
     , streamList
     , unstreamList
+    , streamCString#
 
     -- * Basic interface
     , cons
@@ -104,10 +105,13 @@ import Prelude (Bool(..), Char, Eq(..), Int, Integral, Maybe(..),
                 (&&), fromIntegral, otherwise)
 import qualified Data.List as L
 import qualified Prelude as P
+import Data.Bits (shiftL)
 import Data.Int (Int64)
 import Data.Text.Fusion.Internal
 import Data.Text.Fusion.CaseMapping (foldMapping, lowerMapping, upperMapping)
 import Data.Text.Fusion.Size
+import GHC.Prim (Addr#, chr#, indexCharOffAddr#, ord#)
+import GHC.Types (Char(..), Int(..))
 
 singleton :: Char -> Stream Char
 singleton c = Stream next False 1
@@ -131,6 +135,35 @@ unstreamList (Stream next s0 _len) = unfold s0
 
 {-# RULES "STREAM streamList/unstreamList fusion" forall s. streamList (unstreamList s) = s #-}
 
+-- | Stream the UTF-8-like packed encoding used by GHC to represent
+-- constant strings in generated code.
+--
+-- This encoding uses the byte sequence "\xc0\x80" to represent NUL,
+-- and the string is NUL-terminated.
+streamCString# :: Addr# -> Stream Char
+streamCString# addr = Stream step 0 unknownSize
+  where
+    step !i
+        | b == 0    = Done
+        | b <= 0x7f = Yield (C# b#) (i+1)
+        | b <= 0xdf = let !c = chr $ ((b-0xc0) `shiftL` 6) + next 1
+                      in Yield c (i+2)
+        | b <= 0xef = let !c = chr $ ((b-0xe0) `shiftL` 12) +
+                                      (next 1  `shiftL` 6) +
+                                       next 2
+                      in Yield c (i+3)
+        | otherwise = let !c = chr $ ((b-0xf0) `shiftL` 18) +
+                                      (next 1  `shiftL` 12) +
+                                      (next 2  `shiftL` 6) +
+                                       next 3
+                      in Yield c (i+4)
+      where b      = I# (ord# b#)
+            next n = I# (ord# (at# (i+n))) - 0x80
+            !b#    = at# i
+    at# (I# i#) = indexCharOffAddr# addr i#
+    chr (I# i#) = C# (chr# i#)
+{-# INLINE [0] streamCString# #-}
+
 -- ----------------------------------------------------------------------------
 -- * Basic stream functions
 
@@ -139,7 +172,7 @@ data C s = C0 !s
 
 -- | /O(n)/ Adds a character to the front of a Stream Char.
 cons :: Char -> Stream Char -> Stream Char
-cons w (Stream next0 s0 len) = Stream next (C1 s0) (len+1)
+cons !w (Stream next0 s0 len) = Stream next (C1 s0) (len+1)
     where
       next (C1 s) = Yield w (C0 s)
       next (C0 s) = case next0 s of
@@ -185,8 +218,12 @@ head (Stream next s0 _len) = loop_head s0
       loop_head !s = case next s of
                       Yield x _ -> x
                       Skip s'   -> loop_head s'
-                      Done      -> streamError "head" "Empty stream"
+                      Done      -> head_empty
 {-# INLINE [0] head #-}
+
+head_empty :: a
+head_empty = streamError "head" "Empty stream"
+{-# NOINLINE head_empty #-}
 
 -- | /O(1)/ Returns the first character and remainder of a 'Stream
 -- Char', or 'Nothing' if empty.  Subject to array fusion.
@@ -274,7 +311,7 @@ lengthI (Stream next s0 _len) = loop_length 0 s0
 -- of 'lengthI', but can short circuit if the count of characters is
 -- greater than the number, and hence be more efficient.
 compareLengthI :: Integral a => Stream Char -> a -> Ordering
-compareLengthI (Stream next s0 len) n = 
+compareLengthI (Stream next s0 len) n =
     case exactly len of
       Nothing -> loop_cmp 0 s0
       Just i  -> compare (fromIntegral i) n
@@ -743,7 +780,6 @@ isPrefixOf (Stream next1 s1 _) (Stream next2 s2 _) = loop (next1 s1) (next2 s2)
       loop (Yield x1 s1') (Yield x2 s2') = x1 == x2 &&
                                            loop (next1 s1') (next2 s2')
 {-# INLINE [0] isPrefixOf #-}
-{-# SPECIALISE isPrefixOf :: Stream Char -> Stream Char -> Bool #-}
 
 -- ----------------------------------------------------------------------------
 -- * Searching

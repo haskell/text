@@ -21,8 +21,7 @@ module Data.Text.Encoding.Fusion.Common
     -- * Restreaming
     -- Restreaming is the act of converting from one 'Stream'
     -- representation to another.
-      restreamUtf8
-    , restreamUtf16LE
+      restreamUtf16LE
     , restreamUtf16BE
     , restreamUtf32LE
     , restreamUtf32BE
@@ -34,31 +33,6 @@ import Data.Text.Fusion.Internal (RS(..))
 import Data.Text.UnsafeChar (ord)
 import Data.Text.UnsafeShift (shiftR)
 import Data.Word (Word8)
-import qualified Data.Text.Encoding.Utf8 as U8
-
--- | /O(n)/ Convert a Stream Char into a UTF-8 encoded Stream Word8.
-restreamUtf8 :: Stream Char -> Stream Word8
-restreamUtf8 (Stream next0 s0 len) = Stream next (RS0 s0) (len * 2)
-  where
-    next (RS0 s) = case next0 s of
-        Done              -> Done
-        Skip s'           -> Skip (RS0 s')
-        Yield x s'
-            | n <= 0x7F   -> Yield c  (RS0 s')
-            | n <= 0x07FF -> Yield a2 (RS1 s' b2)
-            | n <= 0xFFFF -> Yield a3 (RS2 s' b3 c3)
-            | otherwise   -> Yield a4 (RS3 s' b4 c4 d4)
-          where
-            n  = ord x
-            c  = fromIntegral n
-            (a2,b2) = U8.ord2 x
-            (a3,b3,c3) = U8.ord3 x
-            (a4,b4,c4,d4) = U8.ord4 x
-    next (RS1 s x2)       = Yield x2 (RS0 s)
-    next (RS2 s x2 x3)    = Yield x2 (RS1 s x3)
-    next (RS3 s x2 x3 x4) = Yield x2 (RS2 s x3 x4)
-    {-# INLINE next #-}
-{-# INLINE restreamUtf8 #-}
 
 restreamUtf16BE :: Stream Char -> Stream Word8
 restreamUtf16BE (Stream next0 s0 len) = Stream next (RS0 s0) (len * 2)

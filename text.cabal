@@ -1,9 +1,9 @@
 name:           text
-version:        0.11.2.0
+version:        0.11.5.0
 homepage:       https://github.com/bos/text
 bug-reports:    https://github.com/bos/text/issues
 synopsis:       An efficient packed Unicode text type.
-description:    
+description:
     .
     An efficient packed, immutable Unicode text type (both strict and
     lazy), with a powerful loop fusion optimization framework.
@@ -31,6 +31,15 @@ description:
     the @text-icu@ package:
     <http://hackage.haskell.org/package/text-icu>
     .
+    &#8212;&#8212; RELEASE NOTES &#8212;&#8212;
+    .
+    Changes in 0.11.2.0:
+    .
+    * String literals are now converted directly from the format in
+      which GHC stores them into 'Text', without an intermediate
+      transformation through 'String', and without inlining of
+      conversion code at each site where a string literal is declared.
+    .
 license:        BSD3
 license-file:   LICENSE
 author:         Bryan O'Sullivan <bos@serpentine.com>
@@ -40,31 +49,36 @@ category:       Data, Text
 build-type:     Simple
 cabal-version:  >= 1.8
 extra-source-files:
-    README.markdown
     -- scripts/CaseFolding.txt
     -- scripts/SpecialCasing.txt
+    README.markdown
+    benchmarks/Setup.hs
+    benchmarks/cbits/*.c
+    benchmarks/haskell/*.hs
+    benchmarks/haskell/Benchmarks/*.hs
+    benchmarks/python/*.py
+    benchmarks/ruby/*.rb
+    benchmarks/text-benchmarks.cabal
     scripts/*.hs
-    tests/README.markdown
-    tests/benchmarks/Setup.hs
-    tests/benchmarks/cbits/*.c
-    tests/benchmarks/python/*.py
-    tests/benchmarks/ruby/*.rb
-    tests/benchmarks/src/Data/Text/*.hs
-    tests/benchmarks/src/Data/Text/Benchmarks/*.hs
-    tests/benchmarks/text-benchmarks.cabal
-    tests/tests/.ghci
-    tests/tests/Makefile
-    tests/tests/scripts/*.sh
-    tests/tests/src/Data/Text/*.hs
-    tests/tests/src/Data/Text/Tests/*.hs
-    tests/tests/text-tests.cabal
+    tests-and-benchmarks.markdown
+    tests/*.hs
+    tests/.ghci
+    tests/Makefile
+    tests/Tests/*.hs
+    tests/scripts/*.sh
+    tests/text-tests.cabal
 
 flag developer
   description: operate in developer mode
   default: False
 
+flag integer-simple
+  description: Use the simple integer library instead of GMP
+  default: False
+
 library
-  c-sources: cbits/cbits.c
+  c-sources:    cbits/cbits.c
+  include-dirs: include
 
   exposed-modules:
     Data.Text
@@ -83,6 +97,7 @@ library
     Data.Text.Lazy.Internal
     Data.Text.Lazy.Read
     Data.Text.Read
+    Data.Text.Unsafe
   other-modules:
     Data.Text.Encoding.Fusion
     Data.Text.Encoding.Fusion.Common
@@ -96,51 +111,46 @@ library
     Data.Text.Fusion.Size
     Data.Text.IO.Internal
     Data.Text.Lazy.Builder.Functions
+    Data.Text.Lazy.Builder.Int.Digits
+    Data.Text.Lazy.Builder.Internal
     Data.Text.Lazy.Builder.RealFloat.Functions
     Data.Text.Lazy.Encoding.Fusion
     Data.Text.Lazy.Fusion
     Data.Text.Lazy.Search
     Data.Text.Private
     Data.Text.Search
-    Data.Text.Unsafe
     Data.Text.Unsafe.Base
     Data.Text.UnsafeChar
     Data.Text.UnsafeShift
     Data.Text.Util
 
   build-depends:
-    array,
-    base       < 5,
-    bytestring >= 0.10 && < 1.0
-  if impl(ghc >= 6.10)
-    build-depends:
-      ghc-prim, base >= 4, deepseq >= 1.1.0.0
-    cpp-options: -DHAVE_DEEPSEQ
-  else
-    build-depends: extensible-exceptions
-    extensions: PatternSignatures
+    array      >= 0.3,
+    base       >= 4.2 && < 5,
+    bytestring >= 0.10.4.0,
+    deepseq    >= 1.1.0.0,
+    ghc-prim   >= 0.2
 
-  ghc-options: -Wall -funbox-strict-fields -O2
-  if impl(ghc >= 6.8)
-    ghc-options: -fwarn-tabs
+  cpp-options: -DHAVE_DEEPSEQ
+  ghc-options: -Wall -fwarn-tabs -funbox-strict-fields -O2
   if flag(developer)
     ghc-prof-options: -auto-all
     ghc-options: -Werror
     cpp-options: -DASSERTS
 
-  if impl(ghc >= 6.11)
+  if flag(integer-simple)
+    cpp-options: -DINTEGER_SIMPLE
+    build-depends: integer-simple >= 0.1 && < 0.5
+  else
     cpp-options: -DINTEGER_GMP
-    build-depends: integer-gmp >= 0.2 && < 0.5
-
-  if impl(ghc >= 6.9) && impl(ghc < 6.11)
-    cpp-options: -DINTEGER_GMP
-    build-depends: integer >= 0.1 && < 0.2
+    build-depends: integer-gmp >= 0.2
 
 test-suite tests
   type:           exitcode-stdio-1.0
-  hs-source-dirs: . tests/tests/src
-  main-is:        Data/Text/Tests.hs
+  hs-source-dirs: tests .
+  main-is:        Tests.hs
   c-sources:      cbits/cbits.c
+  include-dirs:   include
 
   ghc-options:
     -Wall -threaded -O0 -rtsopts
@@ -149,16 +159,25 @@ test-suite tests
     -DASSERTS -DHAVE_DEEPSEQ
 
   build-depends:
-    base                       >= 4    && < 5,
-    bytestring                 >= 0.10 && < 1.0,
-    deepseq                    >= 1.1,
-    directory                  >= 1.0  && < 1.2,
-    random                     >= 1.0  && < 1.1,
-    QuickCheck                 >= 2.4  && < 2.5,
-    HUnit                      >= 1.2  && < 1.3,
-    test-framework             >= 0.4  && < 0.5,
-    test-framework-quickcheck2 >= 0.2  && < 0.3,
-    test-framework-hunit       >= 0.2  && < 0.3
+    HUnit >= 1.2,
+    QuickCheck >= 2.4,
+    array,
+    base,
+    bytestring,
+    deepseq,
+    directory,
+    ghc-prim,
+    random,
+    test-framework >= 0.4,
+    test-framework-hunit >= 0.2,
+    test-framework-quickcheck2 >= 0.2
+
+  if flag(integer-simple)
+    cpp-options: -DINTEGER_SIMPLE
+    build-depends: integer-simple >= 0.1 && < 0.5
+  else
+    cpp-options: -DINTEGER_GMP
+    build-depends: integer-gmp >= 0.2
 
 source-repository head
   type:     git
