@@ -644,9 +644,10 @@ replace s d = intercalate d . splitOn s
 -- functions from the @text-icu@ package:
 -- <http://hackage.haskell.org/package/text-icu>
 
--- | /O(n)/ Convert a string to folded case.  This function is mainly
--- useful for performing caseless (also known as case insensitive)
--- string comparisons.
+-- | /O(n)/ Convert a string to folded case.  Subject to fusion.
+--
+-- This function is mainly useful for performing caseless (also known
+-- as case insensitive) string comparisons.
 --
 -- A string @x@ is a caseless match for a string @y@ if and only if:
 --
@@ -664,24 +665,28 @@ toCaseFold t = unstream (S.toCaseFold (stream t))
 {-# INLINE [0] toCaseFold #-}
 
 -- | /O(n)/ Convert a string to lower case, using simple case
--- conversion.  The result string may be longer than the input string.
--- For instance, \"&#x130;\" (Latin capital letter I with dot above,
--- U+0130) maps to the sequence \"i\" (Latin small letter i, U+0069) followed
--- by \" &#x307;\" (combining dot above, U+0307).
+-- conversion.  Subject to fusion.
+--
+-- The result string may be longer than the input string.  For
+-- instance, \"&#x130;\" (Latin capital letter I with dot above,
+-- U+0130) maps to the sequence \"i\" (Latin small letter i, U+0069)
+-- followed by \" &#x307;\" (combining dot above, U+0307).
 toLower :: Text -> Text
 toLower t = unstream (S.toLower (stream t))
 {-# INLINE toLower #-}
 
 -- | /O(n)/ Convert a string to upper case, using simple case
--- conversion.  The result string may be longer than the input string.
--- For instance, the German \"&#xdf;\" (eszett, U+00DF) maps to the
+-- conversion.  Subject to fusion.
+--
+-- The result string may be longer than the input string.  For
+-- instance, the German \"&#xdf;\" (eszett, U+00DF) maps to the
 -- two-letter sequence \"SS\".
 toUpper :: Text -> Text
 toUpper t = unstream (S.toUpper (stream t))
 {-# INLINE toUpper #-}
 
 -- | /O(n)/ Convert a string to title case, using simple case
--- conversion.
+-- conversion. Subject to fusion.
 --
 -- Unlike the other case conversion functions, this function does not
 -- convert every letter of its input. Instead, the first letter is
