@@ -23,14 +23,6 @@ import Text.ParserCombinators.Parsec.Combinator hiding (optional)
 import Text.ParserCombinators.Parsec.Error
 import Text.ParserCombinators.Parsec.Prim hiding ((<|>), many)
 
-instance Applicative (GenParser s a) where
-    pure = return
-    (<*>) = ap
-
-instance Alternative (GenParser s a) where
-    empty = mzero
-    (<|>) = mplus
-
 unichar :: Parser Char
 unichar = chr . fst . head . readHex <$> many1 hexDigit
 
