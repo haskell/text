@@ -707,10 +707,10 @@ toUpper t = unstream (S.toUpper (stream t))
 -- | /O(n)/ Convert a string to title case, using simple case
 -- conversion.  Subject to fusion.
 --
--- Unlike the other case conversion functions, this function does not
--- convert every letter of its input. Instead, the first letter is
--- converted to title case, as is every subsequent letter that
--- immediately follows a non-letter.
+-- The first letter of the input is converted to title case, as is
+-- every subsequent letter that immediately follows a non-letter.
+-- Every letter that immediately follows another letter is converted
+-- to lower case.
 --
 -- The result string may be longer than the input string. For example,
 -- the Latin small ligature &#xfb02; (U+FB02) is converted to the

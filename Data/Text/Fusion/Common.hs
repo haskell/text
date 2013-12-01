@@ -438,10 +438,10 @@ toLower = caseConvert lowerMapping
 -- | /O(n)/ Convert a string to title case, using simple case
 -- conversion.
 --
--- Unlike the other case conversion functions, this function does not
--- convert every letter of its input. Instead, the first letter is
--- converted to title case, as is every subsequent letter that
--- immediately follows a non-letter.
+-- The first letter of the input is converted to title case, as is
+-- every subsequent letter that immediately follows a non-letter.
+-- Every letter that immediately follows another letter is converted
+-- to lower case.
 --
 -- The result string may be longer than the input string. For example,
 -- the Latin small ligature &#xfb02; (U+FB02) is converted to the
@@ -458,13 +458,15 @@ toTitle (Stream next0 s0 len) = Stream next (CC (False :*: s0) '\0' '\0') len
   where
     next (CC (letter :*: s) '\0' _) =
       case next0 s of
-        Done    -> Done
-        Skip s' -> Skip (CC (letter :*: s') '\0' '\0')
+        Done           -> Done
+        Skip s'        -> Skip (CC (letter :*: s') '\0' '\0')
         Yield c s'
-          | not letter && letter' -> titleMapping c (letter' :*: s')
-          | otherwise -> Yield c (CC (letter' :*: s') '\0' '\0')
+          | letter'    -> if letter
+                          then lowerMapping c (letter' :*: s')
+                          else titleMapping c (letter' :*: s')
+          | otherwise  -> Yield c (CC (letter' :*: s') '\0' '\0')
           where letter' = isLetter c
-    next (CC s a b)  =  Yield a (CC s b '\0')
+    next (CC s a b)     = Yield a (CC s b '\0')
 {-# INLINE [0] toTitle #-}
 
 justifyLeftI :: Integral a => a -> Char -> Stream Char -> Stream Char
