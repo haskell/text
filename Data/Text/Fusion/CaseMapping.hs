@@ -222,6 +222,105 @@ lowerMapping :: forall s. Char -> s -> Step (CC s) Char
 -- LATIN CAPITAL LETTER I WITH DOT ABOVE
 lowerMapping '\x0130' s = Yield '\x0069' (CC s '\x0307' '\x0000')
 lowerMapping c s = Yield (toLower c) (CC s '\0' '\0')
+titleMapping :: forall s. Char -> s -> Step (CC s) Char
+{-# INLINE titleMapping #-}
+-- LATIN SMALL LETTER SHARP S
+titleMapping '\x00df' s = Yield '\x0053' (CC s '\x0073' '\x0000')
+-- LATIN SMALL LIGATURE FF
+titleMapping '\xfb00' s = Yield '\x0046' (CC s '\x0066' '\x0000')
+-- LATIN SMALL LIGATURE FI
+titleMapping '\xfb01' s = Yield '\x0046' (CC s '\x0069' '\x0000')
+-- LATIN SMALL LIGATURE FL
+titleMapping '\xfb02' s = Yield '\x0046' (CC s '\x006c' '\x0000')
+-- LATIN SMALL LIGATURE FFI
+titleMapping '\xfb03' s = Yield '\x0046' (CC s '\x0066' '\x0069')
+-- LATIN SMALL LIGATURE FFL
+titleMapping '\xfb04' s = Yield '\x0046' (CC s '\x0066' '\x006c')
+-- LATIN SMALL LIGATURE LONG S T
+titleMapping '\xfb05' s = Yield '\x0053' (CC s '\x0074' '\x0000')
+-- LATIN SMALL LIGATURE ST
+titleMapping '\xfb06' s = Yield '\x0053' (CC s '\x0074' '\x0000')
+-- ARMENIAN SMALL LIGATURE ECH YIWN
+titleMapping '\x0587' s = Yield '\x0535' (CC s '\x0582' '\x0000')
+-- ARMENIAN SMALL LIGATURE MEN NOW
+titleMapping '\xfb13' s = Yield '\x0544' (CC s '\x0576' '\x0000')
+-- ARMENIAN SMALL LIGATURE MEN ECH
+titleMapping '\xfb14' s = Yield '\x0544' (CC s '\x0565' '\x0000')
+-- ARMENIAN SMALL LIGATURE MEN INI
+titleMapping '\xfb15' s = Yield '\x0544' (CC s '\x056b' '\x0000')
+-- ARMENIAN SMALL LIGATURE VEW NOW
+titleMapping '\xfb16' s = Yield '\x054e' (CC s '\x0576' '\x0000')
+-- ARMENIAN SMALL LIGATURE MEN XEH
+titleMapping '\xfb17' s = Yield '\x0544' (CC s '\x056d' '\x0000')
+-- LATIN SMALL LETTER N PRECEDED BY APOSTROPHE
+titleMapping '\x0149' s = Yield '\x02bc' (CC s '\x004e' '\x0000')
+-- GREEK SMALL LETTER IOTA WITH DIALYTIKA AND TONOS
+titleMapping '\x0390' s = Yield '\x0399' (CC s '\x0308' '\x0301')
+-- GREEK SMALL LETTER UPSILON WITH DIALYTIKA AND TONOS
+titleMapping '\x03b0' s = Yield '\x03a5' (CC s '\x0308' '\x0301')
+-- LATIN SMALL LETTER J WITH CARON
+titleMapping '\x01f0' s = Yield '\x004a' (CC s '\x030c' '\x0000')
+-- LATIN SMALL LETTER H WITH LINE BELOW
+titleMapping '\x1e96' s = Yield '\x0048' (CC s '\x0331' '\x0000')
+-- LATIN SMALL LETTER T WITH DIAERESIS
+titleMapping '\x1e97' s = Yield '\x0054' (CC s '\x0308' '\x0000')
+-- LATIN SMALL LETTER W WITH RING ABOVE
+titleMapping '\x1e98' s = Yield '\x0057' (CC s '\x030a' '\x0000')
+-- LATIN SMALL LETTER Y WITH RING ABOVE
+titleMapping '\x1e99' s = Yield '\x0059' (CC s '\x030a' '\x0000')
+-- LATIN SMALL LETTER A WITH RIGHT HALF RING
+titleMapping '\x1e9a' s = Yield '\x0041' (CC s '\x02be' '\x0000')
+-- GREEK SMALL LETTER UPSILON WITH PSILI
+titleMapping '\x1f50' s = Yield '\x03a5' (CC s '\x0313' '\x0000')
+-- GREEK SMALL LETTER UPSILON WITH PSILI AND VARIA
+titleMapping '\x1f52' s = Yield '\x03a5' (CC s '\x0313' '\x0300')
+-- GREEK SMALL LETTER UPSILON WITH PSILI AND OXIA
+titleMapping '\x1f54' s = Yield '\x03a5' (CC s '\x0313' '\x0301')
+-- GREEK SMALL LETTER UPSILON WITH PSILI AND PERISPOMENI
+titleMapping '\x1f56' s = Yield '\x03a5' (CC s '\x0313' '\x0342')
+-- GREEK SMALL LETTER ALPHA WITH PERISPOMENI
+titleMapping '\x1fb6' s = Yield '\x0391' (CC s '\x0342' '\x0000')
+-- GREEK SMALL LETTER ETA WITH PERISPOMENI
+titleMapping '\x1fc6' s = Yield '\x0397' (CC s '\x0342' '\x0000')
+-- GREEK SMALL LETTER IOTA WITH DIALYTIKA AND VARIA
+titleMapping '\x1fd2' s = Yield '\x0399' (CC s '\x0308' '\x0300')
+-- GREEK SMALL LETTER IOTA WITH DIALYTIKA AND OXIA
+titleMapping '\x1fd3' s = Yield '\x0399' (CC s '\x0308' '\x0301')
+-- GREEK SMALL LETTER IOTA WITH PERISPOMENI
+titleMapping '\x1fd6' s = Yield '\x0399' (CC s '\x0342' '\x0000')
+-- GREEK SMALL LETTER IOTA WITH DIALYTIKA AND PERISPOMENI
+titleMapping '\x1fd7' s = Yield '\x0399' (CC s '\x0308' '\x0342')
+-- GREEK SMALL LETTER UPSILON WITH DIALYTIKA AND VARIA
+titleMapping '\x1fe2' s = Yield '\x03a5' (CC s '\x0308' '\x0300')
+-- GREEK SMALL LETTER UPSILON WITH DIALYTIKA AND OXIA
+titleMapping '\x1fe3' s = Yield '\x03a5' (CC s '\x0308' '\x0301')
+-- GREEK SMALL LETTER RHO WITH PSILI
+titleMapping '\x1fe4' s = Yield '\x03a1' (CC s '\x0313' '\x0000')
+-- GREEK SMALL LETTER UPSILON WITH PERISPOMENI
+titleMapping '\x1fe6' s = Yield '\x03a5' (CC s '\x0342' '\x0000')
+-- GREEK SMALL LETTER UPSILON WITH DIALYTIKA AND PERISPOMENI
+titleMapping '\x1fe7' s = Yield '\x03a5' (CC s '\x0308' '\x0342')
+-- GREEK SMALL LETTER OMEGA WITH PERISPOMENI
+titleMapping '\x1ff6' s = Yield '\x03a9' (CC s '\x0342' '\x0000')
+-- GREEK SMALL LETTER ALPHA WITH VARIA AND YPOGEGRAMMENI
+titleMapping '\x1fb2' s = Yield '\x1fba' (CC s '\x0345' '\x0000')
+-- GREEK SMALL LETTER ALPHA WITH OXIA AND YPOGEGRAMMENI
+titleMapping '\x1fb4' s = Yield '\x0386' (CC s '\x0345' '\x0000')
+-- GREEK SMALL LETTER ETA WITH VARIA AND YPOGEGRAMMENI
+titleMapping '\x1fc2' s = Yield '\x1fca' (CC s '\x0345' '\x0000')
+-- GREEK SMALL LETTER ETA WITH OXIA AND YPOGEGRAMMENI
+titleMapping '\x1fc4' s = Yield '\x0389' (CC s '\x0345' '\x0000')
+-- GREEK SMALL LETTER OMEGA WITH VARIA AND YPOGEGRAMMENI
+titleMapping '\x1ff2' s = Yield '\x1ffa' (CC s '\x0345' '\x0000')
+-- GREEK SMALL LETTER OMEGA WITH OXIA AND YPOGEGRAMMENI
+titleMapping '\x1ff4' s = Yield '\x038f' (CC s '\x0345' '\x0000')
+-- GREEK SMALL LETTER ALPHA WITH PERISPOMENI AND YPOGEGRAMMENI
+titleMapping '\x1fb7' s = Yield '\x0391' (CC s '\x0342' '\x0345')
+-- GREEK SMALL LETTER ETA WITH PERISPOMENI AND YPOGEGRAMMENI
+titleMapping '\x1fc7' s = Yield '\x0397' (CC s '\x0342' '\x0345')
+-- GREEK SMALL LETTER OMEGA WITH PERISPOMENI AND YPOGEGRAMMENI
+titleMapping '\x1ff7' s = Yield '\x03a9' (CC s '\x0342' '\x0345')
+titleMapping c s = Yield (toTitle c) (CC s '\0' '\0')
 foldMapping :: forall s. Char -> s -> Step (CC s) Char
 {-# INLINE foldMapping #-}
 -- MICRO SIGN

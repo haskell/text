@@ -33,5 +33,6 @@ main = do
                       ,""]
   mapM_ (hPutStrLn h) (mapSC "upper" upper toUpper scs)
   mapM_ (hPutStrLn h) (mapSC "lower" lower toLower scs)
+  mapM_ (hPutStrLn h) (mapSC "title" title toTitle scs)
   mapM_ (hPutStrLn h) (mapCF cfs)
   hClose h
