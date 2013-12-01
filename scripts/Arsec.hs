@@ -1,6 +1,7 @@
 module Arsec
     (
-      comment
+      Comment
+    , comment
     , semi
     , showC
     , unichar
@@ -23,6 +24,8 @@ import Text.ParserCombinators.Parsec.Combinator hiding (optional)
 import Text.ParserCombinators.Parsec.Error
 import Text.ParserCombinators.Parsec.Prim hiding ((<|>), many)
 
+type Comment = String
+
 unichar :: Parser Char
 unichar = chr . fst . head . readHex <$> many1 hexDigit
 
@@ -32,7 +35,7 @@ unichars = manyTill (unichar <* spaces) semi
 semi :: Parser ()
 semi = char ';' *> spaces *> pure ()
 
-comment :: Parser String
+comment :: Parser Comment
 comment = (char '#' *> manyTill anyToken (char '\n')) <|> string "\n"
 
 showC :: Char -> String

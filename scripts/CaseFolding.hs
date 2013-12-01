@@ -4,7 +4,8 @@
 
 module CaseFolding
     (
-      Fold(..)
+      CaseFolding(..)
+    , Fold(..)
     , parseCF
     , mapCF
     ) where
@@ -18,19 +19,22 @@ data Fold = Fold {
     , name :: String
     } deriving (Eq, Ord, Show)
 
-entries :: Parser [Fold]
-entries = many comment *> many (entry <* many comment)
+data CaseFolding = CF { cfComments :: [Comment], cfFolding :: [Fold] }
+                 deriving (Show)
+
+entries :: Parser CaseFolding
+entries = CF <$> many comment <*> many (entry <* many comment)
   where
     entry = Fold <$> unichar <* semi
                  <*> oneOf "CFST" <* semi
                  <*> unichars
                  <*> (string "# " *> manyTill anyToken (char '\n'))
 
-parseCF :: FilePath -> IO (Either ParseError [Fold])
+parseCF :: FilePath -> IO (Either ParseError CaseFolding)
 parseCF name = parse entries name <$> readFile name
 
-mapCF :: [Fold] -> [String]
-mapCF ms = typ ++ (map nice . filter p $ ms) ++ [last]
+mapCF :: CaseFolding -> [String]
+mapCF (CF _ ms) = typ ++ (map nice . filter p $ ms) ++ [last]
   where
     typ = ["foldMapping :: forall s. Char -> s -> Step (CC s) Char"
            ,"{-# INLINE foldMapping #-}"]

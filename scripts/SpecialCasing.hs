@@ -4,12 +4,16 @@
 
 module SpecialCasing
     (
-      Case(..)
+      SpecialCasing(..)
+    , Case(..)
     , parseSC
     , mapSC
     ) where
 
 import Arsec
+
+data SpecialCasing = SC { scComments :: [Comment], scCasing :: [Case] }
+                   deriving (Show)
 
 data Case = Case {
       code :: Char
@@ -20,8 +24,8 @@ data Case = Case {
     , name :: String
     } deriving (Eq, Ord, Show)
 
-entries :: Parser [Case]
-entries = many comment *> many (entry <* many comment)
+entries :: Parser SpecialCasing
+entries = SC <$> many comment <*> many (entry <* many comment)
   where
     entry = Case <$> unichar <* semi
                  <*> unichars
@@ -30,11 +34,13 @@ entries = many comment *> many (entry <* many comment)
                  <*> manyTill anyToken (string "# ")
                  <*> manyTill anyToken (char '\n')
 
-parseSC :: FilePath -> IO (Either ParseError [Case])
+parseSC :: FilePath -> IO (Either ParseError SpecialCasing)
 parseSC name = parse entries name <$> readFile name
 
-mapSC :: String -> (Case -> String) -> (Char -> Char) -> [Case] -> [String]
-mapSC which access twiddle ms = typ ++ (map nice . filter p $ ms) ++ [last]
+mapSC :: String -> (Case -> String) -> (Char -> Char) -> SpecialCasing
+         -> [String]
+mapSC which access twiddle (SC _ ms) =
+    typ ++ (map nice . filter p $ ms) ++ [last]
   where
     typ = [which ++ "Mapping :: forall s. Char -> s -> Step (CC s) Char"
            ,"{-# INLINE " ++ which ++ "Mapping #-}"]
