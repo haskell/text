@@ -86,6 +86,7 @@ module Data.Text.Lazy
     , toCaseFold
     , toLower
     , toUpper
+    , toTitle
 
     -- ** Justification
     , justifyLeft
@@ -696,6 +697,29 @@ toLower t = unstream (S.toLower (stream t))
 toUpper :: Text -> Text
 toUpper t = unstream (S.toUpper (stream t))
 {-# INLINE toUpper #-}
+
+
+-- | /O(n)/ Convert a string to title case, using simple case
+-- conversion.
+--
+-- Unlike the other case conversion functions, this function does not
+-- convert every letter of its input. Instead, the first letter is
+-- converted to title case, as is every subsequent letter that
+-- immediately follows a non-letter.
+--
+-- The result string may be longer than the input string. For example,
+-- the Latin small ligature &#xfb02; (U+FB02) is converted to the
+-- sequence Latin capital letter F (U+0046) followed by Latin small
+-- letter l (U+006C).
+--
+-- /Note/: this function does not take language or culture specific
+-- rules into account. For instance, in English, different style
+-- guides disagree on whether the book name \"The Hill of the Red
+-- Fox\" is correctly title cased&#x2014;but this function will
+-- capitalize /every/ word.
+toTitle :: Text -> Text
+toTitle t = unstream (S.toTitle (stream t))
+{-# INLINE toTitle #-}
 
 -- | /O(n)/ 'foldl', applied to a binary operator, a starting value
 -- (typically the left-identity of the operator), and a 'Text',

@@ -42,6 +42,7 @@ module Data.Text.Fusion.Common
     -- $case
     , toCaseFold
     , toLower
+    , toTitle
     , toUpper
 
     -- ** Justification
@@ -102,13 +103,15 @@ module Data.Text.Fusion.Common
 
 import Prelude (Bool(..), Char, Eq(..), Int, Integral, Maybe(..),
                 Ord(..), Ordering(..), String, (.), ($), (+), (-), (*), (++),
-                (&&), fromIntegral, otherwise)
+                (&&), fromIntegral, not, otherwise)
 import qualified Data.List as L
 import qualified Prelude as P
 import Data.Bits (shiftL)
+import Data.Char (isLetter)
 import Data.Int (Int64)
 import Data.Text.Fusion.Internal
-import Data.Text.Fusion.CaseMapping (foldMapping, lowerMapping, upperMapping)
+import Data.Text.Fusion.CaseMapping (foldMapping, lowerMapping, titleMapping,
+                                     upperMapping)
 import Data.Text.Fusion.Size
 import GHC.Prim (Addr#, chr#, indexCharOffAddr#, ord#)
 import GHC.Types (Char(..), Int(..))
@@ -431,6 +434,38 @@ toUpper = caseConvert upperMapping
 toLower :: Stream Char -> Stream Char
 toLower = caseConvert lowerMapping
 {-# INLINE [0] toLower #-}
+
+-- | /O(n)/ Convert a string to title case, using simple case
+-- conversion.
+--
+-- Unlike the other case conversion functions, this function does not
+-- convert every letter of its input. Instead, the first letter is
+-- converted to title case, as is every subsequent letter that
+-- immediately follows a non-letter.
+--
+-- The result string may be longer than the input string. For example,
+-- the Latin small ligature &#xfb02; (U+FB02) is converted to the
+-- sequence Latin capital letter F (U+0046) followed by Latin small
+-- letter l (U+006C).
+--
+-- /Note/: this function does not take language or culture specific
+-- rules into account. For instance, in English, different style
+-- guides disagree on whether the book name \"The Hill of the Red
+-- Fox\" is correctly title cased&#x2014;but this function will
+-- capitalize /every/ word.
+toTitle :: Stream Char -> Stream Char
+toTitle (Stream next0 s0 len) = Stream next (CC (False :*: s0) '\0' '\0') len
+  where
+    next (CC (letter :*: s) '\0' _) =
+      case next0 s of
+        Done    -> Done
+        Skip s' -> Skip (CC (letter :*: s') '\0' '\0')
+        Yield c s'
+          | not letter && letter' -> titleMapping c (letter' :*: s')
+          | otherwise -> Yield c (CC (letter' :*: s') '\0' '\0')
+          where letter' = isLetter c
+    next (CC s a b)  =  Yield a (CC s b '\0')
+{-# INLINE [0] toTitle #-}
 
 justifyLeftI :: Integral a => a -> Char -> Stream Char -> Stream Char
 justifyLeftI k c (Stream next0 s0 len) =
