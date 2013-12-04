@@ -52,7 +52,7 @@ import Data.IORef (readIORef, writeIORef)
 import qualified Data.Text as T
 import Data.Text.Internal.Fusion (stream)
 import Data.Text.Internal.Fusion.Types (Step(..), Stream(..))
-import Data.Text.IO.Internal (hGetLineWith, readChunk)
+import Data.Text.Internal.IO (hGetLineWith, readChunk)
 import GHC.IO.Buffer (Buffer(..), BufferState(..), CharBufElem, CharBuffer,
                       RawCharBuffer, emptyBuffer, isEmptyBuffer, newCharBuffer,
                       writeCharBuf)

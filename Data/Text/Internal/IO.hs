@@ -1,6 +1,6 @@
 {-# LANGUAGE BangPatterns, CPP, RecordWildCards #-}
 -- |
--- Module      : Data.Text.IO.Internal
+-- Module      : Data.Text.Internal.IO
 -- Copyright   : (c) 2009, 2010 Bryan O'Sullivan,
 --               (c) 2009 Simon Marlow
 -- License     : BSD-style
@@ -10,7 +10,7 @@
 --
 -- Low-level support for text I\/O.
 
-module Data.Text.IO.Internal
+module Data.Text.Internal.IO
     (
       hGetLineWith
     , readChunk

@@ -50,7 +50,7 @@ import qualified Data.Text.Lazy as L
 import qualified Control.Exception as E
 import Control.Monad (when)
 import Data.IORef (readIORef)
-import Data.Text.IO.Internal (hGetLineWith, readChunk)
+import Data.Text.Internal.IO (hGetLineWith, readChunk)
 import Data.Text.Lazy.Internal (chunk, empty)
 import GHC.IO.Buffer (isEmptyBuffer)
 import GHC.IO.Exception (IOException(..), IOErrorType(..), ioException)

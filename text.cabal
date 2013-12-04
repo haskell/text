@@ -103,7 +103,7 @@ library
     Data.Text.Internal.Fusion.Common
     Data.Text.Internal.Fusion.Size
     Data.Text.Internal.Fusion.Types
-    Data.Text.IO.Internal
+    Data.Text.Internal.IO
     Data.Text.Lazy.Builder.Functions
     Data.Text.Lazy.Builder.Int.Digits
     Data.Text.Lazy.Builder.Internal

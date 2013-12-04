@@ -82,7 +82,7 @@ library
     Data.Text.Internal.Fusion.Size
     Data.Text.Internal.Fusion.Types
     Data.Text.IO
-    Data.Text.IO.Internal
+    Data.Text.Internal.IO
     Data.Text.Internal
     Data.Text.Lazy
     Data.Text.Lazy.Builder
