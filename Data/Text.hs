@@ -627,8 +627,7 @@ replace needle@(Text _      _      neeLen)
   | otherwise   = Text (A.run x) 0 len
   where
     ixs = indices needle haystack
-    cnt = L.length ixs
-    len = hayLen - (neeLen - repLen) * cnt
+    len = hayLen - (neeLen - repLen) * L.length ixs
     x = do
       marr <- A.new len
       let loop (i:is) o d = do
