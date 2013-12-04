@@ -42,7 +42,8 @@ data T = {-# UNPACK #-} !Word64 :* {-# UNPACK #-} !Int
 
 -- | /O(n+m)/ Find the offsets of all non-overlapping indices of
 -- @needle@ within @haystack@.  The offsets returned represent
--- locations in the low-level array.
+-- uncorrected indices in the low-level \"needle\" array, to which its
+-- offset must be added.
 --
 -- In (unlikely) bad cases, this algorithm's complexity degrades
 -- towards /O(n*m)/.
