@@ -234,12 +234,16 @@ t_reverse_short n = L.reverse `eqP` (unpackS . S.reverse . shorten n . S.stream)
 
 t_replace s d     = (L.intercalate d . splitOn s) `eqP`
                     (unpackS . T.replace (T.pack s) (T.pack d))
+t_replace2 (NotEmpty s0) (NotEmpty d0) (NotEmpty w0) =
+    T.replace s d w =^= T.replace2 s d w
+  where s = f s0; d = f d0; w = f w0
+        f = T.tail . T.pack
 tl_replace s d     = (L.intercalate d . splitOn s) `eqP`
                      (unpackS . TL.replace (TL.pack s) (TL.pack d))
 
 splitOn :: (Eq a) => [a] -> [a] -> [[a]]
 splitOn pat src0
-    | l == 0    = error "empty"
+    | l == 0    = error "splitOn: empty"
     | otherwise = go src0
   where
     l           = length pat
@@ -896,6 +900,7 @@ tests =
       testProperty "tl_reverse" tl_reverse,
       testProperty "t_reverse_short" t_reverse_short,
       testProperty "t_replace" t_replace,
+      testProperty "t_replace2" t_replace2,
       testProperty "tl_replace" tl_replace,
 
       testGroup "case conversion" [

@@ -73,6 +73,7 @@ module Data.Text
     , transpose
     , reverse
     , replace
+    , replace2
 
     -- ** Case conversion
     -- $case
@@ -622,6 +623,31 @@ replace :: Text                 -- ^ Text to search for
         -> Text
 replace s d = intercalate d . splitOn s
 {-# INLINE replace #-}
+
+replace2 :: Text -> Text -> Text -> Text
+replace2 needle@(Text _      _      neeLen)
+              r@(Text repArr repOff repLen)
+       haystack@(Text hayArr hayOff hayLen)
+  | neeLen == 0 = emptyError "replace2"
+  | len < 0     = overflowError "replace2"
+  | len == 0    = empty
+  | L.null ixs  = haystack
+  | otherwise   = Text (A.run x) 0 len
+  where
+    ixs = indices needle haystack
+    cnt = L.length ixs
+    len = hayLen - (neeLen - repLen) * cnt
+    x = do
+      marr <- A.new len
+      let loop is0@(i:is) o d = do
+            let d0 = d + i - o
+                d1 = d0 + repLen
+            A.copyI marr d  hayArr (hayOff+o) d0
+            A.copyI marr d0 repArr repOff d1
+            loop is (i + neeLen) d1
+          loop []     o d = A.copyI marr d hayArr (hayOff+o) len
+      loop ixs 0 0
+      return marr
 
 -- ----------------------------------------------------------------------------
 -- ** Case conversions (folds)
