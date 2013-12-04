@@ -47,10 +47,12 @@ extra-source-files:
     benchmarks/cbits/*.c
     benchmarks/haskell/*.hs
     benchmarks/haskell/Benchmarks/*.hs
+    benchmarks/haskell/Benchmarks/Programs/*.hs
     benchmarks/python/*.py
     benchmarks/ruby/*.rb
     benchmarks/text-benchmarks.cabal
     changelog
+    include/*.h
     scripts/*.hs
     tests-and-benchmarks.markdown
     tests/*.hs
