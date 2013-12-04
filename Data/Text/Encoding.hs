@@ -81,8 +81,8 @@ import Foreign.Ptr (Ptr, minusPtr, nullPtr, plusPtr)
 import Foreign.Storable (Storable, peek, poke)
 import GHC.Base (MutableByteArray#)
 import qualified Data.Text.Array as A
-import qualified Data.Text.Encoding.Fusion as E
-import qualified Data.Text.Encoding.Utf16 as U16
+import qualified Data.Text.Internal.Encoding.Fusion as E
+import qualified Data.Text.Internal.Encoding.Utf16 as U16
 import qualified Data.Text.Fusion as F
 import Data.Text.Unsafe (unsafeDupablePerformIO)
 
@@ -146,7 +146,7 @@ decodeUtf8With onErr (PS fp off len) = runText $ \done -> do
           loop (ptr `plusPtr` off)
   (unsafeIOToST . go) =<< A.new len
  where
-  desc = "Data.Text.Encoding.decodeUtf8: Invalid UTF-8 stream"
+  desc = "Data.Text.Internal.Encoding.decodeUtf8: Invalid UTF-8 stream"
 {- INLINE[0] decodeUtf8With #-}
 
 -- $stream
@@ -267,7 +267,7 @@ streamDecodeUtf8With onErr = decodeChunk 0 0
                   return $ Some chunkText (B.drop left bs)
                            (decodeChunk codepoint state)
         in loop (ptr `plusPtr` off)
-  desc = "Data.Text.Encoding.streamDecodeUtf8With: Invalid UTF-8 stream"
+  desc = "Data.Text.Internal.Encoding.streamDecodeUtf8With: Invalid UTF-8 stream"
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text that is known
 -- to be valid.

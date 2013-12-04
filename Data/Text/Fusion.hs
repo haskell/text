@@ -59,7 +59,7 @@ import qualified Data.Text.Fusion.Common as S
 import Data.Text.Fusion.Internal
 import Data.Text.Fusion.Size
 import qualified Data.Text.Internal as I
-import qualified Data.Text.Encoding.Utf16 as U16
+import qualified Data.Text.Internal.Encoding.Utf16 as U16
 
 default(Int)
 

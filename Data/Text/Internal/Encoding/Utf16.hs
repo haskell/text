@@ -1,7 +1,7 @@
 {-# LANGUAGE MagicHash, BangPatterns #-}
 
 -- |
--- Module      : Data.Text.Encoding.Utf16
+-- Module      : Data.Text.Internal.Encoding.Utf16
 -- Copyright   : (c) 2008, 2009 Tom Harper,
 --               (c) 2009 Bryan O'Sullivan,
 --               (c) 2009 Duncan Coutts
@@ -13,7 +13,7 @@
 -- Portability : GHC
 --
 -- Basic UTF-16 validation and character manipulation.
-module Data.Text.Encoding.Utf16
+module Data.Text.Internal.Encoding.Utf16
     (
       chr2
     , validate1

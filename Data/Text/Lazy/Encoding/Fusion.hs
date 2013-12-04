@@ -26,22 +26,22 @@ module Data.Text.Lazy.Encoding.Fusion
     -- * Unstreaming
     , unstream
 
-    , module Data.Text.Encoding.Fusion.Common
+    , module Data.Text.Internal.Encoding.Fusion.Common
     ) where
 
 import Data.ByteString.Lazy.Internal (ByteString(..), defaultChunkSize)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Unsafe as B
-import Data.Text.Encoding.Fusion.Common
+import Data.Text.Internal.Encoding.Fusion.Common
 import Data.Text.Encoding.Error
 import Data.Text.Fusion (Step(..), Stream(..))
 import Data.Text.Fusion.Size
 import Data.Text.UnsafeChar (unsafeChr, unsafeChr8, unsafeChr32)
 import Data.Text.UnsafeShift (shiftL)
 import Data.Word (Word8, Word16, Word32)
-import qualified Data.Text.Encoding.Utf8 as U8
-import qualified Data.Text.Encoding.Utf16 as U16
-import qualified Data.Text.Encoding.Utf32 as U32
+import qualified Data.Text.Internal.Encoding.Utf8 as U8
+import qualified Data.Text.Internal.Encoding.Utf16 as U16
+import qualified Data.Text.Internal.Encoding.Utf32 as U32
 import Data.Text.Unsafe (unsafeDupablePerformIO)
 import Foreign.ForeignPtr (withForeignPtr, ForeignPtr)
 import Foreign.Storable (pokeByteOff)

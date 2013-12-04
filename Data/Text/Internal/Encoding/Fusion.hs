@@ -1,7 +1,7 @@
 {-# LANGUAGE BangPatterns, CPP, Rank2Types #-}
 
 -- |
--- Module      : Data.Text.Encoding.Fusion
+-- Module      : Data.Text.Internal.Encoding.Fusion
 -- Copyright   : (c) Tom Harper 2008-2009,
 --               (c) Bryan O'Sullivan 2009,
 --               (c) Duncan Coutts 2009
@@ -15,7 +15,7 @@
 -- Fusible 'Stream'-oriented functions for converting between 'Text'
 -- and several common encodings.
 
-module Data.Text.Encoding.Fusion
+module Data.Text.Internal.Encoding.Fusion
     (
     -- * Streaming
       streamASCII
@@ -28,7 +28,7 @@ module Data.Text.Encoding.Fusion
     -- * Unstreaming
     , unstream
 
-    , module Data.Text.Encoding.Fusion.Common
+    , module Data.Text.Internal.Encoding.Fusion.Common
     ) where
 
 #if defined(ASSERTS)
@@ -38,7 +38,7 @@ import Data.ByteString.Internal (ByteString(..), mallocByteString, memcpy)
 import Data.Text.Fusion (Step(..), Stream(..))
 import Data.Text.Fusion.Size
 import Data.Text.Encoding.Error
-import Data.Text.Encoding.Fusion.Common
+import Data.Text.Internal.Encoding.Fusion.Common
 import Data.Text.UnsafeChar (unsafeChr, unsafeChr8, unsafeChr32)
 import Data.Text.UnsafeShift (shiftL, shiftR)
 import Data.Word (Word8, Word16, Word32)
@@ -46,9 +46,9 @@ import Foreign.ForeignPtr (withForeignPtr, ForeignPtr)
 import Foreign.Storable (pokeByteOff)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Unsafe as B
-import qualified Data.Text.Encoding.Utf8 as U8
-import qualified Data.Text.Encoding.Utf16 as U16
-import qualified Data.Text.Encoding.Utf32 as U32
+import qualified Data.Text.Internal.Encoding.Utf8 as U8
+import qualified Data.Text.Internal.Encoding.Utf16 as U16
+import qualified Data.Text.Internal.Encoding.Utf32 as U32
 import Data.Text.Unsafe (unsafeDupablePerformIO)
 
 streamASCII :: ByteString -> Stream Char
@@ -201,5 +201,5 @@ decodeError func kind onErr mb i =
     case onErr desc mb of
       Nothing -> Skip i
       Just c  -> Yield c i
-    where desc = "Data.Text.Encoding.Fusion." ++ func ++ ": Invalid " ++
+    where desc = "Data.Text.Internal.Encoding.Fusion." ++ func ++ ": Invalid " ++
                  kind ++ " stream"

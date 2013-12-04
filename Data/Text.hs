@@ -218,7 +218,7 @@ import Data.Text.Unsafe (Iter(..), iter, iter_, lengthWord16, reverseIter,
                          unsafeHead, unsafeTail)
 import Data.Text.UnsafeChar (unsafeChr)
 import qualified Data.Text.Util as U
-import qualified Data.Text.Encoding.Utf16 as U16
+import qualified Data.Text.Internal.Encoding.Utf16 as U16
 import Data.Text.Search (indices)
 #if defined(__HADDOCK__)
 import Data.ByteString (ByteString)

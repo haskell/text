@@ -1,7 +1,7 @@
 {-# LANGUAGE CPP, MagicHash, BangPatterns #-}
 
 -- |
--- Module      : Data.Text.Encoding.Utf8
+-- Module      : Data.Text.Internal.Encoding.Utf8
 -- Copyright   : (c) 2008, 2009 Tom Harper,
 --               (c) 2009, 2010 Bryan O'Sullivan,
 --               (c) 2009 Duncan Coutts
@@ -13,7 +13,7 @@
 -- Portability : GHC
 --
 -- Basic UTF-8 validation and character manipulation.
-module Data.Text.Encoding.Utf8
+module Data.Text.Internal.Encoding.Utf8
     (
     -- Decomposition
       ord2

@@ -29,7 +29,7 @@ module Data.Text.Unsafe
 #if defined(ASSERTS)
 import Control.Exception (assert)
 #endif
-import Data.Text.Encoding.Utf16 (chr2)
+import Data.Text.Internal.Encoding.Utf16 (chr2)
 import Data.Text.Internal (Text(..))
 import Data.Text.Unsafe.Base (inlineInterleaveST, inlinePerformIO)
 import Data.Text.UnsafeChar (unsafeChr)

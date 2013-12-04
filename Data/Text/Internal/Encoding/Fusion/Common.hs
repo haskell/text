@@ -1,7 +1,7 @@
 {-# LANGUAGE BangPatterns #-}
 
 -- |
--- Module      : Data.Text.Encoding.Fusion.Common
+-- Module      : Data.Text.Internal.Encoding.Fusion.Common
 -- Copyright   : (c) Tom Harper 2008-2009,
 --               (c) Bryan O'Sullivan 2009,
 --               (c) Duncan Coutts 2009,
@@ -16,7 +16,7 @@
 -- Fusible 'Stream'-oriented functions for converting between 'Text'
 -- and several common encodings.
 
-module Data.Text.Encoding.Fusion.Common
+module Data.Text.Internal.Encoding.Fusion.Common
     (
     -- * Restreaming
     -- Restreaming is the act of converting from one 'Stream'
