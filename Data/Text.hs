@@ -73,7 +73,6 @@ module Data.Text
     , transpose
     , reverse
     , replace
-    , replace2
 
     -- ** Case conversion
     -- $case
@@ -617,19 +616,12 @@ reverse t = S.reverse (stream t)
 --
 -- In (unlikely) bad cases, this function's time complexity degrades
 -- towards /O(n*m)/.
-replace :: Text                 -- ^ Text to search for
-        -> Text                 -- ^ Replacement text
-        -> Text                 -- ^ Input text
-        -> Text
-replace s d = intercalate d . splitOn s
-{-# INLINE replace #-}
-
-replace2 :: Text -> Text -> Text -> Text
-replace2 needle@(Text _      _      neeLen)
-              r@(Text repArr repOff repLen)
-       haystack@(Text hayArr hayOff hayLen)
-  | neeLen == 0 = emptyError "replace2"
-  | len < 0     = overflowError "replace2"
+replace :: Text -> Text -> Text -> Text
+replace needle@(Text _      _      neeLen)
+               (Text repArr repOff repLen)
+      haystack@(Text hayArr hayOff hayLen)
+  | neeLen == 0 = emptyError "replace"
+  | len < 0     = overflowError "replace"
   | len == 0    = empty
   | L.null ixs  = haystack
   | otherwise   = Text (A.run x) 0 len
@@ -639,7 +631,7 @@ replace2 needle@(Text _      _      neeLen)
     len = hayLen - (neeLen - repLen) * cnt
     x = do
       marr <- A.new len
-      let loop is0@(i:is) o d = do
+      let loop (i:is) o d = do
             let d0 = d + i - o
                 d1 = d0 + repLen
             A.copyI marr d  hayArr (hayOff+o) d0

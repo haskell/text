@@ -28,7 +28,6 @@ benchmark fp pat sub = do
         !b = T.encodeUtf8 t
     return $ bgroup "Replace" [
           bench "Text"           $ nf (T.length . T.replace tpat tsub) t
-        , bench "Text2"          $ nf (T.length . T.replace2 tpat tsub) t
         , bench "ByteString"     $ nf (BL.length . B.replace bpat bsub) b
         , bench "LazyText"       $ nf (TL.length . TL.replace tlpat tlsub) tl
         , bench "LazyByteString" $ nf (BL.length . BL.replace blpat blsub) bl
