@@ -621,10 +621,10 @@ replace needle@(Text _      _      neeLen)
                (Text repArr repOff repLen)
       haystack@(Text hayArr hayOff hayLen)
   | neeLen == 0 = emptyError "replace"
-  | len < 0     = overflowError "replace"
-  | len == 0    = empty
   | L.null ixs  = haystack
-  | otherwise   = Text (A.run x) 0 len
+  | len > 0     = Text (A.run x) 0 len
+  | len < 0     = overflowError "replace"
+  | otherwise   = empty
   where
     ixs = indices needle haystack
     len = hayLen - (neeLen - repLen) * L.length ixs
