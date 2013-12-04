@@ -21,7 +21,7 @@ import Data.Monoid (Monoid(..))
 import Data.String (fromString)
 import Data.Text.Encoding.Error
 import Data.Text.Foreign
-import Data.Text.Fusion.Size
+import Data.Text.Internal.Fusion.Size
 import Data.Text.Lazy.Read as TL
 import Data.Text.Read as T
 import Data.Text.Search (indices)
@@ -35,8 +35,8 @@ import qualified Data.ByteString.Lazy as BL
 import qualified Data.List as L
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as E
-import qualified Data.Text.Fusion as S
-import qualified Data.Text.Fusion.Common as S
+import qualified Data.Text.Internal.Fusion as S
+import qualified Data.Text.Internal.Fusion.Common as S
 import qualified Data.Text.IO as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Builder as TB

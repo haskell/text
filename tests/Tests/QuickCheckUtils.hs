@@ -43,8 +43,8 @@ import Test.QuickCheck.Monadic (assert, monadicIO, run)
 import qualified Data.ByteString as B
 import qualified Data.Text as T
 import qualified Data.Text.Encoding.Error as T
-import qualified Data.Text.Fusion as TF
-import qualified Data.Text.Fusion.Common as TF
+import qualified Data.Text.Internal.Fusion as TF
+import qualified Data.Text.Internal.Fusion.Common as TF
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Fusion as TLF
 import qualified Data.Text.Lazy.Internal as TL
