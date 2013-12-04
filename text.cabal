@@ -1,5 +1,5 @@
 name:           text
-version:        0.11.4.0
+version:        1.0.0.0
 homepage:       https://github.com/bos/text
 bug-reports:    https://github.com/bos/text/issues
 synopsis:       An efficient packed Unicode text type.
@@ -30,16 +30,7 @@ description:
     non-standard encodings, text breaking, and locales), see
     the @text-icu@ package:
     <http://hackage.haskell.org/package/text-icu>
-    .
-    &#8212;&#8212; RELEASE NOTES &#8212;&#8212;
-    .
-    Changes in 0.11.2.0:
-    .
-    * String literals are now converted directly from the format in
-      which GHC stores them into 'Text', without an intermediate
-      transformation through 'String', and without inlining of
-      conversion code at each site where a string literal is declared.
-    .
+
 license:        BSD3
 license-file:   LICENSE
 author:         Bryan O'Sullivan <bos@serpentine.com>
@@ -59,6 +50,7 @@ extra-source-files:
     benchmarks/python/*.py
     benchmarks/ruby/*.rb
     benchmarks/text-benchmarks.cabal
+    changelog
     scripts/*.hs
     tests-and-benchmarks.markdown
     tests/*.hs
