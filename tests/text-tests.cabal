@@ -93,12 +93,12 @@ library
     Data.Text.Lazy.Builder.RealFloat
     Data.Text.Internal.Builder.RealFloat.Functions
     Data.Text.Lazy.Encoding
-    Data.Text.Lazy.Encoding.Fusion
-    Data.Text.Lazy.Fusion
+    Data.Text.Internal.Lazy.Encoding.Fusion
+    Data.Text.Internal.Lazy.Fusion
     Data.Text.Lazy.IO
     Data.Text.Lazy.Internal
     Data.Text.Lazy.Read
-    Data.Text.Lazy.Search
+    Data.Text.Internal.Lazy.Search
     Data.Text.Private
     Data.Text.Read
     Data.Text.Search

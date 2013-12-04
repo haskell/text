@@ -210,13 +210,13 @@ import qualified Data.Text as T
 import qualified Data.Text.Internal as T
 import qualified Data.Text.Internal.Fusion.Common as S
 import qualified Data.Text.Unsafe as T
-import qualified Data.Text.Lazy.Fusion as S
+import qualified Data.Text.Internal.Lazy.Fusion as S
 import Data.Text.Internal.Fusion.Types (PairS(..))
-import Data.Text.Lazy.Fusion (stream, unstream)
+import Data.Text.Internal.Lazy.Fusion (stream, unstream)
 import Data.Text.Lazy.Internal (Text(..), chunk, empty, foldlChunks, foldrChunks)
 import Data.Text.Internal (firstf, safe, textP)
 import qualified Data.Text.Util as U
-import Data.Text.Lazy.Search (indices)
+import Data.Text.Internal.Lazy.Search (indices)
 #if __GLASGOW_HASKELL__ >= 702
 import qualified GHC.CString as GHC
 #else

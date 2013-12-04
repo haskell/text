@@ -57,8 +57,8 @@ import qualified Data.ByteString.Lazy.Internal as B
 import qualified Data.ByteString.Unsafe as B
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text.Lazy as L
-import qualified Data.Text.Lazy.Encoding.Fusion as E
-import qualified Data.Text.Lazy.Fusion as F
+import qualified Data.Text.Internal.Lazy.Encoding.Fusion as E
+import qualified Data.Text.Internal.Lazy.Fusion as F
 import Data.Text.Unsafe (unsafeDupablePerformIO)
 
 -- $strict

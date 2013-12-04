@@ -21,8 +21,8 @@ import qualified Data.Text.Internal.Encoding.Fusion.Common as F
 import qualified Data.Text.Internal.Fusion as T
 import qualified Data.Text.IO as T
 import qualified Data.Text.Lazy.Encoding as TL
-import qualified Data.Text.Lazy.Encoding.Fusion as TL
-import qualified Data.Text.Lazy.Fusion as TL
+import qualified Data.Text.Internal.Lazy.Encoding.Fusion as TL
+import qualified Data.Text.Internal.Lazy.Fusion as TL
 import qualified Data.Text.Lazy.IO as TL
 
 instance NFData a => NFData (Stream a) where

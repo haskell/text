@@ -14,7 +14,7 @@
 -- Moore, Horspool, Sunday, and Lundh.  Adapted from the strict
 -- implementation.
 
-module Data.Text.Lazy.Search
+module Data.Text.Internal.Lazy.Search
     (
       indices
     ) where

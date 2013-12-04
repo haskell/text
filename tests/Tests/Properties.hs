@@ -43,9 +43,9 @@ import qualified Data.Text.Lazy.Builder as TB
 import qualified Data.Text.Lazy.Builder.Int as TB
 import qualified Data.Text.Lazy.Builder.RealFloat as TB
 import qualified Data.Text.Lazy.Encoding as EL
-import qualified Data.Text.Lazy.Fusion as SL
+import qualified Data.Text.Internal.Lazy.Fusion as SL
 import qualified Data.Text.Lazy.IO as TL
-import qualified Data.Text.Lazy.Search as S (indices)
+import qualified Data.Text.Internal.Lazy.Search as S (indices)
 import qualified Data.Text.UnsafeShift as U
 import qualified System.IO as IO
 

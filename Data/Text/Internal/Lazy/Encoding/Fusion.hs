@@ -13,7 +13,7 @@
 -- Fusible 'Stream'-oriented functions for converting between lazy
 -- 'Text' and several common encodings.
 
-module Data.Text.Lazy.Encoding.Fusion
+module Data.Text.Internal.Lazy.Encoding.Fusion
     (
     -- * Streaming
     --  streamASCII

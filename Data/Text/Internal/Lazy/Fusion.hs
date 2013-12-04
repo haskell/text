@@ -11,7 +11,7 @@
 --
 -- Core stream fusion functionality for text.
 
-module Data.Text.Lazy.Fusion
+module Data.Text.Internal.Lazy.Fusion
     (
       stream
     , unstream
