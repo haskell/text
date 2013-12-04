@@ -104,10 +104,10 @@ library
     Data.Text.Internal.Fusion.Size
     Data.Text.Internal.Fusion.Types
     Data.Text.Internal.IO
-    Data.Text.Lazy.Builder.Functions
-    Data.Text.Lazy.Builder.Int.Digits
-    Data.Text.Lazy.Builder.Internal
-    Data.Text.Lazy.Builder.RealFloat.Functions
+    Data.Text.Internal.Builder.Functions
+    Data.Text.Internal.Builder.Int.Digits
+    Data.Text.Internal.Builder
+    Data.Text.Internal.Builder.RealFloat.Functions
     Data.Text.Lazy.Encoding.Fusion
     Data.Text.Lazy.Fusion
     Data.Text.Lazy.Search

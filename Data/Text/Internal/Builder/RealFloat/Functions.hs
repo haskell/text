@@ -1,9 +1,9 @@
 -- |
--- Module:    Data.Text.Lazy.Builder.RealFloat.Functions
+-- Module:    Data.Text.Internal.Builder.RealFloat.Functions
 -- Copyright: (c) The University of Glasgow 1994-2002
 -- License:   see libraries/base/LICENSE
 
-module Data.Text.Lazy.Builder.RealFloat.Functions
+module Data.Text.Internal.Builder.RealFloat.Functions
     (
       roundTo
     ) where

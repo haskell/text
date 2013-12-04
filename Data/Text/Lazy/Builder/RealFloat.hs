@@ -19,9 +19,9 @@ module Data.Text.Lazy.Builder.RealFloat
 
 import Data.Array.Base (unsafeAt)
 import Data.Array.IArray
-import Data.Text.Lazy.Builder.Functions ((<>), i2d)
+import Data.Text.Internal.Builder.Functions ((<>), i2d)
 import Data.Text.Lazy.Builder.Int (decimal)
-import Data.Text.Lazy.Builder.RealFloat.Functions (roundTo)
+import Data.Text.Internal.Builder.RealFloat.Functions (roundTo)
 import Data.Text.Lazy.Builder
 import qualified Data.Text as T
 

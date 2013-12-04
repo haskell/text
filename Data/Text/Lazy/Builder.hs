@@ -34,7 +34,7 @@
 --
 --  > singleton 'a' <> singleton 'b' <> singleton 'c'
 --
--- since the '<>' from recent versions of 'Data.Monoid' associates 
+-- since the '<>' from recent versions of 'Data.Monoid' associates
 -- to the right.
 
 -----------------------------------------------------------------------------
@@ -55,4 +55,4 @@ module Data.Text.Lazy.Builder
    , flush
    ) where
 
-import Data.Text.Lazy.Builder.Internal
+import Data.Text.Internal.Builder
