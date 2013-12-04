@@ -53,6 +53,8 @@ module Data.Text.Fusion.Common
     , foldl'
     , foldl1
     , foldl1'
+    , foldlE
+    , foldlE'
     , foldr
     , foldr1
 
@@ -537,6 +539,33 @@ foldl1' f (Stream next s0 _len) = loop0_foldl1' s0
                              Skip s' -> loop_foldl1' z s'
                              Yield x s' -> loop_foldl1' (f z x) s'
 {-# INLINE [0] foldl1' #-}
+
+-- | foldlE, applied to a finalizer, a binary operator, a starting value
+-- (typically the left-identity of the operator), and a Stream, reduces the
+-- Stream using the binary operator, from left to right. In addition to 'foldl'
+-- it allows early exit from the computation.
+foldlE :: (b -> c) -> (b -> Char -> P.Either c b) -> b -> Stream Char -> c
+foldlE fin f z0 (Stream next s0 _len) = loop_foldl z0 s0
+    where
+      loop_foldl z !s = case next s of
+                          Done -> fin z
+                          Skip s' -> loop_foldl z s'
+                          Yield x s' -> case f z x of
+                                          P.Left c -> c
+                                          P.Right z' -> loop_foldl z' s'
+{-# INLINE [0] foldlE #-}
+
+-- | A strict version of 'foldlE'.
+foldlE' :: (b -> c) -> (b -> Char -> P.Either c b) -> b -> Stream Char -> c
+foldlE' fin f z0 (Stream next s0 _len) = loop_foldl z0 s0
+    where
+      loop_foldl !z !s = case next s of
+                          Done -> fin z
+                          Skip s' -> loop_foldl z s'
+                          Yield x s' -> case f z x of
+                                          P.Left c -> c
+                                          P.Right z' -> loop_foldl z' s'
+{-# INLINE [0] foldlE' #-}
 
 -- | 'foldr', applied to a binary operator, a starting value (typically the
 -- right-identity of the operator), and a stream, reduces the stream using the

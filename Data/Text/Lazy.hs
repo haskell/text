@@ -98,6 +98,8 @@ module Data.Text.Lazy
     , foldl'
     , foldl1
     , foldl1'
+    , foldlE
+    , foldlE'
     , foldr
     , foldr1
 
@@ -750,6 +752,21 @@ foldl1 f t = S.foldl1 f (stream t)
 foldl1' :: (Char -> Char -> Char) -> Text -> Char
 foldl1' f t = S.foldl1' f (stream t)
 {-# INLINE foldl1' #-}
+
+-- | /O(n)/ 'foldlE', applied to a finalizer, a binary operator, a starting
+-- value (typically the left-identity of the operator), and a 'Text', reduces
+-- the 'Text' using the binary operator, from left to right.  In addition to
+-- 'foldl' it allows an early exit from the computation.
+-- Subject to fusion.
+foldlE :: (a -> c) -> (a -> Char -> P.Either c a) -> a -> Text -> c
+foldlE fin f z t = S.foldlE fin f z (stream t)
+{-# INLINE foldlE #-}
+
+-- | /O(n)/ A strict version of 'foldlE'.
+-- Subject to fusion.
+foldlE' :: (a -> c) -> (a -> Char -> P.Either c a) -> a -> Text -> c
+foldlE' fin f z t = S.foldlE' fin f z (stream t)
+{-# INLINE foldlE' #-}
 
 -- | /O(n)/ 'foldr', applied to a binary operator, a starting value
 -- (typically the right-identity of the operator), and a 'Text',
