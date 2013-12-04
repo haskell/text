@@ -98,11 +98,11 @@ library
     Data.Text.Internal.Encoding.Utf16
     Data.Text.Internal.Encoding.Utf32
     Data.Text.Internal.Encoding.Utf8
-    Data.Text.Fusion
-    Data.Text.Fusion.CaseMapping
-    Data.Text.Fusion.Common
-    Data.Text.Fusion.Internal
-    Data.Text.Fusion.Size
+    Data.Text.Internal.Fusion
+    Data.Text.Internal.Fusion.CaseMapping
+    Data.Text.Internal.Fusion.Common
+    Data.Text.Internal.Fusion.Size
+    Data.Text.Internal.Fusion.Types
     Data.Text.IO.Internal
     Data.Text.Lazy.Builder.Functions
     Data.Text.Lazy.Builder.Int.Digits

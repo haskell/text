@@ -19,9 +19,9 @@ module Data.Text.IO.Internal
 import qualified Control.Exception as E
 import Data.IORef (readIORef, writeIORef)
 import Data.Text (Text)
-import Data.Text.Fusion (unstream)
-import Data.Text.Fusion.Internal (Step(..), Stream(..))
-import Data.Text.Fusion.Size (exactSize, maxSize)
+import Data.Text.Internal.Fusion (unstream)
+import Data.Text.Internal.Fusion.Types (Step(..), Stream(..))
+import Data.Text.Internal.Fusion.Size (exactSize, maxSize)
 import Data.Text.Unsafe (inlinePerformIO)
 import Foreign.Storable (peekElemOff)
 import GHC.IO.Buffer (Buffer(..), CharBuffer, RawCharBuffer, bufferAdjustL,

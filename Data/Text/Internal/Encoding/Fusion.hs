@@ -35,8 +35,8 @@ module Data.Text.Internal.Encoding.Fusion
 import Control.Exception (assert)
 #endif
 import Data.ByteString.Internal (ByteString(..), mallocByteString, memcpy)
-import Data.Text.Fusion (Step(..), Stream(..))
-import Data.Text.Fusion.Size
+import Data.Text.Internal.Fusion (Step(..), Stream(..))
+import Data.Text.Internal.Fusion.Size
 import Data.Text.Encoding.Error
 import Data.Text.Internal.Encoding.Fusion.Common
 import Data.Text.UnsafeChar (unsafeChr, unsafeChr8, unsafeChr32)

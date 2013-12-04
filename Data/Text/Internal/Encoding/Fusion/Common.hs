@@ -28,8 +28,8 @@ module Data.Text.Internal.Encoding.Fusion.Common
     ) where
 
 import Data.Bits ((.&.))
-import Data.Text.Fusion (Step(..), Stream(..))
-import Data.Text.Fusion.Internal (RS(..))
+import Data.Text.Internal.Fusion (Step(..), Stream(..))
+import Data.Text.Internal.Fusion.Types (RS(..))
 import Data.Text.UnsafeChar (ord)
 import Data.Text.UnsafeShift (shiftR)
 import Data.Word (Word8)

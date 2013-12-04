@@ -1,7 +1,7 @@
 {-# LANGUAGE CPP #-}
 {-# OPTIONS_GHC -fno-warn-missing-methods #-}
 -- |
--- Module      : Data.Text.Fusion.Internal
+-- Module      : Data.Text.Internal.Fusion.Internal
 -- Copyright   : (c) Roman Leshchinskiy 2008,
 --               (c) Bryan O'Sullivan 2009
 --
@@ -13,7 +13,7 @@
 --
 -- Size hints.
 
-module Data.Text.Fusion.Size
+module Data.Text.Internal.Fusion.Size
     (
       Size
     , exactly
@@ -143,4 +143,4 @@ isEmpty _         = False
 {-# INLINE isEmpty #-}
 
 overflowError :: Int
-overflowError = error "Data.Text.Fusion.Size: size overflow"
+overflowError = error "Data.Text.Internal.Fusion.Size: size overflow"

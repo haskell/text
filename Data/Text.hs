@@ -208,9 +208,9 @@ import qualified Data.Text.Array as A
 import qualified Data.List as L
 import Data.Monoid (Monoid(..))
 import Data.String (IsString(..))
-import qualified Data.Text.Fusion as S
-import qualified Data.Text.Fusion.Common as S
-import Data.Text.Fusion (stream, reverseStream, unstream)
+import qualified Data.Text.Internal.Fusion as S
+import qualified Data.Text.Internal.Fusion.Common as S
+import Data.Text.Internal.Fusion (stream, reverseStream, unstream)
 import Data.Text.Private (span_)
 import Data.Text.Internal (Text(..), empty, firstf, safe, text, textP)
 import qualified Prelude as P

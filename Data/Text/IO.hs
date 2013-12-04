@@ -50,8 +50,8 @@ import qualified Control.Exception as E
 import Control.Monad (liftM2, when)
 import Data.IORef (readIORef, writeIORef)
 import qualified Data.Text as T
-import Data.Text.Fusion (stream)
-import Data.Text.Fusion.Internal (Step(..), Stream(..))
+import Data.Text.Internal.Fusion (stream)
+import Data.Text.Internal.Fusion.Types (Step(..), Stream(..))
 import Data.Text.IO.Internal (hGetLineWith, readChunk)
 import GHC.IO.Buffer (Buffer(..), BufferState(..), CharBufElem, CharBuffer,
                       RawCharBuffer, emptyBuffer, isEmptyBuffer, newCharBuffer,

@@ -1,6 +1,6 @@
 {-# LANGUAGE BangPatterns, MagicHash, Rank2Types #-}
 -- |
--- Module      : Data.Text.Fusion.Common
+-- Module      : Data.Text.Internal.Fusion.Common
 -- Copyright   : (c) Bryan O'Sullivan 2009, 2012
 --
 -- License     : BSD-style
@@ -11,7 +11,7 @@
 --
 -- Common stream fusion functionality for text.
 
-module Data.Text.Fusion.Common
+module Data.Text.Internal.Fusion.Common
     (
     -- * Creation and elimination
       singleton
@@ -109,10 +109,10 @@ import qualified Prelude as P
 import Data.Bits (shiftL)
 import Data.Char (isLetter)
 import Data.Int (Int64)
-import Data.Text.Fusion.Internal
-import Data.Text.Fusion.CaseMapping (foldMapping, lowerMapping, titleMapping,
+import Data.Text.Internal.Fusion.Types
+import Data.Text.Internal.Fusion.CaseMapping (foldMapping, lowerMapping, titleMapping,
                                      upperMapping)
-import Data.Text.Fusion.Size
+import Data.Text.Internal.Fusion.Size
 import GHC.Prim (Addr#, chr#, indexCharOffAddr#, ord#)
 import GHC.Types (Char(..), Int(..))
 
@@ -938,7 +938,7 @@ countCharI a (Stream next s0 _len) = loop 0 s0
 {-# INLINE [0] countCharI #-}
 
 streamError :: String -> String -> a
-streamError func msg = P.error $ "Data.Text.Fusion.Common." ++ func ++ ": " ++ msg
+streamError func msg = P.error $ "Data.Text.Internal.Fusion.Common." ++ func ++ ": " ++ msg
 
 emptyError :: String -> a
 emptyError func = internalError func "Empty input"

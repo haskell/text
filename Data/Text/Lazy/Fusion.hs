@@ -23,10 +23,10 @@ module Data.Text.Lazy.Fusion
     ) where
 
 import Prelude hiding (length)
-import qualified Data.Text.Fusion.Common as S
+import qualified Data.Text.Internal.Fusion.Common as S
 import Control.Monad.ST (runST)
-import Data.Text.Fusion.Internal
-import Data.Text.Fusion.Size (isEmpty, unknownSize)
+import Data.Text.Internal.Fusion.Types
+import Data.Text.Internal.Fusion.Size (isEmpty, unknownSize)
 import Data.Text.Lazy.Internal
 import qualified Data.Text.Internal as I
 import qualified Data.Text.Array as A

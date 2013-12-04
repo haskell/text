@@ -34,8 +34,8 @@ import qualified Data.ByteString as B
 import qualified Data.ByteString.Unsafe as B
 import Data.Text.Internal.Encoding.Fusion.Common
 import Data.Text.Encoding.Error
-import Data.Text.Fusion (Step(..), Stream(..))
-import Data.Text.Fusion.Size
+import Data.Text.Internal.Fusion (Step(..), Stream(..))
+import Data.Text.Internal.Fusion.Size
 import Data.Text.UnsafeChar (unsafeChr, unsafeChr8, unsafeChr32)
 import Data.Text.UnsafeShift (shiftL)
 import Data.Word (Word8, Word16, Word32)

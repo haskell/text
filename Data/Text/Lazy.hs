@@ -208,10 +208,10 @@ import Data.Monoid (Monoid(..))
 import Data.String (IsString(..))
 import qualified Data.Text as T
 import qualified Data.Text.Internal as T
-import qualified Data.Text.Fusion.Common as S
+import qualified Data.Text.Internal.Fusion.Common as S
 import qualified Data.Text.Unsafe as T
 import qualified Data.Text.Lazy.Fusion as S
-import Data.Text.Fusion.Internal (PairS(..))
+import Data.Text.Internal.Fusion.Types (PairS(..))
 import Data.Text.Lazy.Fusion (stream, unstream)
 import Data.Text.Lazy.Internal (Text(..), chunk, empty, foldlChunks, foldrChunks)
 import Data.Text.Internal (firstf, safe, textP)

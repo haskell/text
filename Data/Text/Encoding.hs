@@ -83,7 +83,7 @@ import GHC.Base (MutableByteArray#)
 import qualified Data.Text.Array as A
 import qualified Data.Text.Internal.Encoding.Fusion as E
 import qualified Data.Text.Internal.Encoding.Utf16 as U16
-import qualified Data.Text.Fusion as F
+import qualified Data.Text.Internal.Fusion as F
 import Data.Text.Unsafe (unsafeDupablePerformIO)
 
 #include "text_cbits.h"

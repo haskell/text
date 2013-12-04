@@ -6,9 +6,9 @@
 -- SpecialCasing-6.3.0.txt
 -- Date: 2013-05-08, 13:54:51 GMT [MD]
 
-module Data.Text.Fusion.CaseMapping where
+module Data.Text.Internal.Fusion.CaseMapping where
 import Data.Char
-import Data.Text.Fusion.Internal
+import Data.Text.Internal.Fusion.Types
 
 upperMapping :: forall s. Char -> s -> Step (CC s) Char
 {-# INLINE upperMapping #-}

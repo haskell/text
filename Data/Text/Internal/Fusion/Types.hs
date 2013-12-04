@@ -1,6 +1,6 @@
 {-# LANGUAGE BangPatterns, ExistentialQuantification #-}
 -- |
--- Module      : Data.Text.Fusion.Internal
+-- Module      : Data.Text.Internal.Fusion.Types
 -- Copyright   : (c) Tom Harper 2008-2009,
 --               (c) Bryan O'Sullivan 2009,
 --               (c) Duncan Coutts 2009,
@@ -14,7 +14,7 @@
 --
 -- Core stream fusion functionality for text.
 
-module Data.Text.Fusion.Internal
+module Data.Text.Internal.Fusion.Types
     (
       CC(..)
     , M(..)
@@ -27,7 +27,7 @@ module Data.Text.Fusion.Internal
     , empty
     ) where
 
-import Data.Text.Fusion.Size
+import Data.Text.Internal.Fusion.Size
 import Data.Word (Word8)
 
 -- | Specialised tuple for case conversion.

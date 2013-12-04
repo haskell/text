@@ -1,7 +1,7 @@
 {-# LANGUAGE BangPatterns, MagicHash #-}
 
 -- |
--- Module      : Data.Text.Fusion
+-- Module      : Data.Text.Internal.Fusion
 -- Copyright   : (c) Tom Harper 2008-2009,
 --               (c) Bryan O'Sullivan 2009-2010,
 --               (c) Duncan Coutts 2009
@@ -14,7 +14,7 @@
 --
 -- Text manipulation functions represented as fusible operations over
 -- streams.
-module Data.Text.Fusion
+module Data.Text.Internal.Fusion
     (
     -- * Types
       Stream(..)
@@ -55,9 +55,9 @@ import Data.Text.Private (runText)
 import Data.Text.UnsafeChar (ord, unsafeChr, unsafeWrite)
 import Data.Text.UnsafeShift (shiftL, shiftR)
 import qualified Data.Text.Array as A
-import qualified Data.Text.Fusion.Common as S
-import Data.Text.Fusion.Internal
-import Data.Text.Fusion.Size
+import qualified Data.Text.Internal.Fusion.Common as S
+import Data.Text.Internal.Fusion.Types
+import Data.Text.Internal.Fusion.Size
 import qualified Data.Text.Internal as I
 import qualified Data.Text.Internal.Encoding.Utf16 as U16
 

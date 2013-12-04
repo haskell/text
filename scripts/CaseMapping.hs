@@ -29,7 +29,7 @@ main = do
                       [""
                       ,"module Data.Text.Fusion.CaseMapping where"
                       ,"import Data.Char"
-                      ,"import Data.Text.Fusion.Internal"
+                      ,"import Data.Text.Internal.Fusion.Types"
                       ,""]
   mapM_ (hPutStrLn h) (mapSC "upper" upper toUpper scs)
   mapM_ (hPutStrLn h) (mapSC "lower" lower toLower scs)

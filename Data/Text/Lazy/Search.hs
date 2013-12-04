@@ -23,7 +23,7 @@ import qualified Data.Text.Array as A
 import Data.Int (Int64)
 import Data.Word (Word16, Word64)
 import qualified Data.Text.Internal as T
-import Data.Text.Fusion.Internal (PairS(..))
+import Data.Text.Internal.Fusion.Types (PairS(..))
 import Data.Text.Lazy.Internal (Text(..), foldlChunks)
 import Data.Bits ((.|.), (.&.))
 import Data.Text.UnsafeShift (shiftL)
