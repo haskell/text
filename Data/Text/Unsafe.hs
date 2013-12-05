@@ -3,8 +3,7 @@
 -- Module      : Data.Text.Unsafe
 -- Copyright   : (c) 2009, 2010, 2011 Bryan O'Sullivan
 -- License     : BSD-style
--- Maintainer  : bos@serpentine.com, rtomharper@googlemail.com,
---               duncan@haskell.org
+-- Maintainer  : bos@serpentine.com
 -- Stability   : experimental
 -- Portability : portable
 --

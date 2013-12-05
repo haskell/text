@@ -10,8 +10,7 @@
 --               (c) 2008, 2009 Tom Harper
 --
 -- License     : BSD-style
--- Maintainer  : bos@serpentine.com, rtomharper@googlemail.com,
---               duncan@haskell.org
+-- Maintainer  : bos@serpentine.com
 -- Stability   : experimental
 -- Portability : portable
 --

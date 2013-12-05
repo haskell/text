@@ -7,8 +7,7 @@
 --               (c) Jasper Van der Jeugt 2011
 --
 -- License     : BSD-style
--- Maintainer  : bos@serpentine.com, rtomharper@googlemail.com,
---               duncan@haskell.org
+-- Maintainer  : bos@serpentine.com
 -- Stability   : experimental
 -- Portability : GHC
 --
