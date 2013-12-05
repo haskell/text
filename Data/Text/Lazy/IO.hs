@@ -51,7 +51,7 @@ import qualified Control.Exception as E
 import Control.Monad (when)
 import Data.IORef (readIORef)
 import Data.Text.Internal.IO (hGetLineWith, readChunk)
-import Data.Text.Lazy.Internal (chunk, empty)
+import Data.Text.Internal.Lazy (chunk, empty)
 import GHC.IO.Buffer (isEmptyBuffer)
 import GHC.IO.Exception (IOException(..), IOErrorType(..), ioException)
 import GHC.IO.Handle.Internals (augmentIOError, hClose_help,

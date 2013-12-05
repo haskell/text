@@ -47,7 +47,7 @@ import qualified Data.Text.Internal.Fusion as TF
 import qualified Data.Text.Internal.Fusion.Common as TF
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Internal.Lazy.Fusion as TLF
-import qualified Data.Text.Lazy.Internal as TL
+import qualified Data.Text.Internal.Lazy as TL
 import qualified System.IO as IO
 
 import Tests.Utils

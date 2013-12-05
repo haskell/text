@@ -28,7 +28,7 @@ import Data.Char (isDigit, isHexDigit, ord)
 import Data.Int (Int8, Int16, Int32, Int64)
 import Data.Ratio ((%))
 import Data.Text as T
-import Data.Text.Private (span_)
+import Data.Text.Internal.Private (span_)
 import Data.Word (Word, Word8, Word16, Word32, Word64)
 
 -- | Read some text.  If the read succeeds, return its value and the

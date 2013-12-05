@@ -39,8 +39,8 @@ import Data.Text.Internal.Fusion (Step(..), Stream(..))
 import Data.Text.Internal.Fusion.Size
 import Data.Text.Encoding.Error
 import Data.Text.Internal.Encoding.Fusion.Common
-import Data.Text.UnsafeChar (unsafeChr, unsafeChr8, unsafeChr32)
-import Data.Text.UnsafeShift (shiftL, shiftR)
+import Data.Text.Internal.Unsafe.Char (unsafeChr, unsafeChr8, unsafeChr32)
+import Data.Text.Internal.Unsafe.Shift (shiftL, shiftR)
 import Data.Word (Word8, Word16, Word32)
 import Foreign.ForeignPtr (withForeignPtr, ForeignPtr)
 import Foreign.Storable (pokeByteOff)

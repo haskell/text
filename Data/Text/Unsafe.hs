@@ -31,8 +31,8 @@ import Control.Exception (assert)
 #endif
 import Data.Text.Internal.Encoding.Utf16 (chr2)
 import Data.Text.Internal (Text(..))
-import Data.Text.Unsafe.Base (inlineInterleaveST, inlinePerformIO)
-import Data.Text.UnsafeChar (unsafeChr)
+import Data.Text.Internal.Unsafe (inlineInterleaveST, inlinePerformIO)
+import Data.Text.Internal.Unsafe.Char (unsafeChr)
 import qualified Data.Text.Array as A
 import GHC.IO (unsafeDupablePerformIO)
 

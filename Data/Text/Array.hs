@@ -66,8 +66,8 @@ import Control.Monad.ST.Unsafe (unsafeIOToST)
 import Control.Monad.ST (unsafeIOToST)
 #endif
 import Data.Bits ((.&.), xor)
-import Data.Text.Unsafe.Base (inlinePerformIO)
-import Data.Text.UnsafeShift (shiftL, shiftR)
+import Data.Text.Internal.Unsafe (inlinePerformIO)
+import Data.Text.Internal.Unsafe.Shift (shiftL, shiftR)
 #if __GLASGOW_HASKELL__ >= 703
 import Foreign.C.Types (CInt(CInt), CSize(CSize))
 #else

@@ -51,9 +51,9 @@ import Prelude (Bool(..), Char, Maybe(..), Monad(..), Int,
                 fromIntegral, otherwise)
 import Data.Bits ((.&.))
 import Data.Text.Internal (Text(..))
-import Data.Text.Private (runText)
-import Data.Text.UnsafeChar (ord, unsafeChr, unsafeWrite)
-import Data.Text.UnsafeShift (shiftL, shiftR)
+import Data.Text.Internal.Private (runText)
+import Data.Text.Internal.Unsafe.Char (ord, unsafeChr, unsafeWrite)
+import Data.Text.Internal.Unsafe.Shift (shiftL, shiftR)
 import qualified Data.Text.Array as A
 import qualified Data.Text.Internal.Fusion.Common as S
 import Data.Text.Internal.Fusion.Types

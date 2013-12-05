@@ -1,7 +1,7 @@
 {-# LANGUAGE CPP, MagicHash #-}
 
 -- |
--- Module      : Data.Text.UnsafeChar
+-- Module      : Data.Text.Internal.Unsafe.Char
 -- Copyright   : (c) 2008, 2009 Tom Harper,
 --               (c) 2009, 2010 Bryan O'Sullivan,
 --               (c) 2009 Duncan Coutts
@@ -13,7 +13,7 @@
 -- Portability : GHC
 --
 -- Fast character manipulation functions.
-module Data.Text.UnsafeChar
+module Data.Text.Internal.Unsafe.Char
     (
       ord
     , unsafeChr
@@ -28,7 +28,7 @@ import Control.Exception (assert)
 #endif
 import Control.Monad.ST (ST)
 import Data.Bits ((.&.))
-import Data.Text.UnsafeShift (shiftR)
+import Data.Text.Internal.Unsafe.Shift (shiftR)
 import GHC.Exts (Char(..), Int(..), chr#, ord#, word2Int#)
 import GHC.Word (Word8(..), Word16(..), Word32(..))
 import qualified Data.Text.Array as A

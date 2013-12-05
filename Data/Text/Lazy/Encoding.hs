@@ -50,7 +50,7 @@ module Data.Text.Lazy.Encoding
 
 import Control.Exception (evaluate, try)
 import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode)
-import Data.Text.Lazy.Internal (Text(..), chunk, empty, foldrChunks)
+import Data.Text.Internal.Lazy (Text(..), chunk, empty, foldrChunks)
 import qualified Data.ByteString as S
 import qualified Data.ByteString.Lazy as B
 import qualified Data.ByteString.Lazy.Internal as B

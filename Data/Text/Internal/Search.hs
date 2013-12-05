@@ -1,7 +1,7 @@
 {-# LANGUAGE BangPatterns, ScopedTypeVariables #-}
 
 -- |
--- Module      : Data.Text.Search
+-- Module      : Data.Text.Internal.Search
 -- Copyright   : (c) Bryan O'Sullivan 2009
 --
 -- License     : BSD-style
@@ -27,7 +27,7 @@
 -- * F. Lundh: The Fast Search Algorithm.
 --   <http://effbot.org/zone/stringlib.htm> (2006)
 
-module Data.Text.Search
+module Data.Text.Internal.Search
     (
       indices
     ) where
@@ -36,7 +36,7 @@ import qualified Data.Text.Array as A
 import Data.Word (Word64)
 import Data.Text.Internal (Text(..))
 import Data.Bits ((.|.), (.&.))
-import Data.Text.UnsafeShift (shiftL)
+import Data.Text.Internal.Unsafe.Shift (shiftL)
 
 data T = {-# UNPACK #-} !Word64 :* {-# UNPACK #-} !Int
 

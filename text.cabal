@@ -89,6 +89,7 @@ library
     Data.Text.Lazy.Encoding
     Data.Text.Lazy.IO
     Data.Text.Lazy.Internal
+    Data.Text.Internal.Lazy
     Data.Text.Lazy.Read
     Data.Text.Read
     Data.Text.Unsafe
@@ -111,12 +112,12 @@ library
     Data.Text.Internal.Lazy.Encoding.Fusion
     Data.Text.Internal.Lazy.Fusion
     Data.Text.Internal.Lazy.Search
-    Data.Text.Private
-    Data.Text.Search
-    Data.Text.Unsafe.Base
-    Data.Text.UnsafeChar
-    Data.Text.UnsafeShift
-    Data.Text.Util
+    Data.Text.Internal.Private
+    Data.Text.Internal.Search
+    Data.Text.Internal.Unsafe
+    Data.Text.Internal.Unsafe.Char
+    Data.Text.Internal.Unsafe.Shift
+    Data.Text.Internal.Functions
 
   build-depends:
     array      >= 0.3,

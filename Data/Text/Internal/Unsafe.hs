@@ -1,6 +1,6 @@
 {-# LANGUAGE CPP, MagicHash, UnboxedTuples #-}
 -- |
--- Module      : Data.Text.Unsafe.Base
+-- Module      : Data.Text.Internal.Unsafe
 -- Copyright   : (c) 2009, 2010, 2011 Bryan O'Sullivan
 -- License     : BSD-style
 -- Maintainer  : bos@serpentine.com, rtomharper@googlemail.com,
@@ -10,7 +10,7 @@
 --
 -- A module containing unsafe operations, for very very careful use in
 -- heavily tested code.
-module Data.Text.Unsafe.Base
+module Data.Text.Internal.Unsafe
     (
       inlineInterleaveST
     , inlinePerformIO

@@ -24,9 +24,9 @@ import Data.Int (Int64)
 import Data.Word (Word16, Word64)
 import qualified Data.Text.Internal as T
 import Data.Text.Internal.Fusion.Types (PairS(..))
-import Data.Text.Lazy.Internal (Text(..), foldlChunks)
+import Data.Text.Internal.Lazy (Text(..), foldlChunks)
 import Data.Bits ((.|.), (.&.))
-import Data.Text.UnsafeShift (shiftL)
+import Data.Text.Internal.Unsafe.Shift (shiftL)
 
 -- | /O(n+m)/ Find the offsets of all non-overlapping indices of
 -- @needle@ within @haystack@.

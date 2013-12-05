@@ -30,8 +30,8 @@ module Data.Text.Internal.Encoding.Fusion.Common
 import Data.Bits ((.&.))
 import Data.Text.Internal.Fusion (Step(..), Stream(..))
 import Data.Text.Internal.Fusion.Types (RS(..))
-import Data.Text.UnsafeChar (ord)
-import Data.Text.UnsafeShift (shiftR)
+import Data.Text.Internal.Unsafe.Char (ord)
+import Data.Text.Internal.Unsafe.Shift (shiftR)
 import Data.Word (Word8)
 
 restreamUtf16BE :: Stream Char -> Stream Word8

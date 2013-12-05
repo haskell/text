@@ -96,17 +96,17 @@ library
     Data.Text.Internal.Lazy.Encoding.Fusion
     Data.Text.Internal.Lazy.Fusion
     Data.Text.Lazy.IO
-    Data.Text.Lazy.Internal
+    Data.Text.Internal.Lazy
     Data.Text.Lazy.Read
     Data.Text.Internal.Lazy.Search
-    Data.Text.Private
+    Data.Text.Internal.Private
     Data.Text.Read
-    Data.Text.Search
+    Data.Text.Internal.Search
     Data.Text.Unsafe
-    Data.Text.Unsafe.Base
-    Data.Text.UnsafeChar
-    Data.Text.UnsafeShift
-    Data.Text.Util
+    Data.Text.Internal.Unsafe
+    Data.Text.Internal.Unsafe.Char
+    Data.Text.Internal.Unsafe.Shift
+    Data.Text.Internal.Functions
 
   if flag(hpc)
     ghc-options:

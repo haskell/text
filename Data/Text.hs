@@ -211,15 +211,15 @@ import Data.String (IsString(..))
 import qualified Data.Text.Internal.Fusion as S
 import qualified Data.Text.Internal.Fusion.Common as S
 import Data.Text.Internal.Fusion (stream, reverseStream, unstream)
-import Data.Text.Private (span_)
+import Data.Text.Internal.Private (span_)
 import Data.Text.Internal (Text(..), empty, firstf, safe, text, textP)
 import qualified Prelude as P
 import Data.Text.Unsafe (Iter(..), iter, iter_, lengthWord16, reverseIter,
                          unsafeHead, unsafeTail)
-import Data.Text.UnsafeChar (unsafeChr)
-import qualified Data.Text.Util as U
+import Data.Text.Internal.Unsafe.Char (unsafeChr)
+import qualified Data.Text.Internal.Functions as F
 import qualified Data.Text.Internal.Encoding.Utf16 as U16
-import Data.Text.Search (indices)
+import Data.Text.Internal.Search (indices)
 #if defined(__HADDOCK__)
 import Data.ByteString (ByteString)
 import qualified Data.Text.Lazy as L
@@ -597,7 +597,7 @@ map f t = unstream (S.map (safe . f) (stream t))
 -- 'Text's and concatenates the list after interspersing the first
 -- argument between each element of the list.
 intercalate :: Text -> [Text] -> Text
-intercalate t = concat . (U.intersperse t)
+intercalate t = concat . (F.intersperse t)
 {-# INLINE intercalate #-}
 
 -- | /O(n)/ The 'intersperse' function takes a character and places it

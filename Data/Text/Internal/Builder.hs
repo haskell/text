@@ -56,10 +56,10 @@ import Control.Monad.ST (ST, runST)
 import Data.Bits ((.&.))
 import Data.Monoid (Monoid(..))
 import Data.Text.Internal (Text(..))
-import Data.Text.Lazy.Internal (smallChunkSize)
+import Data.Text.Internal.Lazy (smallChunkSize)
 import Data.Text.Unsafe (inlineInterleaveST)
-import Data.Text.UnsafeChar (ord, unsafeWrite)
-import Data.Text.UnsafeShift (shiftR)
+import Data.Text.Internal.Unsafe.Char (ord, unsafeWrite)
+import Data.Text.Internal.Unsafe.Shift (shiftR)
 import Prelude hiding (map, putChar)
 
 import qualified Data.String as String

@@ -24,7 +24,7 @@ import Data.Text.Foreign
 import Data.Text.Internal.Fusion.Size
 import Data.Text.Lazy.Read as TL
 import Data.Text.Read as T
-import Data.Text.Search (indices)
+import Data.Text.Internal.Search (indices)
 import Data.Word (Word, Word8, Word16, Word32, Word64)
 import Numeric (showHex)
 import Test.Framework (Test, testGroup)
@@ -46,7 +46,7 @@ import qualified Data.Text.Lazy.Encoding as EL
 import qualified Data.Text.Internal.Lazy.Fusion as SL
 import qualified Data.Text.Lazy.IO as TL
 import qualified Data.Text.Internal.Lazy.Search as S (indices)
-import qualified Data.Text.UnsafeShift as U
+import qualified Data.Text.Internal.Unsafe.Shift as U
 import qualified System.IO as IO
 
 import Tests.QuickCheckUtils

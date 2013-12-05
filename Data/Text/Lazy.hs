@@ -213,9 +213,9 @@ import qualified Data.Text.Unsafe as T
 import qualified Data.Text.Internal.Lazy.Fusion as S
 import Data.Text.Internal.Fusion.Types (PairS(..))
 import Data.Text.Internal.Lazy.Fusion (stream, unstream)
-import Data.Text.Lazy.Internal (Text(..), chunk, empty, foldlChunks, foldrChunks)
+import Data.Text.Internal.Lazy (Text(..), chunk, empty, foldlChunks, foldrChunks)
 import Data.Text.Internal (firstf, safe, textP)
-import qualified Data.Text.Util as U
+import qualified Data.Text.Internal.Functions as F
 import Data.Text.Internal.Lazy.Search (indices)
 #if __GLASGOW_HASKELL__ >= 702
 import qualified GHC.CString as GHC
@@ -561,7 +561,7 @@ map f t = unstream (S.map (safe . f) (stream t))
 -- 'Text's and concatenates the list after interspersing the first
 -- argument between each element of the list.
 intercalate :: Text -> [Text] -> Text
-intercalate t = concat . (U.intersperse t)
+intercalate t = concat . (F.intersperse t)
 {-# INLINE intercalate #-}
 
 -- | /O(n)/ The 'intersperse' function takes a character and places it

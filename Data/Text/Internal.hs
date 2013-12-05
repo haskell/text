@@ -43,7 +43,7 @@ import Control.Exception (assert)
 #endif
 import Data.Bits ((.&.))
 import qualified Data.Text.Array as A
-import Data.Text.UnsafeChar (ord)
+import Data.Text.Internal.Unsafe.Char (ord)
 import Data.Typeable (Typeable)
 
 -- | A space efficient, packed, unboxed Unicode text type.

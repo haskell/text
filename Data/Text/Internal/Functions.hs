@@ -1,7 +1,7 @@
 {-# LANGUAGE CPP, DeriveDataTypeable #-}
 
 -- |
--- Module      : Data.Text.Util
+-- Module      : Data.Text.Internal.Functions
 -- Copyright   : 2010 Bryan O'Sullivan
 --
 -- License     : BSD-style
@@ -11,7 +11,7 @@
 --
 -- Useful functions.
 
-module Data.Text.Util
+module Data.Text.Internal.Functions
     (
       intersperse
     ) where

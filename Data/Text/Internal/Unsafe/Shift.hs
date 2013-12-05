@@ -1,7 +1,7 @@
 {-# LANGUAGE MagicHash #-}
 
 -- |
--- Module      : Data.Text.UnsafeShift
+-- Module      : Data.Text.Internal.Unsafe.Shift
 -- Copyright   : (c) Bryan O'Sullivan 2009
 --
 -- License     : BSD-style
@@ -12,7 +12,7 @@
 --
 -- Fast, unchecked bit shifting functions.
 
-module Data.Text.UnsafeShift
+module Data.Text.Internal.Unsafe.Shift
     (
       UnsafeShift(..)
     ) where

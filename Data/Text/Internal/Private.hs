@@ -1,7 +1,7 @@
 {-# LANGUAGE BangPatterns, Rank2Types, UnboxedTuples #-}
 
 -- |
--- Module      : Data.Text.Private
+-- Module      : Data.Text.Internal.Private
 -- Copyright   : (c) 2011 Bryan O'Sullivan
 --
 -- License     : BSD-style
@@ -9,7 +9,7 @@
 -- Stability   : experimental
 -- Portability : GHC
 
-module Data.Text.Private
+module Data.Text.Internal.Private
     (
       runText
     , span_
