@@ -13,6 +13,9 @@
 -- Stability   : experimental
 -- Portability : portable
 --
+-- /Warning/: this is an internal module, and does not have a stable
+-- API or name. Use at your own risk!
+--
 -- Fusible 'Stream'-oriented functions for converting between 'Text'
 -- and several common encodings.
 

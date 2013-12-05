@@ -2,6 +2,10 @@
 -- Module:    Data.Text.Internal.Builder.RealFloat.Functions
 -- Copyright: (c) The University of Glasgow 1994-2002
 -- License:   see libraries/base/LICENSE
+--
+-- /Warning/: this is an internal module, and does not have a stable
+-- API or name. Functions in this module may not check or enforce
+-- preconditions expected by public modules. Use at your own risk!
 
 module Data.Text.Internal.Builder.RealFloat.Functions
     (

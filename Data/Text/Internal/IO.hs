@@ -8,6 +8,10 @@
 -- Stability   : experimental
 -- Portability : GHC
 --
+-- /Warning/: this is an internal module, and does not have a stable
+-- API or name. Functions in this module may not check or enforce
+-- preconditions expected by public modules. Use at your own risk!
+--
 -- Low-level support for text I\/O.
 
 module Data.Text.Internal.IO

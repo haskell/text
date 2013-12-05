@@ -9,13 +9,13 @@
 -- Stability   : experimental
 -- Portability : GHC
 --
+-- /Warning/: this is an internal module, and does not have a stable
+-- API or name. Functions in this module may not check or enforce
+-- preconditions expected by public modules. Use at your own risk!
+--
 -- A module containing private 'Text' internals. This exposes the
 -- 'Text' representation and low level construction functions.
 -- Modules which extend the 'Text' system may need to use this module.
---
--- You should not use this module unless you are determined to monkey
--- with the internals, as the functions here do just about nothing to
--- preserve data invariants.  You have been warned!
 
 module Data.Text.Internal.Lazy
     (

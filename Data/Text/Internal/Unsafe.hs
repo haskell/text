@@ -8,8 +8,12 @@
 -- Stability   : experimental
 -- Portability : portable
 --
--- A module containing unsafe operations, for very very careful use in
--- heavily tested code.
+-- /Warning/: this is an internal module, and does not have a stable
+-- API or name. Functions in this module may not check or enforce
+-- preconditions expected by public modules. Use at your own risk!
+--
+-- A module containing /unsafe/ operations, for /very very careful/ use
+-- in /heavily tested/ code.
 module Data.Text.Internal.Unsafe
     (
       inlineInterleaveST
