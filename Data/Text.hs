@@ -371,7 +371,7 @@ pack :: String -> Text
 pack = unstream . S.map safe . S.streamList
 {-# INLINE [1] pack #-}
 
--- | /O(n)/ Convert a Text into a String.  Subject to fusion.
+-- | /O(n)/ Convert a 'Text' into a 'String'.  Subject to fusion.
 unpack :: Text -> String
 unpack = S.unstreamList . stream
 {-# INLINE [1] unpack #-}
