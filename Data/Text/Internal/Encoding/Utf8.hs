@@ -33,6 +33,10 @@ module Data.Text.Internal.Encoding.Utf8
     , validate4
     ) where
 
+#if defined(TEST_SUITE)
+# undef ASSERTS
+#endif
+
 #if defined(ASSERTS)
 import Control.Exception (assert)
 #endif
