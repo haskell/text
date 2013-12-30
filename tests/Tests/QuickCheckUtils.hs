@@ -63,6 +63,12 @@ instance Arbitrary I16 where
 instance Arbitrary B.ByteString where
     arbitrary     = B.pack `fmap` arbitrary
 
+#if !MIN_VERSION_base(4,4,0)
+instance Random Word8 where
+    randomR = integralRandomR
+    random  = randomR (minBound,maxBound)
+#endif
+
 genUnicode :: IsString a => Gen a
 genUnicode = fmap fromString string where
     string = sized $ \n ->
