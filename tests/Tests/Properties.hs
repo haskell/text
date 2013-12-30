@@ -9,18 +9,20 @@ module Tests.Properties
       tests
     ) where
 
-import Test.QuickCheck
+import Test.QuickCheck hiding ((.&.))
 import Test.QuickCheck.Monadic
 import Text.Show.Functions ()
 
 import Control.Applicative ((<$>), (<*>))
 import Control.Arrow ((***), second)
 import Control.Exception (catch)
+import Data.Bits ((.&.))
 import Data.Char (chr, isDigit, isHexDigit, isLower, isSpace, isUpper, ord)
 import Data.Int (Int8, Int16, Int32, Int64)
 import Data.Monoid (Monoid(..))
 import Data.String (fromString)
 import Data.Text.Encoding.Error
+import Data.Text.Encoding.Utf8
 import Data.Text.Foreign
 import Data.Text.Fusion.Size
 import Data.Text.Lazy.Read as TL
@@ -145,6 +147,11 @@ genInvalidUTF8 = B.pack <$> oneof [
     (:) <$> choose (0xC0, 0xC1) <*> upTo 1 contByte
     -- invalid leading byte of a 4-byte sequence
   , (:) <$> choose (0xF5, 0xFF) <*> upTo 3 contByte
+    -- 4-byte sequence greater than U+10FFFF
+  , do k <- choose (0x11, 0x1F)
+       let w0 = 0xF0 + (k `Bits.shiftR` 2)
+           w1 = 0x80 + ((k .&. 3) `Bits.shiftL` 4)
+       ([w0,w1]++) <$> vectorOf 2 contByte
     -- continuation bytes without a start byte
   , listOf1 contByte
     -- short 2-byte sequence
@@ -153,6 +160,16 @@ genInvalidUTF8 = B.pack <$> oneof [
   , (:) <$> choose (0xE0, 0xEF) <*> upTo 1 contByte
     -- short 4-byte sequence
   , (:) <$> choose (0xF0, 0xF4) <*> upTo 2 contByte
+    -- overlong encoding
+  , do k <- choose (0,0xFFFF)
+       let c = chr k
+       case k of
+         _ | k < 0x80   -> oneof [ let (w,x)     = ord2 c in return [w,x]
+                                 , let (w,x,y)   = ord3 c in return [w,x,y]
+                                 , let (w,x,y,z) = ord4 c in return [w,x,y,z] ]
+           | k < 0x7FF  -> oneof [ let (w,x,y)   = ord3 c in return [w,x,y]
+                                 , let (w,x,y,z) = ord4 c in return [w,x,y,z] ]
+           | otherwise  ->         let (w,x,y,z) = ord4 c in return [w,x,y,z]
   ]
   where
     contByte = (0x80 +) <$> choose (0, 0x3f)
