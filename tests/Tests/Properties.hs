@@ -13,6 +13,7 @@ import Test.QuickCheck
 import Test.QuickCheck.Monadic
 import Text.Show.Functions ()
 
+import Control.Applicative ((<$>), (<*>))
 import Control.Arrow ((***), second)
 import Control.Exception (catch)
 import Data.Char (chr, isDigit, isHexDigit, isLower, isSpace, isUpper, ord)
@@ -93,22 +94,54 @@ tl_utf32LE   = forAll genUnicode $ (EL.decodeUtf32LE . EL.encodeUtf32LE) `eq` id
 t_utf32BE    = forAll genUnicode $ (E.decodeUtf32BE . E.encodeUtf32BE) `eq` id
 tl_utf32BE   = forAll genUnicode $ (EL.decodeUtf32BE . EL.encodeUtf32BE) `eq` id
 
--- This is a poor attempt to ensure that the error handling paths on
--- decode are exercised in some way.  Proper testing would be rather
--- more involved.
-t_utf8_err :: DecodeErr -> B.ByteString -> Property
-t_utf8_err (DE _ de) bs = monadicIO $ do
-  l <- run $ let len = T.length (E.decodeUtf8With de bs)
-             in (len `seq` return (Right len)) `catch`
-                (\(e::UnicodeException) -> return (Left e))
-  case l of
-    Left err -> assert $ length (show err) >= 0
-    Right n  -> assert $ n >= 0
+data Badness = Solo | Leading | Trailing
+             deriving (Eq, Show)
+
+instance Arbitrary Badness where
+    arbitrary = elements [Solo, Leading, Trailing]
+
+t_utf8_err :: Badness -> DecodeErr -> Property
+t_utf8_err bad de = do
+  let gen = case bad of
+        Solo     -> genInvalidUTF8
+        Leading  -> B.append <$> genInvalidUTF8 <*> genUTF8
+        Trailing -> B.append <$> genUTF8 <*> genInvalidUTF8
+      genUTF8 = E.encodeUtf8 <$> genUnicode
+  forAll gen $ \bs -> do
+    onErr <- genDecodeErr de
+    monadicIO $ do
+    l <- run $ let len = T.length (E.decodeUtf8With onErr bs)
+               in (len `seq` return (Right len)) `catch`
+                  (\(e::UnicodeException) -> return (Left e))
+    assert $ case l of
+      Left err -> length (show err) >= 0
+      Right _  -> de /= Strict
 
 t_utf8_err' :: B.ByteString -> Property
 t_utf8_err' bs = monadicIO . assert $ case E.decodeUtf8' bs of
                                         Left err -> length (show err) >= 0
                                         Right t  -> T.length t >= 0
+
+genInvalidUTF8 :: Gen B.ByteString
+genInvalidUTF8 = B.pack <$> oneof [
+    -- invalid leading byte of a 2-byte sequence
+    (:) <$> choose (0xC0, 0xC1) <*> upTo 1 contByte
+    -- invalid leading byte of a 4-byte sequence
+  , (:) <$> choose (0xF5, 0xFF) <*> upTo 3 contByte
+    -- continuation bytes without a start byte
+  , listOf1 contByte
+    -- short 2-byte sequence
+  , (:[]) <$> choose (0xC2, 0xDF)
+    -- short 3-byte sequence
+  , (:) <$> choose (0xE0, 0xEF) <*> upTo 1 contByte
+    -- short 4-byte sequence
+  , (:) <$> choose (0xF0, 0xF4) <*> upTo 2 contByte
+  ]
+  where
+    contByte = (0x80 +) <$> choose (0, 0x3f)
+    upTo n gen = do
+      k <- choose (0,n)
+      vectorOf k gen
 
 s_Eq s            = (s==)    `eq` ((S.streamList s==) . S.streamList)
     where _types = s :: String

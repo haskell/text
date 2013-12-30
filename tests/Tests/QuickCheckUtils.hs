@@ -18,6 +18,7 @@ module Tests.QuickCheckUtils
     , integralRandomR
 
     , DecodeErr (..)
+    , genDecodeErr
 
     , Stringy (..)
     , eq
@@ -194,16 +195,17 @@ integralRandomR  (a,b) g = case randomR (fromIntegral a :: Integer,
                                          fromIntegral b :: Integer) g of
                             (x,h) -> (fromIntegral x, h)
 
-data DecodeErr = DE String T.OnDecodeError
+data DecodeErr = Lenient | Ignore | Strict | Replace
+               deriving (Show, Eq)
 
-instance Show DecodeErr where
-    show (DE d _) = "DE " ++ d
+genDecodeErr :: DecodeErr -> Gen T.OnDecodeError
+genDecodeErr Lenient = return T.lenientDecode
+genDecodeErr Ignore  = return T.ignore
+genDecodeErr Strict  = return T.strictDecode
+genDecodeErr Replace = arbitrary
 
 instance Arbitrary DecodeErr where
-    arbitrary = oneof [ return $ DE "lenient" T.lenientDecode
-                      , return $ DE "ignore" T.ignore
-                      , return $ DE "strict" T.strictDecode
-                      , DE "replace" `fmap` arbitrary ]
+    arbitrary = elements [Lenient, Ignore, Strict, Replace]
 
 class Stringy s where
     packS    :: String -> s
