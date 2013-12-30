@@ -1,3 +1,8 @@
+1.0.0.1
+
+	* decodeUtf8: Fixed a regression that caused us to incorrectly
+	  identify truncated UTF-8 as valid (gh-61)
+
 1.0.0.0
 
 	* Added support for Unicode 6.3.0 to case conversion functions
