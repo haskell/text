@@ -198,5 +198,10 @@ _hs_text_decode_utf8(uint16_t *dest, size_t *destoff,
 {
   uint32_t codepoint;
   uint32_t state = UTF8_ACCEPT;
-  return _hs_text_decode_utf8_state(dest, destoff, src, srcend, &codepoint, &state);
+  uint8_t const *ret = _hs_text_decode_utf8_state(dest, destoff, src, srcend,
+						  &codepoint, &state);
+  /* Back up if we have an incomplete encoding */
+  if (state != UTF8_ACCEPT && state != UTF8_REJECT)
+    ret -= 1;
+  return ret;
 }
