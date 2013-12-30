@@ -123,10 +123,18 @@ _hs_text_decode_latin1(uint16_t *dest, const uint8_t const *src,
  *      state0 != UTF8_ACCEPT, UTF8_REJECT
  *
  */
-uint8_t const *
-_hs_text_decode_utf8_state(uint16_t *dest, size_t *destoff,
-                           const uint8_t const *src, const uint8_t const *srcend,
-                           uint32_t *codepoint0, uint32_t *state0)
+
+#if defined(__GNUC__) || defined(__clang__)
+static inline uint8_t const *
+_hs_text_decode_utf8_int(uint16_t *dest, size_t *destoff,
+			 const uint8_t const *src, const uint8_t const *srcend,
+			 uint32_t *codepoint0, uint32_t *state0)
+  __attribute((always_inline));
+#endif
+static inline uint8_t const *
+_hs_text_decode_utf8_int(uint16_t *dest, size_t *destoff,
+			 const uint8_t const *src, const uint8_t const *srcend,
+			 uint32_t *codepoint0, uint32_t *state0)
 {
   uint16_t *d = dest + *destoff;
   const uint8_t const *s = src;
@@ -178,15 +186,24 @@ _hs_text_decode_utf8_state(uint16_t *dest, size_t *destoff,
     }
   }
 
-  /* Invalid encoding, back up to the errant character */
-  if (state == UTF8_REJECT)
-    s -= 1;
-
   *destoff = d - dest;
   *codepoint0 = codepoint;
   *state0 = state;
 
   return s;
+}
+
+uint8_t const *
+_hs_text_decode_utf8_state(uint16_t *dest, size_t *destoff,
+                           const uint8_t const *src,
+			   const uint8_t const *srcend,
+                           uint32_t *codepoint0, uint32_t *state0)
+{
+  uint8_t const *ret = _hs_text_decode_utf8_int(dest, destoff, src, srcend,
+						codepoint0, state0);
+  if (*state0 == UTF8_REJECT)
+    ret -=1;
+  return ret;
 }
 
 /*
@@ -198,10 +215,10 @@ _hs_text_decode_utf8(uint16_t *dest, size_t *destoff,
 {
   uint32_t codepoint;
   uint32_t state = UTF8_ACCEPT;
-  uint8_t const *ret = _hs_text_decode_utf8_state(dest, destoff, src, srcend,
-						  &codepoint, &state);
-  /* Back up if we have an incomplete encoding */
-  if (state != UTF8_ACCEPT && state != UTF8_REJECT)
+  uint8_t const *ret = _hs_text_decode_utf8_int(dest, destoff, src, srcend,
+						&codepoint, &state);
+  /* Back up if we have an incomplete or invalid encoding */
+  if (state != UTF8_ACCEPT)
     ret -= 1;
   return ret;
 }
