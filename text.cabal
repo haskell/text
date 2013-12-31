@@ -150,7 +150,7 @@ test-suite tests
     -Wall -threaded -O0 -rtsopts
 
   cpp-options:
-    -DASSERTS -DHAVE_DEEPSEQ
+    -DASSERTS -DHAVE_DEEPSEQ -DTEST_SUITE
 
   build-depends:
     HUnit >= 1.2,
