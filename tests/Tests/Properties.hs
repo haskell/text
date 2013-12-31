@@ -148,7 +148,7 @@ genInvalidUTF8 = B.pack <$> oneof [
     -- invalid leading byte of a 4-byte sequence
   , (:) <$> choose (0xF5, 0xFF) <*> upTo 3 contByte
     -- 4-byte sequence greater than U+10FFFF
-  , do k <- choose (0x11, 0x1F)
+  , do k <- choose (0x11, 0x13)
        let w0 = 0xF0 + (k `Bits.shiftR` 2)
            w1 = 0x80 + ((k .&. 3) `Bits.shiftL` 4)
        ([w0,w1]++) <$> vectorOf 2 contByte
