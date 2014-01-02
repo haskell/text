@@ -54,6 +54,14 @@ module Data.Text.Encoding
     , encodeUtf16BE
     , encodeUtf32LE
     , encodeUtf32BE
+
+#if MIN_VERSION_bytestring(0,10,4)
+    -- * Generic encoding of Text
+    -- , encodeStreamWithB
+    -- , encodeTextWithB
+    -- , encodeUtf8Builder
+    , encodeUtf8Escaped
+#endif
     ) where
 
 import Control.Exception (evaluate, try)
@@ -66,6 +74,13 @@ import Control.Monad.ST (runST)
 import Data.Bits ((.&.))
 import Data.ByteString as B
 import Data.ByteString.Internal as B
+#if MIN_VERSION_bytestring(0,10,4)
+import qualified Data.ByteString.Builder as B
+import qualified Data.ByteString.Builder.Internal as B
+import qualified Data.ByteString.Builder.Prim as BP
+import qualified Data.ByteString.Builder.Prim.Internal as BP
+import qualified Data.ByteString.Lazy as BL
+#endif
 import Data.Text ()
 import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode)
 import Data.Text.Internal (Text(..), safe, textP)
@@ -291,6 +306,61 @@ decodeUtf8' = unsafeDupablePerformIO . try . evaluate . decodeUtf8With strictDec
 
 -- | Encode text using UTF-8 encoding.
 encodeUtf8 :: Text -> ByteString
+#if MIN_VERSION_bytestring(0,10,4)
+
+encodeUtf8 =
+    BL.toStrict . B.toLazyByteString
+  . encodeUtf8Escaped (BP.liftFixedToBounded BP.word8)
+
+-- | Encode text using UTF-8 encoding and escape the ASCII characters using
+-- a 'BP.PrimBounded'.
+encodeUtf8Escaped :: BP.BoundedPrim Word8 -> Text -> B.Builder
+encodeUtf8Escaped be (Text arr off len) =
+    B.builder step
+  where
+    bound   = max 4 $ BP.sizeBound be
+    iend    = off + len
+    step !k =
+        outerLoop off
+      where
+        outerLoop !i0 !br@(B.BufferRange op0 ope)
+          | i0 >= iend                = k br
+          | op0 `plusPtr` bound < ope =
+              goPartial (i0 + min outRemaining inpRemaining)
+          | otherwise  = return $ B.bufferFull bound op0 (outerLoop i0)
+          where
+            outRemaining = (ope `minusPtr` op0) `div` bound
+            inpRemaining = iend - i0
+
+            goPartial !iendTmp = go i0 op0
+              where
+                go !i !op
+                  | i < iendTmp = case A.unsafeIndex arr i of
+                      w | w <= 0x7F -> do
+                            BP.runB be (fromIntegral w) op >>= go (i + 1)
+                        | w <= 0x7FF -> do
+                            poke8 0 $ (w `shiftR` 6) + 0xC0
+                            poke8 1 $ (w .&. 0x3f) + 0x80
+                            go (i + 1) (op `plusPtr` 2)
+                        | 0xD800 <= w && w <= 0xDBFF -> do
+                            let c = ord $ U16.chr2 w (A.unsafeIndex arr (i+1))
+                            poke8 0 $ (c `shiftR` 18) + 0xF0
+                            poke8 1 $ ((c `shiftR` 12) .&. 0x3F) + 0x80
+                            poke8 2 $ ((c `shiftR` 6) .&. 0x3F) + 0x80
+                            poke8 3 $ (c .&. 0x3F) + 0x80
+                            go (i + 2) (op `plusPtr` 4)
+                        | otherwise -> do
+                            poke8 0 $ (w `shiftR` 12) + 0xE0
+                            poke8 1 $ ((w `shiftR` 6) .&. 0x3F) + 0x80
+                            poke8 2 $ (w .&. 0x3F) + 0x80
+                            go (i + 1) (op `plusPtr` 3)
+                  | otherwise =
+                      outerLoop i (B.BufferRange op ope)
+                  where
+                    poke8 j v = poke (op `plusPtr` j) (fromIntegral v :: Word8)
+
+#else
+
 encodeUtf8 (Text arr off len) = unsafeDupablePerformIO $ do
   let size0 = max len 4
   mallocByteString size0 >>= start size0 off 0
@@ -344,6 +414,7 @@ encodeUtf8 (Text arr off len) = unsafeDupablePerformIO $ do
                   poke8 (m+1) $ ((w `shiftR` 6) .&. 0x3F) + 0x80
                   poke8 (m+2) $ (w .&. 0x3F) + 0x80
                   go (n+1) (m+3)
+#endif
 
 -- | Decode text from little endian UTF-16 encoding.
 decodeUtf16LEWith :: OnDecodeError -> ByteString -> Text
@@ -432,3 +503,36 @@ foreign import ccall unsafe "_hs_text_decode_utf8_state" c_decode_utf8_with_stat
 
 foreign import ccall unsafe "_hs_text_decode_latin1" c_decode_latin1
     :: MutableByteArray# s -> Ptr Word8 -> Ptr Word8 -> IO ()
+
+
+{-
+-- | Encode all elements of a 'F.Stream' using a 'B.BoundedEncoding'.
+{-# INLINE encodeStreamWithB #-}
+encodeStreamWithB :: B.BoundedEncoding a -> F.Stream a -> B.Builder
+encodeStreamWithB be =
+    \(F.Stream next s0 _) -> B.builder $ step next s0
+  where
+    bound = B.sizeBound be
+    step next s0 k (B.BufferRange op0 ope0) =
+        go s0 op0
+      where
+        go s !op = case next s of
+          F.Done       -> k (B.BufferRange op ope0)
+          F.Skip s'    -> go s' op
+          F.Yield x s'
+            | op `plusPtr` bound <= ope0 -> B.runB be x op >>= go s'
+            | otherwise                  ->
+                return $ B.bufferFull bound op (step next s k)
+
+
+-- |
+-- | /Subject to fusion./
+-- Encode all 'Char's of a 'T.Text' using a 'B.BoundedEncoding'.
+{-# INLINE encodeTextWithB #-}
+encodeTextWithB :: B.BoundedEncoding Char -> Text -> B.Builder
+encodeTextWithB be = encodeStreamWithB be . F.stream
+
+-- | Encode text using UTF-8 encoding.
+encodeUtf8Builder :: Text -> B.Builder
+encodeUtf8Builder = encodeUtf8Escaped (B.fromF B.word8)
+-}

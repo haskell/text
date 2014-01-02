@@ -54,6 +54,11 @@ import qualified Data.ByteString as S
 import qualified Data.ByteString.Lazy as B
 import qualified Data.ByteString.Lazy.Internal as B
 import qualified Data.ByteString.Unsafe as B
+#if MIN_VERSION_bytestring(0,10,4)
+import Data.Monoid (mempty, (<>))
+import qualified Data.ByteString.Builder as B
+import qualified Data.ByteString.Builder.Prim as BP
+#endif
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text.Lazy as L
 import qualified Data.Text.Internal.Lazy.Encoding.Fusion as E
@@ -135,8 +140,17 @@ decodeUtf8' bs = unsafeDupablePerformIO $ do
 {-# INLINE decodeUtf8' #-}
 
 encodeUtf8 :: Text -> B.ByteString
+#if MIN_VERSION_bytestring(0,10,4)
+encodeUtf8 =
+    B.toLazyByteString . go
+  where
+    go Empty        = mempty
+    go (Chunk c cs) =
+        TE.encodeUtf8Escaped (BP.liftFixedToBounded BP.word8) c <> go cs
+#else
 encodeUtf8 (Chunk c cs) = B.Chunk (TE.encodeUtf8 c) (encodeUtf8 cs)
 encodeUtf8 Empty        = B.Empty
+#endif
 
 -- | Decode text from little endian UTF-16 encoding.
 decodeUtf16LEWith :: OnDecodeError -> B.ByteString -> Text

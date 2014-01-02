@@ -121,9 +121,13 @@ library
   build-depends:
     array      >= 0.3,
     base       >= 4.2 && < 5,
-    bytestring >= 0.9,
     deepseq    >= 1.1.0.0,
     ghc-prim   >= 0.2
+
+  if impl(ghc >= 7.7)
+    build-depends: bytestring >= 0.10.4.0
+  else
+    build-depends: bytestring >= 0.9
 
   cpp-options: -DHAVE_DEEPSEQ
   ghc-options: -Wall -fwarn-tabs -funbox-strict-fields -O2
