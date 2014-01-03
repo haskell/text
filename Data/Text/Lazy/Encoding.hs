@@ -45,6 +45,12 @@ module Data.Text.Lazy.Encoding
     , encodeUtf16BE
     , encodeUtf32LE
     , encodeUtf32BE
+
+#if MIN_VERSION_bytestring(0,10,4)
+    -- * Encoding Text using ByteString Builders
+    , encodeUtf8Builder
+    , encodeUtf8BuilderEscaped
+#endif
     ) where
 
 import Control.Exception (evaluate, try)
@@ -55,6 +61,7 @@ import qualified Data.ByteString.Lazy as B
 import qualified Data.ByteString.Lazy.Internal as B
 import qualified Data.ByteString.Unsafe as B
 #if MIN_VERSION_bytestring(0,10,4)
+import Data.Word (Word8)
 import Data.Monoid (mempty, (<>))
 import qualified Data.ByteString.Builder as B
 import qualified Data.ByteString.Builder.Prim as BP
@@ -141,12 +148,16 @@ decodeUtf8' bs = unsafeDupablePerformIO $ do
 
 encodeUtf8 :: Text -> B.ByteString
 #if MIN_VERSION_bytestring(0,10,4)
-encodeUtf8 =
-    B.toLazyByteString . go
-  where
-    go Empty        = mempty
-    go (Chunk c cs) =
-        TE.encodeUtf8Escaped (BP.liftFixedToBounded BP.word8) c <> go cs
+encodeUtf8 = B.toLazyByteString . encodeUtf8Builder
+
+encodeUtf8Builder :: Text -> B.Builder
+encodeUtf8Builder = foldrChunks (\c b -> TE.encodeUtf8Builder c <> b) mempty
+
+{-# INLINE encodeUtf8BuilderEscaped #-}
+encodeUtf8BuilderEscaped :: BP.BoundedPrim Word8 -> Text -> B.Builder
+encodeUtf8BuilderEscaped prim =
+    foldrChunks (\c b -> TE.encodeUtf8BuilderEscaped prim c <> b) mempty
+
 #else
 encodeUtf8 (Chunk c cs) = B.Chunk (TE.encodeUtf8 c) (encodeUtf8 cs)
 encodeUtf8 Empty        = B.Empty
