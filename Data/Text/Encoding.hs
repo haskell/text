@@ -384,7 +384,7 @@ encodeUtf8 (Text arr off len) = unsafeDupablePerformIO $ do
                       start newSize n m fp'
                 {-# INLINE ensure #-}
             case A.unsafeIndex arr n of
-             w| w <= 0x7F  -> do
+             w| w <= 0x7F  -> ensure 1 $ do
                   poke (ptr `plusPtr` m) (fromIntegral w :: Word8)
                   go (n+1) (m+1)
               | w <= 0x7FF -> ensure 2 $ do
