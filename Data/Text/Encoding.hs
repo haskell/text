@@ -384,20 +384,9 @@ encodeUtf8 (Text arr off len) = unsafeDupablePerformIO $ do
                       start newSize n m fp'
                 {-# INLINE ensure #-}
             case A.unsafeIndex arr n of
-             w| w <= 0x7F  -> ensure 1 $ do
+             w| w <= 0x7F  -> do
                   poke (ptr `plusPtr` m) (fromIntegral w :: Word8)
-                  -- A single ASCII octet is likely to start a run of
-                  -- them.  We see better performance when we
-                  -- special-case this assumption.
-                  let end = ptr `plusPtr` size
-                      ascii !t !u
-                        | t == offLen || u == end || v >= 0x80 =
-                            go t (u `minusPtr` ptr)
-                        | otherwise = do
-                            poke u (fromIntegral v :: Word8)
-                            ascii (t+1) (u `plusPtr` 1)
-                        where v = A.unsafeIndex arr t
-                  ascii (n+1) (ptr `plusPtr` (m+1))
+                  go (n+1) (m+1)
               | w <= 0x7FF -> ensure 2 $ do
                   poke8 m     $ (w `shiftR` 6) + 0xC0
                   poke8 (m+1) $ (w .&. 0x3f) + 0x80
