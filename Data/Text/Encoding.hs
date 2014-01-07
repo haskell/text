@@ -452,10 +452,6 @@ encodeUtf8_1 (Text arr off len)
     fp' <- resize k fp ptr
     go n fp' (unsafeForeignPtrToPtr fp')
   do1 ptr n w k = poke8 ptr w >> k (n+1) (ptr `plusPtr` 1)
-  loop :: (Word16 -> Int -> ForeignPtr Word8 -> Ptr Word8
-           -> (Int -> Ptr Word8 -> IO ByteString)
-           -> IO ByteString) -> Int -> ForeignPtr Word8 -> Ptr Word8
-          -> IO ByteString
   loop act !n0 fp !ptr0 = hot n0 ptr0
     where hot !n !ptr
             | n == offLen = do
