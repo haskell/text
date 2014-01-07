@@ -461,22 +461,20 @@ encodeUtf8_1 (Text arr off len)
   {-# INLINE loop #-}
   go1 = loop $ \ w !n !m fp ptr cont ->
     case w of
-      _| w <= 0x7F  -> do1 ptr n m w cont
-       | w <= 0x7FF -> ensure 2 n m fp go2
-       | w < 0xD800 -> ensure 3 n m fp go3
-       | w > 0xDBFF -> ensure 3 n m fp go3
-       | otherwise -> ensure 4 n m fp go4
+      _| w <= 0x7F                -> do1 ptr n m w cont
+       | w <= 0x7FF               -> ensure 2 n m fp go2
+       | w < 0xD800 || w > 0xDBFF -> ensure 3 n m fp go3
+       | otherwise                -> ensure 4 n m fp go4
   do2 ptr n m w k = do
     poke8 ptr m     $ (w `shiftR` 6) + 0xC0
     poke8 ptr (m+1) $ (w .&. 0x3f) + 0x80
     k (n+1) (m+2)
   go2 = loop $ \ w !n !m fp ptr cont ->
     case w of
-      _| w <= 0x7F  -> do1 ptr n m w cont
-       | w <= 0x7FF -> do2 ptr n m w cont
-       | w < 0xD800 -> ensure 3 n m fp go3
-       | w > 0xDBFF -> ensure 3 n m fp go3
-       | otherwise -> ensure 4 n m fp go4
+      _| w <= 0x7F                -> do1 ptr n m w cont
+       | w <= 0x7FF               -> do2 ptr n m w cont
+       | w < 0xD800 || w > 0xDBFF -> ensure 3 n m fp go3
+       | otherwise                -> ensure 4 n m fp go4
   do3 ptr !n m w k = do
     poke8 ptr m     $ (w `shiftR` 12) + 0xE0
     poke8 ptr (m+1) $ ((w `shiftR` 6) .&. 0x3F) + 0x80
@@ -484,21 +482,19 @@ encodeUtf8_1 (Text arr off len)
     k (n+1) (m+3)
   go3 = loop body where body w !n !m fp ptr cont =
                           case w of
-                            _| w <= 0x7F  -> do1 ptr n m w cont
-                             | w <= 0x7FF -> do2 ptr n m w cont
-                             | w < 0xD800 -> do3 ptr n m w cont
-                             | w > 0xDBFF -> do3 ptr n m w cont
-                             | otherwise -> ensure 4 n m fp go4
+                            _| w <= 0x7F                -> do1 ptr n m w cont
+                             | w <= 0x7FF               -> do2 ptr n m w cont
+                             | w < 0xD800 || w > 0xDBFF -> do3 ptr n m w cont
+                             | otherwise                -> ensure 4 n m fp go4
                         {-# INLINE body #-}
   go4 !n0 !m0 fp ptr = do
     let hot !n !m
           | n == offLen = touchForeignPtr fp >> return (PS fp 0 m)
           | otherwise = do
               case A.unsafeIndex arr n of
-               w| w <= 0x7F  -> do1 ptr n m w hot
-                | w <= 0x7FF -> do2 ptr n m w hot
-                | w < 0xD800 -> do3 ptr n m w hot
-                | w > 0xDBFF -> do3 ptr n m w hot
+               w| w <= 0x7F                -> do1 ptr n m w hot
+                | w <= 0x7FF               -> do2 ptr n m w hot
+                | w < 0xD800 || w > 0xDBFF -> do3 ptr n m w hot
                 | otherwise -> do
                     let c = ord $ U16.chr2 w (A.unsafeIndex arr (n+1))
                     poke8 ptr m     $ (c `shiftR` 18) + 0xF0
