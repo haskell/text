@@ -113,6 +113,7 @@ benchmark kind fp = do
         , bgroup "encode"
             [ benchT   $ nf T.encodeUtf8 ta
             , benchT1  $ nf T.encodeUtf8_1 ta
+            , benchT2  $ nf T.encodeUtf8_2 ta
             , benchTL  $ nf TL.encodeUtf8 tla
             , benchBS  $ nf BS.pack sa
             , benchBSL $ nf BL.pack sa
@@ -412,6 +413,7 @@ benchmark kind fp = do
     benchS   = bench ("String+" ++ kind)
     benchT   = bench ("Text+" ++ kind)
     benchT1  = bench ("Text1+" ++ kind)
+    benchT2  = bench ("Text2+" ++ kind)
     benchTL  = bench ("LazyText+" ++ kind)
     benchBS  = bench ("ByteString+" ++ kind)
     benchBSL = bench ("LazyByteString+" ++ kind)

@@ -52,6 +52,7 @@ module Data.Text.Encoding
     , encodeUtf8
     , encodeUtf8_0
     , encodeUtf8_1
+    , encodeUtf8_2
     , encodeUtf16LE
     , encodeUtf16BE
     , encodeUtf32LE
@@ -101,12 +102,12 @@ import Data.Text.Internal.Unsafe.Shift (shiftL, shiftR)
 import Data.Text.Internal.Private (runText)
 import Data.Text.Internal.Unsafe.Char (ord, unsafeWrite)
 import Data.Word (Word8, Word32)
-import Foreign.C.Types (CSize)
+import Foreign.C.Types (CSize(..))
 import Foreign.ForeignPtr (touchForeignPtr, withForeignPtr)
 import Foreign.Marshal.Utils (with)
 import Foreign.Ptr (Ptr, minusPtr, nullPtr, plusPtr)
 import Foreign.Storable (Storable, peek, poke)
-import GHC.Base (MutableByteArray#)
+import GHC.Base (ByteArray#, MutableByteArray#)
 import qualified Data.Text.Array as A
 import qualified Data.Text.Internal.Encoding.Fusion as E
 import qualified Data.Text.Internal.Encoding.Utf16 as U16
@@ -521,6 +522,17 @@ encodeUtf8_1 (Text arr off len)
                     hot (n+2) (ptr `plusPtr` 4)
     hot n0 ptr0
 
+encodeUtf8_2 :: Text -> ByteString
+encodeUtf8_2 (Text arr off len)
+  | len == 0  = B.empty
+  | otherwise = unsafeDupablePerformIO $ do
+  fp <- mallocByteString (len*4)
+  withForeignPtr fp $ \ptr ->
+    with ptr $ \destPtr -> do
+      c_encode_utf8 destPtr (A.aBA arr) (fromIntegral off) (fromIntegral len)
+      newDest <- peek destPtr
+      return (PS fp 0 (newDest `minusPtr` ptr))
+
 -- | Decode text from little endian UTF-16 encoding.
 decodeUtf16LEWith :: OnDecodeError -> ByteString -> Text
 decodeUtf16LEWith onErr bs = F.unstream (E.streamUtf16LE onErr bs)
@@ -608,3 +620,6 @@ foreign import ccall unsafe "_hs_text_decode_utf8_state" c_decode_utf8_with_stat
 
 foreign import ccall unsafe "_hs_text_decode_latin1" c_decode_latin1
     :: MutableByteArray# s -> Ptr Word8 -> Ptr Word8 -> IO ()
+
+foreign import ccall unsafe "_hs_text_encode_utf8" c_encode_utf8
+    :: Ptr (Ptr Word8) -> ByteArray# -> CSize -> CSize -> IO ()

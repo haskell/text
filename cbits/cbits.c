@@ -229,3 +229,39 @@ _hs_text_decode_utf8(uint16_t *const dest, size_t *destoff,
     ret -= 1;
   return ret;
 }
+
+void
+_hs_text_encode_utf8(uint8_t **destp, const uint16_t *src, size_t srcoff,
+		     size_t srclen)
+{
+  const uint16_t *srcend;
+  uint8_t *dest = *destp;
+
+  src += srcoff;
+  srcend = src + srclen;
+
+  while (src < srcend) {
+    uint16_t w = *src++;
+
+    if (w <= 0x7F)
+      *dest++ = w;
+    else if (w <= 0x7FF) {
+      *dest++ = (w >> 6) | 0xC0;
+      *dest++ = (w & 0x3f) | 0x80;
+    }
+    else if (w < 0xD800 || w > 0xDBFF) {
+      *dest++ = (w >> 12) | 0xE0;
+      *dest++ = ((w >> 6) & 0x3F) | 0x80;
+      *dest++ = (w & 0x3F) | 0x80;
+    } else {
+      uint32_t c = ((((uint32_t) w) - 0xD800) << 10) +
+	(((uint32_t) *src++) - 0xDC00) + 0x10000;
+      *dest++ = (c >> 18) | 0xE0;
+      *dest++ = ((c >> 12) & 0x3F) | 0x80;
+      *dest++ = ((c >> 6) & 0x3F) | 0x80;
+      *dest++ = (c & 0x3F) | 0x80;
+    }
+  }
+
+  *destp = dest;
+}
