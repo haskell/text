@@ -56,37 +56,44 @@ module Data.Text.Encoding
     , encodeUtf32BE
 
 #if MIN_VERSION_bytestring(0,10,4)
-    -- * Generic encoding of Text
-    -- , encodeStreamWithB
-    -- , encodeTextWithB
-    -- , encodeUtf8Builder
-    , encodeUtf8Escaped
+    -- * Encoding Text using ByteString Builders
+    -- | /Note/ that these functions are only available if built against
+    -- @bytestring >= 0.10.4.0@.
+    , encodeUtf8Builder
+    , encodeUtf8BuilderEscaped
 #endif
     ) where
 
 import Control.Exception (evaluate, try)
+
 #if __GLASGOW_HASKELL__ >= 702
 import Control.Monad.ST.Unsafe (unsafeIOToST, unsafeSTToIO)
 #else
 import Control.Monad.ST (unsafeIOToST, unsafeSTToIO)
 #endif
+
 import Control.Monad.ST (runST)
 import Data.Bits ((.&.))
 import Data.ByteString as B
-import Data.ByteString.Internal as B
+import Data.ByteString.Internal as B hiding (c2w)
+
 #if MIN_VERSION_bytestring(0,10,4)
+import Data.Monoid ((<>))
 import qualified Data.ByteString.Builder as B
 import qualified Data.ByteString.Builder.Internal as B
 import qualified Data.ByteString.Builder.Prim as BP
 import qualified Data.ByteString.Builder.Prim.Internal as BP
 import qualified Data.ByteString.Lazy as BL
+import Data.Text.Internal.Unsafe.Shift (shiftR)
+#else
+import Data.Text.Internal.Unsafe.Shift (shiftL, shiftR)
 #endif
+
 import Data.Text ()
 import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode)
 import Data.Text.Internal (Text(..), safe, textP)
 import Data.Text.Internal.Private (runText)
 import Data.Text.Internal.Unsafe.Char (ord, unsafeWrite)
-import Data.Text.Internal.Unsafe.Shift (shiftL, shiftR)
 import Data.Word (Word8, Word32)
 import Foreign.C.Types (CSize)
 import Foreign.ForeignPtr (withForeignPtr)
@@ -308,26 +315,36 @@ decodeUtf8' = unsafeDupablePerformIO . try . evaluate . decodeUtf8With strictDec
 encodeUtf8 :: Text -> ByteString
 #if MIN_VERSION_bytestring(0,10,4)
 
-encodeUtf8 =
-    BL.toStrict . B.toLazyByteString
-  . encodeUtf8Escaped (BP.liftFixedToBounded BP.word8)
+encodeUtf8 = BL.toStrict . B.toLazyByteString . encodeUtf8Builder
+
+-- | Encode text to a ByteString 'B.Builder' using UTF-8 encoding.
+encodeUtf8Builder :: Text -> B.Builder
+encodeUtf8Builder = encodeUtf8BuilderEscaped (BP.liftFixedToBounded BP.word8)
 
 -- | Encode text using UTF-8 encoding and escape the ASCII characters using
--- a 'BP.PrimBounded'.
-encodeUtf8Escaped :: BP.BoundedPrim Word8 -> Text -> B.Builder
-encodeUtf8Escaped be (Text arr off len) =
-    B.builder step
+-- a 'BP.BoundedPrim'.
+--
+-- Use this function is to implement efficient encoders for text-based formats
+-- like JSON or HTML.
+{-# INLINE encodeUtf8BuilderEscaped #-}
+-- TODO: Extend documentation with references to source code in @blaze-html@
+-- or @aeson@ that uses this function.
+encodeUtf8BuilderEscaped :: BP.BoundedPrim Word8 -> Text -> B.Builder
+encodeUtf8BuilderEscaped be =
+    -- manual eta-expansion to ensure inlining works as expected
+    \txt -> B.builder (mkBuildstep txt)
   where
-    bound   = max 4 $ BP.sizeBound be
-    iend    = off + len
-    step !k =
+    bound = max 4 $ BP.sizeBound be
+
+    mkBuildstep (Text arr off len) !k =
         outerLoop off
       where
+        iend = off + len
+
         outerLoop !i0 !br@(B.BufferRange op0 ope)
-          | i0 >= iend                = k br
-          | op0 `plusPtr` bound < ope =
-              goPartial (i0 + min outRemaining inpRemaining)
-          | otherwise  = return $ B.bufferFull bound op0 (outerLoop i0)
+          | i0 >= iend       = k br
+          | outRemaining > 0 = goPartial (i0 + min outRemaining inpRemaining)
+          | otherwise        = return $ B.bufferFull bound op0 (outerLoop i0)
           where
             outRemaining = (ope `minusPtr` op0) `div` bound
             inpRemaining = iend - i0
@@ -492,36 +509,3 @@ foreign import ccall unsafe "_hs_text_decode_utf8_state" c_decode_utf8_with_stat
 
 foreign import ccall unsafe "_hs_text_decode_latin1" c_decode_latin1
     :: MutableByteArray# s -> Ptr Word8 -> Ptr Word8 -> IO ()
-
-
-{-
--- | Encode all elements of a 'F.Stream' using a 'B.BoundedEncoding'.
-{-# INLINE encodeStreamWithB #-}
-encodeStreamWithB :: B.BoundedEncoding a -> F.Stream a -> B.Builder
-encodeStreamWithB be =
-    \(F.Stream next s0 _) -> B.builder $ step next s0
-  where
-    bound = B.sizeBound be
-    step next s0 k (B.BufferRange op0 ope0) =
-        go s0 op0
-      where
-        go s !op = case next s of
-          F.Done       -> k (B.BufferRange op ope0)
-          F.Skip s'    -> go s' op
-          F.Yield x s'
-            | op `plusPtr` bound <= ope0 -> B.runB be x op >>= go s'
-            | otherwise                  ->
-                return $ B.bufferFull bound op (step next s k)
-
-
--- |
--- | /Subject to fusion./
--- Encode all 'Char's of a 'T.Text' using a 'B.BoundedEncoding'.
-{-# INLINE encodeTextWithB #-}
-encodeTextWithB :: B.BoundedEncoding Char -> Text -> B.Builder
-encodeTextWithB be = encodeStreamWithB be . F.stream
-
--- | Encode text using UTF-8 encoding.
-encodeUtf8Builder :: Text -> B.Builder
-encodeUtf8Builder = encodeUtf8Escaped (B.fromF B.word8)
--}
