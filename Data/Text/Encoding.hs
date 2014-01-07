@@ -79,7 +79,6 @@ import Data.ByteString as B
 import Data.ByteString.Internal as B hiding (c2w)
 
 #if MIN_VERSION_bytestring(0,10,4)
-import Data.Monoid ((<>))
 import qualified Data.ByteString.Builder as B
 import qualified Data.ByteString.Builder.Internal as B hiding (empty)
 import qualified Data.ByteString.Builder.Prim as BP
