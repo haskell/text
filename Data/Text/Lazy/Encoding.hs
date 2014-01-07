@@ -64,7 +64,9 @@ import qualified Data.ByteString.Unsafe as B
 import Data.Word (Word8)
 import Data.Monoid (mempty, (<>))
 import qualified Data.ByteString.Builder as B
+import qualified Data.ByteString.Builder.Extra as B (safeStrategy, toLazyByteStringWith)
 import qualified Data.ByteString.Builder.Prim as BP
+import qualified Data.Text as T
 #endif
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text.Lazy as L
@@ -148,7 +150,17 @@ decodeUtf8' bs = unsafeDupablePerformIO $ do
 
 encodeUtf8 :: Text -> B.ByteString
 #if MIN_VERSION_bytestring(0,10,4)
-encodeUtf8 = B.toLazyByteString . encodeUtf8Builder
+encodeUtf8    Empty       = B.empty
+encodeUtf8 lt@(Chunk t _) =
+    B.toLazyByteStringWith strategy B.empty $ encodeUtf8Builder lt
+  where
+    -- To improve our small string performance, we use a strategy that
+    -- allocates a buffer that is guaranteed to be large enough for the
+    -- encoding of the first chunk, but not larger than the default
+    -- B.smallChunkSize. We clamp the firstChunkSize to ensure that we don't
+    -- generate too large buffers which hamper streaming.
+    firstChunkSize  = min B.smallChunkSize (4 * (T.length t + 1))
+    strategy        = B.safeStrategy firstChunkSize B.defaultChunkSize
 
 encodeUtf8Builder :: Text -> B.Builder
 encodeUtf8Builder = foldrChunks (\c b -> TE.encodeUtf8Builder c <> b) mempty

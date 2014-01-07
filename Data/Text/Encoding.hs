@@ -81,13 +81,11 @@ import Data.ByteString.Internal as B hiding (c2w)
 
 #if MIN_VERSION_bytestring(0,10,4)
 import qualified Data.ByteString.Builder as B
+import qualified Data.ByteString.Builder.Extra    as B
 import qualified Data.ByteString.Builder.Internal as B hiding (empty)
 import qualified Data.ByteString.Builder.Prim as BP
 import qualified Data.ByteString.Builder.Prim.Internal as BP
 import qualified Data.ByteString.Lazy as BL
-import Data.Text.Internal.Unsafe.Shift (shiftR)
-#else
-import Data.Text.Internal.Unsafe.Shift (shiftL, shiftR)
 #endif
 
 #if __GLASGOW_HASKELL__ >= 706
@@ -99,6 +97,7 @@ import Foreign.ForeignPtr (unsafeForeignPtrToPtr)
 import Data.Text ()
 import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode)
 import Data.Text.Internal (Text(..), safe, textP)
+import Data.Text.Internal.Unsafe.Shift (shiftL, shiftR)
 import Data.Text.Internal.Private (runText)
 import Data.Text.Internal.Unsafe.Char (ord, unsafeWrite)
 import Data.Word (Word8, Word32)
@@ -322,7 +321,17 @@ decodeUtf8' = unsafeDupablePerformIO . try . evaluate . decodeUtf8With strictDec
 encodeUtf8 :: Text -> ByteString
 #if MIN_VERSION_bytestring(0,10,4)
 
-encodeUtf8 = BL.toStrict . B.toLazyByteString . encodeUtf8Builder
+encodeUtf8 t@(Text _arr _off len) =
+      B.copy       -- copy to trim and avoid wasting memory
+    $ BL.toStrict
+    $ B.toLazyByteStringWith strategy BL.empty
+    $ encodeUtf8Builder t
+  where
+    -- We use a strategy that allocates a buffer that is guaranteed to be
+    -- large enough for the whole result. This ensures that we always stay in
+    -- the fast 'goPartial' loop in the 'encodeUtf8BuilderEscaped' function.
+    strategy = B.untrimmedStrategy (4 * (len + 1)) B.defaultChunkSize
+
 
 -- | Encode text to a ByteString 'B.Builder' using UTF-8 encoding.
 encodeUtf8Builder :: Text -> B.Builder
@@ -351,6 +360,8 @@ encodeUtf8BuilderEscaped be =
         outerLoop !i0 !br@(B.BufferRange op0 ope)
           | i0 >= iend       = k br
           | outRemaining > 0 = goPartial (i0 + min outRemaining inpRemaining)
+          -- TODO: Use a loop with an integrated bound's check if outRemaining
+          -- is smaller than 8, as this will save on divisions.
           | otherwise        = return $ B.bufferFull bound op0 (outerLoop i0)
           where
             outRemaining = (ope `minusPtr` op0) `div` bound
@@ -386,6 +397,8 @@ encodeUtf8BuilderEscaped be =
 #else
 
 encodeUtf8 = encodeUtf8_0
+
+#endif
 
 encodeUtf8_0 :: Text -> ByteString
 encodeUtf8_0 (Text arr off len) = unsafeDupablePerformIO $ do
@@ -430,8 +443,6 @@ encodeUtf8_0 (Text arr off len) = unsafeDupablePerformIO $ do
                   poke8 (m+1) $ ((w `shiftR` 6) .&. 0x3F) + 0x80
                   poke8 (m+2) $ (w .&. 0x3F) + 0x80
                   go (n+1) (m+3)
-
-#endif
 
 encodeUtf8_1 :: Text -> ByteString
 encodeUtf8_1 (Text arr off len)
