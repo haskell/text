@@ -431,13 +431,11 @@ encodeUtf8_1 (Text arr off len)
   let size0 = max len 4
   mallocByteString size0 >>= start size0 off 0
  where
-  start size n0 m0 fp = withForeignPtr fp $ loop n0 m0
-   where
-    loop n1 m1 ptr = go n1 m1
+  start size n0 m0 fp = withForeignPtr fp $ go n0 m0
      where
       offLen = off + len
       poke8 p k v = poke (p `plusPtr` k) (fromIntegral v :: Word8)
-      go !n !m
+      go !n !m ptr
         | n == offLen = return (PS fp 0 m)
         | otherwise = do
             let ensure k act
@@ -452,23 +450,23 @@ encodeUtf8_1 (Text arr off len)
             case A.unsafeIndex arr n of
              w| w <= 0x7F  -> ensure 1 $ do
                   poke8 ptr m (fromIntegral w :: Word8)
-                  go (n+1) (m+1)
+                  go (n+1) (m+1) ptr
               | w <= 0x7FF -> ensure 2 $ do
                   poke8 ptr m     $ (w `shiftR` 6) + 0xC0
                   poke8 ptr (m+1) $ (w .&. 0x3f) + 0x80
-                  go (n+1) (m+2)
+                  go (n+1) (m+2) ptr
               | 0xD800 <= w && w <= 0xDBFF -> ensure 4 $ do
                   let c = ord $ U16.chr2 w (A.unsafeIndex arr (n+1))
                   poke8 ptr m     $ (c `shiftR` 18) + 0xF0
                   poke8 ptr (m+1) $ ((c `shiftR` 12) .&. 0x3F) + 0x80
                   poke8 ptr (m+2) $ ((c `shiftR` 6) .&. 0x3F) + 0x80
                   poke8 ptr (m+3) $ (c .&. 0x3F) + 0x80
-                  go (n+2) (m+4)
+                  go (n+2) (m+4) ptr
               | otherwise -> ensure 3 $ do
                   poke8 ptr m     $ (w `shiftR` 12) + 0xE0
                   poke8 ptr (m+1) $ ((w `shiftR` 6) .&. 0x3F) + 0x80
                   poke8 ptr (m+2) $ (w .&. 0x3F) + 0x80
-                  go (n+1) (m+3)
+                  go (n+1) (m+3) ptr
 
 #endif
 
