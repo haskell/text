@@ -437,74 +437,80 @@ encodeUtf8_1 (Text arr off len)
   | len == 0  = B.empty
   | otherwise = unsafeDupablePerformIO $ do
   fp0 <- mallocByteString len
-  withForeignPtr fp0 $ go1 off 0 fp0
+  withForeignPtr fp0 $ go1 off fp0
  where
   offLen = off + len
-  poke8 p k v = poke (p `plusPtr` k) (fromIntegral v :: Word8)
-  resize :: Int -> Int -> ForeignPtr Word8 -> IO (ForeignPtr Word8)
-  resize k m fp = {-# SCC "encodeUtf8_1/resize" #-} do
+  poke8 p v = poke p (fromIntegral v :: Word8)
+  resize k fp ptr = {-# SCC "encodeUtf8_1/resize" #-} do
     fp' <- mallocByteString (len*k)
-    withForeignPtr fp $ \ptr ->
-      memcpy (unsafeForeignPtrToPtr fp') ptr (fromIntegral m)
+    withForeignPtr fp $ \ptr0 -> do
+      let m = ptr `minusPtr` ptr0
+      memcpy (unsafeForeignPtrToPtr fp') ptr0 (fromIntegral m)
     return fp'
   {-# NOINLINE resize #-}
-  ensure k n m fp go = {-# SCC "encodeUtf8_1/ensure" #-} do
-    fp' <- resize k m fp
-    go n m fp' (unsafeForeignPtrToPtr fp')
-  do1 ptr n m w k = poke8 ptr m w >> k (n+1) (m+1)
-  loop :: (Word16 -> Int -> Int -> ForeignPtr Word8 -> Ptr Word8
-           -> (Int -> Int -> IO ByteString)
-           -> IO ByteString) -> Int -> Int -> ForeignPtr Word8 -> Ptr Word8
+  ensure k n fp ptr go = {-# SCC "encodeUtf8_1/ensure" #-} do
+    fp' <- resize k fp ptr
+    go n fp' (unsafeForeignPtrToPtr fp')
+  do1 ptr n w k = poke8 ptr w >> k (n+1) (ptr `plusPtr` 1)
+  loop :: (Word16 -> Int -> ForeignPtr Word8 -> Ptr Word8
+           -> (Int -> Ptr Word8 -> IO ByteString)
+           -> IO ByteString) -> Int -> ForeignPtr Word8 -> Ptr Word8
           -> IO ByteString
-  loop act !n0 !m0 fp ptr = hot n0 m0
-    where hot !n !m
-            | n == offLen = touchForeignPtr fp >> return (PS fp 0 m)
-            | otherwise   = act (A.unsafeIndex arr n) n m fp ptr hot
+  loop act !n0 fp !ptr0 = hot n0 ptr0
+    where hot !n !ptr
+            | n == offLen = do
+                            let !l = ptr `minusPtr` unsafeForeignPtrToPtr fp
+                            touchForeignPtr fp
+                            return (PS fp 0 l)
+            | otherwise   = act (A.unsafeIndex arr n) n fp ptr hot
   {-# INLINE loop #-}
-  go1 = loop $ \ w !n !m fp ptr cont ->
+  go1 = loop $ \ w !n fp ptr cont ->
     case w of
-      _| w <= 0x7F                -> do1 ptr n m w cont
-       | w <= 0x7FF               -> ensure 2 n m fp go2
-       | w < 0xD800 || w > 0xDBFF -> ensure 3 n m fp go3
-       | otherwise                -> ensure 4 n m fp go4
-  do2 ptr n m w k = do
-    poke8 ptr m     $ (w `shiftR` 6) + 0xC0
-    poke8 ptr (m+1) $ (w .&. 0x3f) + 0x80
-    k (n+1) (m+2)
-  go2 = loop $ \ w !n !m fp ptr cont ->
+      _| w <= 0x7F                -> do1 ptr n w cont
+       | w <= 0x7FF               -> ensure 2 n fp ptr go2
+       | w < 0xD800 || w > 0xDBFF -> ensure 3 n fp ptr go3
+       | otherwise                -> ensure 4 n fp ptr go4
+  do2 ptr n w k = do
+    poke8 ptr      $ (w `shiftR` 6) + 0xC0
+    poke8 (ptr `plusPtr` 1) $ (w .&. 0x3f) + 0x80
+    k (n+1) (ptr `plusPtr` 2)
+  go2 = loop $ \ w !n fp !ptr cont ->
     case w of
-      _| w <= 0x7F                -> do1 ptr n m w cont
-       | w <= 0x7FF               -> do2 ptr n m w cont
-       | w < 0xD800 || w > 0xDBFF -> ensure 3 n m fp go3
-       | otherwise                -> ensure 4 n m fp go4
-  do3 ptr !n m w k = do
-    poke8 ptr m     $ (w `shiftR` 12) + 0xE0
-    poke8 ptr (m+1) $ ((w `shiftR` 6) .&. 0x3F) + 0x80
-    poke8 ptr (m+2) $ (w .&. 0x3F) + 0x80
-    k (n+1) (m+3)
-  go3 = loop body where body w !n !m fp ptr cont =
+      _| w <= 0x7F                -> do1 ptr n w cont
+       | w <= 0x7FF               -> do2 ptr n w cont
+       | w < 0xD800 || w > 0xDBFF -> ensure 3 n fp ptr go3
+       | otherwise                -> ensure 4 n fp ptr go4
+  do3 ptr !n w k = do
+    poke8 ptr     $ (w `shiftR` 12) + 0xE0
+    poke8 (ptr `plusPtr` 1) $ ((w `shiftR` 6) .&. 0x3F) + 0x80
+    poke8 (ptr `plusPtr` 2) $ (w .&. 0x3F) + 0x80
+    k (n+1) (ptr `plusPtr` 3)
+  go3 = loop body where body w !n fp !ptr cont =
                           case w of
-                            _| w <= 0x7F                -> do1 ptr n m w cont
-                             | w <= 0x7FF               -> do2 ptr n m w cont
-                             | w < 0xD800 || w > 0xDBFF -> do3 ptr n m w cont
-                             | otherwise                -> ensure 4 n m fp go4
+                            _| w <= 0x7F                -> do1 ptr n w cont
+                             | w <= 0x7FF               -> do2 ptr n w cont
+                             | w < 0xD800 || w > 0xDBFF -> do3 ptr n w cont
+                             | otherwise                -> ensure 4 n fp ptr go4
                         {-# INLINE body #-}
-  go4 !n0 !m0 fp ptr = do
-    let hot !n !m
-          | n == offLen = touchForeignPtr fp >> return (PS fp 0 m)
+  go4 !n0 fp ptr0 = do
+    let hot !n !ptr
+          | n == offLen = do
+                          let !l = ptr `minusPtr` unsafeForeignPtrToPtr fp
+                          touchForeignPtr fp
+                          return (PS fp 0 l)
           | otherwise = do
               case A.unsafeIndex arr n of
-               w| w <= 0x7F                -> do1 ptr n m w hot
-                | w <= 0x7FF               -> do2 ptr n m w hot
-                | w < 0xD800 || w > 0xDBFF -> do3 ptr n m w hot
+               w| w <= 0x7F                -> do1 ptr n w hot
+                | w <= 0x7FF               -> do2 ptr n w hot
+                | w < 0xD800 || w > 0xDBFF -> do3 ptr n w hot
                 | otherwise -> do
                     let c = ord $ U16.chr2 w (A.unsafeIndex arr (n+1))
-                    poke8 ptr m     $ (c `shiftR` 18) + 0xF0
-                    poke8 ptr (m+1) $ ((c `shiftR` 12) .&. 0x3F) + 0x80
-                    poke8 ptr (m+2) $ ((c `shiftR` 6) .&. 0x3F) + 0x80
-                    poke8 ptr (m+3) $ (c .&. 0x3F) + 0x80
-                    go4 (n+2) (m+4) fp ptr
-    hot n0 m0
+                    poke8 ptr               $ (c `shiftR` 18) + 0xF0
+                    poke8 (ptr `plusPtr` 1) $ ((c `shiftR` 12) .&. 0x3F) + 0x80
+                    poke8 (ptr `plusPtr` 2) $ ((c `shiftR` 6) .&. 0x3F) + 0x80
+                    poke8 (ptr `plusPtr` 3) $ (c .&. 0x3F) + 0x80
+                    hot (n+2) (ptr `plusPtr` 4)
+    hot n0 ptr0
 
 -- | Decode text from little endian UTF-16 encoding.
 decodeUtf16LEWith :: OnDecodeError -> ByteString -> Text
