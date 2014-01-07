@@ -256,7 +256,7 @@ _hs_text_encode_utf8(uint8_t **destp, const uint16_t *src, size_t srcoff,
     } else {
       uint32_t c = ((((uint32_t) w) - 0xD800) << 10) +
 	(((uint32_t) *src++) - 0xDC00) + 0x10000;
-      *dest++ = (c >> 18) | 0xE0;
+      *dest++ = (c >> 18) | 0xF0;
       *dest++ = ((c >> 12) & 0x3F) | 0x80;
       *dest++ = ((c >> 6) & 0x3F) | 0x80;
       *dest++ = (c & 0x3F) | 0x80;
