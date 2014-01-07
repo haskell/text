@@ -50,6 +50,7 @@ module Data.Text.Encoding
 
     -- * Encoding Text to ByteStrings
     , encodeUtf8
+    , encodeUtf8_0
     , encodeUtf8_1
     , encodeUtf16LE
     , encodeUtf16BE
