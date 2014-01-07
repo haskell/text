@@ -90,6 +90,12 @@ import Data.Text.Internal.Unsafe.Shift (shiftR)
 import Data.Text.Internal.Unsafe.Shift (shiftL, shiftR)
 #endif
 
+#if __GLASGOW_HASKELL__ >= 706
+import Foreign.ForeignPtr.Unsafe (unsafeForeignPtrToPtr)
+#else
+import Foreign.ForeignPtr (unsafeForeignPtrToPtr)
+#endif
+
 import Data.Text ()
 import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode)
 import Data.Text.Internal (Text(..), safe, textP)
@@ -97,7 +103,7 @@ import Data.Text.Internal.Private (runText)
 import Data.Text.Internal.Unsafe.Char (ord, unsafeWrite)
 import Data.Word (Word8, Word32)
 import Foreign.C.Types (CSize)
-import Foreign.ForeignPtr (withForeignPtr)
+import Foreign.ForeignPtr (ForeignPtr, touchForeignPtr, withForeignPtr)
 import Foreign.Marshal.Utils (with)
 import Foreign.Ptr (Ptr, minusPtr, nullPtr, plusPtr)
 import Foreign.Storable (Storable, peek, poke)
@@ -428,45 +434,81 @@ encodeUtf8_0 (Text arr off len) = unsafeDupablePerformIO $ do
 encodeUtf8_1 (Text arr off len)
   | len == 0  = B.empty
   | otherwise = unsafeDupablePerformIO $ do
-  let size0 = max len 4
-  mallocByteString size0 >>= start size0 off 0
+  fp0 <- mallocByteString len
+  withForeignPtr fp0 $ go1 off 0 fp0
  where
-  start size n0 m0 fp = withForeignPtr fp $ go n0 m0
-     where
-      offLen = off + len
-      poke8 p k v = poke (p `plusPtr` k) (fromIntegral v :: Word8)
-      ensure k n m p act
-        | size-m >= k = act
-        | otherwise = {-# SCC "resizeUtf8/ensure" #-} do
-            let newSize = size `shiftL` 1
-            fp' <- mallocByteString newSize
-            withForeignPtr fp' $ \ptr' ->
-              memcpy ptr' p (fromIntegral m)
-            start newSize n m fp'
-      {-# INLINE ensure #-}
-      go !n !m ptr
-        | n == offLen = return (PS fp 0 m)
-        | otherwise = do
-            case A.unsafeIndex arr n of
-             w| w <= 0x7F  -> ensure 1 n m ptr $ do
-                  poke8 ptr m (fromIntegral w :: Word8)
-                  go (n+1) (m+1) ptr
-              | w <= 0x7FF -> ensure 2 n m ptr $ do
-                  poke8 ptr m     $ (w `shiftR` 6) + 0xC0
-                  poke8 ptr (m+1) $ (w .&. 0x3f) + 0x80
-                  go (n+1) (m+2) ptr
-              | 0xD800 <= w && w <= 0xDBFF -> ensure 4 n m ptr $ do
-                  let c = ord $ U16.chr2 w (A.unsafeIndex arr (n+1))
-                  poke8 ptr m     $ (c `shiftR` 18) + 0xF0
-                  poke8 ptr (m+1) $ ((c `shiftR` 12) .&. 0x3F) + 0x80
-                  poke8 ptr (m+2) $ ((c `shiftR` 6) .&. 0x3F) + 0x80
-                  poke8 ptr (m+3) $ (c .&. 0x3F) + 0x80
-                  go (n+2) (m+4) ptr
-              | otherwise -> ensure 3 n m ptr $ do
-                  poke8 ptr m     $ (w `shiftR` 12) + 0xE0
-                  poke8 ptr (m+1) $ ((w `shiftR` 6) .&. 0x3F) + 0x80
-                  poke8 ptr (m+2) $ (w .&. 0x3F) + 0x80
-                  go (n+1) (m+3) ptr
+  offLen = off + len
+  poke8 p k v = poke (p `plusPtr` k) (fromIntegral v :: Word8)
+  resize :: Int -> Int -> ForeignPtr Word8 -> IO (ForeignPtr Word8)
+  resize k m fp = {-# SCC "encodeUtf8_1/resize" #-} do
+    fp' <- mallocByteString (len*k)
+    withForeignPtr fp $ \ptr ->
+      memcpy (unsafeForeignPtrToPtr fp') ptr (fromIntegral m)
+    return fp'
+  {-# NOINLINE resize #-}
+  ensure k n m fp go = {-# SCC "encodeUtf8_1/ensure" #-} do
+    fp' <- resize k m fp
+    go n m fp' (unsafeForeignPtrToPtr fp')
+  do1 ptr n m w k = poke8 ptr m w >> k (n+1) (m+1)
+  go1 !n0 !m0 fp ptr = do
+    let hot !n !m
+          | n == offLen = touchForeignPtr fp >> return (PS fp 0 m)
+          | otherwise = do
+          case A.unsafeIndex arr n of
+            w| w <= 0x7F  -> do1 ptr n m w hot
+             | w <= 0x7FF -> ensure 2 n m fp go2
+             | w < 0xD800 -> ensure 3 n m fp go3
+             | w > 0xDBFF -> ensure 3 n m fp go3
+             | otherwise -> ensure 4 n m fp go4
+    hot n0 m0
+  do2 ptr n m w k = do
+    poke8 ptr m     $ (w `shiftR` 6) + 0xC0
+    poke8 ptr (m+1) $ (w .&. 0x3f) + 0x80
+    k (n+1) (m+2)
+  go2 !n0 !m0 fp ptr = do
+    let hot !n !m
+          | n == offLen = touchForeignPtr fp >> return (PS fp 0 m)
+          | otherwise = do
+              case A.unsafeIndex arr n of
+               w| w <= 0x7F  -> do1 ptr n m w hot
+                | w <= 0x7FF -> do2 ptr n m w hot
+                | w < 0xD800 -> ensure 3 n m fp go3
+                | w > 0xDBFF -> ensure 3 n m fp go3
+                | otherwise -> ensure 4 n m fp go4
+    hot n0 m0
+  do3 ptr !n m w k = do
+    poke8 ptr m     $ (w `shiftR` 12) + 0xE0
+    poke8 ptr (m+1) $ ((w `shiftR` 6) .&. 0x3F) + 0x80
+    poke8 ptr (m+2) $ (w .&. 0x3F) + 0x80
+    k (n+1) (m+3)
+  go3 !n0 !m0 fp ptr = do
+    let hot !n !m
+          | n == offLen = touchForeignPtr fp >> return (PS fp 0 m)
+          | otherwise = do
+              case A.unsafeIndex arr n of
+               w| w <= 0x7F  -> do1 ptr n m w hot
+                | w <= 0x7FF -> do2 ptr n m w hot
+                | w < 0xD800 -> do3 ptr n m w hot
+                | w > 0xDBFF -> do3 ptr n m w hot
+                | otherwise -> ensure 4 n m fp go4
+    hot n0 m0
+  go4 !n0 !m0 fp ptr = do
+    let hot !n !m
+          | n == offLen = touchForeignPtr fp >> return (PS fp 0 m)
+          | otherwise = do
+              case A.unsafeIndex arr n of
+               w| w <= 0x7F  -> do1 ptr n m w hot
+                | w <= 0x7FF -> do2 ptr n m w hot
+                | w < 0xD800 -> do3 ptr n m w hot
+                | w > 0xDBFF -> do3 ptr n m w hot
+                | otherwise -> do
+                    let c = ord $ U16.chr2 w (A.unsafeIndex arr (n+1))
+                    poke8 ptr m     $ (c `shiftR` 18) + 0xF0
+                    poke8 ptr (m+1) $ ((c `shiftR` 12) .&. 0x3F) + 0x80
+                    poke8 ptr (m+2) $ ((c `shiftR` 6) .&. 0x3F) + 0x80
+                    poke8 ptr (m+3) $ (c .&. 0x3F) + 0x80
+                    go4 (n+2) (m+4) fp ptr
+    hot n0 m0
 
 #endif
 
