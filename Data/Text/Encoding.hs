@@ -81,7 +81,7 @@ import Data.ByteString.Internal as B hiding (c2w)
 #if MIN_VERSION_bytestring(0,10,4)
 import Data.Monoid ((<>))
 import qualified Data.ByteString.Builder as B
-import qualified Data.ByteString.Builder.Internal as B
+import qualified Data.ByteString.Builder.Internal as B hiding (empty)
 import qualified Data.ByteString.Builder.Prim as BP
 import qualified Data.ByteString.Builder.Prim.Internal as BP
 import qualified Data.ByteString.Lazy as BL
@@ -387,7 +387,7 @@ encodeUtf8BuilderEscaped be =
 
 encodeUtf8 = encodeUtf8_0
 
-encodeUtf8_0, encodeUtf8_1 :: Text -> ByteString
+encodeUtf8_0 :: Text -> ByteString
 encodeUtf8_0 (Text arr off len) = unsafeDupablePerformIO $ do
   let size0 = max len 4
   mallocByteString size0 >>= start size0 off 0
@@ -431,6 +431,9 @@ encodeUtf8_0 (Text arr off len) = unsafeDupablePerformIO $ do
                   poke8 (m+2) $ (w .&. 0x3F) + 0x80
                   go (n+1) (m+3)
 
+#endif
+
+encodeUtf8_1 :: Text -> ByteString
 encodeUtf8_1 (Text arr off len)
   | len == 0  = B.empty
   | otherwise = unsafeDupablePerformIO $ do
@@ -503,8 +506,6 @@ encodeUtf8_1 (Text arr off len)
                     poke8 ptr (m+3) $ (c .&. 0x3F) + 0x80
                     go4 (n+2) (m+4) fp ptr
     hot n0 m0
-
-#endif
 
 -- | Decode text from little endian UTF-16 encoding.
 decodeUtf16LEWith :: OnDecodeError -> ByteString -> Text
