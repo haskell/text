@@ -451,7 +451,8 @@ encodeUtf8_1 (Text arr off len)
   {-# NOINLINE resize #-}
   ensure k n fp ptr go = {-# SCC "encodeUtf8_1/ensure" #-} do
     fp' <- resize k fp ptr
-    go n fp' (unsafeForeignPtrToPtr fp')
+    let !m = ptr `minusPtr` unsafeForeignPtrToPtr fp
+    go n fp' (unsafeForeignPtrToPtr fp' `plusPtr` m)
   do1 ptr n w k = poke8 ptr w >> k (n+1) (ptr `plusPtr` 1)
   loop act !n0 fp !ptr0 = hot n0 ptr0
     where hot !n !ptr
