@@ -50,6 +50,7 @@ module Data.Text.Encoding
 
     -- * Encoding Text to ByteStrings
     , encodeUtf8
+    , encodeUtf8_1
     , encodeUtf16LE
     , encodeUtf16BE
     , encodeUtf32LE
@@ -378,7 +379,10 @@ encodeUtf8BuilderEscaped be =
 
 #else
 
-encodeUtf8 (Text arr off len) = unsafeDupablePerformIO $ do
+encodeUtf8 = encodeUtf8_0
+
+encodeUtf8_0, encodeUtf8_1 :: Text -> ByteString
+encodeUtf8_0 (Text arr off len) = unsafeDupablePerformIO $ do
   let size0 = max len 4
   mallocByteString size0 >>= start size0 off 0
  where
@@ -420,6 +424,52 @@ encodeUtf8 (Text arr off len) = unsafeDupablePerformIO $ do
                   poke8 (m+1) $ ((w `shiftR` 6) .&. 0x3F) + 0x80
                   poke8 (m+2) $ (w .&. 0x3F) + 0x80
                   go (n+1) (m+3)
+
+encodeUtf8_1 (Text arr off len)
+  | len == 0  = B.empty
+  | otherwise = unsafeDupablePerformIO $ do
+  let size0 = max len 4
+  mallocByteString size0 >>= start size0 off 0
+ where
+  start size n0 m0 fp = withForeignPtr fp $ loop n0 m0
+   where
+    loop n1 m1 ptr = go n1 m1
+     where
+      offLen = off + len
+      go !n !m
+        | n == offLen = return (PS fp 0 m)
+        | otherwise = do
+            let poke8 k v = poke (ptr `plusPtr` k) (fromIntegral v :: Word8)
+                ensure k act
+                  | size-m >= k = act
+                  | otherwise = {-# SCC "resizeUtf8/ensure" #-} do
+                      let newSize = size `shiftL` 1
+                      fp' <- mallocByteString newSize
+                      withForeignPtr fp' $ \ptr' ->
+                        memcpy ptr' ptr (fromIntegral m)
+                      start newSize n m fp'
+                {-# INLINE ensure #-}
+            case A.unsafeIndex arr n of
+             w| w <= 0x7F  -> ensure 1 $ do
+                  poke (ptr `plusPtr` m) (fromIntegral w :: Word8)
+                  go (n+1) (m+1)
+              | w <= 0x7FF -> ensure 2 $ do
+                  poke8 m     $ (w `shiftR` 6) + 0xC0
+                  poke8 (m+1) $ (w .&. 0x3f) + 0x80
+                  go (n+1) (m+2)
+              | 0xD800 <= w && w <= 0xDBFF -> ensure 4 $ do
+                  let c = ord $ U16.chr2 w (A.unsafeIndex arr (n+1))
+                  poke8 m     $ (c `shiftR` 18) + 0xF0
+                  poke8 (m+1) $ ((c `shiftR` 12) .&. 0x3F) + 0x80
+                  poke8 (m+2) $ ((c `shiftR` 6) .&. 0x3F) + 0x80
+                  poke8 (m+3) $ (c .&. 0x3F) + 0x80
+                  go (n+2) (m+4)
+              | otherwise -> ensure 3 $ do
+                  poke8 m     $ (w `shiftR` 12) + 0xE0
+                  poke8 (m+1) $ ((w `shiftR` 6) .&. 0x3F) + 0x80
+                  poke8 (m+2) $ (w .&. 0x3F) + 0x80
+                  go (n+1) (m+3)
+
 #endif
 
 -- | Decode text from little endian UTF-16 encoding.
