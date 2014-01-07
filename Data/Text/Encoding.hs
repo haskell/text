@@ -435,34 +435,34 @@ encodeUtf8_1 (Text arr off len)
      where
       offLen = off + len
       poke8 p k v = poke (p `plusPtr` k) (fromIntegral v :: Word8)
+      ensure k n m p act
+        | size-m >= k = act
+        | otherwise = {-# SCC "resizeUtf8/ensure" #-} do
+            let newSize = size `shiftL` 1
+            fp' <- mallocByteString newSize
+            withForeignPtr fp' $ \ptr' ->
+              memcpy ptr' p (fromIntegral m)
+            start newSize n m fp'
+      {-# INLINE ensure #-}
       go !n !m ptr
         | n == offLen = return (PS fp 0 m)
         | otherwise = do
-            let ensure k act
-                  | size-m >= k = act
-                  | otherwise = {-# SCC "resizeUtf8/ensure" #-} do
-                      let newSize = size `shiftL` 1
-                      fp' <- mallocByteString newSize
-                      withForeignPtr fp' $ \ptr' ->
-                        memcpy ptr' ptr (fromIntegral m)
-                      start newSize n m fp'
-                {-# INLINE ensure #-}
             case A.unsafeIndex arr n of
-             w| w <= 0x7F  -> ensure 1 $ do
+             w| w <= 0x7F  -> ensure 1 n m ptr $ do
                   poke8 ptr m (fromIntegral w :: Word8)
                   go (n+1) (m+1) ptr
-              | w <= 0x7FF -> ensure 2 $ do
+              | w <= 0x7FF -> ensure 2 n m ptr $ do
                   poke8 ptr m     $ (w `shiftR` 6) + 0xC0
                   poke8 ptr (m+1) $ (w .&. 0x3f) + 0x80
                   go (n+1) (m+2) ptr
-              | 0xD800 <= w && w <= 0xDBFF -> ensure 4 $ do
+              | 0xD800 <= w && w <= 0xDBFF -> ensure 4 n m ptr $ do
                   let c = ord $ U16.chr2 w (A.unsafeIndex arr (n+1))
                   poke8 ptr m     $ (c `shiftR` 18) + 0xF0
                   poke8 ptr (m+1) $ ((c `shiftR` 12) .&. 0x3F) + 0x80
                   poke8 ptr (m+2) $ ((c `shiftR` 6) .&. 0x3F) + 0x80
                   poke8 ptr (m+3) $ (c .&. 0x3F) + 0x80
                   go (n+2) (m+4) ptr
-              | otherwise -> ensure 3 $ do
+              | otherwise -> ensure 3 n m ptr $ do
                   poke8 ptr m     $ (w `shiftR` 12) + 0xE0
                   poke8 ptr (m+1) $ ((w `shiftR` 6) .&. 0x3F) + 0x80
                   poke8 ptr (m+2) $ (w .&. 0x3F) + 0x80
