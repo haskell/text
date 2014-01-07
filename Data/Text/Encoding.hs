@@ -101,7 +101,7 @@ import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode)
 import Data.Text.Internal (Text(..), safe, textP)
 import Data.Text.Internal.Private (runText)
 import Data.Text.Internal.Unsafe.Char (ord, unsafeWrite)
-import Data.Word (Word8, Word32)
+import Data.Word (Word8, Word16, Word32)
 import Foreign.C.Types (CSize)
 import Foreign.ForeignPtr (ForeignPtr, touchForeignPtr, withForeignPtr)
 import Foreign.Marshal.Utils (with)
@@ -450,6 +450,10 @@ encodeUtf8_1 (Text arr off len)
     fp' <- resize k m fp
     go n m fp' (unsafeForeignPtrToPtr fp')
   do1 ptr n m w k = poke8 ptr m w >> k (n+1) (m+1)
+  loop :: (Word16 -> Int -> Int -> ForeignPtr Word8 -> Ptr Word8
+           -> (Int -> Int -> IO ByteString)
+           -> IO ByteString) -> Int -> Int -> ForeignPtr Word8 -> Ptr Word8
+          -> IO ByteString
   loop act !n0 !m0 fp ptr = hot n0 m0
     where hot !n !m
             | n == offLen = touchForeignPtr fp >> return (PS fp 0 m)
@@ -478,17 +482,14 @@ encodeUtf8_1 (Text arr off len)
     poke8 ptr (m+1) $ ((w `shiftR` 6) .&. 0x3F) + 0x80
     poke8 ptr (m+2) $ (w .&. 0x3F) + 0x80
     k (n+1) (m+3)
-  go3 !n0 !m0 fp ptr = do
-    let hot !n !m
-          | n == offLen = touchForeignPtr fp >> return (PS fp 0 m)
-          | otherwise = do
-              case A.unsafeIndex arr n of
-               w| w <= 0x7F  -> do1 ptr n m w hot
-                | w <= 0x7FF -> do2 ptr n m w hot
-                | w < 0xD800 -> do3 ptr n m w hot
-                | w > 0xDBFF -> do3 ptr n m w hot
-                | otherwise -> ensure 4 n m fp go4
-    hot n0 m0
+  go3 = loop body where body w !n !m fp ptr cont =
+                          case w of
+                            _| w <= 0x7F  -> do1 ptr n m w cont
+                             | w <= 0x7FF -> do2 ptr n m w cont
+                             | w < 0xD800 -> do3 ptr n m w cont
+                             | w > 0xDBFF -> do3 ptr n m w cont
+                             | otherwise -> ensure 4 n m fp go4
+                        {-# INLINE body #-}
   go4 !n0 !m0 fp ptr = do
     let hot !n !m
           | n == offLen = touchForeignPtr fp >> return (PS fp 0 m)
