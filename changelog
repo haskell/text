@@ -1,6 +1,6 @@
 1.1.0.0
 
-	* encodeUtf8: Performance is improved by up to 2x.
+	* encodeUtf8: Performance is improved by up to 3x.
 
 1.0.0.1
 
