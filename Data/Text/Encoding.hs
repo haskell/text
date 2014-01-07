@@ -531,7 +531,14 @@ encodeUtf8_2 (Text arr off len)
     with ptr $ \destPtr -> do
       c_encode_utf8 destPtr (A.aBA arr) (fromIntegral off) (fromIntegral len)
       newDest <- peek destPtr
-      return (PS fp 0 (newDest `minusPtr` ptr))
+      let utf8len = newDest `minusPtr` ptr
+      if utf8len >= len `shiftR` 1
+        then return (PS fp 0 utf8len)
+        else do
+          fp' <- mallocByteString utf8len
+          withForeignPtr fp' $ \ptr' -> do
+            memcpy ptr' ptr (fromIntegral utf8len)
+            return (PS fp' 0 utf8len)
 
 -- | Decode text from little endian UTF-16 encoding.
 decodeUtf16LEWith :: OnDecodeError -> ByteString -> Text
