@@ -436,11 +436,11 @@ encodeUtf8_1 (Text arr off len)
     loop n1 m1 ptr = go n1 m1
      where
       offLen = off + len
+      poke8 p k v = poke (p `plusPtr` k) (fromIntegral v :: Word8)
       go !n !m
         | n == offLen = return (PS fp 0 m)
         | otherwise = do
-            let poke8 k v = poke (ptr `plusPtr` k) (fromIntegral v :: Word8)
-                ensure k act
+            let ensure k act
                   | size-m >= k = act
                   | otherwise = {-# SCC "resizeUtf8/ensure" #-} do
                       let newSize = size `shiftL` 1
@@ -451,23 +451,23 @@ encodeUtf8_1 (Text arr off len)
                 {-# INLINE ensure #-}
             case A.unsafeIndex arr n of
              w| w <= 0x7F  -> ensure 1 $ do
-                  poke (ptr `plusPtr` m) (fromIntegral w :: Word8)
+                  poke8 ptr m (fromIntegral w :: Word8)
                   go (n+1) (m+1)
               | w <= 0x7FF -> ensure 2 $ do
-                  poke8 m     $ (w `shiftR` 6) + 0xC0
-                  poke8 (m+1) $ (w .&. 0x3f) + 0x80
+                  poke8 ptr m     $ (w `shiftR` 6) + 0xC0
+                  poke8 ptr (m+1) $ (w .&. 0x3f) + 0x80
                   go (n+1) (m+2)
               | 0xD800 <= w && w <= 0xDBFF -> ensure 4 $ do
                   let c = ord $ U16.chr2 w (A.unsafeIndex arr (n+1))
-                  poke8 m     $ (c `shiftR` 18) + 0xF0
-                  poke8 (m+1) $ ((c `shiftR` 12) .&. 0x3F) + 0x80
-                  poke8 (m+2) $ ((c `shiftR` 6) .&. 0x3F) + 0x80
-                  poke8 (m+3) $ (c .&. 0x3F) + 0x80
+                  poke8 ptr m     $ (c `shiftR` 18) + 0xF0
+                  poke8 ptr (m+1) $ ((c `shiftR` 12) .&. 0x3F) + 0x80
+                  poke8 ptr (m+2) $ ((c `shiftR` 6) .&. 0x3F) + 0x80
+                  poke8 ptr (m+3) $ (c .&. 0x3F) + 0x80
                   go (n+2) (m+4)
               | otherwise -> ensure 3 $ do
-                  poke8 m     $ (w `shiftR` 12) + 0xE0
-                  poke8 (m+1) $ ((w `shiftR` 6) .&. 0x3F) + 0x80
-                  poke8 (m+2) $ (w .&. 0x3F) + 0x80
+                  poke8 ptr m     $ (w `shiftR` 12) + 0xE0
+                  poke8 ptr (m+1) $ ((w `shiftR` 6) .&. 0x3F) + 0x80
+                  poke8 ptr (m+2) $ (w .&. 0x3F) + 0x80
                   go (n+1) (m+3)
 
 #endif
