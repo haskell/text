@@ -454,6 +454,7 @@ encodeUtf8_1 (Text arr off len)
     where hot !n !m
             | n == offLen = touchForeignPtr fp >> return (PS fp 0 m)
             | otherwise   = act (A.unsafeIndex arr n) n m fp ptr hot
+  {-# INLINE loop #-}
   go1 = loop $ \ w !n !m fp ptr cont ->
     case w of
       _| w <= 0x7F  -> do1 ptr n m w cont
@@ -465,17 +466,13 @@ encodeUtf8_1 (Text arr off len)
     poke8 ptr m     $ (w `shiftR` 6) + 0xC0
     poke8 ptr (m+1) $ (w .&. 0x3f) + 0x80
     k (n+1) (m+2)
-  go2 !n0 !m0 fp ptr = do
-    let hot !n !m
-          | n == offLen = touchForeignPtr fp >> return (PS fp 0 m)
-          | otherwise = do
-              case A.unsafeIndex arr n of
-               w| w <= 0x7F  -> do1 ptr n m w hot
-                | w <= 0x7FF -> do2 ptr n m w hot
-                | w < 0xD800 -> ensure 3 n m fp go3
-                | w > 0xDBFF -> ensure 3 n m fp go3
-                | otherwise -> ensure 4 n m fp go4
-    hot n0 m0
+  go2 = loop $ \ w !n !m fp ptr cont ->
+    case w of
+      _| w <= 0x7F  -> do1 ptr n m w cont
+       | w <= 0x7FF -> do2 ptr n m w cont
+       | w < 0xD800 -> ensure 3 n m fp go3
+       | w > 0xDBFF -> ensure 3 n m fp go3
+       | otherwise -> ensure 4 n m fp go4
   do3 ptr !n m w k = do
     poke8 ptr m     $ (w `shiftR` 12) + 0xE0
     poke8 ptr (m+1) $ ((w `shiftR` 6) .&. 0x3F) + 0x80
