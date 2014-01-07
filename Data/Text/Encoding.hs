@@ -450,17 +450,17 @@ encodeUtf8_1 (Text arr off len)
     fp' <- resize k m fp
     go n m fp' (unsafeForeignPtrToPtr fp')
   do1 ptr n m w k = poke8 ptr m w >> k (n+1) (m+1)
-  go1 !n0 !m0 fp ptr = do
-    let hot !n !m
-          | n == offLen = touchForeignPtr fp >> return (PS fp 0 m)
-          | otherwise = do
-          case A.unsafeIndex arr n of
-            w| w <= 0x7F  -> do1 ptr n m w hot
-             | w <= 0x7FF -> ensure 2 n m fp go2
-             | w < 0xD800 -> ensure 3 n m fp go3
-             | w > 0xDBFF -> ensure 3 n m fp go3
-             | otherwise -> ensure 4 n m fp go4
-    hot n0 m0
+  loop act !n0 !m0 fp ptr = hot n0 m0
+    where hot !n !m
+            | n == offLen = touchForeignPtr fp >> return (PS fp 0 m)
+            | otherwise   = act (A.unsafeIndex arr n) n m fp ptr hot
+  go1 = loop $ \ w !n !m fp ptr cont ->
+    case w of
+      _| w <= 0x7F  -> do1 ptr n m w cont
+       | w <= 0x7FF -> ensure 2 n m fp go2
+       | w < 0xD800 -> ensure 3 n m fp go3
+       | w > 0xDBFF -> ensure 3 n m fp go3
+       | otherwise -> ensure 4 n m fp go4
   do2 ptr n m w k = do
     poke8 ptr m     $ (w `shiftR` 6) + 0xC0
     poke8 ptr (m+1) $ (w .&. 0x3f) + 0x80
