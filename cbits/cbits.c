@@ -244,28 +244,13 @@ _hs_text_encode_utf8(uint8_t **destp, const uint16_t *src, size_t srcoff,
 #if defined(__x86_64__)
   while (srcend - src >= 4) {
     uint64_t w = *((uint64_t *) src);
-    uint16_t a = w & 0xFFFF, b = (w >> 16) & 0xFFFF, c = (w >> 32) & 0xFFFF,
-      d = w >> 48;
 
-    if ((w & 0xFF80FF80FF80FF80ULL) == 0) {
-      *dest++ = a;
-      *dest++ = b;
-      *dest++ = c;
-      *dest++ = d;
-    }
-    else if (!(w & 0xF800F800F800F800ULL) && (w & 0xFF80000000000000ULL) &&
-	     (w & 0x0000FF8000000000ULL) && (w & 0x00000000FF800000ULL) &&
-	     (w & 0x000000000000FF80ULL)) {
-      *dest++ = (a >> 6) | 0xC0;
-      *dest++ = (a & 0x3f) | 0x80;
-      *dest++ = (b >> 6) | 0xC0;
-      *dest++ = (b & 0x3f) | 0x80;
-      *dest++ = (c >> 6) | 0xC0;
-      *dest++ = (c & 0x3f) | 0x80;
-      *dest++ = (d >> 6) | 0xC0;
-      *dest++ = (d & 0x3f) | 0x80;
-    }
-    else break;
+    if (w & 0xFF80FF80FF80FF80ULL)
+      break;
+    *dest++ = w & 0xFFFF;
+    *dest++ = (w >> 16) & 0xFFFF;
+    *dest++ = (w >> 32) & 0xFFFF;
+    *dest++ = w >> 48;
     src += 4;
   }
 #endif
@@ -273,19 +258,11 @@ _hs_text_encode_utf8(uint8_t **destp, const uint16_t *src, size_t srcoff,
 #if defined(__i386__)
   while (srcend - src >= 2) {
     uint32_t w = *((uint32_t *) src);
-    uint16_t a = w & 0xFFFF, b = w >> 16;
 
-    if ((w & 0xFF80FF80) == 0) {
-      *dest++ = a;
-      *dest++ = b;
-    }
-    else if (!(w & 0xF800F800) && (w & 0xFF800000) && (w & 0x0000FF80)) {
-      *dest++ = (a >> 6) | 0xC0;
-      *dest++ = (a & 0x3f) | 0x80;
-      *dest++ = (b >> 6) | 0xC0;
-      *dest++ = (b & 0x3f) | 0x80;
-    }
-    else break;
+    if (w & 0xFF80FF80)
+      break;
+    *dest++ = w & 0xFFFF;
+    *dest++ = w >> 16;
     src += 2;
   }
 #endif
