@@ -240,11 +240,63 @@ _hs_text_encode_utf8(uint8_t **destp, const uint16_t *src, size_t srcoff,
   src += srcoff;
   srcend = src + srclen;
 
+ ascii:
+#if defined(__x86_64__)
+  while (srcend - src >= 4) {
+    uint64_t w = *((uint64_t *) src);
+    uint16_t a = w & 0xFFFF, b = (w >> 16) & 0xFFFF, c = (w >> 32) & 0xFFFF,
+      d = w >> 48;
+
+    if ((w & 0xFF80FF80FF80FF80ULL) == 0) {
+      *dest++ = a;
+      *dest++ = b;
+      *dest++ = c;
+      *dest++ = d;
+    }
+    else if ((w & 0xF800F800F800F800ULL) == 0) {
+      *dest++ = (a >> 6) | 0xC0;
+      *dest++ = (a & 0x3f) | 0x80;
+      *dest++ = (b >> 6) | 0xC0;
+      *dest++ = (b & 0x3f) | 0x80;
+      *dest++ = (c >> 6) | 0xC0;
+      *dest++ = (c & 0x3f) | 0x80;
+      *dest++ = (d >> 6) | 0xC0;
+      *dest++ = (d & 0x3f) | 0x80;
+    }
+    else break;
+    src += 4;
+  }
+#endif
+
+#if defined(__i386__)
+  while (srcend - src >= 2) {
+    uint32_t w = *((uint32_t *) src);
+    uint16_t a = w & 0xFFFF, b = w >> 16;
+
+    if ((w & 0xFF80FF80) == 0) {
+      *dest++ = a;
+      *dest++ = b;
+    }
+    else if ((w & 0xF800F800) == 0) {
+      *dest++ = (a >> 6) | 0xC0;
+      *dest++ = (a & 0x3f) | 0x80;
+      *dest++ = (b >> 6) | 0xC0;
+      *dest++ = (b & 0x3f) | 0x80;
+    }
+    else break;
+    src += 2;
+  }
+#endif
+
   while (src < srcend) {
     uint16_t w = *src++;
 
-    if (w <= 0x7F)
+    if (w <= 0x7F) {
       *dest++ = w;
+      /* An ASCII byte is likely to begin a run of ASCII bytes.
+	 Falling back into the fast path really helps performance. */
+      goto ascii;
+    }
     else if (w <= 0x7FF) {
       *dest++ = (w >> 6) | 0xC0;
       *dest++ = (w & 0x3f) | 0x80;
