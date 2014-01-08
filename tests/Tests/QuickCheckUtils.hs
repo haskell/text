@@ -206,7 +206,7 @@ instance Random Small where
     random  = randomR (minBound,maxBound)
 
 instance Arbitrary Small where
-    arbitrary     = arbitrarySizedIntegral
+    arbitrary     = choose (minBound, maxBound)
     shrink        = shrinkIntegral
 
 integralRandomR :: (Integral a, RandomGen g) => (a,a) -> g -> (a,g)
