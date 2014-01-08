@@ -84,7 +84,6 @@ import qualified Data.ByteString.Builder.Extra as B
 import qualified Data.ByteString.Builder.Internal as B hiding (empty)
 import qualified Data.ByteString.Builder.Prim as BP
 import qualified Data.ByteString.Builder.Prim.Internal as BP
-import qualified Data.ByteString.Lazy as BL
 import qualified Data.Text.Internal.Encoding.Utf16 as U16
 #endif
 
