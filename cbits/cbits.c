@@ -253,7 +253,9 @@ _hs_text_encode_utf8(uint8_t **destp, const uint16_t *src, size_t srcoff,
       *dest++ = c;
       *dest++ = d;
     }
-    else if ((w & 0xF800F800F800F800ULL) == 0) {
+    else if (!(w & 0xF800F800F800F800ULL) && (w & 0xFF80000000000000ULL) &&
+	     (w & 0x0000FF8000000000ULL) && (w & 0x00000000FF800000ULL) &&
+	     (w & 0x000000000000FF80ULL)) {
       *dest++ = (a >> 6) | 0xC0;
       *dest++ = (a & 0x3f) | 0x80;
       *dest++ = (b >> 6) | 0xC0;
@@ -277,7 +279,7 @@ _hs_text_encode_utf8(uint8_t **destp, const uint16_t *src, size_t srcoff,
       *dest++ = a;
       *dest++ = b;
     }
-    else if ((w & 0xF800F800) == 0) {
+    else if (!(w & 0xF800F800) && (w & 0xFF800000) && (w & 0x0000FF80)) {
       *dest++ = (a >> 6) | 0xC0;
       *dest++ = (a & 0x3f) | 0x80;
       *dest++ = (b >> 6) | 0xC0;
