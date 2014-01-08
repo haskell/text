@@ -58,10 +58,12 @@ instance Random I16 where
     random  = randomR (minBound,maxBound)
 
 instance Arbitrary I16 where
-    arbitrary     = choose (minBound,maxBound)
+    arbitrary     = arbitrarySizedIntegral
+    shrink        = shrinkIntegral
 
 instance Arbitrary B.ByteString where
     arbitrary     = B.pack `fmap` arbitrary
+    shrink        = map B.pack . shrink . B.unpack
 
 #if !MIN_VERSION_base(4,4,0)
 instance Random Word8 where
@@ -130,9 +132,11 @@ smallArbitrary = sized $ \n -> resize (smallish n) arbitrary
 
 instance Arbitrary T.Text where
     arbitrary = T.pack `fmap` arbitrary
+    shrink = map T.pack . shrink . T.unpack
 
 instance Arbitrary TL.Text where
     arbitrary = (TL.fromChunks . map notEmpty) `fmap` smallArbitrary
+    shrink = map TL.pack . shrink . TL.unpack
 
 newtype NotEmpty a = NotEmpty { notEmpty :: a }
     deriving (Eq, Ord)
@@ -145,15 +149,23 @@ instance Functor NotEmpty where
 
 instance Arbitrary a => Arbitrary (NotEmpty [a]) where
     arbitrary   = sized (\n -> NotEmpty `fmap` (choose (1,n+1) >>= vector))
+    shrink      = shrinkNotEmpty null
 
 instance Arbitrary (NotEmpty T.Text) where
     arbitrary   = (fmap T.pack) `fmap` arbitrary
+    shrink      = shrinkNotEmpty T.null
 
 instance Arbitrary (NotEmpty TL.Text) where
     arbitrary   = (fmap TL.pack) `fmap` arbitrary
+    shrink      = shrinkNotEmpty TL.null
 
 instance Arbitrary (NotEmpty B.ByteString) where
     arbitrary   = (fmap B.pack) `fmap` arbitrary
+    shrink      = shrinkNotEmpty B.null
+
+shrinkNotEmpty :: Arbitrary a => (a -> Bool) -> NotEmpty a -> [NotEmpty a]
+shrinkNotEmpty isNull (NotEmpty xs) =
+  [ NotEmpty xs' | xs' <- shrink xs, not (isNull xs') ]
 
 data Small = S0  | S1  | S2  | S3  | S4  | S5  | S6  | S7
            | S8  | S9  | S10 | S11 | S12 | S13 | S14 | S15
@@ -194,7 +206,8 @@ instance Random Small where
     random  = randomR (minBound,maxBound)
 
 instance Arbitrary Small where
-    arbitrary     = choose (minBound,maxBound)
+    arbitrary     = arbitrarySizedIntegral
+    shrink        = shrinkIntegral
 
 integralRandomR :: (Integral a, RandomGen g) => (a,a) -> g -> (a,g)
 integralRandomR  (a,b) g = case randomR (fromIntegral a :: Integer,
