@@ -311,21 +311,7 @@ decodeUtf8' :: ByteString -> Either UnicodeException Text
 decodeUtf8' = unsafeDupablePerformIO . try . evaluate . decodeUtf8With strictDecode
 {-# INLINE decodeUtf8' #-}
 
--- | Encode text using UTF-8 encoding.
-encodeUtf8 :: Text -> ByteString
 #if MIN_VERSION_bytestring(0,10,4)
-
-encodeUtf8 t@(Text _arr _off len) =
-      B.copy       -- copy to trim and avoid wasting memory
-    $ BL.toStrict
-    $ B.toLazyByteStringWith strategy BL.empty
-    $ encodeUtf8Builder t
-  where
-    -- We use a strategy that allocates a buffer that is guaranteed to be
-    -- large enough for the whole result. This ensures that we always stay in
-    -- the fast 'goPartial' loop in the 'encodeUtf8BuilderEscaped' function.
-    strategy = B.untrimmedStrategy (4 * (len + 1)) B.defaultChunkSize
-
 
 -- | Encode text to a ByteString 'B.Builder' using UTF-8 encoding.
 encodeUtf8Builder :: Text -> B.Builder
@@ -387,12 +373,11 @@ encodeUtf8BuilderEscaped be =
                       outerLoop i (B.BufferRange op ope)
                   where
                     poke8 j v = poke (op `plusPtr` j) (fromIntegral v :: Word8)
-
-#else
-
-encodeUtf8 = encodeUtf8_0
-
 #endif
+
+-- | Encode text using UTF-8 encoding.
+encodeUtf8 :: Text -> ByteString
+encodeUtf8 = encodeUtf8_0
 
 encodeUtf8_0 :: Text -> ByteString
 encodeUtf8_0 (Text arr off len) = unsafeDupablePerformIO $ do
