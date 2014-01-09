@@ -64,17 +64,11 @@ module Data.Text.Encoding
 #endif
     ) where
 
-import Control.Exception (evaluate, try)
-
 #if __GLASGOW_HASKELL__ >= 702
 import Control.Monad.ST.Unsafe (unsafeIOToST, unsafeSTToIO)
 #else
 import Control.Monad.ST (unsafeIOToST, unsafeSTToIO)
 #endif
-
-import Control.Monad.ST (runST)
-import Data.ByteString as B
-import Data.ByteString.Internal as B hiding (c2w)
 
 #if MIN_VERSION_bytestring(0,10,4)
 import Data.Bits ((.&.))
@@ -87,12 +81,17 @@ import qualified Data.ByteString.Builder.Prim.Internal as BP
 import qualified Data.Text.Internal.Encoding.Utf16 as U16
 #endif
 
+import Control.Exception (evaluate, try)
+import Control.Monad.ST (runST)
+import Data.ByteString as B
+import Data.ByteString.Internal as B hiding (c2w)
 import Data.Text ()
 import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode)
 import Data.Text.Internal (Text(..), safe, textP)
-import Data.Text.Internal.Unsafe.Shift (shiftR)
 import Data.Text.Internal.Private (runText)
 import Data.Text.Internal.Unsafe.Char (unsafeWrite)
+import Data.Text.Internal.Unsafe.Shift (shiftR)
+import Data.Text.Unsafe (unsafeDupablePerformIO)
 import Data.Word (Word8, Word32)
 import Foreign.C.Types (CSize(..))
 import Foreign.ForeignPtr (withForeignPtr)
@@ -103,7 +102,6 @@ import GHC.Base (ByteArray#, MutableByteArray#)
 import qualified Data.Text.Array as A
 import qualified Data.Text.Internal.Encoding.Fusion as E
 import qualified Data.Text.Internal.Fusion as F
-import Data.Text.Unsafe (unsafeDupablePerformIO)
 
 #include "text_cbits.h"
 
