@@ -1,4 +1,6 @@
 {-# LANGUAGE BangPatterns, DeriveDataTypeable #-}
+{-# OPTIONS_HADDOCK not-home #-}
+
 -- |
 -- Module      : Data.Text.Internal.Lazy
 -- Copyright   : (c) 2009, 2010 Bryan O'Sullivan

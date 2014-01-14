@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns, CPP, Rank2Types #-}
+{-# OPTIONS_HADDOCK not-home #-}
 
 -----------------------------------------------------------------------------
 -- |

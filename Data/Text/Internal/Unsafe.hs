@@ -1,4 +1,6 @@
 {-# LANGUAGE CPP, MagicHash, UnboxedTuples #-}
+{-# OPTIONS_HADDOCK not-home #-}
+
 -- |
 -- Module      : Data.Text.Internal.Unsafe
 -- Copyright   : (c) 2009, 2010, 2011 Bryan O'Sullivan
