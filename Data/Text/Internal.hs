@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP, DeriveDataTypeable #-}
+{-# OPTIONS_HADDOCK not-home #-}
 
 -- |
 -- Module      : Data.Text.Internal
