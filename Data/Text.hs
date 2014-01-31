@@ -234,8 +234,8 @@ import GHC.Prim (Addr#)
 -- $strict
 --
 -- This package provides both strict and lazy 'Text' types.  The
--- strict type is provided by the 'Data.Text' package, while the lazy
--- type is provided by the 'Data.Text.Lazy' package.  Internally, the
+-- strict type is provided by the "Data.Text" module, while the lazy
+-- type is provided by the "Data.Text.Lazy" module. Internally, the
 -- lazy @Text@ type consists of a list of strict chunks.
 --
 -- The strict 'Text' type requires that an entire string fit into
@@ -330,7 +330,7 @@ instance IsString Text where
 instance NFData Text
 #endif
 
--- This instance preserves data abstraction at the cost of inefficiency.
+-- | This instance preserves data abstraction at the cost of inefficiency.
 -- We omit reflection services for the sake of data abstraction.
 --
 -- This instance was created by copying the behavior of Data.Set and
@@ -338,7 +338,7 @@ instance NFData Text
 -- submit improvements.
 --
 -- Original discussion is archived here:
-
+--
 --  "could we get a Data instance for Data.Text.Text?"
 --  http://groups.google.com/group/haskell-cafe/browse_thread/thread/b5bbb1b28a7e525d/0639d46852575b93
 
