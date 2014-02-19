@@ -1,6 +1,6 @@
 -- | General quicktest properties for the text library
 --
-{-# LANGUAGE BangPatterns, CPP, FlexibleInstances, OverloadedStrings,
+{-# LANGUAGE BangPatterns, FlexibleInstances, OverloadedStrings,
              ScopedTypeVariables, TypeSynonymInstances #-}
 {-# OPTIONS_GHC -fno-enable-rewrite-rules #-}
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
@@ -15,7 +15,6 @@ import Text.Show.Functions ()
 
 import Control.Applicative ((<$>), (<*>))
 import Control.Arrow ((***), second)
-import Control.Exception (catch)
 import Data.Bits ((.&.))
 import Data.Char (chr, isDigit, isHexDigit, isLower, isSpace, isUpper, ord)
 import Data.Int (Int8, Int16, Int32, Int64)
@@ -32,6 +31,7 @@ import Data.Word (Word, Word8, Word16, Word32, Word64)
 import Numeric (showHex)
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
+import qualified Control.Exception as Exception
 import qualified Data.Bits as Bits (shiftL, shiftR)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
@@ -56,11 +56,7 @@ import Tests.QuickCheckUtils
 import Tests.Utils
 import qualified Tests.SlowFunctions as Slow
 
-#if MIN_VERSION_base(4,6,0)
 import Prelude hiding (replicate)
-#else
-import Prelude hiding (catch, replicate)
-#endif
 
 t_pack_unpack       = (T.unpack . T.pack) `eq` id
 tl_pack_unpack      = (TL.unpack . TL.pack) `eq` id
@@ -130,7 +126,7 @@ t_utf8_err bad de = do
     onErr <- genDecodeErr de
     monadicIO $ do
     l <- run $ let len = T.length (E.decodeUtf8With onErr bs)
-               in (len `seq` return (Right len)) `catch`
+               in (len `seq` return (Right len)) `Exception.catch`
                   (\(e::UnicodeException) -> return (Left e))
     assert $ case l of
       Left err -> length (show err) >= 0
