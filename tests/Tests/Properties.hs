@@ -111,6 +111,12 @@ feedChunksOf n f bs
                      E.Some t b f' = f x
                  in (t,b) : feedChunksOf n f' y
 
+t_utf8_undecoded = forAll genUnicode $ \t ->
+  let b = E.encodeUtf8 t
+      ls = concatMap (leftover . E.encodeUtf8 . T.singleton) . T.unpack $ t
+      leftover = (++ [B.empty]) . init . tail . B.inits
+  in (map snd . feedChunksOf 1 E.streamDecodeUtf8) b == ls
+
 data Badness = Solo | Leading | Trailing
              deriving (Eq, Show)
 
@@ -837,6 +843,7 @@ tests =
       testProperty "t_utf8" t_utf8,
       testProperty "t_utf8'" t_utf8',
       testProperty "t_utf8_incr" t_utf8_incr,
+      testProperty "t_utf8_undecoded" t_utf8_undecoded,
       testProperty "tl_utf8" tl_utf8,
       testProperty "tl_utf8'" tl_utf8',
       testProperty "t_utf16LE" t_utf16LE,
