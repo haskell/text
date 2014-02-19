@@ -9,10 +9,6 @@ module Tests.Properties
       tests
     ) where
 
-import Test.QuickCheck hiding ((.&.))
-import Test.QuickCheck.Monadic
-import Text.Show.Functions ()
-
 import Control.Applicative ((<$>), (<*>))
 import Control.Arrow ((***), second)
 import Data.Bits ((.&.))
@@ -24,13 +20,19 @@ import Data.Text.Encoding.Error
 import Data.Text.Foreign
 import Data.Text.Internal.Encoding.Utf8
 import Data.Text.Internal.Fusion.Size
+import Data.Text.Internal.Search (indices)
 import Data.Text.Lazy.Read as TL
 import Data.Text.Read as T
-import Data.Text.Internal.Search (indices)
 import Data.Word (Word, Word8, Word16, Word32, Word64)
 import Numeric (showHex)
+import Prelude hiding (replicate)
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
+import Test.QuickCheck hiding ((.&.))
+import Test.QuickCheck.Monadic
+import Tests.QuickCheckUtils
+import Tests.Utils
+import Text.Show.Functions ()
 import qualified Control.Exception as Exception
 import qualified Data.Bits as Bits (shiftL, shiftR)
 import qualified Data.ByteString as B
@@ -38,25 +40,20 @@ import qualified Data.ByteString.Lazy as BL
 import qualified Data.List as L
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as E
+import qualified Data.Text.IO as T
 import qualified Data.Text.Internal.Fusion as S
 import qualified Data.Text.Internal.Fusion.Common as S
-import qualified Data.Text.IO as T
+import qualified Data.Text.Internal.Lazy.Fusion as SL
+import qualified Data.Text.Internal.Lazy.Search as S (indices)
+import qualified Data.Text.Internal.Unsafe.Shift as U
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Builder as TB
 import qualified Data.Text.Lazy.Builder.Int as TB
 import qualified Data.Text.Lazy.Builder.RealFloat as TB
 import qualified Data.Text.Lazy.Encoding as EL
-import qualified Data.Text.Internal.Lazy.Fusion as SL
 import qualified Data.Text.Lazy.IO as TL
-import qualified Data.Text.Internal.Lazy.Search as S (indices)
-import qualified Data.Text.Internal.Unsafe.Shift as U
 import qualified System.IO as IO
-
-import Tests.QuickCheckUtils
-import Tests.Utils
 import qualified Tests.SlowFunctions as Slow
-
-import Prelude hiding (replicate)
 
 t_pack_unpack       = (T.unpack . T.pack) `eq` id
 tl_pack_unpack      = (TL.unpack . TL.pack) `eq` id

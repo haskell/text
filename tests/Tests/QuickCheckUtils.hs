@@ -42,24 +42,23 @@ import Control.DeepSeq (NFData (..), deepseq)
 import Control.Exception (bracket)
 import Data.Bits ((.&.))
 import Data.Char (chr)
-import Data.Word (Word8, Word16)
 import Data.String (IsString, fromString)
 import Data.Text.Foreign (I16)
+import Data.Word (Word8, Word16)
 import Debug.Trace (trace)
 import System.Random (Random (..), RandomGen)
 import Test.QuickCheck hiding ((.&.))
 import Test.QuickCheck.Monadic (assert, monadicIO, run)
+import Tests.Utils
 import qualified Data.ByteString as B
 import qualified Data.Text as T
 import qualified Data.Text.Encoding.Error as T
 import qualified Data.Text.Internal.Fusion as TF
 import qualified Data.Text.Internal.Fusion.Common as TF
-import qualified Data.Text.Lazy as TL
-import qualified Data.Text.Internal.Lazy.Fusion as TLF
 import qualified Data.Text.Internal.Lazy as TL
+import qualified Data.Text.Internal.Lazy.Fusion as TLF
+import qualified Data.Text.Lazy as TL
 import qualified System.IO as IO
-
-import Tests.Utils
 
 instance Random I16 where
     randomR = integralRandomR
