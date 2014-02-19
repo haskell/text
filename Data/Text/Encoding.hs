@@ -172,11 +172,15 @@ decodeUtf8With onErr (PS fp off len) = runText $ \done -> do
 -- a 'ByteString' that represents a possibly incomplete input (e.g. a
 -- packet from a network stream) that may not end on a UTF-8 boundary.
 --
--- The first element of the result is the maximal chunk of 'Text' that
--- can be decoded from the given input. The second is a function which
--- accepts another 'ByteString'. That string will be assumed to
--- directly follow the string that was passed as input to the original
--- function, and it will in turn be decoded.
+-- 1. The maximal prefix of 'Text' that could be decoded from the
+--    given input.
+--
+-- 2. The suffix of the 'ByteString' that could not be decoded due to
+--    insufficient input.
+--
+-- 3. A function that accepts another 'ByteString'.  That string will
+--    be assumed to directly follow the string that was passed as
+--    input to the original function, and it will in turn be decoded.
 --
 -- To help understand the use of these functions, consider the Unicode
 -- string @\"hi &#9731;\"@. If encoded as UTF-8, this becomes @\"hi
@@ -189,15 +193,17 @@ decodeUtf8With onErr (PS fp off len) = runText $ \done -> do
 -- as we receive each one.
 --
 -- @
--- let 'Some' t0 f0 = 'streamDecodeUtf8' \"hi \\xe2\"
--- t0 == \"hi \" :: 'Text'
+-- ghci> let s0\@('Some' _ _ f0) = 'streamDecodeUtf8' \"hi \\xe2\"
+-- ghci> s0
+-- 'Some' \"hi \" \"\\xe2\" _
 -- @
 --
 -- We use the continuation @f0@ to decode our second packet.
 --
 -- @
--- let 'Some' t1 f1 = f0 \"\\x98\"
--- t1 == \"\"
+-- ghci> let s1\@('Some' _ _ f1) = f0 \"\\x98\"
+-- ghci> s1
+-- 'Some' \"\" \"\\xe2\\x98\"
 -- @
 --
 -- We could not give @f0@ enough input to decode anything, so it
@@ -205,8 +211,9 @@ decodeUtf8With onErr (PS fp off len) = runText $ \done -> do
 -- the last byte of input, it will make progress.
 --
 -- @
--- let 'Some' t2 f2 = f1 \"\\x83\"
--- t2 == \"&#9731;\"
+-- ghci> let s2\@('Some' _ _ f2) = f1 \"\\x83\"
+-- ghci> s2
+-- 'Some' \"\\x2603\" \"\" _
 -- @
 --
 -- If given invalid input, an exception will be thrown by the function
