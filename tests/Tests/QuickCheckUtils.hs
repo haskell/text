@@ -318,17 +318,6 @@ windowsNewlineMode = IO.NewlineMode
     { IO.inputNL = IO.CRLF, IO.outputNL = IO.CRLF
     }
 
--- Newline and NewlineMode have standard Show instance from GHC 7 onwards
-#if __GLASGOW_HASKELL__ < 700
-instance Show IO.Newline where
-    show IO.CRLF = "CRLF"
-    show IO.LF   = "LF"
-
-instance Show IO.NewlineMode where
-    show (IO.NewlineMode i o) = "NewlineMode { inputNL = " ++ show i ++
-                                ", outputNL = " ++ show o ++ " }"
-# endif
-
 instance Arbitrary IO.NewlineMode where
     arbitrary = oneof . map return $
       [ IO.noNewlineTranslation, IO.universalNewlineMode, IO.nativeNewlineMode
