@@ -238,12 +238,13 @@ streamDecodeUtf8 = streamDecodeUtf8With strictDecode
 -- | Decode, in a stream oriented way, a 'ByteString' containing UTF-8
 -- encoded text.
 streamDecodeUtf8With :: OnDecodeError -> ByteString -> Decoding
-streamDecodeUtf8With onErr = decodeChunk 0 0
+streamDecodeUtf8With onErr = decodeChunk B.empty 0 0
  where
   -- We create a slightly larger than necessary buffer to accommodate a
   -- potential surrogate pair started in the last buffer
-  decodeChunk :: CodePoint -> DecoderState -> ByteString -> Decoding
-  decodeChunk codepoint0 state0 bs@(PS fp off len) =
+  decodeChunk :: ByteString -> CodePoint -> DecoderState -> ByteString
+              -> Decoding
+  decodeChunk undecoded0 codepoint0 state0 bs@(PS fp off len) =
     runST $ (unsafeIOToST . decodeChunkToBuffer) =<< A.new (len+1)
    where
     decodeChunkToBuffer :: A.MArray s -> IO Decoding
@@ -281,8 +282,11 @@ streamDecodeUtf8With onErr = decodeChunk 0 0
                       return $! textP arr 0 (fromIntegral n)
                   lastPtr <- peek curPtrPtr
                   let left = lastPtr `minusPtr` curPtr
-                  return $ Some chunkText (B.drop left bs)
-                           (decodeChunk codepoint state)
+                      undecoded = case state of
+                        UTF8_ACCEPT -> B.empty
+                        _           -> B.append undecoded0 (B.drop left bs)
+                  return $ Some chunkText undecoded
+                           (decodeChunk undecoded codepoint state)
         in loop (ptr `plusPtr` off)
   desc = "Data.Text.Internal.Encoding.streamDecodeUtf8With: Invalid UTF-8 stream"
 
