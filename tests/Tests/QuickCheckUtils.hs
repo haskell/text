@@ -7,6 +7,14 @@
 module Tests.QuickCheckUtils
     (
       genUnicode
+    , genUnicodeWith
+    , ascii
+    , plane0
+    , plane1
+    , plane2
+    , plane14
+    , planes
+
     , unsquare
     , smallArbitrary
 
@@ -72,7 +80,11 @@ instance Random Word8 where
 #endif
 
 genUnicode :: IsString a => Gen a
-genUnicode = fmap fromString string where
+genUnicode = genUnicodeWith planes
+
+genUnicodeWith :: IsString a => [Gen Int] -> Gen a
+genUnicodeWith gens = fmap fromString string
+  where
     string = sized $ \n ->
         do k <- choose (0,n)
            sequence [ char | _ <- [1..k] ]
@@ -93,33 +105,44 @@ genUnicode = fmap fromString string where
       where
         masked = c .&. 0xFFFF
 
-    ascii = choose (0,0x7F)
-    plane0 = choose (0xF0, 0xFFFF)
-    plane1 = oneof [ choose (0x10000, 0x10FFF)
-                   , choose (0x11000, 0x11FFF)
-                   , choose (0x12000, 0x12FFF)
-                   , choose (0x13000, 0x13FFF)
-                   , choose (0x1D000, 0x1DFFF)
-                   , choose (0x1F000, 0x1FFFF)
-                   ]
-    plane2 = oneof [ choose (0x20000, 0x20FFF)
-                   , choose (0x21000, 0x21FFF)
-                   , choose (0x22000, 0x22FFF)
-                   , choose (0x23000, 0x23FFF)
-                   , choose (0x24000, 0x24FFF)
-                   , choose (0x25000, 0x25FFF)
-                   , choose (0x26000, 0x26FFF)
-                   , choose (0x27000, 0x27FFF)
-                   , choose (0x28000, 0x28FFF)
-                   , choose (0x29000, 0x29FFF)
-                   , choose (0x2A000, 0x2AFFF)
-                   , choose (0x2B000, 0x2BFFF)
-                   , choose (0x2F000, 0x2FFFF)
-                   ]
-    plane14 = choose (0xE0000, 0xE0FFF)
-    planes = [ascii, plane0, plane1, plane2, plane14]
+    char = chr `fmap` excluding reserved (oneof gens)
 
-    char = chr `fmap` excluding reserved (oneof planes)
+ascii :: Gen Int
+ascii = choose (0,0x7F)
+
+plane0 :: Gen Int
+plane0 = choose (0xF0, 0xFFFF)
+
+plane1 :: Gen Int
+plane1 = oneof [ choose (0x10000, 0x10FFF)
+               , choose (0x11000, 0x11FFF)
+               , choose (0x12000, 0x12FFF)
+               , choose (0x13000, 0x13FFF)
+               , choose (0x1D000, 0x1DFFF)
+               , choose (0x1F000, 0x1FFFF)
+               ]
+
+plane2 :: Gen Int
+plane2 = oneof [ choose (0x20000, 0x20FFF)
+               , choose (0x21000, 0x21FFF)
+               , choose (0x22000, 0x22FFF)
+               , choose (0x23000, 0x23FFF)
+               , choose (0x24000, 0x24FFF)
+               , choose (0x25000, 0x25FFF)
+               , choose (0x26000, 0x26FFF)
+               , choose (0x27000, 0x27FFF)
+               , choose (0x28000, 0x28FFF)
+               , choose (0x29000, 0x29FFF)
+               , choose (0x2A000, 0x2AFFF)
+               , choose (0x2B000, 0x2BFFF)
+               , choose (0x2F000, 0x2FFFF)
+               ]
+
+plane14 :: Gen Int
+plane14 = choose (0xE0000, 0xE0FFF)
+
+planes :: [Gen Int]
+planes = [ascii, plane0, plane1, plane2, plane14]
 
 -- For tests that have O(n^2) running times or input sizes, resize
 -- their inputs to the square root of the originals.
