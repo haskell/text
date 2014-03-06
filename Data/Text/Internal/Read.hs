@@ -18,6 +18,9 @@ module Data.Text.Internal.Read
     , perhaps
     ) where
 
+import Control.Applicative (Applicative(..))
+import Control.Arrow (first)
+import Control.Monad (ap)
 import Data.Char (ord)
 
 type IReader t a = t -> Either String (a,t)
@@ -26,9 +29,16 @@ newtype IParser t a = P {
       runP :: IReader t a
     }
 
+instance Functor (IParser t) where
+    fmap f m = P $ fmap (first f) . runP m
+
+instance Applicative (IParser t) where
+    pure a = P $ \t -> Right (a,t)
+    {-# INLINE pure #-}
+    (<*>) = ap
+
 instance Monad (IParser t) where
-    return a = P $ \t -> Right (a,t)
-    {-# INLINE return #-}
+    return = pure
     m >>= k  = P $ \t -> case runP m t of
                            Left err     -> Left err
                            Right (a,t') -> runP (k a) t'
