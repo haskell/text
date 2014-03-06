@@ -430,7 +430,7 @@ append a@(Text arr1 off1 len1) b@(Text arr2 off2 len2)
         A.copyI arr 0 arr1 off1 len1
         A.copyI arr len1 arr2 off2 len
         return arr
-{-# INLINE append #-}
+{-# NOINLINE append #-}
 
 {-# RULES
 "TEXT append -> fused" [~1] forall t1 t2.
