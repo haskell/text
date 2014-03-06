@@ -49,7 +49,7 @@ import GHC.Integer
 #endif
 
 decimal :: Integral a => a -> Builder
-{-# SPECIALIZE decimal :: Int8 -> Builder #-}
+{-# RULES "decimal/Int8" decimal = boundedDecimal :: Int8 -> Builder #-}
 {-# RULES "decimal/Int" decimal = boundedDecimal :: Int -> Builder #-}
 {-# RULES "decimal/Int16" decimal = boundedDecimal :: Int16 -> Builder #-}
 {-# RULES "decimal/Int32" decimal = boundedDecimal :: Int32 -> Builder #-}
@@ -61,6 +61,7 @@ decimal :: Integral a => a -> Builder
 {-# RULES "decimal/Word64" decimal = positive :: Word64 -> Builder #-}
 {-# RULES "decimal/Integer" decimal = integer 10 :: Integer -> Builder #-}
 decimal i = decimal' (<= -128) i
+{-# NOINLINE decimal #-}
 
 boundedDecimal :: (Integral a, Bounded a) => a -> Builder
 {-# SPECIALIZE boundedDecimal :: Int -> Builder #-}
@@ -169,6 +170,7 @@ hexadecimal i
   where
     go n | n < 16    = hexDigit n
          | otherwise = go (n `quot` 16) <> hexDigit (n `rem` 16)
+{-# NOINLINE[0] hexadecimal #-}
 
 hexInteger :: Integer -> Builder
 hexInteger i

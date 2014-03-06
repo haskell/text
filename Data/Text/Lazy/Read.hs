@@ -24,15 +24,17 @@ module Data.Text.Lazy.Read
     ) where
 
 import Control.Monad (liftM)
-import Data.Char (isDigit, isHexDigit, ord)
+import Data.Char (isDigit, isHexDigit)
 import Data.Int (Int8, Int16, Int32, Int64)
 import Data.Ratio ((%))
+import Data.Text.Internal.Read
 import Data.Text.Lazy as T
 import Data.Word (Word, Word8, Word16, Word32, Word64)
 
 -- | Read some text.  If the read succeeds, return its value and the
 -- remaining text, otherwise an error message.
-type Reader a = Text -> Either String (a,Text)
+type Reader a = IReader Text a
+type Parser = IParser Text
 
 -- | Read a decimal integer.  The input must begin with at least one
 -- decimal digit, and is consumed until a non-digit or end of string
@@ -101,15 +103,6 @@ hex txt
   where (h,t)  = T.span isHexDigit txt
         go n d = (n * 16 + fromIntegral (hexDigitToInt d))
 
-hexDigitToInt :: Char -> Int
-hexDigitToInt c
-    | c >= '0' && c <= '9' = ord c - ord '0'
-    | c >= 'a' && c <= 'f' = ord c - (ord 'a' - 10)
-    | otherwise            = ord c - (ord 'A' - 10)
-
-digitToInt :: Char -> Int
-digitToInt c = ord c - ord '0'
-
 -- | Read an optional leading sign character (@\'-\'@ or @\'+\'@) and
 -- apply it to the result of applying the given reader.
 signed :: Num a => Reader a -> Reader a
@@ -169,30 +162,10 @@ signa p = do
   sign <- perhaps '+' $ char (\c -> c == '-' || c == '+')
   if sign == '+' then p else negate `liftM` p
 
-newtype Parser a = P {
-      runP :: Reader a
-    }
-
-instance Monad Parser where
-    return a = P $ \t -> Right (a,t)
-    {-# INLINE return #-}
-    m >>= k  = P $ \t -> case runP m t of
-                           Left err     -> Left err
-                           Right (a,t') -> runP (k a) t'
-    {-# INLINE (>>=) #-}
-    fail msg = P $ \_ -> Left msg
-
-perhaps :: a -> Parser a -> Parser a
-perhaps def m = P $ \t -> case runP m t of
-                            Left _      -> Right (def,t)
-                            r@(Right _) -> r
-
 char :: (Char -> Bool) -> Parser Char
 char p = P $ \t -> case T.uncons t of
                      Just (c,t') | p c -> Right (c,t')
                      _                 -> Left "character does not match"
-
-data T = T !Integer !Int
 
 floaty :: Fractional a => (Integer -> Integer -> Integer -> a) -> Reader a
 {-# INLINE floaty #-}
