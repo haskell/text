@@ -880,7 +880,7 @@ replicate n t
     | otherwise        = concat (rep 0)
     where rep !i | i >= n    = []
                  | otherwise = t : rep (i+1)
-{-# INLINE replicate #-}
+{-# INLINE [1] replicate #-}
 
 -- | /O(n)/ 'replicateChar' @n@ @c@ is a 'Text' of length @n@ with @c@ the
 -- value of every element. Subject to fusion.

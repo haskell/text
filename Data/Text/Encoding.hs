@@ -75,7 +75,7 @@ import Data.Bits ((.&.))
 import Data.Text.Internal.Unsafe.Char (ord)
 import qualified Data.ByteString.Builder as B
 import qualified Data.ByteString.Builder.Extra as B
-import qualified Data.ByteString.Builder.Internal as B hiding (empty)
+import qualified Data.ByteString.Builder.Internal as B hiding (empty, append)
 import qualified Data.ByteString.Builder.Prim as BP
 import qualified Data.ByteString.Builder.Prim.Internal as BP
 import qualified Data.Text.Internal.Encoding.Utf16 as U16
