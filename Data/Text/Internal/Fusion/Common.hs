@@ -106,7 +106,7 @@ module Data.Text.Internal.Fusion.Common
 
 import Prelude (Bool(..), Char, Eq(..), Int, Integral, Maybe(..),
                 Ord(..), Ordering(..), String, (.), ($), (+), (-), (*), (++),
-                (&&), fromIntegral, not, otherwise)
+                (&&), fromIntegral, otherwise)
 import qualified Data.List as L
 import qualified Prelude as P
 import Data.Bits (shiftL)
