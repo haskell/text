@@ -1049,11 +1049,8 @@ drop :: Int -> Text -> Text
 drop n t@(Text arr off len)
     | n <= 0    = t
     | n >= len  = empty
-    | otherwise = loop 0 0
-  where loop !i !cnt
-            | i >= len || cnt >= n   = Text arr (off+i) (len-i)
-            | otherwise              = loop (i+d) (cnt+1)
-            where d = iter_ t i
+    | otherwise = text arr (off+i) (len-i)
+  where i = iterN n t
 {-# INLINE [1] drop #-}
 
 {-# RULES
