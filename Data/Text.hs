@@ -122,6 +122,7 @@ module Data.Text
 
     -- ** Breaking strings
     , take
+    , takeEnd
     , drop
     , dropEnd
     , takeWhile
@@ -1017,6 +1018,19 @@ take n t@(Text arr off len)
 "TEXT take -> unfused" [1] forall n t.
     unstream (S.take n (stream t)) = take n t
   #-}
+
+-- | /O(n)/ 'dropEnd' @n@ @t@ returns the suffix remaining after
+-- taking @n@ characters from the end of @t@.
+--
+-- Examples:
+--
+-- > takeEnd 3 "foobar" == "bar"
+takeEnd :: Int -> Text -> Text
+takeEnd n t@(Text arr off len)
+    | n <= 0    = empty
+    | n >= len  = t
+    | otherwise = text arr (off+i) (len-i)
+  where i = iterNEnd n t
 
 iterNEnd :: Int -> Text -> Int
 iterNEnd n t@(Text _arr _off len) = loop (len-1) n

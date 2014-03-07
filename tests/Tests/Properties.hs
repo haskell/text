@@ -462,6 +462,8 @@ s_take_s m        = L.take n      `eqP` (unpackS . S.unstream . S.take n)
 sf_take p n       = (L.take n . L.filter p) `eqP`
                     (unpackS . S.take n . S.filter p)
 t_take n          = L.take n      `eqP` (unpackS . T.take n)
+t_takeEnd n       = (L.reverse . L.take n . L.reverse) `eqP`
+                    (unpackS . T.takeEnd n)
 tl_take n         = L.take n      `eqP` (unpackS . TL.take (fromIntegral n))
 s_drop n          = L.drop n      `eqP` (unpackS . S.drop n)
 s_drop_s m        = L.drop n      `eqP` (unpackS . S.unstream . S.drop n)
@@ -1060,6 +1062,7 @@ tests =
         testProperty "s_take_s" s_take_s,
         testProperty "sf_take" sf_take,
         testProperty "t_take" t_take,
+        testProperty "t_takeEnd" t_takeEnd,
         testProperty "tl_take" tl_take,
         testProperty "s_drop" s_drop,
         testProperty "s_drop_s" s_drop_s,
