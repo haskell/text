@@ -1164,13 +1164,8 @@ splitAt :: Int -> Text -> (Text, Text)
 splitAt n t@(Text arr off len)
     | n <= 0    = (empty, t)
     | n >= len  = (t, empty)
-    | otherwise = (Text arr off k, Text arr (off+k) (len-k))
-  where k = loop 0 0
-        loop !i !cnt
-            | i >= len || cnt >= n = i
-            | otherwise            = loop (i+d) (cnt+1)
-            where d                = iter_ t i
-{-# INLINE splitAt #-}
+    | otherwise = (text arr off k, text arr (off+k) (len-k))
+  where k = iterN n t
 
 -- | /O(n)/ 'span', applied to a predicate @p@ and text @t@, returns
 -- a pair whose first element is the longest prefix (possibly empty)
