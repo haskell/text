@@ -946,12 +946,11 @@ take i t0         = take' i t0
 takeEnd :: Int64 -> Text -> Text
 takeEnd n t0
     | n <= 0    = empty
-    | otherwise = fromChunks . L.reverse .
-                  takeChunk n . L.reverse . toChunks $ t0
-  where takeChunk _ [] = []
-        takeChunk i (t:ts)
-          | i <= l    = [T.takeEnd (fromIntegral i) t]
-          | otherwise = t : takeChunk (i-l) ts
+    | otherwise = takeChunk n empty . L.reverse . toChunks $ t0
+  where takeChunk _ acc [] = acc
+        takeChunk i acc (t:ts)
+          | i <= l    = chunk (T.takeEnd (fromIntegral i) t) acc
+          | otherwise = takeChunk (i-l) (Chunk t acc) ts
           where l = fromIntegral (T.length t)
 
 -- | /O(n)/ 'drop' @n@, applied to a 'Text', returns the suffix of the
