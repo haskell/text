@@ -215,7 +215,7 @@ import qualified Data.Text.Internal.Lazy.Fusion as S
 import Data.Text.Internal.Fusion.Types (PairS(..))
 import Data.Text.Internal.Lazy.Fusion (stream, unstream)
 import Data.Text.Internal.Lazy (Text(..), chunk, empty, foldlChunks, foldrChunks)
-import Data.Text.Internal (firstf, safe, textP)
+import Data.Text.Internal (firstf, safe, text)
 import qualified Data.Text.Internal.Functions as F
 import Data.Text.Internal.Lazy.Search (indices)
 #if __GLASGOW_HASKELL__ >= 702
@@ -1002,7 +1002,7 @@ dropWords i t0
   where drop' 0 ts           = ts
         drop' _ Empty        = Empty
         drop' n (Chunk (T.Text arr off len) ts)
-            | n < len'  = chunk (textP arr (off+n') (len-n')) ts
+            | n < len'  = chunk (text arr (off+n') (len-n')) ts
             | otherwise = drop' (n - len') ts
             where len'  = fromIntegral len
                   n'    = fromIntegral n
@@ -1113,8 +1113,8 @@ splitAtWord _ Empty = empty :*: empty
 splitAtWord x (Chunk c@(T.Text arr off len) cs)
     | y >= len  = let h :*: t = splitAtWord (x-fromIntegral len) cs
                   in  Chunk c h :*: t
-    | otherwise = chunk (textP arr off y) empty :*:
-                  chunk (textP arr (off+y) (len-y)) cs
+    | otherwise = chunk (text arr off y) empty :*:
+                  chunk (text arr (off+y) (len-y)) cs
     where y = fromIntegral x
 
 -- | /O(n+m)/ Find the first instance of @needle@ (which must be

@@ -213,7 +213,7 @@ import qualified Data.Text.Internal.Fusion as S
 import qualified Data.Text.Internal.Fusion.Common as S
 import Data.Text.Internal.Fusion (stream, reverseStream, unstream)
 import Data.Text.Internal.Private (span_)
-import Data.Text.Internal (Text(..), empty, firstf, safe, textP)
+import Data.Text.Internal (Text(..), empty, firstf, safe, text)
 import qualified Prelude as P
 import Data.Text.Unsafe (Iter(..), iter, iter_, lengthWord16, reverseIter,
                          reverseIter_, unsafeHead, unsafeTail)
@@ -452,7 +452,7 @@ head t = S.head (stream t)
 uncons :: Text -> Maybe (Char, Text)
 uncons t@(Text arr off len)
     | len <= 0  = Nothing
-    | otherwise = Just (c, textP arr (off+d) (len-d))
+    | otherwise = Just (c, text arr (off+d) (len-d))
     where Iter c d = iter t 0
 {-# INLINE [1] uncons #-}
 
@@ -483,7 +483,7 @@ last (Text arr off len)
 tail :: Text -> Text
 tail t@(Text arr off len)
     | len <= 0  = emptyError "tail"
-    | otherwise = textP arr (off+d) (len-d)
+    | otherwise = text arr (off+d) (len-d)
     where d = iter_ t 0
 {-# INLINE [1] tail #-}
 
@@ -498,8 +498,8 @@ tail t@(Text arr off len)
 -- be non-empty.  Subject to fusion.
 init :: Text -> Text
 init (Text arr off len) | len <= 0                   = emptyError "init"
-                        | n >= 0xDC00 && n <= 0xDFFF = textP arr off (len-2)
-                        | otherwise                  = textP arr off (len-1)
+                        | n >= 0xDC00 && n <= 0xDFFF = text arr off (len-2)
+                        | otherwise                  = text arr off (len-1)
     where
       n = A.unsafeIndex arr (off+len-1)
 {-# INLINE [1] init #-}
@@ -1004,7 +1004,7 @@ take :: Int -> Text -> Text
 take n t@(Text arr off len)
     | n <= 0    = empty
     | n >= len  = t
-    | otherwise = textP arr off (iterN n t)
+    | otherwise = text arr off (iterN n t)
 {-# INLINE [1] take #-}
 
 iterN :: Int -> Text -> Int
@@ -1031,7 +1031,7 @@ takeEnd :: Int -> Text -> Text
 takeEnd n t@(Text arr off len)
     | n <= 0    = empty
     | n >= len  = t
-    | otherwise = textP arr (off+i) (len-i)
+    | otherwise = text arr (off+i) (len-i)
   where i = iterNEnd n t
 
 iterNEnd :: Int -> Text -> Int
@@ -1049,7 +1049,7 @@ drop :: Int -> Text -> Text
 drop n t@(Text arr off len)
     | n <= 0    = t
     | n >= len  = empty
-    | otherwise = textP arr (off+i) (len-i)
+    | otherwise = text arr (off+i) (len-i)
   where i = iterN n t
 {-# INLINE [1] drop #-}
 
@@ -1070,7 +1070,7 @@ dropEnd :: Int -> Text -> Text
 dropEnd n t@(Text arr off len)
     | n <= 0    = t
     | n >= len  = empty
-    | otherwise = textP arr off (iterNEnd n t)
+    | otherwise = text arr off (iterNEnd n t)
 
 -- | /O(n)/ 'takeWhile', applied to a predicate @p@ and a 'Text',
 -- returns the longest prefix (possibly empty) of elements that
@@ -1079,7 +1079,7 @@ takeWhile :: (Char -> Bool) -> Text -> Text
 takeWhile p t@(Text arr off len) = loop 0
   where loop !i | i >= len    = t
                 | p c         = loop (i+d)
-                | otherwise   = textP arr off i
+                | otherwise   = text arr off i
             where Iter c d    = iter t i
 {-# INLINE [1] takeWhile #-}
 
@@ -1165,7 +1165,7 @@ splitAt n t@(Text arr off len)
     | n <= 0    = (empty, t)
     | n >= len  = (t, empty)
     | otherwise = let k = iterN n t
-                  in (textP arr off k, textP arr (off+k) (len-k))
+                  in (text arr off k, text arr (off+k) (len-k))
 
 -- | /O(n)/ 'span', applied to a predicate @p@ and text @t@, returns
 -- a pair whose first element is the longest prefix (possibly empty)
@@ -1188,7 +1188,7 @@ groupBy p = loop
   where
     loop t@(Text arr off len)
         | null t    = []
-        | otherwise = textP arr off n : loop (textP arr (off+n) (len-n))
+        | otherwise = text arr off n : loop (text arr (off+n) (len-n))
         where Iter c d = iter t 0
               n     = d + findAIndexOrEnd (not . p c) (Text arr (off+d) (len-d))
 
@@ -1247,8 +1247,8 @@ splitOn pat@(Text _ _ l) src@(Text arr off len)
     | isSingleton pat = split (== unsafeHead pat) src
     | otherwise       = go 0 (indices pat src)
   where
-    go !s (x:xs) =  textP arr (s+off) (x-s) : go (x+l) xs
-    go  s _      = [textP arr (s+off) (len-s)]
+    go !s (x:xs) =  text arr (s+off) (x-s) : go (x+l) xs
+    go  s _      = [text arr (s+off) (len-s)]
 {-# INLINE [1] splitOn #-}
 
 {-# RULES
@@ -1340,7 +1340,7 @@ breakOn pat src@(Text arr off len)
     | null pat  = emptyError "breakOn"
     | otherwise = case indices pat src of
                     []    -> (src, empty)
-                    (x:_) -> (textP arr off x, textP arr (off+x) (len-x))
+                    (x:_) -> (text arr off x, text arr (off+x) (len-x))
 {-# INLINE breakOn #-}
 
 -- | /O(n+m)/ Similar to 'breakOn', but searches from the end of the
@@ -1382,7 +1382,7 @@ breakOnAll pat src@(Text arr off slen)
     | otherwise = L.map step (indices pat src)
   where
     step       x = (chunk 0 x, chunk x (slen-x))
-    chunk !n !l  = textP arr (n+off) l
+    chunk !n !l  = text arr (n+off) l
 {-# INLINE breakOnAll #-}
 
 -------------------------------------------------------------------------------
@@ -1582,7 +1582,7 @@ isInfixOf needle haystack
 -- > fnordLength _                                 = -1
 stripPrefix :: Text -> Text -> Maybe Text
 stripPrefix p@(Text _arr _off plen) t@(Text arr off len)
-    | p `isPrefixOf` t = Just $! textP arr (off+plen) (len-plen)
+    | p `isPrefixOf` t = Just $! text arr (off+plen) (len-plen)
     | otherwise        = Nothing
 
 -- | /O(n)/ Find the longest non-empty common prefix of two strings
@@ -1602,8 +1602,8 @@ commonPrefixes t0@(Text arr0 off0 len0) t1@(Text arr1 off1 len1) = go 0 0
   where
     go !i !j | i < len0 && j < len1 && a == b = go (i+d0) (j+d1)
              | i > 0     = Just (Text arr0 off0 i,
-                                 textP arr0 (off0+i) (len0-i),
-                                 textP arr1 (off1+j) (len1-j))
+                                 text arr0 (off0+i) (len0-i),
+                                 text arr1 (off1+j) (len1-j))
              | otherwise = Nothing
       where Iter a d0 = iter t0 i
             Iter b d1 = iter t1 j
@@ -1628,7 +1628,7 @@ commonPrefixes t0@(Text arr0 off0 len0) t1@(Text arr1 off1 len1) = go 0 0
 -- > quuxLength _                                = -1
 stripSuffix :: Text -> Text -> Maybe Text
 stripSuffix p@(Text _arr _off plen) t@(Text arr off len)
-    | p `isSuffixOf` t = Just $! textP arr off (len-plen)
+    | p `isSuffixOf` t = Just $! text arr off (len-plen)
     | otherwise        = Nothing
 
 -- | Add a list of non-negative numbers.  Errors out on overflow.

@@ -54,8 +54,8 @@ data Text = Text
     deriving (Typeable)
 
 -- | Smart constructor.
-text :: A.Array -> Int -> Int -> Text
-text arr off len =
+text_ :: A.Array -> Int -> Int -> Text
+text_ arr off len =
 #if defined(ASSERTS)
   let c    = A.unsafeIndex arr off
       alen = A.length arr
@@ -65,7 +65,7 @@ text arr off len =
      assert (len == 0 || c < 0xDC00 || c > 0xDFFF) $
 #endif
      Text arr off len
-{-# INLINE text #-}
+{-# INLINE text_ #-}
 
 -- | /O(1)/ The empty 'Text'.
 empty :: Text
@@ -74,10 +74,14 @@ empty = Text A.empty 0 0
 
 -- | Construct a 'Text' without invisibly pinning its byte array in
 -- memory if its length has dwindled to zero.
-textP :: A.Array -> Int -> Int -> Text
-textP arr off len | len == 0  = empty
+text :: A.Array -> Int -> Int -> Text
+text arr off len | len == 0  = empty
                   | otherwise = text arr off len
-{-# INLINE textP #-}
+{-# INLINE text #-}
+
+textP :: A.Array -> Int -> Int -> Text
+{-# DEPRECATED textP "Use text instead" #-}
+textP = text
 
 -- | A useful 'show'-like function for debugging purposes.
 showText :: Text -> String

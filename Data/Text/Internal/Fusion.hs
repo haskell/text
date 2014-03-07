@@ -132,7 +132,7 @@ length = S.lengthI
 reverse :: Stream Char -> Text
 reverse (Stream next s len0)
     | isEmpty len0 = I.empty
-    | otherwise    = I.textP arr off' len'
+    | otherwise    = I.text arr off' len'
   where
     len0' = upperBound 4 (larger len0 4)
     (arr, (off', len')) = A.run2 (A.new len0' >>= loop s (len0'-1) len0')
@@ -210,7 +210,7 @@ countChar = S.countCharI
 -- function to each element of a 'Text', passing an accumulating
 -- parameter from left to right, and returns a final 'Text'.
 mapAccumL :: (a -> Char -> (a,Char)) -> a -> Stream Char -> (a, Text)
-mapAccumL f z0 (Stream next0 s0 len) = (nz,I.textP na 0 nl)
+mapAccumL f z0 (Stream next0 s0 len) = (nz, I.text na 0 nl)
   where
     (na,(nz,nl)) = A.run2 (A.new mlen >>= \arr -> outer arr mlen z0 s0 0)
       where mlen = upperBound 4 len

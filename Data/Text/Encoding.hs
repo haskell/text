@@ -86,7 +86,7 @@ import Data.ByteString as B
 import Data.ByteString.Internal as B hiding (c2w)
 import Data.Text ()
 import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode)
-import Data.Text.Internal (Text(..), safe, textP)
+import Data.Text.Internal (Text(..), safe, text)
 import Data.Text.Internal.Private (runText)
 import Data.Text.Internal.Unsafe.Char (unsafeWrite)
 import Data.Text.Internal.Unsafe.Shift (shiftR)
@@ -130,7 +130,7 @@ decodeASCII = decodeUtf8
 -- 'decodeLatin1' is semantically equivalent to
 --  @Data.Text.pack . Data.ByteString.Char8.unpack@
 decodeLatin1 :: ByteString -> Text
-decodeLatin1 (PS fp off len) = textP a 0 len
+decodeLatin1 (PS fp off len) = text a 0 len
  where
   a = A.run (A.new len >>= unsafeIOToST . go)
   go dest = withForeignPtr fp $ \ptr -> do
@@ -285,7 +285,7 @@ streamDecodeUtf8With onErr = decodeChunk B.empty 0 0
                   codepoint <- peek codepointPtr
                   chunkText <- unsafeSTToIO $ do
                       arr <- A.unsafeFreeze dest
-                      return $! textP arr 0 (fromIntegral n)
+                      return $! text arr 0 (fromIntegral n)
                   lastPtr <- peek curPtrPtr
                   let left = lastPtr `minusPtr` curPtr
                       undecoded = case state of

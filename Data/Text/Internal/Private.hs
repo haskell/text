@@ -16,14 +16,14 @@ module Data.Text.Internal.Private
     ) where
 
 import Control.Monad.ST (ST, runST)
-import Data.Text.Internal (Text(..), textP)
+import Data.Text.Internal (Text(..), text)
 import Data.Text.Unsafe (Iter(..), iter)
 import qualified Data.Text.Array as A
 
 span_ :: (Char -> Bool) -> Text -> (# Text, Text #)
 span_ p t@(Text arr off len) = (# hd,tl #)
-  where hd = textP arr off k
-        tl = textP arr (off+k) (len-k)
+  where hd = text arr off k
+        tl = text arr (off+k) (len-k)
         !k = loop 0
         loop !i | i < len && p c = loop (i+d)
                 | otherwise      = i
@@ -33,5 +33,5 @@ span_ p t@(Text arr off len) = (# hd,tl #)
 runText :: (forall s. (A.MArray s -> Int -> ST s Text) -> ST s Text) -> Text
 runText act = runST (act $ \ !marr !len -> do
                              arr <- A.unsafeFreeze marr
-                             return $! textP arr 0 len)
+                             return $! text arr 0 len)
 {-# INLINE runText #-}
