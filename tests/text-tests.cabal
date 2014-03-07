@@ -98,6 +98,7 @@ library
     Data.Text.Internal.Lazy.Fusion
     Data.Text.Lazy.IO
     Data.Text.Internal.Lazy
+    Data.Text.Internal.Read
     Data.Text.Lazy.Read
     Data.Text.Internal.Lazy.Search
     Data.Text.Internal.Private
