@@ -130,6 +130,7 @@ module Data.Text.Lazy
     -- ** Breaking strings
     , take
     , drop
+    , dropEnd
     , takeWhile
     , dropWhile
     , dropWhileEnd
@@ -956,6 +957,23 @@ drop i t0
 "LAZY TEXT drop -> unfused" [1] forall n t.
     unstream (S.drop n (stream t)) = drop n t
   #-}
+
+-- | /O(n)/ 'dropEnd' @n@ @t@ returns the prefix remaining after
+-- dropping @n@ characters from the end of @t@.
+--
+-- Examples:
+--
+-- > dropEnd 3 "foobar" == "foo"
+dropEnd :: Int64 -> Text -> Text
+dropEnd n t0
+    | n <= 0    = t0
+    | otherwise = dropChunk n . L.reverse . toChunks $ t0
+  where dropChunk m [] = empty
+        dropChunk m (t:ts)
+          | m >= l    = dropChunk (m-l) ts
+          | otherwise = fromChunks . L.reverse $
+                        T.dropEnd (fromIntegral m) t : ts
+          where l = fromIntegral (T.length t)
 
 -- | /O(n)/ 'dropWords' @n@ returns the suffix with @n@ 'Word16'
 -- values dropped, or the empty 'Text' if @n@ is greater than the
