@@ -213,7 +213,7 @@ import qualified Data.Text.Internal.Fusion as S
 import qualified Data.Text.Internal.Fusion.Common as S
 import Data.Text.Internal.Fusion (stream, reverseStream, unstream)
 import Data.Text.Internal.Private (span_)
-import Data.Text.Internal (Text(..), empty, firstf, safe, text, textP)
+import Data.Text.Internal (Text(..), empty, firstf, safe, textP)
 import qualified Prelude as P
 import Data.Text.Unsafe (Iter(..), iter, iter_, lengthWord16, reverseIter,
                          reverseIter_, unsafeHead, unsafeTail)
@@ -1004,7 +1004,7 @@ take :: Int -> Text -> Text
 take n t@(Text arr off len)
     | n <= 0    = empty
     | n >= len  = t
-    | otherwise = text arr off (iterN n t)
+    | otherwise = textP arr off (iterN n t)
 {-# INLINE [1] take #-}
 
 iterN :: Int -> Text -> Int
@@ -1031,7 +1031,7 @@ takeEnd :: Int -> Text -> Text
 takeEnd n t@(Text arr off len)
     | n <= 0    = empty
     | n >= len  = t
-    | otherwise = text arr (off+i) (len-i)
+    | otherwise = textP arr (off+i) (len-i)
   where i = iterNEnd n t
 
 iterNEnd :: Int -> Text -> Int
@@ -1049,7 +1049,7 @@ drop :: Int -> Text -> Text
 drop n t@(Text arr off len)
     | n <= 0    = t
     | n >= len  = empty
-    | otherwise = text arr (off+i) (len-i)
+    | otherwise = textP arr (off+i) (len-i)
   where i = iterN n t
 {-# INLINE [1] drop #-}
 
@@ -1070,7 +1070,7 @@ dropEnd :: Int -> Text -> Text
 dropEnd n t@(Text arr off len)
     | n <= 0    = t
     | n >= len  = empty
-    | otherwise = text arr off (iterNEnd n t)
+    | otherwise = textP arr off (iterNEnd n t)
 
 -- | /O(n)/ 'takeWhile', applied to a predicate @p@ and a 'Text',
 -- returns the longest prefix (possibly empty) of elements that
@@ -1164,8 +1164,8 @@ splitAt :: Int -> Text -> (Text, Text)
 splitAt n t@(Text arr off len)
     | n <= 0    = (empty, t)
     | n >= len  = (t, empty)
-    | otherwise = (text arr off k, text arr (off+k) (len-k))
-  where k = iterN n t
+    | otherwise = let k = iterN n t
+                  in (textP arr off k, textP arr (off+k) (len-k))
 
 -- | /O(n)/ 'span', applied to a predicate @p@ and text @t@, returns
 -- a pair whose first element is the longest prefix (possibly empty)
@@ -1188,7 +1188,7 @@ groupBy p = loop
   where
     loop t@(Text arr off len)
         | null t    = []
-        | otherwise = text arr off n : loop (text arr (off+n) (len-n))
+        | otherwise = textP arr off n : loop (textP arr (off+n) (len-n))
         where Iter c d = iter t 0
               n     = d + findAIndexOrEnd (not . p c) (Text arr (off+d) (len-d))
 
