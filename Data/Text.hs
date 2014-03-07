@@ -1018,6 +1018,14 @@ take n t@(Text arr off len)
     unstream (S.take n (stream t)) = take n t
   #-}
 
+iterNEnd :: Int -> Text -> Int
+iterNEnd n t@(Text _arr _off len) = loop (len-1) n
+  where loop i !m
+          | i <= 0    = 0
+          | m <= 1    = i
+          | otherwise = loop (i+d) (m-1)
+          where d = reverseIter_ t i
+
 -- | /O(n)/ 'drop' @n@, applied to a 'Text', returns the suffix of the
 -- 'Text' after the first @n@ characters, or the empty 'Text' if @n@
 -- is greater than the length of the 'Text'. Subject to fusion.
@@ -1049,12 +1057,7 @@ dropEnd :: Int -> Text -> Text
 dropEnd n t@(Text arr off len)
     | n <= 0    = t
     | n >= len  = empty
-    | otherwise = loop (len-1) n
-  where loop i !m
-          | i <= 0    = empty
-          | m <= 1    = Text arr off i
-          | otherwise = loop (i+d) (m-1)
-          where d = reverseIter_ t i
+    | otherwise = text arr off (iterNEnd n t)
 
 -- | /O(n)/ 'takeWhile', applied to a predicate @p@ and a 'Text',
 -- returns the longest prefix (possibly empty) of elements that
