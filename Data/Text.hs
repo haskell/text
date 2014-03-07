@@ -1004,13 +1004,15 @@ take :: Int -> Text -> Text
 take n t@(Text arr off len)
     | n <= 0    = empty
     | n >= len  = t
-    | otherwise = Text arr off (loop 0 0)
-  where
-      loop !i !cnt
-           | i >= len || cnt >= n = i
-           | otherwise            = loop (i+d) (cnt+1)
-           where d = iter_ t i
+    | otherwise = text arr off (iterN n t)
 {-# INLINE [1] take #-}
+
+iterN :: Int -> Text -> Int
+iterN n t@(Text _arr _off len) = loop 0 0
+  where loop !i !cnt
+            | i >= len || cnt >= n = i
+            | otherwise            = loop (i+d) (cnt+1)
+          where d = iter_ t i
 
 {-# RULES
 "TEXT take -> fused" [~1] forall n t.
