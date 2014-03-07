@@ -1021,7 +1021,7 @@ iterN n t@(Text _arr _off len) = loop 0 0
     unstream (S.take n (stream t)) = take n t
   #-}
 
--- | /O(n)/ 'dropEnd' @n@ @t@ returns the suffix remaining after
+-- | /O(n)/ 'takeEnd' @n@ @t@ returns the suffix remaining after
 -- taking @n@ characters from the end of @t@.
 --
 -- Examples:
