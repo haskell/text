@@ -129,6 +129,7 @@ module Data.Text.Lazy
 
     -- ** Breaking strings
     , take
+    , takeEnd
     , drop
     , dropEnd
     , takeWhile
@@ -935,6 +936,23 @@ take i t0         = take' i t0
 "LAZY TEXT take -> unfused" [1] forall n t.
     unstream (S.take n (stream t)) = take n t
   #-}
+
+-- | /O(n)/ 'takeEnd' @n@ @t@ returns the suffix remaining after
+-- taking @n@ characters from the end of @t@.
+--
+-- Examples:
+--
+-- > takeEnd 3 "foobar" == "bar"
+takeEnd :: Int64 -> Text -> Text
+takeEnd n t0
+    | n <= 0    = empty
+    | otherwise = fromChunks . L.reverse .
+                  takeChunk n . L.reverse . toChunks $ t0
+  where takeChunk _ [] = []
+        takeChunk i (t:ts)
+          | i <= l    = [T.takeEnd (fromIntegral i) t]
+          | otherwise = t : takeChunk (i-l) ts
+          where l = fromIntegral (T.length t)
 
 -- | /O(n)/ 'drop' @n@, applied to a 'Text', returns the suffix of the
 -- 'Text' after the first @n@ characters, or the empty 'Text' if @n@
