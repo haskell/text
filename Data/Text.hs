@@ -123,6 +123,7 @@ module Data.Text
     -- ** Breaking strings
     , take
     , drop
+    , dropEnd
     , takeWhile
     , dropWhile
     , dropWhileEnd
@@ -214,7 +215,7 @@ import Data.Text.Internal.Private (span_)
 import Data.Text.Internal (Text(..), empty, firstf, safe, text, textP)
 import qualified Prelude as P
 import Data.Text.Unsafe (Iter(..), iter, iter_, lengthWord16, reverseIter,
-                         unsafeHead, unsafeTail)
+                         reverseIter_, unsafeHead, unsafeTail)
 import Data.Text.Internal.Unsafe.Char (unsafeChr)
 import qualified Data.Text.Internal.Functions as F
 import qualified Data.Text.Internal.Encoding.Utf16 as U16
@@ -1037,6 +1038,23 @@ drop n t@(Text arr off len)
 "TEXT drop -> unfused" [1] forall n t.
     unstream (S.drop n (stream t)) = drop n t
   #-}
+
+-- | /O(n)/ 'dropEnd' @n@ @t@ returns the prefix remaining after
+-- dropping @n@ characters from the end of @t@.
+--
+-- Examples:
+--
+-- > dropEnd 3 "foobar" == "foo"
+dropEnd :: Int -> Text -> Text
+dropEnd n t@(Text arr off len)
+    | n <= 0    = t
+    | n >= len  = empty
+    | otherwise = loop (len-1) n
+  where loop i !m
+          | i <= 0    = empty
+          | m <= 1    = Text arr off i
+          | otherwise = loop (i+d) (m-1)
+          where d = reverseIter_ t i
 
 -- | /O(n)/ 'takeWhile', applied to a predicate @p@ and a 'Text',
 -- returns the longest prefix (possibly empty) of elements that

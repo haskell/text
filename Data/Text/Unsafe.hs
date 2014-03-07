@@ -18,6 +18,7 @@ module Data.Text.Unsafe
     , iter
     , iter_
     , reverseIter
+    , reverseIter_
     , unsafeHead
     , unsafeTail
     , lengthWord16
@@ -93,6 +94,16 @@ reverseIter (Text arr off _len) i
         j = off + i
         k = j - 1
 {-# INLINE reverseIter #-}
+
+-- | /O(1)/ Iterate one step backwards through a UTF-16 array,
+-- returning the delta to add (i.e. a negative number) to give the
+-- next offset to iterate at.
+reverseIter_ :: Text -> Int -> Int
+reverseIter_ (Text arr off _len) i
+    | m < 0xDC00 || m > 0xDFFF = -1
+    | otherwise                = -2
+  where m = A.unsafeIndex arr (off+i)
+{-# INLINE reverseIter_ #-}
 
 -- | /O(1)/ Return the length of a 'Text' in units of 'Word16'.  This
 -- is useful for sizing a target array appropriately before using
