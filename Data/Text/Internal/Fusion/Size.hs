@@ -28,6 +28,7 @@ module Data.Text.Internal.Fusion.Size
     , larger
     , upperBound
     , lowerBound
+    , compareSize
     , isEmpty
     ) where
 
@@ -143,6 +144,14 @@ lowerBound :: Int -> Size -> Int
 lowerBound _ (Between n _) = n
 lowerBound k _             = k
 {-# INLINE lowerBound #-}
+
+compareSize :: Size -> Int -> Maybe Ordering
+compareSize (Between ma mb) n
+  | mb < n             = Just LT
+  | ma > n             = Just GT
+  | ma == n && mb == n = Just EQ
+compareSize _ _        = Nothing
+
 
 isEmpty :: Size -> Bool
 isEmpty (Between _ n) = n <= 0
