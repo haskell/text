@@ -51,7 +51,7 @@ module Data.Text.Internal.Fusion
 
 import Prelude (Bool(..), Char, Maybe(..), Monad(..), Int,
                 Num(..), Ord(..), ($), (&&),
-                fromIntegral, otherwise)
+                fromIntegral, otherwise, quot)
 import Data.Bits ((.&.))
 import Data.Text.Internal (Text(..))
 import Data.Text.Internal.Private (runText)
@@ -68,7 +68,7 @@ default(Int)
 
 -- | /O(n)/ Convert a 'Text' into a 'Stream Char'.
 stream :: Text -> Stream Char
-stream (Text arr off len) = Stream next off (maxSize len)
+stream (Text arr off len) = Stream next off (betweenSize (len `quot` 2) len)
     where
       !end = off+len
       next !i
@@ -83,7 +83,7 @@ stream (Text arr off len) = Stream next off (maxSize len)
 -- | /O(n)/ Convert a 'Text' into a 'Stream Char', but iterate
 -- backwards.
 reverseStream :: Text -> Stream Char
-reverseStream (Text arr off len) = Stream next (off+len-1) (maxSize len)
+reverseStream (Text arr off len) = Stream next (off+len-1) (betweenSize (len `quot` 2) len)
     where
       {-# INLINE next #-}
       next !i

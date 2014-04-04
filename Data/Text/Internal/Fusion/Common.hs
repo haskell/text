@@ -321,8 +321,10 @@ compareLengthI :: Integral a => Stream Char -> a -> Ordering
 compareLengthI (Stream next s0 len) n =
     case exactly len of
       Nothing
-        | upperBound (fromIntegral n) len < (fromIntegral n) -> LT
+        | upperBound n' len < n' -> LT
+        | lowerBound n' len > n' -> GT
         | otherwise -> loop_cmp 0 s0
+        where n' = fromIntegral n
       Just i -> compare (fromIntegral i) n
     where
       loop_cmp !z s  = case next s of
