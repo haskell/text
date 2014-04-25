@@ -66,6 +66,7 @@ extra-source-files:
 flag developer
   description: operate in developer mode
   default: False
+  manual: True
 
 flag integer-simple
   description: Use the simple integer library instead of GMP
