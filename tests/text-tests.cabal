@@ -18,6 +18,7 @@ cabal-version: >=1.8
 flag hpc
   description: Enable HPC to generate coverage reports
   default:     False
+  manual:      True
 
 executable text-tests
   main-is: Tests.hs
@@ -66,6 +67,7 @@ library
   hs-source-dirs: ..
   c-sources: ../cbits/cbits.c
   include-dirs: ../include
+  ghc-options: -Wall
   exposed-modules:
     Data.Text
     Data.Text.Array
