@@ -202,8 +202,8 @@ import Control.DeepSeq (NFData)
 import Control.Exception (assert)
 #endif
 import Data.Char (isSpace)
-import Data.Data (Data(gfoldl, toConstr, gunfold, dataTypeOf))
-import Data.Data (mkNoRepType)
+import Data.Data (Data(gfoldl, toConstr, gunfold, dataTypeOf), constrIndex,
+                  Constr, mkConstr, DataType, mkDataType, Fixity(Prefix))
 import Control.Monad (foldM)
 import qualified Data.Text.Array as A
 import qualified Data.List as L
@@ -335,20 +335,31 @@ instance NFData Text
 -- | This instance preserves data abstraction at the cost of inefficiency.
 -- We omit reflection services for the sake of data abstraction.
 --
--- This instance was created by copying the behavior of Data.Set and
--- Data.Map. If you feel a mistake has been made, please feel free to
+-- This instance was created by copying the updated behavior of @Data.Set@ and
+-- @Data.Map@. If you feel a mistake has been made, please feel free to
 -- submit improvements.
 --
 -- Original discussion is archived here:
 --
---  "could we get a Data instance for Data.Text.Text?"
---  http://groups.google.com/group/haskell-cafe/browse_thread/thread/b5bbb1b28a7e525d/0639d46852575b93
+-- <http://groups.google.com/group/haskell-cafe/browse_thread/thread/b5bbb1b28a7e525d/0639d46852575b93 could we get a Data instance for Data.Text.Text?>
+--
+-- The followup discussion that changed the behavior of @Data.Set@ and @Data.Map@ is archived here
+--
+-- <http://markmail.org/message/trovdc6zkphyi3cr#query:+page:1+mid:a46der3iacwjcf6n+state:results Proposal: Allow gunfold for Data.Map, ...>
 
 instance Data Text where
   gfoldl f z txt = z pack `f` (unpack txt)
-  toConstr _     = P.error "Data.Text.Text.toConstr"
-  gunfold _ _    = P.error "Data.Text.Text.gunfold"
-  dataTypeOf _   = mkNoRepType "Data.Text.Text"
+  toConstr _ = packConstr
+  gunfold k z c = case constrIndex c of
+    1 -> k (z pack)
+    _ -> P.error "gunfold"
+  dataTypeOf _ = textDataType
+
+packConstr :: Constr
+packConstr = mkConstr textDataType "pack" [] Prefix
+
+textDataType :: DataType
+textDataType = mkDataType "Data.Text.Text" [packConstr]
 
 -- | /O(n)/ Compare two 'Text' values lexicographically.
 compareText :: Text -> Text -> Ordering
