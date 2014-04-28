@@ -51,7 +51,7 @@ extra-source-files:
     benchmarks/python/*.py
     benchmarks/ruby/*.rb
     benchmarks/text-benchmarks.cabal
-    changelog
+    changelog.md
     include/*.h
     scripts/*.hs
     tests-and-benchmarks.markdown
