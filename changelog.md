@@ -1,3 +1,18 @@
+1.1.1.0
+
+* The Data.Data instance now allows gunfold to work, via a virtual
+  pack constructor
+
+* dropEnd, takeEnd: new functions
+
+* Comparing the length of a Text against a number can now
+  short-circuit in more cases
+
+1.1.0.1
+
+* streamDecodeUtf8: fixed gh-70, did not return all unconsumed bytes
+  in single-byte chunks
+
 1.1.0.0
 
 * encodeUtf8: Performance is improved by up to 4x.
