@@ -76,7 +76,7 @@ empty = Text A.empty 0 0
 -- memory if its length has dwindled to zero.
 text :: A.Array -> Int -> Int -> Text
 text arr off len | len == 0  = empty
-                  | otherwise = text arr off len
+                 | otherwise = text_ arr off len
 {-# INLINE text #-}
 
 textP :: A.Array -> Int -> Int -> Text
