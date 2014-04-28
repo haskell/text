@@ -30,6 +30,7 @@ import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck hiding ((.&.))
 import Test.QuickCheck.Monadic
+import Test.QuickCheck.Property (Property(..))
 import Tests.QuickCheckUtils
 import Tests.Utils
 import Text.Show.Functions ()
@@ -125,9 +126,9 @@ t_utf8_err bad de = do
         Leading  -> B.append <$> genInvalidUTF8 <*> genUTF8
         Trailing -> B.append <$> genUTF8 <*> genInvalidUTF8
       genUTF8 = E.encodeUtf8 <$> genUnicode
-  forAll gen $ \bs -> do
+  forAll gen $ \bs -> MkProperty $ do
     onErr <- genDecodeErr de
-    monadicIO $ do
+    unProperty . monadicIO $ do
     l <- run $ let len = T.length (E.decodeUtf8With onErr bs)
                in (len `seq` return (Right len)) `Exception.catch`
                   (\(e::UnicodeException) -> return (Left e))
