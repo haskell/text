@@ -315,12 +315,13 @@ lengthI (Stream next s0 _len) = loop_length 0 s0
 --
 -- This function gives the same answer as comparing against the result
 -- of 'lengthI', but can short circuit if the count of characters is
--- greater than the number, and hence be more efficient.
+-- greater than the number or if the stream can't possibly be as long
+-- as the number supplied, and hence be more efficient.
 compareLengthI :: Integral a => Stream Char -> a -> Ordering
 compareLengthI (Stream next s0 len) n =
-    case exactly len of
+    case compareSize len (fromIntegral n) of
+      Just o  -> o
       Nothing -> loop_cmp 0 s0
-      Just i  -> compare (fromIntegral i) n
     where
       loop_cmp !z s  = case next s of
                          Done       -> compare z n

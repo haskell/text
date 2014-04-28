@@ -68,7 +68,7 @@ default(Int)
 
 -- | /O(n)/ Convert a 'Text' into a 'Stream Char'.
 stream :: Text -> Stream Char
-stream (Text arr off len) = Stream next off (maxSize len)
+stream (Text arr off len) = Stream next off (betweenSize (len `shiftR` 1) len)
     where
       !end = off+len
       next !i
@@ -83,7 +83,7 @@ stream (Text arr off len) = Stream next off (maxSize len)
 -- | /O(n)/ Convert a 'Text' into a 'Stream Char', but iterate
 -- backwards.
 reverseStream :: Text -> Stream Char
-reverseStream (Text arr off len) = Stream next (off+len-1) (maxSize len)
+reverseStream (Text arr off len) = Stream next (off+len-1) (betweenSize (len `shiftR` 1) len)
     where
       {-# INLINE next #-}
       next !i
