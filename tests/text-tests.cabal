@@ -102,6 +102,7 @@ library
     Data.Text.Internal.Lazy.Search
     Data.Text.Internal.Private
     Data.Text.Read
+    Data.Text.Internal.Read
     Data.Text.Internal.Search
     Data.Text.Unsafe
     Data.Text.Internal.Unsafe
