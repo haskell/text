@@ -94,9 +94,7 @@ tl_utf32LE   = forAll genUnicode $ (EL.decodeUtf32LE . EL.encodeUtf32LE) `eq` id
 t_utf32BE    = forAll genUnicode $ (E.decodeUtf32BE . E.encodeUtf32BE) `eq` id
 tl_utf32BE   = forAll genUnicode $ (EL.decodeUtf32BE . EL.encodeUtf32BE) `eq` id
 
-t_utf8_incr  = do
-        Positive n <- arbitrary
-        forAll genUnicode $ recode n `eq` id
+t_utf8_incr = forAll genUnicode $ \s (Positive n) -> (recode n `eq` id) s
     where recode n = T.concat . map fst . feedChunksOf n E.streamDecodeUtf8 .
                      E.encodeUtf8
 

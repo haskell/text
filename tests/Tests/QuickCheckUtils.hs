@@ -47,7 +47,7 @@ import Data.Text.Foreign (I16)
 import Data.Word (Word8, Word16)
 import Debug.Trace (trace)
 import System.Random (Random (..), RandomGen)
-import Test.QuickCheck hiding ((.&.))
+import Test.QuickCheck hiding (Small (..), (.&.))
 import Test.QuickCheck.Monadic (assert, monadicIO, run)
 import Tests.Utils
 import qualified Data.ByteString as B
