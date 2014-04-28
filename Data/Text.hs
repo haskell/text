@@ -29,8 +29,8 @@
 --
 -- To use an extended and very rich family of functions for working
 -- with Unicode text (including normalization, regular expressions,
--- non-standard encodings, text breaking, and locales), see the
--- @text-icu@ package: <http://hackage.haskell.org/package/text-icu>
+-- non-standard encodings, text breaking, and locales), see
+-- <http://hackage.haskell.org/package/text-icu the text-icu package >.
 
 module Data.Text
     (
@@ -241,29 +241,32 @@ import GHC.Prim (Addr#)
 -- lazy @Text@ type consists of a list of strict chunks.
 --
 -- The strict 'Text' type requires that an entire string fit into
--- memory at once.  The lazy @Text@ type is capable of streaming
--- strings that are larger than memory using a small memory footprint.
--- In many cases, the overhead of chunked streaming makes the lazy
--- @Text@ type slower than its strict counterpart, but this is not
--- always the case.  Sometimes, the time complexity of a function in
--- one module may be different from the other, due to their differing
--- internal structures.
+-- memory at once.  The lazy 'Data.Text.Lazy.Text' type is capable of
+-- streaming strings that are larger than memory using a small memory
+-- footprint.  In many cases, the overhead of chunked streaming makes
+-- the lazy 'Data.Text.Lazy.Text' type slower than its strict
+-- counterpart, but this is not always the case.  Sometimes, the time
+-- complexity of a function in one module may be different from the
+-- other, due to their differing internal structures.
 --
 -- Each module provides an almost identical API, with the main
 -- difference being that the strict module uses 'Int' values for
--- lengths and counts, while the lazy module uses 'Int64' lengths.
+-- lengths and counts, while the lazy module uses 'Data.Int.Int64'
+-- lengths.
 
 -- $replacement
 --
 -- A 'Text' value is a sequence of Unicode scalar values, as defined
--- in &#xa7;3.9, definition D76 of the Unicode 5.2 standard:
--- <http://www.unicode.org/versions/Unicode5.2.0/ch03.pdf#page=35>. As
--- such, a 'Text' cannot contain values in the range U+D800 to U+DFFF
--- inclusive. Haskell implementations admit all Unicode code points
--- (&#xa7;3.4, definition D10) as 'Char' values, including code points
--- from this invalid range.  This means that there are some 'Char'
--- values that are not valid Unicode scalar values, and the functions
--- in this module must handle those cases.
+-- in
+-- <http://www.unicode.org/versions/Unicode5.2.0/ch03.pdf#page=35 §3.9, definition D76 of the Unicode 5.2 standard >.
+-- As such, a 'Text' cannot contain values in the range U+D800 to
+-- U+DFFF inclusive. Haskell implementations admit all Unicode code
+-- points
+-- (<http://www.unicode.org/versions/Unicode5.2.0/ch03.pdf#page=13 §3.4, definition D10 >)
+-- as 'Char' values, including code points from this invalid range.
+-- This means that there are some 'Char' values that are not valid
+-- Unicode scalar values, and the functions in this module must handle
+-- those cases.
 --
 -- Within this module, many functions construct a 'Text' from one or
 -- more 'Char' values. Those functions will substitute 'Char' values
@@ -277,8 +280,8 @@ import GHC.Prim (Addr#)
 -- range U+D800 through U+DFFF are used by UTF-16 to denote surrogate
 -- code points, and so cannot be represented. The functions replace
 -- invalid scalar values, instead of dropping them, as a security
--- measure. For details, see Unicode Technical Report 36, &#xa7;3.5:
--- <http://unicode.org/reports/tr36/#Deletion_of_Noncharacters>)
+-- measure. For details, see
+-- <http://unicode.org/reports/tr36/#Deletion_of_Noncharacters Unicode Technical Report 36, §3.5 >.)
 
 -- $fusion
 --
@@ -296,11 +299,11 @@ import GHC.Prim (Addr#)
 -- > countChars = T.length . T.toUpper . E.decodeUtf8
 --
 -- From the type signatures involved, this looks like it should
--- allocate one 'ByteString' value, and two 'Text' values. However,
--- when a module is compiled with optimisation enabled under GHC, the
--- two intermediate 'Text' values will be optimised away, and the
--- function will be compiled down to a single loop over the source
--- 'ByteString'.
+-- allocate one 'Data.ByteString.ByteString' value, and two 'Text'
+-- values. However, when a module is compiled with optimisation
+-- enabled under GHC, the two intermediate 'Text' values will be
+-- optimised away, and the function will be compiled down to a single
+-- loop over the source 'Data.ByteString.ByteString'.
 --
 -- Functions that can be fused by the compiler are documented with the
 -- phrase \"Subject to fusion\".
@@ -335,17 +338,17 @@ instance NFData Text
 -- | This instance preserves data abstraction at the cost of inefficiency.
 -- We omit reflection services for the sake of data abstraction.
 --
--- This instance was created by copying the updated behavior of @Data.Set@ and
--- @Data.Map@. If you feel a mistake has been made, please feel free to
--- submit improvements.
+-- This instance was created by copying the updated behavior of
+-- @"Data.Set".@'Data.Set.Set' and @"Data.Map".@'Data.Map.Map'. If you
+-- feel a mistake has been made, please feel free to submit
+-- improvements.
 --
--- Original discussion is archived here:
+-- The original discussion is archived here:
+-- <http://groups.google.com/group/haskell-cafe/browse_thread/thread/b5bbb1b28a7e525d/0639d46852575b93 could we get a Data instance for Data.Text.Text? >
 --
--- <http://groups.google.com/group/haskell-cafe/browse_thread/thread/b5bbb1b28a7e525d/0639d46852575b93 could we get a Data instance for Data.Text.Text?>
---
--- The followup discussion that changed the behavior of @Data.Set@ and @Data.Map@ is archived here
---
--- <http://markmail.org/message/trovdc6zkphyi3cr#query:+page:1+mid:a46der3iacwjcf6n+state:results Proposal: Allow gunfold for Data.Map, ...>
+-- The followup discussion that changed the behavior of 'Data.Set.Set'
+-- and 'Data.Map.Map' is archived here:
+-- <http://markmail.org/message/trovdc6zkphyi3cr#query:+page:1+mid:a46der3iacwjcf6n+state:results Proposal: Allow gunfold for Data.Map, ... >
 
 instance Data Text where
   gfoldl f z txt = z pack `f` (unpack txt)
@@ -669,9 +672,8 @@ replace needle@(Text _      _      neeLen)
 -- /Note/: In some languages, case conversion is a locale- and
 -- context-dependent operation. The case conversion functions in this
 -- module are /not/ locale sensitive. Programs that require locale
--- sensitivity should use appropriate versions of the case mapping
--- functions from the @text-icu@ package:
--- <http://hackage.haskell.org/package/text-icu>
+-- sensitivity should use appropriate versions of the
+-- <http://hackage.haskell.org/package/text-icu-0.6.3.7/docs/Data-Text-ICU.html#g:4 case mapping functions from the text-icu package >.
 
 -- | /O(n)/ Convert a string to folded case.  Subject to fusion.
 --
