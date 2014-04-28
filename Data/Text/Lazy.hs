@@ -985,7 +985,7 @@ dropEnd :: Int64 -> Text -> Text
 dropEnd n t0
     | n <= 0    = t0
     | otherwise = dropChunk n . L.reverse . toChunks $ t0
-  where dropChunk m [] = empty
+  where dropChunk _ [] = empty
         dropChunk m (t:ts)
           | m >= l    = dropChunk (m-l) ts
           | otherwise = fromChunks . L.reverse $
