@@ -68,8 +68,8 @@ decode(uint32_t *state, uint32_t* codep, uint32_t byte) {
  * an UTF16 array
  */
 void
-_hs_text_decode_latin1(uint16_t *dest, const uint8_t const *src,
-                       const uint8_t const *srcend)
+_hs_text_decode_latin1(uint16_t *dest, const uint8_t *src,
+                       const uint8_t *srcend)
 {
   const uint8_t *p = src;
 
@@ -130,14 +130,14 @@ _hs_text_decode_latin1(uint16_t *dest, const uint8_t const *src,
 #if defined(__GNUC__) || defined(__clang__)
 static inline uint8_t const *
 _hs_text_decode_utf8_int(uint16_t *const dest, size_t *destoff,
-			 const uint8_t const **src, const uint8_t const *srcend,
+			 const uint8_t **src, const uint8_t *srcend,
 			 uint32_t *codepoint0, uint32_t *state0)
   __attribute((always_inline));
 #endif
 
 static inline uint8_t const *
 _hs_text_decode_utf8_int(uint16_t *const dest, size_t *destoff,
-			 const uint8_t const **src, const uint8_t const *srcend,
+			 const uint8_t **src, const uint8_t *srcend,
 			 uint32_t *codepoint0, uint32_t *state0)
 {
   uint16_t *d = dest + *destoff;
@@ -202,8 +202,8 @@ _hs_text_decode_utf8_int(uint16_t *const dest, size_t *destoff,
 
 uint8_t const *
 _hs_text_decode_utf8_state(uint16_t *const dest, size_t *destoff,
-                           const uint8_t const **src,
-			   const uint8_t const *srcend,
+                           const uint8_t **src,
+                           const uint8_t *srcend,
                            uint32_t *codepoint0, uint32_t *state0)
 {
   uint8_t const *ret = _hs_text_decode_utf8_int(dest, destoff, src, srcend,
