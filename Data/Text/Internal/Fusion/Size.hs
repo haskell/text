@@ -64,7 +64,7 @@ maxSize n =
 betweenSize :: Int -> Int -> Size
 betweenSize m n =
 #if defined(ASSERTS)
-    assset (m >= 0)
+    assert (m >= 0)
     assert (n >= m)
 #endif
     Between m n
