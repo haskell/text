@@ -22,10 +22,13 @@ module Data.Text.Internal.Fusion.Size
     , exactly
     , exactSize
     , maxSize
+    , betweenSize
     , unknownSize
     , smaller
     , larger
     , upperBound
+    , lowerBound
+    , compareSize
     , isEmpty
     ) where
 
@@ -33,14 +36,13 @@ module Data.Text.Internal.Fusion.Size
 import Control.Exception (assert)
 #endif
 
-data Size = Exact {-# UNPACK #-} !Int -- ^ Exact size.
-          | Max   {-# UNPACK #-} !Int -- ^ Upper bound on size.
-          | Unknown                   -- ^ Unknown size.
+data Size = Between {-# UNPACK #-} !Int {-# UNPACK #-} !Int -- ^ Lower and upper bounds on size.
+          | Unknown                                         -- ^ Unknown size.
             deriving (Eq, Show)
 
 exactly :: Size -> Maybe Int
-exactly (Exact n) = Just n
-exactly _         = Nothing
+exactly (Between na nb) | na == nb = Just na
+exactly _ = Nothing
 {-# INLINE exactly #-}
 
 exactSize :: Int -> Size
@@ -48,7 +50,7 @@ exactSize n =
 #if defined(ASSERTS)
     assert (n >= 0)
 #endif
-    Exact n
+    Between n n
 {-# INLINE exactSize #-}
 
 maxSize :: Int -> Size
@@ -56,8 +58,17 @@ maxSize n =
 #if defined(ASSERTS)
     assert (n >= 0)
 #endif
-    Max n
+    Between 0 n
 {-# INLINE maxSize #-}
+
+betweenSize :: Int -> Int -> Size
+betweenSize m n =
+#if defined(ASSERTS)
+    assert (m >= 0)
+    assert (n >= m)
+#endif
+    Between m n
+{-# INLINE betweenSize #-}
 
 unknownSize :: Size
 unknownSize = Unknown
@@ -68,7 +79,7 @@ instance Num Size where
     (-) = subtractSize
     (*) = mulSize
 
-    fromInteger = f where f = Exact . fromInteger
+    fromInteger = f where f = exactSize . fromInteger
                           {-# INLINE f #-}
 
 add :: Int -> Int -> Int
@@ -78,20 +89,15 @@ add m n | mn >=   0 = mn
 {-# INLINE add #-}
 
 addSize :: Size -> Size -> Size
-addSize (Exact m) (Exact n) = Exact (add m n)
-addSize (Exact m) (Max   n) = Max   (add m n)
-addSize (Max   m) (Exact n) = Max   (add m n)
-addSize (Max   m) (Max   n) = Max   (add m n)
-addSize _          _       = Unknown
+addSize (Between ma mb) (Between na nb) = Between (add ma na) (add mb nb)
+addSize _               _               = Unknown
 {-# INLINE addSize #-}
 
 subtractSize :: Size -> Size -> Size
-subtractSize   (Exact m) (Exact n) = Exact (max (m-n) 0)
-subtractSize   (Exact m) (Max   _) = Max   m
-subtractSize   (Max   m) (Exact n) = Max   (max (m-n) 0)
-subtractSize a@(Max   _) (Max   _) = a
-subtractSize a@(Max   _) Unknown   = a
-subtractSize _         _           = Unknown
+subtractSize (Between ma mb) (Between na nb) = Between (max (ma-nb) 0) (max (mb-na) 0)
+subtractSize a@(Between 0 _) Unknown         = a
+subtractSize (Between _ mb)  Unknown         = Between 0 mb
+subtractSize _               _               = Unknown
 {-# INLINE subtractSize #-}
 
 mul :: Int -> Int -> Int
@@ -101,48 +107,55 @@ mul m n
 {-# INLINE mul #-}
 
 mulSize :: Size -> Size -> Size
-mulSize (Exact m) (Exact n) = Exact (mul m n)
-mulSize (Exact m) (Max   n) = Max   (mul m n)
-mulSize (Max   m) (Exact n) = Max   (mul m n)
-mulSize (Max   m) (Max   n) = Max   (mul m n)
-mulSize _          _        = Unknown
+mulSize (Between ma mb) (Between na nb) = Between (mul ma na) (mul mb nb)
+mulSize _               _               = Unknown
 {-# INLINE mulSize #-}
 
 -- | Minimum of two size hints.
 smaller :: Size -> Size -> Size
-smaller   (Exact m) (Exact n) = Exact (m `min` n)
-smaller   (Exact m) (Max   n) = Max   (m `min` n)
-smaller   (Exact m) Unknown   = Max   m
-smaller   (Max   m) (Exact n) = Max   (m `min` n)
-smaller   (Max   m) (Max   n) = Max   (m `min` n)
-smaller a@(Max   _) Unknown   = a
-smaller   Unknown   (Exact n) = Max   n
-smaller   Unknown   (Max   n) = Max   n
-smaller   Unknown   Unknown   = Unknown
+smaller a@(Between ma mb) b@(Between na nb)
+    | mb <= na  = a
+    | nb <= ma  = b
+    | otherwise = Between (ma `min` na) (mb `min` nb)
+smaller a@(Between 0 _) Unknown         = a
+smaller (Between _ mb)  Unknown         = Between 0 mb
+smaller Unknown         b@(Between 0 _) = b
+smaller Unknown         (Between _ nb)  = Between 0 nb
+smaller Unknown         Unknown         = Unknown
 {-# INLINE smaller #-}
 
 -- | Maximum of two size hints.
 larger :: Size -> Size -> Size
-larger   (Exact m)   (Exact n)             = Exact (m `max` n)
-larger a@(Exact m) b@(Max   n) | m >= n    = a
-                               | otherwise = b
-larger a@(Max   m) b@(Exact n) | n >= m    = b
-                               | otherwise = a
-larger   (Max   m)   (Max   n)             = Max   (m `max` n)
-larger _             _                     = Unknown
+larger a@(Between ma mb) b@(Between na nb)
+    | ma >= nb  = a
+    | na >= mb  = b
+    | otherwise = Between (ma `max` na) (mb `max` nb)
+larger _ _ = Unknown
 {-# INLINE larger #-}
 
 -- | Compute the maximum size from a size hint, if possible.
 upperBound :: Int -> Size -> Int
-upperBound _ (Exact n) = n
-upperBound _ (Max   n) = n
-upperBound k _         = k
+upperBound _ (Between n _) = n
+upperBound k _             = k
 {-# INLINE upperBound #-}
 
+-- | Compute the maximum size from a size hint, if possible.
+lowerBound :: Int -> Size -> Int
+lowerBound _ (Between n _) = n
+lowerBound k _             = k
+{-# INLINE lowerBound #-}
+
+compareSize :: Size -> Int -> Maybe Ordering
+compareSize (Between ma mb) n
+  | mb < n             = Just LT
+  | ma > n             = Just GT
+  | ma == n && mb == n = Just EQ
+compareSize _ _        = Nothing
+
+
 isEmpty :: Size -> Bool
-isEmpty (Exact n) = n <= 0
-isEmpty (Max   n) = n <= 0
-isEmpty _         = False
+isEmpty (Between _ n) = n <= 0
+isEmpty _             = False
 {-# INLINE isEmpty #-}
 
 overflowError :: Int
