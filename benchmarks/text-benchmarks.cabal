@@ -18,6 +18,7 @@ cabal-version:       >=1.2
 flag llvm
   description: use LLVM
   default: False
+  manual: True
 
 executable text-benchmarks
   hs-source-dirs: haskell ..
