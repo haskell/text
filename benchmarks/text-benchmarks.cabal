@@ -25,7 +25,7 @@ executable text-benchmarks
                   cbits/time_iconv.c
   include-dirs:   ../include
   main-is:        Benchmarks.hs
-  ghc-options:    -Wall -O2
+  ghc-options:    -Wall -O2 -rtsopts
   if flag(llvm)
     ghc-options:  -fllvm
   cpp-options:    -DHAVE_DEEPSEQ -DINTEGER_GMP
