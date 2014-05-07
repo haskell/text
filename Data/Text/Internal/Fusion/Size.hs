@@ -135,7 +135,7 @@ larger _ _ = Unknown
 
 -- | Compute the maximum size from a size hint, if possible.
 upperBound :: Int -> Size -> Int
-upperBound _ (Between n _) = n
+upperBound _ (Between _ n) = n
 upperBound k _             = k
 {-# INLINE upperBound #-}
 
