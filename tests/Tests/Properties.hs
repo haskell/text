@@ -756,14 +756,16 @@ t_decimal (n::Int) s =
 tl_decimal (n::Int) s =
     TL.signed TL.decimal (TL.pack (show n) `TL.append` t) == Right (n,t)
     where t = TL.dropWhile isDigit s
-t_hexadecimal (n::Positive Int) s ox =
+t_hexadecimal m s ox =
     T.hexadecimal (T.concat [p, T.pack (showHex n ""), t]) == Right (n,t)
     where t = T.dropWhile isHexDigit s
           p = if ox then "0x" else ""
-tl_hexadecimal (n::Positive Int) s ox =
+          n = getPositive m :: Int
+tl_hexadecimal m s ox =
     TL.hexadecimal (TL.concat [p, TL.pack (showHex n ""), t]) == Right (n,t)
     where t = TL.dropWhile isHexDigit s
           p = if ox then "0x" else ""
+          n = getPositive m :: Int
 
 isFloaty c = c `elem` "+-.0123456789eE"
 
