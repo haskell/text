@@ -213,7 +213,7 @@ import qualified Data.Text.Internal.Fusion as S
 import qualified Data.Text.Internal.Fusion.Common as S
 import Data.Text.Internal.Fusion (stream, reverseStream, unstream)
 import Data.Text.Internal.Private (span_)
-import Data.Text.Internal (Text(..), empty, firstf, safe, text)
+import Data.Text.Internal (Text(..), empty, firstf, mul, safe, text)
 import qualified Prelude as P
 import Data.Text.Unsafe (Iter(..), iter, iter_, lengthWord16, reverseIter,
                          reverseIter_, unsafeHead, unsafeTail)
@@ -638,11 +638,10 @@ replace needle@(Text _      _      neeLen)
   | neeLen == 0 = emptyError "replace"
   | L.null ixs  = haystack
   | len > 0     = Text (A.run x) 0 len
-  | len < 0     = overflowError "replace"
   | otherwise   = empty
   where
     ixs = indices needle haystack
-    len = hayLen - (neeLen - repLen) * L.length ixs
+    len = hayLen - (neeLen - repLen) `mul` L.length ixs
     x = do
       marr <- A.new len
       let loop (i:is) o d = do
