@@ -193,7 +193,7 @@ module Data.Text
 import Prelude (Char, Bool(..), Int, Maybe(..), String,
                 Eq(..), Ord(..), Ordering(..), (++),
                 Read(..), Show(..),
-                (&&), (||), (+), (-), (.), ($), ($!), (>>), (*),
+                (&&), (||), (+), (-), (.), ($), ($!), (>>),
                 maxBound, not, return, otherwise, quot)
 #if defined(HAVE_DEEPSEQ)
 import Control.DeepSeq (NFData)
@@ -962,10 +962,9 @@ replicate n t@(Text a o l)
     | n <= 0 || l <= 0       = empty
     | n == 1                 = t
     | isSingleton t          = replicateChar n (unsafeHead t)
-    | n <= maxBound `quot` l = Text (A.run x) 0 len
-    | otherwise              = overflowError "replicate"
+    | otherwise              = Text (A.run x) 0 len
   where
-    len = l * n
+    len = l `mul` n
     x = do
       arr <- A.new len
       let loop !d !i | i >= n    = return arr
