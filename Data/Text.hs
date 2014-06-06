@@ -194,7 +194,7 @@ import Prelude (Char, Bool(..), Int, Maybe(..), String,
                 Eq(..), Ord(..), Ordering(..), (++),
                 Read(..), Show(..),
                 (&&), (||), (+), (-), (.), ($), ($!), (>>),
-                maxBound, not, return, otherwise, quot)
+                not, return, otherwise, quot)
 #if defined(HAVE_DEEPSEQ)
 import Control.DeepSeq (NFData)
 #endif
