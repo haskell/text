@@ -197,8 +197,10 @@ t_Show            = show     `eq` (show . T.pack)
 tl_Show           = show     `eq` (show . TL.pack)
 t_mappend s       = mappend s`eqP` (unpackS . mappend (T.pack s))
 tl_mappend s      = mappend s`eqP` (unpackS . mappend (TL.pack s))
-t_mconcat         = mconcat `eq` (unpackS . mconcat . L.map T.pack)
-tl_mconcat        = mconcat `eq` (unpackS . mconcat . L.map TL.pack)
+t_mconcat         = unsquare $
+                    mconcat `eq` (unpackS . mconcat . L.map T.pack)
+tl_mconcat        = unsquare $
+                    mconcat `eq` (unpackS . mconcat . L.map TL.pack)
 t_mempty          = mempty == (unpackS (mempty :: T.Text))
 tl_mempty         = mempty == (unpackS (mempty :: TL.Text))
 t_IsString        = fromString  `eqP` (T.unpack . fromString)
@@ -262,11 +264,14 @@ s_map_s f         = map f  `eqP` (unpackS . S.unstream . S.map f)
 sf_map p f        = (map f . L.filter p)  `eqP` (unpackS . S.map f . S.filter p)
 t_map f           = map f  `eqP` (unpackS . T.map f)
 tl_map f          = map f  `eqP` (unpackS . TL.map f)
-s_intercalate c   = L.intercalate c `eq`
+s_intercalate c   = unsquare $
+                    L.intercalate c `eq`
                     (unpackS . S.intercalate (packS c) . map packS)
-t_intercalate c   = L.intercalate c `eq`
+t_intercalate c   = unsquare $
+                    L.intercalate c `eq`
                     (unpackS . T.intercalate (packS c) . map packS)
-tl_intercalate c  = L.intercalate c `eq`
+tl_intercalate c  = unsquare $
+                    L.intercalate c `eq`
                     (unpackS . TL.intercalate (TL.pack c) . map TL.pack)
 s_intersperse c   = L.intersperse c `eqP`
                     (unpackS . S.intersperse c)
@@ -274,10 +279,14 @@ s_intersperse_s c = L.intersperse c `eqP`
                     (unpackS . S.unstream . S.intersperse c)
 sf_intersperse p c= (L.intersperse c . L.filter p) `eqP`
                    (unpackS . S.intersperse c . S.filter p)
-t_intersperse c   = L.intersperse c `eqP` (unpackS . T.intersperse c)
-tl_intersperse c  = L.intersperse c `eqP` (unpackS . TL.intersperse c)
-t_transpose       = L.transpose `eq` (map unpackS . T.transpose . map packS)
-tl_transpose      = L.transpose `eq` (map unpackS . TL.transpose . map TL.pack)
+t_intersperse c   = unsquare $
+                    L.intersperse c `eqP` (unpackS . T.intersperse c)
+tl_intersperse c  = unsquare $
+                    L.intersperse c `eqP` (unpackS . TL.intersperse c)
+t_transpose       = unsquare $
+                    L.transpose `eq` (map unpackS . T.transpose . map packS)
+tl_transpose      = unsquare $
+                    L.transpose `eq` (map unpackS . TL.transpose . map TL.pack)
 t_reverse         = L.reverse `eqP` (unpackS . T.reverse)
 tl_reverse        = L.reverse `eqP` (unpackS . TL.reverse)
 t_reverse_short n = L.reverse `eqP` (unpackS . S.reverse . shorten n . S.stream)
@@ -374,17 +383,24 @@ sf_foldr p f z    = (L.foldr f z . L.filter p) `eqP` (S.foldr f z . S.filter p)
     where _types  = f :: Char -> Char -> Char
 t_foldr f z       = L.foldr f z  `eqP` T.foldr f z
     where _types  = f :: Char -> Char -> Char
-tl_foldr f z      = L.foldr f z  `eqP` TL.foldr f z
+tl_foldr f z      = unsquare $
+                    L.foldr f z  `eqP` TL.foldr f z
     where _types  = f :: Char -> Char -> Char
-sf_foldr1 p f     = (L.foldr1 f . L.filter p) `eqP` (S.foldr1 f . S.filter p)
+sf_foldr1 p f     = unsquare $
+                    (L.foldr1 f . L.filter p) `eqP` (S.foldr1 f . S.filter p)
 t_foldr1 f        = L.foldr1 f   `eqP` T.foldr1 f
-tl_foldr1 f       = L.foldr1 f   `eqP` TL.foldr1 f
+tl_foldr1 f       = unsquare $
+                    L.foldr1 f   `eqP` TL.foldr1 f
 
-s_concat_s        = L.concat `eq` (unpackS . S.unstream . S.concat . map packS)
-sf_concat p       = (L.concat . map (L.filter p)) `eq`
+s_concat_s        = unsquare $
+                    L.concat `eq` (unpackS . S.unstream . S.concat . map packS)
+sf_concat p       = unsquare $
+                    (L.concat . map (L.filter p)) `eq`
                     (unpackS . S.concat . map (S.filter p . packS))
-t_concat          = L.concat `eq` (unpackS . T.concat . map packS)
-tl_concat         = L.concat `eq` (unpackS . TL.concat . map TL.pack)
+t_concat          = unsquare $
+                    L.concat `eq` (unpackS . T.concat . map packS)
+tl_concat         = unsquare $
+                    L.concat `eq` (unpackS . TL.concat . map TL.pack)
 sf_concatMap p f  = unsquare $ (L.concatMap f . L.filter p) `eqP`
                                (unpackS . S.concatMap (packS . f) . S.filter p)
 t_concatMap f     = unsquare $
@@ -540,24 +556,27 @@ tl_groupBy p      = L.groupBy p   `eqP` (map unpackS . TL.groupBy p)
 t_inits           = L.inits       `eqP` (map unpackS . T.inits)
 tl_inits          = L.inits       `eqP` (map unpackS . TL.inits)
 t_tails           = L.tails       `eqP` (map unpackS . T.tails)
-tl_tails          = L.tails       `eqP` (map unpackS . TL.tails)
-t_findAppendId (NotEmpty s) = unsquare $ \ts ->
+tl_tails          = unsquare $
+                    L.tails       `eqP` (map unpackS . TL.tails)
+t_findAppendId = unsquare $ \(NotEmpty s) ts ->
     let t = T.intercalate s ts
     in all (==t) $ map (uncurry T.append) (T.breakOnAll s t)
-tl_findAppendId (NotEmpty s) = unsquare $ \ts ->
+tl_findAppendId = unsquare $ \(NotEmpty s) ts ->
     let t = TL.intercalate s ts
     in all (==t) $ map (uncurry TL.append) (TL.breakOnAll s t)
-t_findContains (NotEmpty s) = all (T.isPrefixOf s . snd) . T.breakOnAll s .
-                              T.intercalate s
-tl_findContains (NotEmpty s) = all (TL.isPrefixOf s . snd) .
+t_findContains = unsquare $ \(NotEmpty s) ->
+    all (T.isPrefixOf s . snd) . T.breakOnAll s . T.intercalate s
+tl_findContains = unsquare $ \(NotEmpty s) -> all (TL.isPrefixOf s . snd) .
                                TL.breakOnAll s . TL.intercalate s
 sl_filterCount c  = (L.genericLength . L.filter (==c)) `eqP` SL.countChar c
 t_findCount s     = (L.length . T.breakOnAll s) `eq` T.count s
 tl_findCount s    = (L.genericLength . TL.breakOnAll s) `eq` TL.count s
 
-t_splitOn_split s         = (T.splitOn s `eq` Slow.splitOn s) . T.intercalate s
-tl_splitOn_split s        = ((TL.splitOn (TL.fromStrict s) . TL.fromStrict) `eq`
-                           (map TL.fromStrict . T.splitOn s)) . T.intercalate s
+t_splitOn_split s  = unsquare $
+                     (T.splitOn s `eq` Slow.splitOn s) . T.intercalate s
+tl_splitOn_split s = unsquare $
+                     ((TL.splitOn (TL.fromStrict s) . TL.fromStrict) `eq`
+                      (map TL.fromStrict . T.splitOn s)) . T.intercalate s
 t_splitOn_i (NotEmpty t)  = id `eq` (T.intercalate t . T.splitOn t)
 tl_splitOn_i (NotEmpty t) = id `eq` (TL.intercalate t . TL.splitOn t)
 
@@ -599,10 +618,14 @@ t_lines'          = lines'        `eqP` (map unpackS . T.lines')
 t_words           = L.words       `eqP` (map unpackS . T.words)
 
 tl_words          = L.words       `eqP` (map unpackS . TL.words)
-t_unlines         = L.unlines `eq` (unpackS . T.unlines . map packS)
-tl_unlines        = L.unlines `eq` (unpackS . TL.unlines . map packS)
-t_unwords         = L.unwords `eq` (unpackS . T.unwords . map packS)
-tl_unwords        = L.unwords `eq` (unpackS . TL.unwords . map packS)
+t_unlines         = unsquare $
+                    L.unlines `eq` (unpackS . T.unlines . map packS)
+tl_unlines        = unsquare $
+                    L.unlines `eq` (unpackS . TL.unlines . map packS)
+t_unwords         = unsquare $
+                    L.unwords `eq` (unpackS . T.unwords . map packS)
+tl_unwords        = unsquare $
+                    L.unwords `eq` (unpackS . TL.unwords . map packS)
 
 s_isPrefixOf s    = L.isPrefixOf s `eqP`
                     (S.isPrefixOf (S.stream $ packS s) . S.stream)
@@ -679,8 +702,9 @@ t_indices  (NotEmpty s) = Slow.indices s `eq` indices s
 tl_indices (NotEmpty s) = lazyIndices s `eq` S.indices s
     where lazyIndices ss t = map fromIntegral $ Slow.indices (conc ss) (conc t)
           conc = T.concat . TL.toChunks
-t_indices_occurs (NotEmpty t) ts = let s = T.intercalate t ts
-                                   in Slow.indices t s == indices t s
+t_indices_occurs = unsquare $ \(NotEmpty t) ts ->
+    let s = T.intercalate t ts
+    in Slow.indices t s == indices t s
 
 -- Bit shifts.
 shiftL w = forAll (choose (0,width-1)) $ \k -> Bits.shiftL w k == U.shiftL w k
