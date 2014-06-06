@@ -15,6 +15,7 @@ import qualified Benchmarks.EncodeUtf8 as EncodeUtf8
 import qualified Benchmarks.Equality as Equality
 import qualified Benchmarks.FileRead as FileRead
 import qualified Benchmarks.FoldLines as FoldLines
+import qualified Benchmarks.Mul as Mul
 import qualified Benchmarks.Pure as Pure
 import qualified Benchmarks.ReadNumbers as ReadNumbers
 import qualified Benchmarks.Replace as Replace
@@ -49,6 +50,7 @@ benchmarks = do
         , Equality.benchmark (tf "japanese.txt")
         , FileRead.benchmark (tf "russian.txt")
         , FoldLines.benchmark (tf "russian.txt")
+        , Mul.benchmark
         , Pure.benchmark "tiny" (tf "tiny.txt")
         , Pure.benchmark "ascii" (tf "ascii-small.txt")
         , Pure.benchmark "france" (tf "france.html")

@@ -43,7 +43,8 @@ executable text-benchmarks
                   ghc-prim,
                   integer-gmp,
                   stringsearch,
-                  utf8-string
+                  utf8-string,
+                  vector
 
 executable text-multilang
   hs-source-dirs: haskell
