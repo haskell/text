@@ -54,6 +54,7 @@ import qualified Data.Text.Lazy.Builder.RealFloat as TB
 import qualified Data.Text.Lazy.Encoding as EL
 import qualified Data.Text.Lazy.IO as TL
 import qualified System.IO as IO
+import qualified Tests.Properties.Mul as Mul
 import qualified Tests.SlowFunctions as Slow
 
 t_pack_unpack       = (T.unpack . T.pack) `eq` id
@@ -1308,5 +1309,7 @@ tests =
       testProperty "t_take_drop_16" t_take_drop_16,
       testProperty "t_use_from" t_use_from,
       testProperty "t_copy" t_copy
-    ]
+    ],
+
+    testGroup "mul" Mul.tests
   ]

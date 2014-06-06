@@ -59,6 +59,7 @@ extra-source-files:
     tests/.ghci
     tests/Makefile
     tests/Tests/*.hs
+    tests/Tests/*/*.hs
     tests/cabal.config
     tests/scripts/*.sh
     tests/text-tests.cabal

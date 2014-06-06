@@ -23,6 +23,15 @@ flag hpc
 executable text-tests
   main-is: Tests.hs
 
+  other-modules:
+    Tests.IO
+    Tests.Properties
+    Tests.Properties.Mul
+    Tests.QuickCheckUtils
+    Tests.Regressions
+    Tests.SlowFunctions
+    Tests.Utils
+
   ghc-options:
     -Wall -threaded -O0 -rtsopts
 
