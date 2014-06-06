@@ -32,6 +32,7 @@ module Data.Text.Internal.Fusion.Size
     , isEmpty
     ) where
 
+import Data.Text.Internal (mul)
 #if defined(ASSERTS)
 import Control.Exception (assert)
 #endif
@@ -99,12 +100,6 @@ subtractSize a@(Between 0 _) Unknown         = a
 subtractSize (Between _ mb)  Unknown         = Between 0 mb
 subtractSize _               _               = Unknown
 {-# INLINE subtractSize #-}
-
-mul :: Int -> Int -> Int
-mul m n
-    | m <= maxBound `quot` n = m * n
-    | otherwise              = overflowError
-{-# INLINE mul #-}
 
 mulSize :: Size -> Size -> Size
 mulSize (Between ma mb) (Between na nb) = Between (mul ma na) (mul mb nb)
