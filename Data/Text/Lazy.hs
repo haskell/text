@@ -223,6 +223,9 @@ import qualified GHC.CString as GHC
 #else
 import qualified GHC.Base as GHC
 #endif
+#if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 708
+import qualified GHC.Exts as Exts
+#endif
 import GHC.Prim (Addr#)
 
 -- $fusion
@@ -328,6 +331,14 @@ instance Monoid Text where
 
 instance IsString Text where
     fromString = pack
+
+#if defined(__GLASGOW_HASKELL__) && __GLASGOW_HASKELL__ >= 708
+instance Exts.IsList Text where
+  type Item Text = Char
+  fromList = pack
+  
+  toList = unpack
+#endif
 
 #if defined(HAVE_DEEPSEQ)
 instance NFData Text where
