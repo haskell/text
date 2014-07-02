@@ -120,8 +120,8 @@ import qualified Data.Text.Internal.Fusion as F
 -- | /Deprecated/.  Decode a 'ByteString' containing 7-bit ASCII
 -- encoded text.
 decodeASCII :: ByteString -> Text
-decodeASCII = decodeUtf8
-{-# DEPRECATED decodeASCII "Use decodeUtf8 instead" #-}
+decodeASCII = decodeLatin1
+{-# DEPRECATED decodeASCII "Use decodeLatin1 instead" #-}
 
 -- | Decode a 'ByteString' containing Latin-1 (aka ISO-8859-1) encoded text.
 --
