@@ -3,6 +3,7 @@
 #if __GLASGOW_HASKELL__ >= 702
 {-# LANGUAGE Trustworthy #-}
 #endif
+{-# LANGUAGE MonoLocalBinds #-}
 
 -- |
 -- Module      : Data.Text
@@ -205,6 +206,7 @@ import Data.Char (isSpace)
 import Data.Data (Data(gfoldl, toConstr, gunfold, dataTypeOf), constrIndex,
                   Constr, mkConstr, DataType, mkDataType, Fixity(Prefix))
 import Control.Monad (foldM)
+import Control.Monad.ST (ST)
 import qualified Data.Text.Array as A
 import qualified Data.List as L
 import Data.Monoid (Monoid(..))
@@ -441,6 +443,7 @@ append a@(Text arr1 off1 len1) b@(Text arr2 off2 len2)
     | otherwise = overflowError "append"
     where
       len = len1+len2
+      x :: ST s (A.MArray s)
       x = do
         arr <- A.new len
         A.copyI arr 0 arr1 off1 len1
@@ -642,6 +645,7 @@ replace needle@(Text _      _      neeLen)
   where
     ixs = indices needle haystack
     len = hayLen - (neeLen - repLen) `mul` L.length ixs
+    x :: ST s (A.MArray s)
     x = do
       marr <- A.new len
       let loop (i:is) o d = do
@@ -852,6 +856,7 @@ concat ts = case ts' of
   where
     ts' = L.filter (not . null) ts
     len = sumP "concat" $ L.map lengthWord16 ts'
+    go :: ST s (A.MArray s)
     go = do
       arr <- A.new len
       let step i (Text a o l) =
@@ -965,6 +970,7 @@ replicate n t@(Text a o l)
     | otherwise              = Text (A.run x) 0 len
   where
     len = l `mul` n
+    x :: ST s (A.MArray s)
     x = do
       arr <- A.new len
       let loop !d !i | i >= n    = return arr
@@ -1668,6 +1674,7 @@ overflowError fun = P.error $ "Data.Text." ++ fun ++ ": size overflow"
 copy :: Text -> Text
 copy (Text arr off len) = Text (A.run go) 0 len
   where
+    go :: ST s (A.MArray s)
     go = do
       marr <- A.new len
       A.copyI marr 0 arr off len
