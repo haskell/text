@@ -21,7 +21,7 @@ import Data.List (foldl')
 import Data.List (intersperse)
 import Data.Monoid (mempty, mappend, mconcat)
 import System.IO (Handle)
-import Criterion (Benchmark, bench)
+import Criterion (Benchmark, bench, whnfIO)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import qualified Data.Text.Lazy.Builder as TLB
@@ -30,7 +30,7 @@ import qualified Data.Text.Lazy.IO as TL
 
 benchmark :: FilePath -> Handle -> IO Benchmark
 benchmark i o = return $
-    bench "Fold" $ T.readFile i >>= TL.hPutStr o . fold 80
+    bench "Fold" $ whnfIO $ T.readFile i >>= TL.hPutStr o . fold 80
 
 -- | We represent a paragraph by a word list
 --

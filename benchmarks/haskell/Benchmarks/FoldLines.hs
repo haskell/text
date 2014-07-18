@@ -10,7 +10,7 @@ module Benchmarks.FoldLines
     ( benchmark
     ) where
 
-import Criterion (Benchmark, bgroup, bench)
+import Criterion (Benchmark, bgroup, bench, whnfIO)
 import System.IO
 import qualified Data.ByteString as B
 import qualified Data.Text as T
@@ -22,7 +22,7 @@ benchmark fp = return $ bgroup "ReadLines"
     , bench "ByteString" $ withHandle $ foldLinesB (\n _ -> n + 1) (0 :: Int)
     ]
   where
-    withHandle f = do
+    withHandle f = whnfIO $ do
         h <- openFile fp ReadMode
         hSetBuffering h (BlockBuffering (Just 16384))
         x <- f h

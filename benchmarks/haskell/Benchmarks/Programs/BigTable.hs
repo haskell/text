@@ -11,7 +11,7 @@ module Benchmarks.Programs.BigTable
     ( benchmark
     ) where
 
-import Criterion (Benchmark, bench)
+import Criterion (Benchmark, bench, whnfIO)
 import Data.Monoid (mappend, mconcat)
 import Data.Text.Lazy.Builder (Builder, fromText, toLazyText)
 import Data.Text.Lazy.IO (hPutStr)
@@ -19,7 +19,7 @@ import System.IO (Handle)
 import qualified Data.Text as T
 
 benchmark :: Handle -> IO Benchmark
-benchmark sink = return $ bench "BigTable" $ do
+benchmark sink = return $ bench "BigTable" $ whnfIO $ do
     hPutStr sink "Content-Type: text/html\n\n<table>"
     hPutStr sink . toLazyText . makeTable =<< rows
     hPutStr sink "</table>"

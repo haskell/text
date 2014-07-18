@@ -16,7 +16,7 @@ module Benchmarks.Programs.Cut
     ( benchmark
     ) where
 
-import Criterion (Benchmark, bgroup, bench)
+import Criterion (Benchmark, bgroup, bench, whnfIO)
 import System.IO (Handle, hPutStr)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as BC
@@ -40,7 +40,7 @@ benchmark p sink from to = return $ bgroup "Cut"
     , bench' "LazyTextByteString" lazyTextByteString
     ]
   where
-    bench' n s = bench n (s p sink from to)
+    bench' n s = bench n $ whnfIO (s p sink from to)
 
 string :: FilePath -> Handle -> Int -> Int -> IO ()
 string fp sink from to = do

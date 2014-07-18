@@ -15,7 +15,7 @@ module Benchmarks.Programs.StripTags
     ( benchmark
     ) where
 
-import Criterion (Benchmark, bgroup, bench)
+import Criterion (Benchmark, bgroup, bench, whnfIO)
 import Data.List (mapAccumL)
 import System.IO (Handle, hPutStr)
 import qualified Data.ByteString as B
@@ -26,10 +26,10 @@ import qualified Data.Text.IO as T
 
 benchmark :: FilePath -> Handle -> IO Benchmark
 benchmark i o = return $ bgroup "StripTags"
-    [ bench "String" $ readFile i >>= hPutStr o . string
-    , bench "ByteString" $ B.readFile i >>= B.hPutStr o . byteString
-    , bench "Text" $ T.readFile i >>= T.hPutStr o . text
-    , bench "TextByteString" $
+    [ bench "String" $ whnfIO $ readFile i >>= hPutStr o . string
+    , bench "ByteString" $ whnfIO $ B.readFile i >>= B.hPutStr o . byteString
+    , bench "Text" $ whnfIO $ T.readFile i >>= T.hPutStr o . text
+    , bench "TextByteString" $ whnfIO $
         B.readFile i >>= B.hPutStr o . T.encodeUtf8 . text . T.decodeUtf8
     ]
 

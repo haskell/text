@@ -25,7 +25,7 @@ import Foreign.Ptr (Ptr, plusPtr)
 import Foreign.ForeignPtr (withForeignPtr)
 import Data.Word (Word8)
 import qualified Criterion as C
-import Criterion (Benchmark, bgroup, nf)
+import Criterion (Benchmark, bgroup, nf, whnfIO)
 import qualified Codec.Binary.UTF8.Generic as U8
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
@@ -48,7 +48,7 @@ benchmark kind fp = do
     return $ bgroup "DecodeUtf8"
         [ bench "Strict" $ nf T.decodeUtf8 bs
         , bench "Stream" $ nf decodeStream lbs
-        , bench "IConv" $ iconv bs
+        , bench "IConv" $ whnfIO $ iconv bs
         , bench "StrictLength" $ nf (T.length . T.decodeUtf8) bs
         , bench "StrictInitLength" $ nf (T.length . T.init . T.decodeUtf8) bs
         , bench "Lazy" $ nf TL.decodeUtf8 lbs

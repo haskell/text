@@ -1,3 +1,7 @@
+1.2.0.0
+
+* Added an instance of IsList for GHC 7.8 and above
+
 1.1.1.0
 
 * The Data.Data instance now allows gunfold to work, via a virtual

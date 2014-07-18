@@ -36,7 +36,7 @@ executable text-benchmarks
                   bytestring,
                   bytestring-lexing,
                   containers,
-                  criterion >= 0.6.0.1,
+                  criterion >= 0.10.0.0,
                   deepseq,
                   directory,
                   filepath,

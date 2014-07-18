@@ -18,7 +18,7 @@ module Benchmarks.Programs.Throughput
     ( benchmark
     ) where
 
-import Criterion (Benchmark, bgroup, bench)
+import Criterion (Benchmark, bgroup, bench, whnfIO)
 import System.IO (Handle, hPutStr)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
@@ -29,13 +29,13 @@ import qualified Data.Text.Lazy.IO as TL
 
 benchmark :: FilePath -> Handle -> IO Benchmark
 benchmark fp sink = return $ bgroup "Throughput"
-    [ bench "String" $ readFile fp >>= hPutStr sink
-    , bench "ByteString" $ B.readFile fp >>= B.hPutStr sink
-    , bench "LazyByteString" $ BL.readFile fp >>= BL.hPutStr sink
-    , bench "Text" $ T.readFile fp >>= T.hPutStr sink
-    , bench "LazyText" $ TL.readFile fp >>= TL.hPutStr sink
-    , bench "TextByteString" $
+    [ bench "String" $ whnfIO $ readFile fp >>= hPutStr sink
+    , bench "ByteString" $ whnfIO $ B.readFile fp >>= B.hPutStr sink
+    , bench "LazyByteString" $ whnfIO $ BL.readFile fp >>= BL.hPutStr sink
+    , bench "Text" $ whnfIO $ T.readFile fp >>= T.hPutStr sink
+    , bench "LazyText" $ whnfIO $ TL.readFile fp >>= TL.hPutStr sink
+    , bench "TextByteString" $ whnfIO $
         B.readFile fp >>= B.hPutStr sink . T.encodeUtf8 .  T.decodeUtf8
-    , bench "LazyTextByteString" $
+    , bench "LazyTextByteString" $ whnfIO $
         BL.readFile fp >>= BL.hPutStr sink . TL.encodeUtf8 . TL.decodeUtf8
     ]
