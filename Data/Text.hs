@@ -217,7 +217,7 @@ import qualified Data.Text.Internal.Fusion as S
 import qualified Data.Text.Internal.Fusion.Common as S
 import Data.Text.Internal.Fusion (stream, reverseStream, unstream)
 import Data.Text.Internal.Private (span_)
-import Data.Text.Internal (Text(..), empty, firstf, mul, safe, text)
+import Data.Text.Internal (Text(..), empty, empty_, firstf, mul, safe, text)
 import qualified Prelude as P
 import Data.Text.Unsafe (Iter(..), iter, iter_, lengthWord16, reverseIter,
                          reverseIter_, unsafeHead, unsafeTail)
@@ -418,6 +418,10 @@ unpackCString# addr# = unstream (S.streamCString# addr#)
 {-# RULES "TEXT literal UTF8" forall a.
     unstream (S.map safe (S.streamList (GHC.unpackCStringUtf8# a)))
       = unpackCString# a #-}
+
+{-# RULES "TEXT empty literal"
+    unstream (S.map safe (S.streamList []))
+      = empty_ #-}
 
 -- | /O(1)/ Convert a character into a Text.  Subject to fusion.
 -- Performs replacement on invalid scalar values.

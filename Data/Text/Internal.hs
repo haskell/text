@@ -36,6 +36,7 @@ module Data.Text.Internal
     , safe
     -- * Code that must be here for accessibility
     , empty
+    , empty_
     -- * Utilities
     , firstf
     -- * Checked multiplication
@@ -80,6 +81,11 @@ text_ arr off len =
 empty :: Text
 empty = Text A.empty 0 0
 {-# INLINE [1] empty #-}
+
+-- | A non-inlined version of 'empty'.
+empty_ :: Text
+empty_ = Text A.empty 0 0
+{-# NOINLINE empty_ #-}
 
 -- | Construct a 'Text' without invisibly pinning its byte array in
 -- memory if its length has dwindled to zero.

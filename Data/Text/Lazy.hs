@@ -381,6 +381,10 @@ unpackCString# addr# = unstream (S.streamCString# addr#)
     unstream (S.streamList (L.map safe (GHC.unpackCStringUtf8# a)))
       = unpackCString# a #-}
 
+{-# RULES "LAZY TEXT empty literal"
+    unstream (S.streamList (L.map safe []))
+      = Empty #-}
+
 -- | /O(1)/ Convert a character into a Text.  Subject to fusion.
 -- Performs replacement on invalid scalar values.
 singleton :: Char -> Text
