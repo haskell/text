@@ -423,6 +423,10 @@ unpackCString# addr# = unstream (S.streamCString# addr#)
     unstream (S.map safe (S.streamList []))
       = empty_ #-}
 
+{-# RULES "TEXT singleton literal" forall a.
+    unstream (S.map safe (S.streamList [a]))
+      = singleton_ a #-}
+
 -- | /O(1)/ Convert a character into a Text.  Subject to fusion.
 -- Performs replacement on invalid scalar values.
 singleton :: Char -> Text
