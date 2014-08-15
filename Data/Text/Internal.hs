@@ -110,7 +110,7 @@ safe :: Char -> Char
 safe c
     | ord c .&. 0x1ff800 /= 0xd800 = c
     | otherwise                    = '\xfffd'
-{-# INLINE safe #-}
+{-# INLINE [0] safe #-}
 
 -- | Apply a function to the first element of an optional pair.
 firstf :: (a -> c) -> Maybe (a,b) -> Maybe (c,b)

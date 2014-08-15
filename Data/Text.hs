@@ -221,7 +221,7 @@ import Data.Text.Internal (Text(..), empty, firstf, mul, safe, text)
 import qualified Prelude as P
 import Data.Text.Unsafe (Iter(..), iter, iter_, lengthWord16, reverseIter,
                          reverseIter_, unsafeHead, unsafeTail)
-import Data.Text.Internal.Unsafe.Char (unsafeChr)
+import Data.Text.Internal.Unsafe.Char (unsafeChr, unsafeWrite)
 import qualified Data.Text.Internal.Functions as F
 import qualified Data.Text.Internal.Encoding.Utf16 as U16
 import Data.Text.Internal.Search (indices)
@@ -424,6 +424,22 @@ unpackCString# addr# = unstream (S.streamCString# addr#)
 singleton :: Char -> Text
 singleton = unstream . S.singleton . safe
 {-# INLINE [1] singleton #-}
+
+{-# RULES "TEXT singleton" forall a.
+    unstream (S.singleton (safe a))
+      = singleton_ a #-}
+
+-- This is intended to reduce inlining bloat.
+singleton_ :: Char -> Text
+singleton_ c = Text (A.run x) 0 len
+  where x :: ST s (A.MArray s)
+        x = do arr <- A.new len
+               _ <- unsafeWrite arr 0 d
+               return arr
+        len | d < '\x10000' = 1
+            | otherwise     = 2
+        d = safe c
+{-# NOINLINE singleton_ #-}
 
 -- -----------------------------------------------------------------------------
 -- * Basic functions

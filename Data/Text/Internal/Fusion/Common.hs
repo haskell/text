@@ -123,7 +123,7 @@ singleton :: Char -> Stream Char
 singleton c = Stream next False 1
     where next False = Yield c True
           next True  = Done
-{-# INLINE singleton #-}
+{-# INLINE [0] singleton #-}
 
 streamList :: [a] -> Stream a
 {-# INLINE [0] streamList #-}
