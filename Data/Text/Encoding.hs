@@ -267,6 +267,7 @@ streamDecodeUtf8With onErr = decodeChunk B.empty 0 0
                 UTF8_REJECT -> do
                   -- We encountered an encoding error
                   x <- peek curPtr'
+                  poke statePtr 0
                   case onErr desc (Just x) of
                     Nothing -> loop $ curPtr' `plusPtr` 1
                     Just c -> do
@@ -274,7 +275,6 @@ streamDecodeUtf8With onErr = decodeChunk B.empty 0 0
                       w <- unsafeSTToIO $
                            unsafeWrite dest (fromIntegral destOff) (safe c)
                       poke destOffPtr (destOff + fromIntegral w)
-                      poke statePtr 0
                       loop $ curPtr' `plusPtr` 1
 
                 _ -> do
