@@ -1,5 +1,14 @@
 1.2.0.0
 
+* Fixed an integer overflow in the replace function
+  (https://github.com/bos/text/issues/81)
+
+* Fixed a hang in lazy decodeUtf8With
+  (https://github.com/bos/text/issues/87)
+
+* Reduced codegen bloat caused by use of empty and single-character
+  literals
+
 * Added an instance of IsList for GHC 7.8 and above
 
 1.1.1.0
