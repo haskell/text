@@ -666,11 +666,23 @@ reverse :: Text -> Text
 reverse t = S.reverse (stream t)
 {-# INLINE reverse #-}
 
--- | /O(m+n)/ Replace every occurrence of one substring with another.
+-- | /O(m+n)/ Replace every occurrence of @needle@ in @haystack@ with @repl@.
+--
+-- If @needle@ occurs in @repl@, it won't be replaced twice:
+--
+-- > replace "oo" "foo" "oo" == "foo"
+--
+-- If several instances of @needle@ overlap, only the first one will be
+-- replaced:
+--
+-- > replace "ofo" "bar" "ofofo" == "barfo"
 --
 -- In (unlikely) bad cases, this function's time complexity degrades
 -- towards /O(n*m)/.
-replace :: Text -> Text -> Text -> Text
+replace :: Text        -- ^ @needle@ to search for
+        -> Text        -- ^ @repl@ to replace @needle@ with
+        -> Text        -- ^ @haystack@ in which to search
+        -> Text
 replace needle@(Text _      _      neeLen)
                (Text repArr repOff repLen)
       haystack@(Text hayArr hayOff hayLen)
