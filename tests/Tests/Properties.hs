@@ -741,6 +741,8 @@ tb_decimal :: (Integral a, Show a) => a -> Bool
 tb_decimal = (TB.toLazyText . TB.decimal) `eq` (TL.pack . show)
 
 tb_decimal_integer (a::Integer) = tb_decimal a
+tb_decimal_integer_big = forAll big tb_decimal
+  where big = choose (20::Int,200) >>= \e -> choose (10^(e-1),10^e::Integer)
 tb_decimal_int (a::Int) = tb_decimal a
 tb_decimal_int8 (a::Int8) = tb_decimal a
 tb_decimal_int16 (a::Int16) = tb_decimal a
@@ -1252,6 +1254,7 @@ tests =
         testProperty "tb_decimal_int32" tb_decimal_int32,
         testProperty "tb_decimal_int64" tb_decimal_int64,
         testProperty "tb_decimal_integer" tb_decimal_integer,
+        testProperty "tb_decimal_integer_big" tb_decimal_integer_big,
         testProperty "tb_decimal_word" tb_decimal_word,
         testProperty "tb_decimal_word8" tb_decimal_word8,
         testProperty "tb_decimal_word16" tb_decimal_word16,
