@@ -18,6 +18,7 @@ module Tests.QuickCheckUtils
     , unsquare
     , smallArbitrary
 
+    , BigInt(..)
     , NotEmpty (..)
 
     , Small (..)
@@ -37,6 +38,7 @@ module Tests.QuickCheckUtils
     , write_read
     ) where
 
+import Control.Applicative ((<$>))
 import Control.Arrow (first, (***))
 import Control.DeepSeq (NFData (..), deepseq)
 import Control.Exception (bracket)
@@ -159,6 +161,14 @@ instance Arbitrary T.Text where
 instance Arbitrary TL.Text where
     arbitrary = (TL.fromChunks . map notEmpty) `fmap` smallArbitrary
     shrink = map TL.pack . shrink . TL.unpack
+
+newtype BigInt = Big Integer
+               deriving (Eq, Show)
+
+instance Arbitrary BigInt where
+    arbitrary = choose (20::Int,200) >>= \e -> Big <$> choose (10^(e-1),10^e)
+    shrink (Big a) = [Big (a `div` 2^(l-e)) | e <- shrink l]
+      where l = truncate (log (fromIntegral a) / log 2 :: Double) :: Integer
 
 newtype NotEmpty a = NotEmpty { notEmpty :: a }
     deriving (Eq, Ord)

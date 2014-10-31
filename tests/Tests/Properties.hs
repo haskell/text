@@ -741,8 +741,7 @@ tb_decimal :: (Integral a, Show a) => a -> Bool
 tb_decimal = (TB.toLazyText . TB.decimal) `eq` (TL.pack . show)
 
 tb_decimal_integer (a::Integer) = tb_decimal a
-tb_decimal_integer_big = forAll big tb_decimal
-  where big = choose (20::Int,200) >>= \e -> choose (10^(e-1),10^e::Integer)
+tb_decimal_integer_big (Big a) = tb_decimal a
 tb_decimal_int (a::Int) = tb_decimal a
 tb_decimal_int8 (a::Int8) = tb_decimal a
 tb_decimal_int16 (a::Int16) = tb_decimal a
