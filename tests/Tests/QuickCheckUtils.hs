@@ -18,6 +18,7 @@ module Tests.QuickCheckUtils
     , unsquare
     , smallArbitrary
 
+    , BigBounded(..)
     , BigInt(..)
     , NotEmpty (..)
 
@@ -166,9 +167,15 @@ newtype BigInt = Big Integer
                deriving (Eq, Show)
 
 instance Arbitrary BigInt where
-    arbitrary = choose (20::Int,200) >>= \e -> Big <$> choose (10^(e-1),10^e)
+    arbitrary = choose (1::Int,200) >>= \e -> Big <$> choose (10^(e-1),10^e)
     shrink (Big a) = [Big (a `div` 2^(l-e)) | e <- shrink l]
       where l = truncate (log (fromIntegral a) / log 2 :: Double) :: Integer
+
+newtype BigBounded a = BigBounded a
+                     deriving (Eq, Show)
+
+instance (Bounded a, Random a, Arbitrary a) => Arbitrary (BigBounded a) where
+    arbitrary = BigBounded <$> choose (minBound, maxBound)
 
 newtype NotEmpty a = NotEmpty { notEmpty :: a }
     deriving (Eq, Ord)
