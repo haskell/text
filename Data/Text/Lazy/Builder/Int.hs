@@ -186,10 +186,6 @@ hexDigit n
     | otherwise = singleton $! toEnum (fromIntegral n + 87)
 {-# INLINE hexDigit #-}
 
-int :: Int -> Builder
-int = decimal
-{-# INLINE int #-}
-
 data T = T !Integer !Int
 
 integer :: Int -> Integer -> Builder
@@ -247,6 +243,10 @@ integer base i
                         where q = fromInteger x
                               r = fromInteger y
     putB _ = mempty
+
+    int :: Int -> Builder
+    int x | base == 10 = decimal x
+          | otherwise  = hexadecimal x
 
     pblock = loop maxDigits
       where
