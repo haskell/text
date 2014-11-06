@@ -758,36 +758,6 @@ tb_decimal_big_int64 (BigBounded (a::Int64)) = tb_decimal a
 tb_decimal_big_word (BigBounded (a::Word)) = tb_decimal a
 tb_decimal_big_word64 (BigBounded (a::Word64)) = tb_decimal a
 
-countDigits :: (Integral a) => a -> Int
-countDigits v0
-  | v0 > max64 = big 20 (v0 `quot` 10000000000000000000)
-  | otherwise  = go 1 (fromIntegral v0 :: Word64)
-  where
-    max64 = fromIntegral (maxBound :: Word64)
-    big !k v
-      | v > max64 = big (k+20) (v `quot` 10000000000000000000)
-      | otherwise = go k (fromIntegral v :: Word64)
-    go !k v
-      | v < 10    = k
-      | v < 100   = k + 1
-      | v < 1000  = k + 2
-      | v < 1000000000000 =
-          k + if v < 100000000
-              then if v < 1000000
-                   then if v < 10000
-                        then 3
-                        else 4 + fin v 100000
-                   else 6 + fin v 10000000
-              else if v < 10000000000
-                   then 8 + fin v 1000000000
-                   else 10 + fin v 100000000000
-      | otherwise = go (k + 12) (v `quot` 1000000000000)
-    fin v n = if v >= n then 1 else 0
-
-t_cd (Big k) = counterexample (show x ++ " /= " ++ show y) (x == y)
-  where x = countDigits k
-        y = length (show k)
-
 tb_hex :: (Integral a, Show a) => a -> Bool
 tb_hex = (TB.toLazyText . TB.hexadecimal) `eq` (TL.pack . flip showHex "")
 
@@ -889,8 +859,6 @@ shorten n t@(S.Stream arr off len)
 tests :: Test
 tests =
   testGroup "Properties" [
-    testProperty "t_cd" t_cd,
-
     testGroup "creation/elimination" [
       testProperty "t_pack_unpack" t_pack_unpack,
       testProperty "tl_pack_unpack" tl_pack_unpack,

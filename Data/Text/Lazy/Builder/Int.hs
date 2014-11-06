@@ -1,4 +1,5 @@
-{-# LANGUAGE BangPatterns, CPP, MagicHash, RankNTypes, UnboxedTuples #-}
+{-# LANGUAGE BangPatterns, CPP, MagicHash, RankNTypes, ScopedTypeVariables,
+    UnboxedTuples #-}
 #if __GLASGOW_HASKELL__ >= 702
 {-# LANGUAGE Trustworthy #-}
 #endif
@@ -133,8 +134,15 @@ i2w v = zero + fromIntegral v
 
 countDigits :: (Integral a) => a -> Int
 {-# INLINE countDigits #-}
-countDigits v0 = go 1 (fromIntegral v0 :: Word64)
-  where go !k v
+countDigits v0
+  | fromIntegral v64 == v0 = go 1 v64
+  | otherwise              = goBig 1 (fromIntegral v0)
+  where v64 = fromIntegral v0
+        goBig !k (v :: Integer)
+           | v > big   = goBig (k + 19) (v `quot` big)
+           | otherwise = go k (fromIntegral v)
+        big = 10000000000000000000
+        go !k (v :: Word64)
            | v < 10    = k
            | v < 100   = k + 1
            | v < 1000  = k + 2
