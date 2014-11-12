@@ -1,3 +1,8 @@
+1.2.0.1
+
+* Fixed a buffer overflow in rendering of large Integers
+  (https://github.com/bos/text/issues/99)
+
 1.2.0.0
 
 * Fixed an integer overflow in the replace function
