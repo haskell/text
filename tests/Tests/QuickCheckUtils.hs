@@ -89,6 +89,10 @@ instance Random Word where
     randomR = integralRandomR
     random  = randomR (minBound,maxBound)
 
+instance Random Word8 where
+    randomR = integralRandomR
+    random  = randomR (minBound,maxBound)
+
 instance Random Word64 where
     randomR = integralRandomR
     random  = randomR (minBound,maxBound)
