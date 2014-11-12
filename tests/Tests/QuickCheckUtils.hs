@@ -63,6 +63,11 @@ import qualified Data.Text.Internal.Lazy.Fusion as TLF
 import qualified Data.Text.Lazy as TL
 import qualified System.IO as IO
 
+#if !MIN_VERSION_base(4,4,0)
+import Data.Int (Int64)
+import Data.Word (Word, Word64)
+#endif
+
 instance Random I16 where
     randomR = integralRandomR
     random  = randomR (minBound,maxBound)
