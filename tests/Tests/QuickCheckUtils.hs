@@ -76,7 +76,15 @@ instance Arbitrary B.ByteString where
     shrink        = map B.pack . shrink . B.unpack
 
 #if !MIN_VERSION_base(4,4,0)
-instance Random Word8 where
+instance Random Int64 where
+    randomR = integralRandomR
+    random  = randomR (minBound,maxBound)
+
+instance Random Word where
+    randomR = integralRandomR
+    random  = randomR (minBound,maxBound)
+
+instance Random Word64 where
     randomR = integralRandomR
     random  = randomR (minBound,maxBound)
 #endif
