@@ -199,7 +199,7 @@ import Prelude (Char, Bool(..), Int, Maybe(..), String,
                 (&&), (||), (+), (-), (.), ($), ($!), (>>),
                 not, return, otherwise, quot)
 #if defined(HAVE_DEEPSEQ)
-import Control.DeepSeq (NFData)
+import Control.DeepSeq (NFData(rnf))
 #endif
 #if defined(ASSERTS)
 import Control.Exception (assert)
@@ -346,7 +346,7 @@ instance Exts.IsList Text where
 #endif
 
 #if defined(HAVE_DEEPSEQ)
-instance NFData Text
+instance NFData Text where rnf !_ = ()
 #endif
 
 -- | This instance preserves data abstraction at the cost of inefficiency.
