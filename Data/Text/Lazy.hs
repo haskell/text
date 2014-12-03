@@ -663,7 +663,26 @@ reverse = rev Empty
   where rev a Empty        = a
         rev a (Chunk t ts) = rev (Chunk (T.reverse t) a) ts
 
--- | /O(m+n)/ Replace every occurrence of one substring with another.
+-- | /O(m+n)/ Replace every non-overlapping occurrence of @needle@ in
+-- @haystack@ with @replacement@.
+--
+-- This function behaves as though it was defined as follows:
+--
+--@
+-- replace needle replacement haystack =
+--   'intercalate' replacement ('splitOn' needle haystack)
+--@
+--
+-- As this suggests, each occurrence is replaced exactly once.  So if
+-- @needle@ occurs in @replacement@, that occurrence will /not/ itself
+-- be replaced recursively:
+--
+-- > replace "oo" "foo" "oo" == "foo"
+--
+-- In cases where several instances of @needle@ overlap, only the
+-- first one will be replaced:
+--
+-- > replace "ofo" "bar" "ofofo" == "barfo"
 --
 -- In (unlikely) bad cases, this function's time complexity degrades
 -- towards /O(n*m)/.
