@@ -668,10 +668,10 @@ reverse = rev Empty
 --
 -- This function behaves as though it was defined as follows:
 --
---@
+-- @
 -- replace needle replacement haystack =
 --   'intercalate' replacement ('splitOn' needle haystack)
---@
+-- @
 --
 -- As this suggests, each occurrence is replaced exactly once.  So if
 -- @needle@ occurs in @replacement@, that occurrence will /not/ itself
