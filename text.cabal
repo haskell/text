@@ -169,6 +169,7 @@ test-suite tests
     deepseq,
     directory,
     ghc-prim,
+    quickcheck-unicode,
     random,
     test-framework >= 0.4,
     test-framework-hunit >= 0.2,
