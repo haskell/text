@@ -1,3 +1,8 @@
+1.2.0.2
+
+* Bumped lower bound on deepseq to 1.4 for compatibility with the
+  upcoming GHC 7.10
+
 1.2.0.1
 
 * Fixed a buffer overflow in rendering of large Integers
