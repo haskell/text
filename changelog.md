@@ -1,3 +1,8 @@
+1.2.0.3
+
+* Update formatRealFloat to correspond to the definition in versions
+  of base newer than 4.5 (https://github.com/bos/text/issues/105)
+
 1.2.0.2
 
 * Bumped lower bound on deepseq to 1.4 for compatibility with the
