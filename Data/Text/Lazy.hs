@@ -686,9 +686,13 @@ reverse = rev Empty
 --
 -- In (unlikely) bad cases, this function's time complexity degrades
 -- towards /O(n*m)/.
-replace :: Text                 -- ^ Text to search for
-        -> Text                 -- ^ Replacement text
-        -> Text                 -- ^ Input text
+replace :: Text
+        -- ^ @needle@ to search for.  If this string is empty, an
+        -- error will occur.
+        -> Text
+        -- ^ @replacement@ to replace @needle@ with.
+        -> Text
+        -- ^ @haystack@ in which to search.
         -> Text
 replace s d = intercalate d . splitOn s
 {-# INLINE replace #-}
@@ -1299,9 +1303,10 @@ tails ts@(Chunk t ts')
 -- copies to create substrings; they just construct new 'Text's that
 -- are slices of the original.
 
--- | /O(m+n)/ Break a 'Text' into pieces separated by the first
--- 'Text' argument, consuming the delimiter. An empty delimiter is
--- invalid, and will cause an error to be raised.
+-- | /O(m+n)/ Break a 'Text' into pieces separated by the first 'Text'
+-- argument (which cannot be an empty string), consuming the
+-- delimiter. An empty delimiter is invalid, and will cause an error
+-- to be raised.
 --
 -- Examples:
 --
@@ -1314,13 +1319,18 @@ tails ts@(Chunk t ts')
 -- > intercalate s . splitOn s         == id
 -- > splitOn (singleton c)             == split (==c)
 --
+-- (Note: the string @s@ to split on above cannot be empty.)
+--
 -- This function is strict in its first argument, and lazy in its
 -- second.
 --
 -- In (unlikely) bad cases, this function's time complexity degrades
 -- towards /O(n*m)/.
-splitOn :: Text                 -- ^ Text to split on
-        -> Text                 -- ^ Input text
+splitOn :: Text
+        -- ^ String to split on. If this string is empty, an error
+        -- will occur.
+        -> Text
+        -- ^ Input text.
         -> [Text]
 splitOn pat src
     | null pat        = emptyError "splitOn"
