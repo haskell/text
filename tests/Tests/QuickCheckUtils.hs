@@ -40,10 +40,11 @@ import Control.DeepSeq (NFData (..), deepseq)
 import Control.Exception (bracket)
 import Data.String (IsString, fromString)
 import Data.Text.Foreign (I16)
+import Data.Text.Lazy.Builder.RealFloat (FPFormat(..))
 import Data.Word (Word8, Word16)
 import Debug.Trace (trace)
 import System.Random (Random (..), RandomGen)
-import Test.QuickCheck hiding (Small (..), (.&.))
+import Test.QuickCheck hiding (Fixed(..), Small (..), (.&.))
 import Test.QuickCheck.Monadic (assert, monadicIO, run)
 import Test.QuickCheck.Unicode (string)
 import Tests.Utils
@@ -265,6 +266,9 @@ eqP f g s w  = eql "orig" (f s) (g t) &&
           eql d a b
             | a =^= b   = True
             | otherwise = trace (d ++ ": " ++ show a ++ " /= " ++ show b) False
+
+instance Arbitrary FPFormat where
+    arbitrary = elements [Exponent, Fixed, Generic]
 
 newtype Precision a = Precision (Maybe Int)
                     deriving (Eq, Show)
