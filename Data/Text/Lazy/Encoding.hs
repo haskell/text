@@ -89,8 +89,6 @@ import Data.Text.Unsafe (unsafeDupablePerformIO)
 
 -- | /Deprecated/.  Decode a 'ByteString' containing 7-bit ASCII
 -- encoded text.
---
--- This function is deprecated.  Use 'decodeLatin1' instead.
 decodeASCII :: B.ByteString -> Text
 decodeASCII = decodeUtf8
 {-# DEPRECATED decodeASCII "Use decodeUtf8 instead" #-}
