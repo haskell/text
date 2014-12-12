@@ -12,9 +12,9 @@ module Tests.QuickCheckUtils
 
     , BigBounded(..)
     , BigInt(..)
-    , NotEmpty (..)
+    , NotEmpty(..)
 
-    , Small (..)
+    , Small(..)
     , small
 
     , Precision(..)
@@ -22,14 +22,14 @@ module Tests.QuickCheckUtils
 
     , integralRandomR
 
-    , DecodeErr (..)
+    , DecodeErr(..)
     , genDecodeErr
 
-    , Stringy (..)
+    , Stringy(..)
     , eq
     , eqP
 
-    , Encoding (..)
+    , Encoding(..)
 
     , write_read
     ) where
@@ -43,7 +43,7 @@ import Data.Text.Foreign (I16)
 import Data.Text.Lazy.Builder.RealFloat (FPFormat(..))
 import Data.Word (Word8, Word16)
 import Debug.Trace (trace)
-import System.Random (Random (..), RandomGen)
+import System.Random (Random(..), RandomGen)
 import Test.QuickCheck hiding (Fixed(..), Small (..), (.&.))
 import Test.QuickCheck.Monadic (assert, monadicIO, run)
 import Test.QuickCheck.Unicode (string)
