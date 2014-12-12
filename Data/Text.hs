@@ -689,9 +689,13 @@ reverse t = S.reverse (stream t)
 --
 -- In (unlikely) bad cases, this function's time complexity degrades
 -- towards /O(n*m)/.
-replace :: Text        -- ^ @needle@ to search for
-        -> Text        -- ^ @replacement@ to replace @needle@ with
-        -> Text        -- ^ @haystack@ in which to search
+replace :: Text
+        -- ^ @needle@ to search for.  If this string is empty, an
+        -- error will occur.
+        -> Text
+        -- ^ @replacement@ to replace @needle@ with.
+        -> Text
+        -- ^ @haystack@ in which to search.
         -> Text
 replace needle@(Text _      _      neeLen)
                (Text repArr repOff repLen)
@@ -1299,9 +1303,9 @@ tails t | null t    = [empty]
 -- copies to create substrings; they just construct new 'Text's that
 -- are slices of the original.
 
--- | /O(m+n)/ Break a 'Text' into pieces separated by the first
--- 'Text' argument, consuming the delimiter. An empty delimiter is
--- invalid, and will cause an error to be raised.
+-- | /O(m+n)/ Break a 'Text' into pieces separated by the first 'Text'
+-- argument (which cannot be empty), consuming the delimiter. An empty
+-- delimiter is invalid, and will cause an error to be raised.
 --
 -- Examples:
 --
@@ -1314,9 +1318,16 @@ tails t | null t    = [empty]
 -- > intercalate s . splitOn s         == id
 -- > splitOn (singleton c)             == split (==c)
 --
+-- (Note: the string @s@ to split on above cannot be empty.)
+--
 -- In (unlikely) bad cases, this function's time complexity degrades
 -- towards /O(n*m)/.
-splitOn :: Text -> Text -> [Text]
+splitOn :: Text
+        -- ^ String to split on. If this string is empty, an error
+        -- will occur.
+        -> Text
+        -- ^ Input text.
+        -> [Text]
 splitOn pat@(Text _ _ l) src@(Text arr off len)
     | l <= 0          = emptyError "splitOn"
     | isSingleton pat = split (== unsafeHead pat) src
