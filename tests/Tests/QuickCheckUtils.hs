@@ -17,6 +17,9 @@ module Tests.QuickCheckUtils
     , Small (..)
     , small
 
+    , Precision(..)
+    , precision
+
     , integralRandomR
 
     , DecodeErr (..)
@@ -262,6 +265,27 @@ eqP f g s w  = eql "orig" (f s) (g t) &&
           eql d a b
             | a =^= b   = True
             | otherwise = trace (d ++ ": " ++ show a ++ " /= " ++ show b) False
+
+newtype Precision a = Precision (Maybe Int)
+                    deriving (Eq, Show)
+
+precision :: a -> Precision a -> Maybe Int
+precision _ (Precision prec) = prec
+
+arbitraryPrecision :: Int -> Gen (Precision a)
+arbitraryPrecision maxDigits = Precision <$> do
+  n <- choose (-1,maxDigits)
+  return $ if n == -1
+           then Nothing
+           else Just n
+
+instance Arbitrary (Precision Float) where
+    arbitrary = arbitraryPrecision 11
+    shrink    = map Precision . shrink . precision undefined
+
+instance Arbitrary (Precision Double) where
+    arbitrary = arbitraryPrecision 22
+    shrink    = map Precision . shrink . precision undefined
 
 -- Work around lack of Show instance for TextEncoding.
 data Encoding = E String IO.TextEncoding
