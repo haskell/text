@@ -24,7 +24,7 @@ import Data.Text.Internal.Search (indices)
 import Data.Text.Lazy.Read as TL
 import Data.Text.Read as T
 import Data.Word (Word, Word8, Word16, Word32, Word64)
-import Numeric (showGFloat, showHex)
+import Numeric (showEFloat, showFFloat, showGFloat, showHex)
 import Prelude hiding (replicate)
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
@@ -779,14 +779,19 @@ tb_realfloat = (TB.toLazyText . TB.realFloat) `eq` (TL.pack . show)
 tb_realfloat_float (a::Float) = tb_realfloat a
 tb_realfloat_double (a::Double) = tb_realfloat a
 
-tb_formatRealFloat_G :: (RealFloat a, Show a) => a -> Precision a -> Property
-tb_formatRealFloat_G a prec =
-    TB.formatRealFloat TB.Generic p a ===
-    TB.fromString (showGFloat p a "")
+showFloat :: (RealFloat a) => TB.FPFormat -> Maybe Int -> a -> ShowS
+showFloat TB.Exponent = showEFloat
+showFloat TB.Fixed    = showFFloat
+showFloat TB.Generic  = showGFloat
+
+tb_formatRealFloat :: (RealFloat a, Show a) => a -> TB.FPFormat -> Precision a -> Property
+tb_formatRealFloat a fmt prec =
+    TB.formatRealFloat fmt p a ===
+    TB.fromString (showFloat fmt p a "")
   where p = precision a prec
 
-tb_formatRealFloat_G_float (a::Float) = tb_formatRealFloat_G a
-tb_formatRealFloat_G_double (a::Double) = tb_formatRealFloat_G a
+tb_formatRealFloat_float (a::Float) = tb_formatRealFloat a
+tb_formatRealFloat_double (a::Double) = tb_formatRealFloat a
 
 -- Reading.
 
@@ -1294,8 +1299,8 @@ tests =
       testGroup "realfloat" [
         testProperty "tb_realfloat_double" tb_realfloat_double,
         testProperty "tb_realfloat_float" tb_realfloat_float,
-        testProperty "tb_formatRealFloat_G_float" tb_formatRealFloat_G_float,
-        testProperty "tb_formatRealFloat_G_double" tb_formatRealFloat_G_double
+        testProperty "tb_formatRealFloat_float" tb_formatRealFloat_float,
+        testProperty "tb_formatRealFloat_double" tb_formatRealFloat_double
       ],
       testProperty "tb_fromText" tb_fromText,
       testProperty "tb_singleton" tb_singleton
