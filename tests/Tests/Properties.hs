@@ -1,9 +1,8 @@
--- | General quicktest properties for the text library
---
+-- | QuickCheck properties for the text library.
+
 {-# LANGUAGE BangPatterns, FlexibleInstances, OverloadedStrings,
              ScopedTypeVariables, TypeSynonymInstances #-}
-{-# OPTIONS_GHC -fno-enable-rewrite-rules #-}
-{-# OPTIONS_GHC -fno-warn-missing-signatures #-}
+{-# OPTIONS_GHC -fno-enable-rewrite-rules -fno-warn-missing-signatures #-}
 module Tests.Properties
     (
       tests
@@ -784,7 +783,8 @@ showFloat TB.Exponent = showEFloat
 showFloat TB.Fixed    = showFFloat
 showFloat TB.Generic  = showGFloat
 
-tb_formatRealFloat :: (RealFloat a, Show a) => a -> TB.FPFormat -> Precision a -> Property
+tb_formatRealFloat :: (RealFloat a, Show a) =>
+                      a -> TB.FPFormat -> Precision a -> Property
 tb_formatRealFloat a fmt prec =
     TB.formatRealFloat fmt p a ===
     TB.fromString (showFloat fmt p a "")
