@@ -71,7 +71,6 @@ flag developer
 
 flag integer-simple
   description: Use the simple integer library instead of GMP
-  default: False
 
 library
   c-sources:    cbits/cbits.c
