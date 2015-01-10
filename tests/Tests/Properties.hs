@@ -14,7 +14,7 @@ import Data.Bits ((.&.))
 import Data.Char (chr, isDigit, isHexDigit, isLower, isSpace, isUpper, ord)
 import Data.Int (Int8, Int16, Int32, Int64)
 import Data.Monoid (Monoid(..))
-import Data.String (fromString)
+import Data.String (IsString(fromString))
 import Data.Text.Encoding.Error
 import Data.Text.Foreign
 import Data.Text.Internal.Encoding.Utf8
@@ -812,7 +812,7 @@ tl_hexadecimal m s ox =
           p = if ox then "0x" else ""
           n = getPositive m :: Int
 
-isFloaty c = c `elem` "+-.0123456789eE"
+isFloaty c = c `elem` ("+-.0123456789eE" :: String)
 
 t_read_rational p tol (n::Double) s =
     case p (T.pack (show n) `T.append` t) of
