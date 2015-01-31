@@ -440,6 +440,10 @@ t_mapAccumR f z   = L.mapAccumR f z `eqP` (second unpackS . T.mapAccumR f z)
 tl_mapAccumR f z  = L.mapAccumR f z `eqP` (second unpackS . TL.mapAccumR f z)
     where _types  = f :: Int -> Char -> (Int,Char)
 
+tl_repeat n       = (L.take m . L.repeat) `eq`
+                    (unpackS . TL.take (fromIntegral m) . TL.repeat)
+    where m = fromIntegral (n :: Word8)
+
 replicate n l = concat (L.replicate n l)
 
 s_replicate n     = replicate m `eq`
@@ -449,6 +453,14 @@ t_replicate n     = replicate m `eq` (unpackS . T.replicate m . packS)
     where m = fromIntegral (n :: Word8)
 tl_replicate n    = replicate m `eq`
                     (unpackS . TL.replicate (fromIntegral m) . packS)
+    where m = fromIntegral (n :: Word8)
+
+tl_cycle n        = (L.take m . L.cycle) `eq`
+                    (unpackS . TL.take (fromIntegral m) . TL.cycle . packS)
+    where m = fromIntegral (n :: Word8)
+
+tl_iterate f n    = (L.take m . L.iterate f) `eq`
+                    (unpackS . TL.take (fromIntegral m) . TL.iterate f)
     where m = fromIntegral (n :: Word8)
 
 unf :: Int -> Char -> Maybe (Char, Char)
@@ -1094,9 +1106,12 @@ tests =
       ],
 
       testGroup "unfolds" [
+        testProperty "tl_repeat" tl_repeat,
         testProperty "s_replicate" s_replicate,
         testProperty "t_replicate" t_replicate,
         testProperty "tl_replicate" tl_replicate,
+        testProperty "tl_cycle" tl_cycle,
+        testProperty "tl_iterate" tl_iterate,
         testProperty "t_unfoldr" t_unfoldr,
         testProperty "tl_unfoldr" tl_unfoldr,
         testProperty "t_unfoldrN" t_unfoldrN,
