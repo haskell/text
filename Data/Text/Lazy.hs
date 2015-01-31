@@ -939,8 +939,8 @@ replicate n t
                  | otherwise = t : rep (i+1)
 {-# INLINE [1] replicate #-}
 
--- | 'cycle' ties a finite 'Text' into a circular one, or equivalently,
--- the infinite repetition of the original 'Text'.
+-- | 'cycle' ties a finite, non-empty 'Text' into a circular one, or
+-- equivalently, the infinite repetition of the original 'Text'.
 cycle :: Text -> Text
 cycle Empty = emptyError "cycle"
 cycle t     = let t' = foldrChunks Chunk t' t
@@ -951,8 +951,8 @@ cycle t     = let t' = foldrChunks Chunk t' t
 -- 
 -- > iterate f x == [x, f x, f (f x), ...]
 iterate :: (Char -> Char) -> Char -> Text
-iterate f = unfoldr $ \x -> case f x of
-                                 !x' -> Just (x', x')
+iterate f c = let t c' = Chunk (T.singleton c') (t (f c'))
+               in t c
 
 -- | /O(n)/ 'replicateChar' @n@ @c@ is a 'Text' of length @n@ with @c@ the
 -- value of every element. Subject to fusion.
