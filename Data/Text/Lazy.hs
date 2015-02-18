@@ -125,7 +125,10 @@ module Data.Text.Lazy
     , mapAccumR
 
     -- ** Generation and unfolding
+    , repeat
     , replicate
+    , cycle
+    , iterate
     , unfoldr
     , unfoldrN
 
@@ -218,7 +221,8 @@ import qualified Data.Text.Unsafe as T
 import qualified Data.Text.Internal.Lazy.Fusion as S
 import Data.Text.Internal.Fusion.Types (PairS(..))
 import Data.Text.Internal.Lazy.Fusion (stream, unstream)
-import Data.Text.Internal.Lazy (Text(..), chunk, empty, foldlChunks, foldrChunks)
+import Data.Text.Internal.Lazy (Text(..), chunk, empty, foldlChunks,
+                                foldrChunks, smallChunkSize)
 import Data.Text.Internal (firstf, safe, text)
 import qualified Data.Text.Internal.Functions as F
 import Data.Text.Internal.Lazy.Search (indices)
@@ -918,6 +922,12 @@ mapAccumR f = go
     go z Empty          = (z, Empty)
 {-# INLINE mapAccumR #-}
 
+-- | @'repeat' x@ is an infinite 'Text', with @x@ the value of every
+-- element.
+repeat :: Char -> Text
+repeat c = let t = Chunk (T.replicate smallChunkSize (T.singleton c)) t
+            in t
+
 -- | /O(n*m)/ 'replicate' @n@ @t@ is a 'Text' consisting of the input
 -- @t@ repeated @n@ times.
 replicate :: Int64 -> Text -> Text
@@ -928,6 +938,21 @@ replicate n t
     where rep !i | i >= n    = []
                  | otherwise = t : rep (i+1)
 {-# INLINE [1] replicate #-}
+
+-- | 'cycle' ties a finite, non-empty 'Text' into a circular one, or
+-- equivalently, the infinite repetition of the original 'Text'.
+cycle :: Text -> Text
+cycle Empty = emptyError "cycle"
+cycle t     = let t' = foldrChunks Chunk t' t
+               in t'
+
+-- | @'iterate' f x@ returns an infinite 'Text' of repeated applications
+-- of @f@ to @x@:
+-- 
+-- > iterate f x == [x, f x, f (f x), ...]
+iterate :: (Char -> Char) -> Char -> Text
+iterate f c = let t c' = Chunk (T.singleton c') (t (f c'))
+               in t c
 
 -- | /O(n)/ 'replicateChar' @n@ @c@ is a 'Text' of length @n@ with @c@ the
 -- value of every element. Subject to fusion.
