@@ -66,6 +66,7 @@ type OnError a b = String -> Maybe a -> Maybe b
 type OnDecodeError = OnError Word8 Char
 
 -- | A handler for an encoding error.
+{-# DEPRECATED OnEncodeError "This exception is never used in practice, and will be removed." #-}
 type OnEncodeError = OnError Char Word8
 
 -- | An exception type for representing Unicode encoding errors.
@@ -77,6 +78,8 @@ data UnicodeException =
     -- ^ Tried to encode a character that could not be represented
     -- under the given encoding, or ran out of input in mid-encode.
     deriving (Eq, Typeable)
+
+{-# DEPRECATED EncodeError "This constructor is never used, and will be removed." #-}
 
 showUnicodeException :: UnicodeException -> String
 showUnicodeException (DecodeError desc (Just w))
@@ -107,6 +110,7 @@ lenientDecode :: OnDecodeError
 lenientDecode _ _ = Just '\xfffd'
 
 -- | Throw a 'UnicodeException' if encoding fails.
+{-# DEPRECATED strictEncode "This function always throws an exception, and will be removed." #-}
 strictEncode :: OnEncodeError
 strictEncode desc c = throw (EncodeError desc c)
 
