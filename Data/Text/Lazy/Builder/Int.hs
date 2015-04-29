@@ -200,9 +200,6 @@ integer :: Int -> Integer -> Builder
 #ifdef INTEGER_GMP
 integer 10 (S# i#) = decimal (I# i#)
 integer 16 (S# i#) = hexadecimal (I# i#)
-#else
-integer 10 i = decimal i
-integer 16 i = hexadecimal i
 #endif
 integer base i
     | i < 0     = singleton '-' <> go (-i)
