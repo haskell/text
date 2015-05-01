@@ -11,6 +11,7 @@ module CaseFolding
     ) where
 
 import Arsec
+import Data.List (sort)
 
 data Fold = Fold {
       code :: Char
@@ -34,13 +35,16 @@ parseCF :: FilePath -> IO (Either ParseError CaseFolding)
 parseCF name = parse entries name <$> readFile name
 
 mapCF :: CaseFolding -> [String]
-mapCF (CF _ ms) = typ ++ (map nice . filter p $ ms) ++ [last]
+mapCF (CF _ ms) =
+    ["const uint16_t _hs_text_to_case_fold_keys[" ++ count ++ "] = {"] ++
+    map (key code name) mappings ++
+    ["};"
+    ,"const size_t _hs_text_to_case_fold_len = " ++ count ++ ";"
+    ,"const uint16_t _hs_text_to_case_fold_values[" ++ count ++ "][3] = {"] ++
+    map (value code name mapping) mappings ++
+    ["};"]
   where
-    typ = ["foldMapping :: forall s. Char -> s -> Step (CC s) Char"
-           ,"{-# INLINE foldMapping #-}"]
-    last = "foldMapping c s = Yield (toLower c) (CC s '\\0' '\\0')"
-    nice c = "-- " ++ name c ++ "\n" ++
-             "foldMapping " ++ showC (code c) ++ " s = Yield " ++ x ++ " (CC s " ++ y ++ " " ++ z ++ ")"
-       where [x,y,z] = (map showC . take 3) (mapping c ++ repeat '\0')
+    count = show (length mappings)
+    mappings = sort (filter p ms)
     p f = status f `elem` "CF" &&
           mapping f /= [toLower (code f)]

@@ -1,3 +1,12 @@
+1.2.0.5
+
+* Fixed a space explosion in the GHC inliner by changing how case
+  mapping functions are implemented
+
+1.2.0.4
+
+* Resurrected compatibility with base < 4.5
+
 1.2.0.3
 
 * Update formatRealFloat to correspond to the definition in versions

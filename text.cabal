@@ -73,7 +73,7 @@ flag integer-simple
   description: Use the simple integer library instead of GMP
 
 library
-  c-sources:    cbits/cbits.c
+  c-sources:    cbits/case_mapping.c cbits/cbits.c
   include-dirs: include
 
   exposed-modules:
@@ -95,7 +95,6 @@ library
     Data.Text.Internal.Encoding.Utf8
     Data.Text.Internal.Functions
     Data.Text.Internal.Fusion
-    Data.Text.Internal.Fusion.CaseMapping
     Data.Text.Internal.Fusion.Common
     Data.Text.Internal.Fusion.Size
     Data.Text.Internal.Fusion.Types
@@ -150,7 +149,7 @@ test-suite tests
   type:           exitcode-stdio-1.0
   hs-source-dirs: tests .
   main-is:        Tests.hs
-  c-sources:      cbits/cbits.c
+  c-sources:      cbits/case_mapping.c cbits/cbits.c
   include-dirs:   include
 
   ghc-options:

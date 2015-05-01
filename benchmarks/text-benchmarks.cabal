@@ -22,7 +22,7 @@ flag llvm
 
 executable text-benchmarks
   hs-source-dirs: haskell ..
-  c-sources:      ../cbits/cbits.c
+  c-sources:      ../cbits/case_mapping.c ../cbits/cbits.c
                   cbits/time_iconv.c
   include-dirs:   ../include
   main-is:        Benchmarks.hs

@@ -3,7 +3,9 @@ module Arsec
       Comment
     , comment
     , semi
-    , showC
+    , showX
+    , key
+    , value
     , unichar
     , unichars
     , module Control.Applicative
@@ -18,6 +20,7 @@ module Arsec
 import Control.Monad
 import Control.Applicative
 import Data.Char
+import Data.List (intercalate)
 import Numeric
 import Text.ParserCombinators.Parsec.Char hiding (lower, upper)
 import Text.ParserCombinators.Parsec.Combinator hiding (optional)
@@ -38,7 +41,17 @@ semi = char ';' *> spaces *> pure ()
 comment :: Parser Comment
 comment = (char '#' *> manyTill anyToken (char '\n')) <|> string "\n"
 
-showC :: Char -> String
-showC c = "'\\x" ++ d ++ "'"
+showX :: Char -> String
+showX c
+  | c > '\xffff' = error $ "U+" ++ h ++ " will not fit in 16 bits"
+  | otherwise    = "0x" ++ replicate (4 - length h) '0' ++ h
     where h = showHex (ord c) ""
-          d = replicate (4 - length h) '0' ++ h
+
+key :: (t -> Char) -> (t -> String) -> t -> String
+key code name c = "  " ++ showX (code c) ++ "," ++ "  /* " ++ name c ++ " */"
+
+value :: (t -> Char) -> (t -> String) -> (t -> String) -> t -> String
+value code name mapping c =
+    "  /* " ++ showX (code c) ++ " - " ++ name c ++ " */\n" ++
+    "  {" ++ intercalate ", " xs ++ "},"
+  where xs = take 3 (map showX (mapping c) ++ ["0","0"])

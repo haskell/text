@@ -1,7 +1,7 @@
-{-# LANGUAGE BangPatterns, MagicHash, Rank2Types #-}
+{-# LANGUAGE BangPatterns, ForeignFunctionInterface, MagicHash, Rank2Types #-}
 -- |
 -- Module      : Data.Text.Internal.Fusion.Common
--- Copyright   : (c) Bryan O'Sullivan 2009, 2012
+-- Copyright   : (c) Bryan O'Sullivan 2009, 2012, 2015
 --
 -- License     : BSD-style
 -- Maintainer  : bos@serpentine.com
@@ -104,20 +104,24 @@ module Data.Text.Internal.Fusion.Common
     , zipWith
     ) where
 
-import Prelude (Bool(..), Char, Eq(..), Int, Integral, Maybe(..),
+import Prelude (Bool(..), Char, Eq(..), IO, Int, Integral, Maybe(..),
                 Ord(..), Ordering(..), String, (.), ($), (+), (-), (*), (++),
-                (&&), fromIntegral, otherwise)
-import qualified Data.List as L
-import qualified Prelude as P
+                (&&), fmap, fromIntegral, otherwise, return)
 import Data.Bits (shiftL)
 import Data.Char (isLetter)
 import Data.Int (Int64)
-import Data.Text.Internal.Fusion.Types
-import Data.Text.Internal.Fusion.CaseMapping (foldMapping, lowerMapping, titleMapping,
-                                     upperMapping)
 import Data.Text.Internal.Fusion.Size
+import Data.Text.Internal.Fusion.Types
+import Data.Text.Internal.Unsafe (inlinePerformIO)
+import Data.Text.Internal.Unsafe.Char (ord, unsafeChr)
+import Data.Word (Word16)
+import Foreign.Ptr (Ptr, nullPtr, plusPtr)
+import Foreign.Storable (peek)
 import GHC.Prim (Addr#, chr#, indexCharOffAddr#, ord#)
 import GHC.Types (Char(..), Int(..))
+import qualified Data.Char as Char
+import qualified Data.List as L
+import qualified Prelude as P
 
 singleton :: Char -> Stream Char
 singleton c = Stream next False 1
@@ -404,6 +408,22 @@ caseConvert remap (Stream next0 s0 len) = Stream next (CC s0 '\0' '\0') len
           Yield c s' -> remap c s'
     next (CC s a b)  =  Yield a (CC s b '\0')
 
+-- | Convert a single character to a Step.
+convert :: (Word16 -> IO (Ptr Word16))
+        -> (Char -> Char)
+        -> Char -> s -> Step (CC s) Char
+convert lookup f c s
+  | c > '\xffff' = Yield (f c) (CC s '\0' '\0')
+  | otherwise = inlinePerformIO $ do
+    ptr <- lookup (fromIntegral (ord c))
+    if (ptr == nullPtr)
+      then return $ Yield (f c) (CC s '\0' '\0')
+      else do
+        x <- unsafeChr `fmap` peek ptr
+        y <- unsafeChr `fmap` peek (ptr `plusPtr` 2)
+        z <- unsafeChr `fmap` peek (ptr `plusPtr` 4)
+        return $ Yield x (CC s y z)
+
 -- | /O(n)/ Convert a string to folded case.  This function is mainly
 -- useful for performing caseless (or case insensitive) string
 -- comparisons.
@@ -419,7 +439,7 @@ caseConvert remap (Stream next0 s0 len) = Stream next (CC s0 '\0' '\0') len
 -- case folded to the Greek small letter letter mu (U+03BC) instead of
 -- itself.
 toCaseFold :: Stream Char -> Stream Char
-toCaseFold = caseConvert foldMapping
+toCaseFold = caseConvert (convert to_case_fold Char.toLower)
 {-# INLINE [0] toCaseFold #-}
 
 -- | /O(n)/ Convert a string to upper case, using simple case
@@ -427,7 +447,7 @@ toCaseFold = caseConvert foldMapping
 -- For instance, the German eszett (U+00DF) maps to the two-letter
 -- sequence SS.
 toUpper :: Stream Char -> Stream Char
-toUpper = caseConvert upperMapping
+toUpper = caseConvert (convert to_upper Char.toUpper)
 {-# INLINE [0] toUpper #-}
 
 -- | /O(n)/ Convert a string to lower case, using simple case
@@ -436,7 +456,7 @@ toUpper = caseConvert upperMapping
 -- maps to the sequence Latin small letter i (U+0069) followed by
 -- combining dot above (U+0307).
 toLower :: Stream Char -> Stream Char
-toLower = caseConvert lowerMapping
+toLower = caseConvert (convert to_lower Char.toLower)
 {-# INLINE [0] toLower #-}
 
 -- | /O(n)/ Convert a string to title case, using simple case
@@ -466,8 +486,8 @@ toTitle (Stream next0 s0 len) = Stream next (CC (False :*: s0) '\0' '\0') len
         Skip s'        -> Skip (CC (letter :*: s') '\0' '\0')
         Yield c s'
           | letter'    -> if letter
-                          then lowerMapping c (letter' :*: s')
-                          else titleMapping c (letter' :*: s')
+                          then convert to_lower Char.toLower c (letter' :*: s')
+                          else convert to_title Char.toTitle c (letter' :*: s')
           | otherwise  -> Yield c (CC (letter' :*: s') '\0' '\0')
           where letter' = isLetter c
     next (CC s a b)     = Yield a (CC s b '\0')
@@ -949,3 +969,15 @@ emptyError func = internalError func "Empty input"
 
 internalError :: String -> a
 internalError func = streamError func "Internal error"
+
+foreign import ccall unsafe "_hs_text_to_upper" to_upper
+    :: Word16 -> IO (Ptr Word16)
+
+foreign import ccall unsafe "_hs_text_to_lower" to_lower
+    :: Word16 -> IO (Ptr Word16)
+
+foreign import ccall unsafe "_hs_text_to_case_fold" to_case_fold
+    :: Word16 -> IO (Ptr Word16)
+
+foreign import ccall unsafe "_hs_text_to_title" to_title
+    :: Word16 -> IO (Ptr Word16)

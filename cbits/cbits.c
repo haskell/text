@@ -309,3 +309,97 @@ _hs_text_encode_utf8(uint8_t **destp, const uint16_t *src, size_t srcoff,
 
   *destp = dest;
 }
+
+/*
+ * Case mapping works as follows.  We binary search a dense sorted
+ * table of characters.  If we find a match, we return the address of
+ * a three-character sequence which represents the mapping of that
+ * character.  Short sequences are padded on the end with nulls.
+ *
+ * We can get away with a dense encoding, representing characters in
+ * these tables as 16-bit values, until whenever the Unicode
+ * consortium defines funky case mappings for code points above
+ * U+FFFF.  (The table generator scripts/CaseMapping.hs checks for
+ * this.)
+ */
+
+/*
+ * Binary search through a case mapping table.
+ */
+static ssize_t case_map_search(const uint16_t *table, size_t len, uint16_t key)
+{
+  ssize_t max = len - 1;
+  ssize_t min = 0;
+
+  while (max >= min) {
+    ssize_t mid = min + (max - min) / 2;
+
+    if (table[mid] == key)
+      return mid;
+    if (table[mid] < key)
+      min = mid + 1;
+    else
+      max = mid - 1;
+  }
+  return -1;
+}
+
+extern const uint16_t _hs_text_to_upper_keys[];
+extern const uint16_t _hs_text_to_upper_values[][3];
+extern const size_t _hs_text_to_upper_len;
+
+const uint16_t *_hs_text_to_upper(uint16_t c)
+{
+  ssize_t idx = case_map_search(_hs_text_to_upper_keys,
+			        _hs_text_to_upper_len,
+			        c);
+
+  if (idx == -1)
+    return NULL;
+  return _hs_text_to_upper_values[idx];
+}
+
+extern const uint16_t _hs_text_to_lower_keys[];
+extern const uint16_t _hs_text_to_lower_values[][3];
+extern const size_t _hs_text_to_lower_len;
+
+const uint16_t *_hs_text_to_lower(uint16_t c)
+{
+  ssize_t idx = case_map_search(_hs_text_to_lower_keys,
+			        _hs_text_to_lower_len,
+			        c);
+
+  if (idx == -1)
+    return NULL;
+  return _hs_text_to_lower_values[idx];
+}
+
+extern const uint16_t _hs_text_to_case_fold_keys[];
+extern const uint16_t _hs_text_to_case_fold_values[][3];
+extern const size_t _hs_text_to_case_fold_len;
+
+const uint16_t *_hs_text_to_case_fold(uint16_t c)
+{
+  ssize_t idx = case_map_search(_hs_text_to_case_fold_keys,
+			        _hs_text_to_case_fold_len,
+			        c);
+
+  if (idx == -1)
+    return NULL;
+  return _hs_text_to_case_fold_values[idx];
+}
+
+extern const uint16_t _hs_text_to_title_keys[];
+extern const uint16_t _hs_text_to_title_values[][3];
+extern const size_t _hs_text_to_title_len;
+
+const uint16_t *_hs_text_to_title(uint16_t c)
+{
+  ssize_t idx = case_map_search(_hs_text_to_title_keys,
+			        _hs_text_to_title_len,
+			        c);
+
+  if (idx == -1)
+    return NULL;
+  return _hs_text_to_title_values[idx];
+}
