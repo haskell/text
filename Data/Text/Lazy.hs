@@ -210,8 +210,8 @@ import Control.DeepSeq (NFData(..))
 import Data.Int (Int64)
 import qualified Data.List as L
 import Data.Char (isSpace)
-import Data.Data (Data(gfoldl, toConstr, gunfold, dataTypeOf))
-import Data.Data (mkNoRepType)
+import Data.Data (Data(gfoldl, toConstr, gunfold, dataTypeOf), constrIndex,
+                  Constr, mkConstr, DataType, mkDataType, Fixity(Prefix))
 import Data.Monoid (Monoid(..))
 import Data.String (IsString(..))
 import qualified Data.Text as T
@@ -353,11 +353,24 @@ instance NFData Text where
     rnf (Chunk _ ts) = rnf ts
 #endif
 
+-- | This instance preserves data abstraction at the cost of inefficiency.
+-- We omit reflection services for the sake of data abstraction.
+--
+-- This instance was created by copying the updated behavior of
+-- @"Data.Text".@'Data.Text.Text'
 instance Data Text where
   gfoldl f z txt = z pack `f` (unpack txt)
-  toConstr _     = error "Data.Text.Lazy.Text.toConstr"
-  gunfold _ _    = error "Data.Text.Lazy.Text.gunfold"
-  dataTypeOf _   = mkNoRepType "Data.Text.Lazy.Text"
+  toConstr _     = packConstr
+  gunfold k z c  = case constrIndex c of
+    1 -> k (z pack)
+    _ -> error "Data.Text.Lazy.Text.gunfold"
+  dataTypeOf _   = textDataType
+
+packConstr :: Constr
+packConstr = mkConstr textDataType "pack" [] Prefix
+
+textDataType :: DataType
+textDataType = mkDataType "Data.Text.Lazy.Text" [packConstr]
 
 -- | /O(n)/ Convert a 'String' into a 'Text'.
 --
