@@ -88,6 +88,7 @@ library
     Data.Text.Internal.Builder.Functions
     Data.Text.Internal.Builder.Int.Digits
     Data.Text.Internal.Builder.RealFloat.Functions
+    Data.Text.Internal.CaseMapping
     Data.Text.Internal.Encoding.Fusion
     Data.Text.Internal.Encoding.Fusion.Common
     Data.Text.Internal.Encoding.Utf16

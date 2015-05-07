@@ -121,6 +121,7 @@ import GHC.Prim (Addr#, chr#, indexCharOffAddr#, ord#)
 import GHC.Types (Char(..), Int(..))
 import qualified Data.Char as Char
 import qualified Data.List as L
+import qualified Data.Text.Internal.CaseMapping as CaseMapping
 import qualified Prelude as P
 
 singleton :: Char -> Stream Char
@@ -447,7 +448,7 @@ toCaseFold = caseConvert (convert to_case_fold Char.toLower)
 -- For instance, the German eszett (U+00DF) maps to the two-letter
 -- sequence SS.
 toUpper :: Stream Char -> Stream Char
-toUpper = caseConvert (convert to_upper Char.toUpper)
+toUpper = caseConvert CaseMapping.toUpper
 {-# INLINE [0] toUpper #-}
 
 -- | /O(n)/ Convert a string to lower case, using simple case
