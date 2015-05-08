@@ -23,6 +23,8 @@ module Data.Text.Internal.Fusion.Types
     , M(..)
     , M8
     , PairS(..)
+    , T3(..)
+    , Scan(..)
     , RS(..)
     , Step(..)
     , Stream(..)
@@ -42,20 +44,29 @@ data M a = N
 
 type M8 = M Word8
 
--- Restreaming state.
+-- | Restreaming state.
 data RS s
     = RS0 !s
     | RS1 !s {-# UNPACK #-} !Word8
     | RS2 !s {-# UNPACK #-} !Word8 {-# UNPACK #-} !Word8
     | RS3 !s {-# UNPACK #-} !Word8 {-# UNPACK #-} !Word8 {-# UNPACK #-} !Word8
 
-infixl 2 :*:
+-- | Strict pair.
 data PairS a b = !a :*: !b
                  -- deriving (Eq, Ord, Show)
+infixl 2 :*:
+
+-- | Strict triple.
+data T3 a b c = T3 !a !b !c
+
+-- | An intermediate result in a scan.
+data Scan s = Scan1 {-# UNPACK #-} !Char !s
+            | Scan2 {-# UNPACK #-} !Char !s
 
 -- | Allow a function over a stream to switch between two states.
 data Switch = S1 | S2
 
+-- | Intermediate result in a processing pipeline.
 data Step s a = Done
               | Skip !s
               | Yield !a !s

@@ -473,17 +473,20 @@ toTitle (Stream next0 s0 len) = Stream next (CC (False :*: s0) '\0' '\0') len
     next (CC s a b)     = Yield a (CC s b '\0')
 {-# INLINE [0] toTitle #-}
 
+data Justify i s = Just1 !i !s
+                 | Just2 !i !s
+
 justifyLeftI :: Integral a => a -> Char -> Stream Char -> Stream Char
 justifyLeftI k c (Stream next0 s0 len) =
-    Stream next (s0 :*: S1 :*: 0) (larger (fromIntegral k) len)
+    Stream next (Just1 0 s0) (larger (fromIntegral k) len)
   where
-    next (s :*: S1 :*: n) =
+    next (Just1 n s) =
         case next0 s of
-          Done       -> next (s :*: S2 :*: n)
-          Skip s'    -> Skip (s' :*: S1 :*: n)
-          Yield x s' -> Yield x (s' :*: S1 :*: n+1)
-    next (s :*: S2 :*: n)
-        | n < k       = Yield c (s :*: S2 :*: n+1)
+          Done       -> next (Just2 n s)
+          Skip s'    -> Skip (Just1 n s')
+          Yield x s' -> Yield x (Just1 (n+1) s')
+    next (Just2 n s)
+        | n < k       = Yield c (Just2 (n+1) s)
         | otherwise   = Done
     {-# INLINE next #-}
 {-# INLINE [0] justifyLeftI #-}
@@ -651,15 +654,15 @@ minimum (Stream next0 s0 _len) = loop0_minimum s0
 -- * Building streams
 
 scanl :: (Char -> Char -> Char) -> Char -> Stream Char -> Stream Char
-scanl f z0 (Stream next0 s0 len) = Stream next (S1 :*: z0 :*: s0) (len+1) -- HINT maybe too low
+scanl f z0 (Stream next0 s0 len) = Stream next (Scan1 z0 s0) (len+1) -- HINT maybe too low
   where
     {-# INLINE next #-}
-    next (S1 :*: z :*: s) = Yield z (S2 :*: z :*: s)
-    next (S2 :*: z :*: s) = case next0 s of
-                              Yield x s' -> let !x' = f z x
-                                            in Yield x' (S2 :*: x' :*: s')
-                              Skip s'    -> Skip (S2 :*: z :*: s')
-                              Done       -> Done
+    next (Scan1 z s) = Yield z (Scan2 z s)
+    next (Scan2 z s) = case next0 s of
+                         Yield x s' -> let !x' = f z x
+                                       in Yield x' (Scan2 x' s')
+                         Skip s'    -> Skip (Scan2 z s')
+                         Done       -> Done
 {-# INLINE [0] scanl #-}
 
 -- -----------------------------------------------------------------------------
@@ -916,17 +919,17 @@ findIndicesI p (Stream next s0 _len) = loop_findIndex 0 s0
 -- the first argument, instead of a tupling function.
 zipWith :: (a -> a -> b) -> Stream a -> Stream a -> Stream b
 zipWith f (Stream next0 sa0 len1) (Stream next1 sb0 len2) =
-    Stream next (sa0 :*: sb0 :*: N) (smaller len1 len2)
+    Stream next (T3 sa0 sb0 N) (smaller len1 len2)
     where
-      next (sa :*: sb :*: N) = case next0 sa of
-                                 Done -> Done
-                                 Skip sa' -> Skip (sa' :*: sb :*: N)
-                                 Yield a sa' -> Skip (sa' :*: sb :*: J a)
+      next (T3 sa sb N) = case next0 sa of
+                            Done -> Done
+                            Skip sa' -> Skip (T3 sa' sb N)
+                            Yield a sa' -> Skip (T3 sa' sb (J a))
 
-      next (sa' :*: sb :*: J a) = case next1 sb of
-                                    Done -> Done
-                                    Skip sb' -> Skip (sa' :*: sb' :*: J a)
-                                    Yield b sb' -> Yield (f a b) (sa' :*: sb' :*: N)
+      next (T3 sa' sb (J a)) = case next1 sb of
+                                 Done -> Done
+                                 Skip sb' -> Skip (T3 sa' sb' (J a))
+                                 Yield b sb' -> Yield (f a b) (T3 sa' sb' N)
 {-# INLINE [0] zipWith #-}
 
 -- | /O(n)/ The 'countCharI' function returns the number of times the
