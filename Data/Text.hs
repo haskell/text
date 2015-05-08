@@ -758,7 +758,7 @@ replace needle@(Text _      _      neeLen)
 -- instead of itself.
 toCaseFold :: Text -> Text
 toCaseFold t = unstream (S.toCaseFold (stream t))
-{-# INLINE [0] toCaseFold #-}
+{-# INLINE toCaseFold #-}
 
 -- | /O(n)/ Convert a string to lower case, using simple case
 -- conversion.  Subject to fusion.
@@ -1535,7 +1535,7 @@ countChar c t = S.countChar c (stream t)
 -- equivalent to a pair of 'unpack' operations.
 zip :: Text -> Text -> [(Char,Char)]
 zip a b = S.unstreamList $ S.zipWith (,) (stream a) (stream b)
-{-# INLINE [0] zip #-}
+{-# INLINE zip #-}
 
 -- | /O(n)/ 'zipWith' generalises 'zip' by zipping with the function
 -- given as the first argument, instead of a tupling function.
@@ -1543,7 +1543,7 @@ zip a b = S.unstreamList $ S.zipWith (,) (stream a) (stream b)
 zipWith :: (Char -> Char -> Char) -> Text -> Text -> Text
 zipWith f t1 t2 = unstream (S.zipWith g (stream t1) (stream t2))
     where g a b = safe (f a b)
-{-# INLINE [0] zipWith #-}
+{-# INLINE zipWith #-}
 
 -- | /O(n)/ Breaks a 'Text' up into a list of words, delimited by 'Char's
 -- representing white space.
