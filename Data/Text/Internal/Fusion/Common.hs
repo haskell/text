@@ -71,9 +71,6 @@ module Data.Text.Internal.Fusion.Common
     -- ** Scans
     , scanl
 
-    -- ** Accumulating maps
-    -- , mapAccumL
-
     -- ** Generation and unfolding
     , replicateCharI
     , replicateI
@@ -667,29 +664,6 @@ scanl f z0 (Stream next0 s0 len) = Stream next (Scan1 z0 s0) (len+1) -- HINT may
                          Skip s'    -> Skip (Scan2 z s')
                          Done       -> Done
 {-# INLINE [0] scanl #-}
-
--- -----------------------------------------------------------------------------
--- ** Accumulating maps
-
-{-
--- | /O(n)/ Like a combination of 'map' and 'foldl'. Applies a
--- function to each element of a stream, passing an accumulating
--- parameter from left to right, and returns a final stream.
---
--- /Note/: Unlike the version over lists, this function does not
--- return a final value for the accumulator, because the nature of
--- streams precludes it.
-mapAccumL :: (a -> b -> (a,b)) -> a -> Stream b -> Stream b
-mapAccumL f z0 (Stream next0 s0 len) = Stream next (s0 :*: z0) len -- HINT depends on f
-  where
-    {-# INLINE next #-}
-    next (s :*: z) = case next0 s of
-                       Yield x s' -> let (z',y) = f z x
-                                     in Yield y (s' :*: z')
-                       Skip s'    -> Skip (s' :*: z)
-                       Done       -> Done
-{-# INLINE [0] mapAccumL #-}
--}
 
 -- -----------------------------------------------------------------------------
 -- ** Generating and unfolding streams
