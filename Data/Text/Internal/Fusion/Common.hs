@@ -803,18 +803,18 @@ takeWhile p (Stream next0 s0 len) = Stream next s0 len -- HINT maybe too high
 
 -- | dropWhile @p @xs returns the suffix remaining after takeWhile @p @xs.
 dropWhile :: (Char -> Bool) -> Stream Char -> Stream Char
-dropWhile p (Stream next0 s0 len) = Stream next (S1 :*: s0) len -- HINT maybe too high
+dropWhile p (Stream next0 s0 len) = Stream next (L s0) len -- HINT maybe too high
     where
     {-# INLINE next #-}
-    next (S1 :*: s)  = case next0 s of
+    next (L s)  = case next0 s of
       Done                   -> Done
-      Skip    s'             -> Skip    (S1 :*: s')
-      Yield x s' | p x       -> Skip    (S1 :*: s')
-                 | otherwise -> Yield x (S2 :*: s')
-    next (S2 :*: s) = case next0 s of
+      Skip    s'             -> Skip    (L s')
+      Yield x s' | p x       -> Skip    (L s')
+                 | otherwise -> Yield x (R s')
+    next (R s) = case next0 s of
       Done       -> Done
-      Skip    s' -> Skip    (S2 :*: s')
-      Yield x s' -> Yield x (S2 :*: s')
+      Skip    s' -> Skip    (R s')
+      Yield x s' -> Yield x (R s')
 {-# INLINE [0] dropWhile #-}
 
 -- | /O(n)/ The 'isPrefixOf' function takes two 'Stream's and returns

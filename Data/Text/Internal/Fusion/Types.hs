@@ -25,7 +25,6 @@ module Data.Text.Internal.Fusion.Types
     , RS(..)
     , Step(..)
     , Stream(..)
-    , Switch(..)
     , empty
     ) where
 
@@ -50,9 +49,6 @@ infixl 2 :*:
 -- | An intermediate result in a scan.
 data Scan s = Scan1 {-# UNPACK #-} !Char !s
             | Scan2 {-# UNPACK #-} !Char !s
-
--- | Allow a function over a stream to switch between two states.
-data Switch = S1 | S2
 
 -- | Intermediate result in a processing pipeline.
 data Step s a = Done
