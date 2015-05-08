@@ -20,10 +20,7 @@
 module Data.Text.Internal.Fusion.Types
     (
       CC(..)
-    , M(..)
-    , M8
     , PairS(..)
-    , T3(..)
     , Scan(..)
     , RS(..)
     , Step(..)
@@ -38,12 +35,6 @@ import Data.Word (Word8)
 -- | Specialised tuple for case conversion.
 data CC s = CC !s {-# UNPACK #-} !Char {-# UNPACK #-} !Char
 
--- | Specialised, strict Maybe-like type.
-data M a = N
-         | J !a
-
-type M8 = M Word8
-
 -- | Restreaming state.
 data RS s
     = RS0 !s
@@ -55,9 +46,6 @@ data RS s
 data PairS a b = !a :*: !b
                  -- deriving (Eq, Ord, Show)
 infixl 2 :*:
-
--- | Strict triple.
-data T3 a b c = T3 !a !b !c
 
 -- | An intermediate result in a scan.
 data Scan s = Scan1 {-# UNPACK #-} !Char !s

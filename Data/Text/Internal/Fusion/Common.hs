@@ -187,6 +187,9 @@ cons !w (Stream next0 s0 len) = Stream next (C1 s0) (len+1)
                           Yield x s' -> Yield x (C0 s')
 {-# INLINE [0] cons #-}
 
+data Snoc a = N
+            | J !a
+
 -- | /O(n)/ Adds a character to the end of a stream.
 snoc :: Stream Char -> Char -> Stream Char
 snoc (Stream next0 xs0 len) w = Stream next (J xs0) (len+1)
@@ -762,24 +765,27 @@ take n0 (Stream next0 s0 len) =
                                      Yield x s' -> Yield x ((n-1) :*: s')
 {-# INLINE [0] take #-}
 
+data Drop a s = NS !s
+              | JS !a !s
+
 -- | /O(n)/ drop n, applied to a stream, returns the suffix of the
 -- stream after the first @n@ characters, or the empty stream if @n@
 -- is greater than the length of the stream.
 drop :: Integral a => a -> Stream Char -> Stream Char
 drop n0 (Stream next0 s0 len) =
-    Stream next (J n0 :*: s0) (len - fromIntegral (max 0 n0))
+    Stream next (JS n0 s0) (len - fromIntegral (max 0 n0))
   where
     {-# INLINE next #-}
-    next (J n :*: s)
-      | n <= 0    = Skip (N :*: s)
+    next (JS n s)
+      | n <= 0    = Skip (NS s)
       | otherwise = case next0 s of
           Done       -> Done
-          Skip    s' -> Skip (J n    :*: s')
-          Yield _ s' -> Skip (J (n-1) :*: s')
-    next (N :*: s) = case next0 s of
+          Skip    s' -> Skip (JS n    s')
+          Yield _ s' -> Skip (JS (n-1) s')
+    next (NS s) = case next0 s of
       Done       -> Done
-      Skip    s' -> Skip    (N :*: s')
-      Yield x s' -> Yield x (N :*: s')
+      Skip    s' -> Skip    (NS s')
+      Yield x s' -> Yield x (NS s')
 {-# INLINE [0] drop #-}
 
 -- | takeWhile, applied to a predicate @p@ and a stream, returns the
@@ -915,21 +921,25 @@ findIndicesI p (Stream next s0 _len) = loop_findIndex 0 s0
 -------------------------------------------------------------------------------
 -- * Zipping
 
+-- | Strict triple.
+data Zip a b m = Z1 !a !b
+               | Z2 !a !b !m
+
 -- | zipWith generalises 'zip' by zipping with the function given as
 -- the first argument, instead of a tupling function.
 zipWith :: (a -> a -> b) -> Stream a -> Stream a -> Stream b
 zipWith f (Stream next0 sa0 len1) (Stream next1 sb0 len2) =
-    Stream next (T3 sa0 sb0 N) (smaller len1 len2)
+    Stream next (Z1 sa0 sb0) (smaller len1 len2)
     where
-      next (T3 sa sb N) = case next0 sa of
-                            Done -> Done
-                            Skip sa' -> Skip (T3 sa' sb N)
-                            Yield a sa' -> Skip (T3 sa' sb (J a))
+      next (Z1 sa sb) = case next0 sa of
+                          Done -> Done
+                          Skip sa' -> Skip (Z1 sa' sb)
+                          Yield a sa' -> Skip (Z2 sa' sb a)
 
-      next (T3 sa' sb (J a)) = case next1 sb of
-                                 Done -> Done
-                                 Skip sb' -> Skip (T3 sa' sb' (J a))
-                                 Yield b sb' -> Yield (f a b) (T3 sa' sb' N)
+      next (Z2 sa' sb a) = case next1 sb of
+                             Done -> Done
+                             Skip sb' -> Skip (Z2 sa' sb' a)
+                             Yield b sb' -> Yield (f a b) (Z1 sa' sb')
 {-# INLINE [0] zipWith #-}
 
 -- | /O(n)/ The 'countCharI' function returns the number of times the
