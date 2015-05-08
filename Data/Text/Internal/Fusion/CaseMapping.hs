@@ -11,6 +11,7 @@ import Data.Char
 import Data.Text.Internal.Fusion.Types
 
 upperMapping :: forall s. Char -> s -> Step (CC s) Char
+{-# INLINE upperMapping #-}
 -- LATIN SMALL LETTER SHARP S
 upperMapping '\x00df' s = Yield '\x0053' (CC s '\x0053' '\x0000')
 -- LATIN SMALL LIGATURE FF
@@ -217,10 +218,12 @@ upperMapping '\x1fc7' s = Yield '\x0397' (CC s '\x0342' '\x0399')
 upperMapping '\x1ff7' s = Yield '\x03a9' (CC s '\x0342' '\x0399')
 upperMapping c s = Yield (toUpper c) (CC s '\0' '\0')
 lowerMapping :: forall s. Char -> s -> Step (CC s) Char
+{-# INLINE lowerMapping #-}
 -- LATIN CAPITAL LETTER I WITH DOT ABOVE
 lowerMapping '\x0130' s = Yield '\x0069' (CC s '\x0307' '\x0000')
 lowerMapping c s = Yield (toLower c) (CC s '\0' '\0')
 titleMapping :: forall s. Char -> s -> Step (CC s) Char
+{-# INLINE titleMapping #-}
 -- LATIN SMALL LETTER SHARP S
 titleMapping '\x00df' s = Yield '\x0053' (CC s '\x0073' '\x0000')
 -- LATIN SMALL LIGATURE FF
@@ -319,6 +322,7 @@ titleMapping '\x1fc7' s = Yield '\x0397' (CC s '\x0342' '\x0345')
 titleMapping '\x1ff7' s = Yield '\x03a9' (CC s '\x0342' '\x0345')
 titleMapping c s = Yield (toTitle c) (CC s '\0' '\0')
 foldMapping :: forall s. Char -> s -> Step (CC s) Char
+{-# INLINE foldMapping #-}
 -- MICRO SIGN
 foldMapping '\x00b5' s = Yield '\x03bc' (CC s '\x0000' '\x0000')
 -- LATIN SMALL LETTER SHARP S

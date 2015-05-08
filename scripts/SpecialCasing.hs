@@ -42,7 +42,8 @@ mapSC :: String -> (Case -> String) -> (Char -> Char) -> SpecialCasing
 mapSC which access twiddle (SC _ ms) =
     typ ++ (map nice . filter p $ ms) ++ [last]
   where
-    typ = [which ++ "Mapping :: forall s. Char -> s -> Step (CC s) Char"]
+    typ = [which ++ "Mapping :: forall s. Char -> s -> Step (CC s) Char"
+           ,"{-# INLINE " ++ which ++ "Mapping #-}"]
     last = which ++ "Mapping c s = Yield (to" ++ ucFirst which ++ " c) (CC s '\\0' '\\0')"
     nice c = "-- " ++ name c ++ "\n" ++
              which ++ "Mapping " ++ showC (code c) ++ " s = Yield " ++ x ++ " (CC s " ++ y ++ " " ++ z ++ ")"
