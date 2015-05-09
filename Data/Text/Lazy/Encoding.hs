@@ -62,7 +62,7 @@ import qualified Data.ByteString.Lazy.Internal as B
 import qualified Data.ByteString.Unsafe as B
 #if MIN_VERSION_bytestring(0,10,4)
 import Data.Word (Word8)
-import Data.Monoid (mempty, (<>))
+import Data.Monoid (mempty, mappend)
 import qualified Data.ByteString.Builder as B
 import qualified Data.ByteString.Builder.Extra as B (safeStrategy, toLazyByteStringWith)
 import qualified Data.ByteString.Builder.Prim as BP
@@ -163,12 +163,12 @@ encodeUtf8 lt@(Chunk t _) =
     strategy        = B.safeStrategy firstChunkSize B.defaultChunkSize
 
 encodeUtf8Builder :: Text -> B.Builder
-encodeUtf8Builder = foldrChunks (\c b -> TE.encodeUtf8Builder c <> b) mempty
+encodeUtf8Builder = foldrChunks (\c b -> TE.encodeUtf8Builder c `mappend` b) mempty
 
 {-# INLINE encodeUtf8BuilderEscaped #-}
 encodeUtf8BuilderEscaped :: BP.BoundedPrim Word8 -> Text -> B.Builder
 encodeUtf8BuilderEscaped prim =
-    foldrChunks (\c b -> TE.encodeUtf8BuilderEscaped prim c <> b) mempty
+    foldrChunks (\c b -> TE.encodeUtf8BuilderEscaped prim c `mappend` b) mempty
 
 #else
 encodeUtf8 (Chunk c cs) = B.Chunk (TE.encodeUtf8 c) (encodeUtf8 cs)
