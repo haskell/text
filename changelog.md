@@ -1,3 +1,7 @@
+1.2.0.4
+
+* Fixed an incompatibility with base < 4.5
+
 1.2.0.3
 
 * Update formatRealFloat to correspond to the definition in versions
