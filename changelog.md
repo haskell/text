@@ -1,3 +1,23 @@
+1.2.0.5
+
+* Feature parity: repeat, cycle, iterate are now implemented for lazy
+  Text, and the Data instance is more complete
+
+* Build speed: an inliner space explosion has been fixed with toCaseFold
+
+* Bug fix: encoding Int to a Builder would infinite-loop if the
+  integer-simple package was used
+
+* Deprecation: OnEncodeError and EncodeError are deprecated, as they
+  are never used
+
+* Internals: some types that are used internally in fusion-related
+  functions have moved around, been renamed, or been deleted (we don't
+  bump the major version if .Internal modules change)
+
+* Spec compliance: toCaseFold now follows the Unicode 7.0 spec
+  (updated from 6.3)
+
 1.2.0.4
 
 * Fixed an incompatibility with base < 4.5
