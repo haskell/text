@@ -37,7 +37,7 @@ mapCF :: CaseFolding -> [String]
 mapCF (CF _ ms) = typ ++ (map nice . filter p $ ms) ++ [last]
   where
     typ = ["foldMapping :: forall s. Char -> s -> Step (CC s) Char"
-           ,"{-# INLINE foldMapping #-}"]
+           ,"{-# NOINLINE foldMapping #-}"]
     last = "foldMapping c s = Yield (toLower c) (CC s '\\0' '\\0')"
     nice c = "-- " ++ name c ++ "\n" ++
              "foldMapping " ++ showC (code c) ++ " s = Yield " ++ x ++ " (CC s " ++ y ++ " " ++ z ++ ")"
