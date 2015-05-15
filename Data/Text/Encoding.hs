@@ -286,7 +286,7 @@ streamDecodeUtf8With onErr = decodeChunk B.empty 0 0
                       return $! text arr 0 (fromIntegral n)
                   lastPtr <- peek curPtrPtr
                   let left = lastPtr `minusPtr` curPtr
-                      undecoded = case state of
+                      !undecoded = case state of
                         UTF8_ACCEPT -> B.empty
                         _           -> B.append undecoded0 (B.drop left bs)
                   return $ Some chunkText undecoded
