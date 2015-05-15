@@ -1,3 +1,7 @@
+1.2.0.6
+
+* Fixed a space leak in UTF-8 decoding
+
 1.2.0.5
 
 * Feature parity: repeat, cycle, iterate are now implemented for lazy
