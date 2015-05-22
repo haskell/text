@@ -1,3 +1,7 @@
+1.2.1.0
+
+* Added Binary instances for both Text types
+
 1.2.0.6
 
 * Fixed a space leak in UTF-8 decoding
