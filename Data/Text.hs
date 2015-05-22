@@ -195,7 +195,7 @@ module Data.Text
 
 import Prelude (Char, Bool(..), Int, Maybe(..), String,
                 Eq(..), Ord(..), Ordering(..), (++),
-                Read(..), Show(..),
+                Read(..),
                 (&&), (||), (+), (-), (.), ($), ($!), (>>),
                 not, return, otherwise, quot)
 #if defined(HAVE_DEEPSEQ)
@@ -211,17 +211,20 @@ import Control.Monad (foldM)
 import Control.Monad.ST (ST)
 import qualified Data.Text.Array as A
 import qualified Data.List as L
+import Data.Binary (Binary(get, put))
 import Data.Monoid (Monoid(..))
 import Data.String (IsString(..))
 import qualified Data.Text.Internal.Fusion as S
 import qualified Data.Text.Internal.Fusion.Common as S
+import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import Data.Text.Internal.Fusion (stream, reverseStream, unstream)
 import Data.Text.Internal.Private (span_)
-import Data.Text.Internal (Text(..), empty, empty_, firstf, mul, safe, text)
+import Data.Text.Internal (Text(..), empty, firstf, mul, safe, text)
+import Data.Text.Show (singleton, unpack)
 import qualified Prelude as P
 import Data.Text.Unsafe (Iter(..), iter, iter_, lengthWord16, reverseIter,
                          reverseIter_, unsafeHead, unsafeTail)
-import Data.Text.Internal.Unsafe.Char (unsafeChr, unsafeWrite)
+import Data.Text.Internal.Unsafe.Char (unsafeChr)
 import qualified Data.Text.Internal.Functions as F
 import qualified Data.Text.Internal.Encoding.Utf16 as U16
 import Data.Text.Internal.Search (indices)
@@ -230,15 +233,9 @@ import Data.ByteString (ByteString)
 import qualified Data.Text.Lazy as L
 import Data.Int (Int64)
 #endif
-#if __GLASGOW_HASKELL__ >= 702
-import qualified GHC.CString as GHC
-#else
-import qualified GHC.Base as GHC
-#endif
 #if __GLASGOW_HASKELL__ >= 708
 import qualified GHC.Exts as Exts
 #endif
-import GHC.Prim (Addr#)
 
 -- $strict
 --
@@ -324,9 +321,6 @@ instance Eq Text where
 instance Ord Text where
     compare = compareText
 
-instance Show Text where
-    showsPrec p ps r = showsPrec p (unpack ps) r
-
 instance Read Text where
     readsPrec p str = [(pack x,y) | (x,y) <- readsPrec p str]
 
@@ -348,6 +342,10 @@ instance Exts.IsList Text where
 #if defined(HAVE_DEEPSEQ)
 instance NFData Text where rnf !_ = ()
 #endif
+
+instance Binary Text where
+    put t = put (encodeUtf8 t)
+    get   = P.fmap decodeUtf8 get
 
 -- | This instance preserves data abstraction at the cost of inefficiency.
 -- We omit reflection services for the sake of data abstraction.
@@ -400,54 +398,6 @@ compareText ta@(Text _arrA _offA lenA) tb@(Text _arrB _offB lenB)
 pack :: String -> Text
 pack = unstream . S.map safe . S.streamList
 {-# INLINE [1] pack #-}
-
--- | /O(n)/ Convert a 'Text' into a 'String'.  Subject to fusion.
-unpack :: Text -> String
-unpack = S.unstreamList . stream
-{-# INLINE [1] unpack #-}
-
--- | /O(n)/ Convert a literal string into a Text.  Subject to fusion.
-unpackCString# :: Addr# -> Text
-unpackCString# addr# = unstream (S.streamCString# addr#)
-{-# NOINLINE unpackCString# #-}
-
-{-# RULES "TEXT literal" forall a.
-    unstream (S.map safe (S.streamList (GHC.unpackCString# a)))
-      = unpackCString# a #-}
-
-{-# RULES "TEXT literal UTF8" forall a.
-    unstream (S.map safe (S.streamList (GHC.unpackCStringUtf8# a)))
-      = unpackCString# a #-}
-
-{-# RULES "TEXT empty literal"
-    unstream (S.map safe (S.streamList []))
-      = empty_ #-}
-
-{-# RULES "TEXT singleton literal" forall a.
-    unstream (S.map safe (S.streamList [a]))
-      = singleton_ a #-}
-
--- | /O(1)/ Convert a character into a Text.  Subject to fusion.
--- Performs replacement on invalid scalar values.
-singleton :: Char -> Text
-singleton = unstream . S.singleton . safe
-{-# INLINE [1] singleton #-}
-
-{-# RULES "TEXT singleton" forall a.
-    unstream (S.singleton (safe a))
-      = singleton_ a #-}
-
--- This is intended to reduce inlining bloat.
-singleton_ :: Char -> Text
-singleton_ c = Text (A.run x) 0 len
-  where x :: ST s (A.MArray s)
-        x = do arr <- A.new len
-               _ <- unsafeWrite arr 0 d
-               return arr
-        len | d < '\x10000' = 1
-            | otherwise     = 2
-        d = safe c
-{-# NOINLINE singleton_ #-}
 
 -- -----------------------------------------------------------------------------
 -- * Basic functions

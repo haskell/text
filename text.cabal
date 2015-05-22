@@ -121,9 +121,13 @@ library
     Data.Text.Read
     Data.Text.Unsafe
 
+  other-modules:
+    Data.Text.Show
+
   build-depends:
     array      >= 0.3,
     base       >= 4.2 && < 5,
+    binary,
     deepseq    >= 1.1.0.0,
     ghc-prim   >= 0.2
 
@@ -164,6 +168,7 @@ test-suite tests
     QuickCheck >= 2.7,
     array,
     base,
+    binary,
     bytestring,
     deepseq,
     directory,

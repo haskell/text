@@ -114,6 +114,7 @@ library
     Data.Text.Internal.Lazy.Search
     Data.Text.Internal.Private
     Data.Text.Read
+    Data.Text.Show
     Data.Text.Internal.Read
     Data.Text.Internal.Search
     Data.Text.Unsafe
@@ -135,6 +136,7 @@ library
   build-depends:
     array,
     base == 4.*,
+    binary,
     bytestring,
     deepseq,
     ghc-prim,
