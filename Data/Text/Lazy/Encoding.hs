@@ -66,8 +66,8 @@ import Data.Monoid (mappend, mempty)
 import qualified Data.ByteString.Builder as B
 import qualified Data.ByteString.Builder.Extra as B (safeStrategy, toLazyByteStringWith)
 import qualified Data.ByteString.Builder.Prim as BP
-import qualified Data.Text as T
 #endif
+import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text.Internal.Lazy.Encoding.Fusion as E
 import qualified Data.Text.Internal.Lazy.Fusion as F
