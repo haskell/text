@@ -69,7 +69,6 @@ import qualified Data.ByteString.Builder.Prim as BP
 import qualified Data.Text as T
 #endif
 import qualified Data.Text.Encoding as TE
-import qualified Data.Text.Lazy as L
 import qualified Data.Text.Internal.Lazy.Encoding.Fusion as E
 import qualified Data.Text.Internal.Lazy.Fusion as F
 import Data.Text.Unsafe (unsafeDupablePerformIO)
@@ -110,7 +109,7 @@ decodeUtf8With onErr (B.Chunk b0 bs0) =
       | S.null l  = empty
       | otherwise = case onErr desc (Just (B.unsafeHead l)) of
                       Nothing -> empty
-                      Just c  -> L.singleton c
+                      Just c  -> Chunk (T.singleton c) Empty
     desc = "Data.Text.Lazy.Encoding.decodeUtf8With: Invalid UTF-8 stream"
 decodeUtf8With _ _ = empty
 

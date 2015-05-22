@@ -212,6 +212,7 @@ import qualified Data.List as L
 import Data.Char (isSpace)
 import Data.Data (Data(gfoldl, toConstr, gunfold, dataTypeOf), constrIndex,
                   Constr, mkConstr, DataType, mkDataType, Fixity(Prefix))
+import Data.Binary (Binary(get, put))
 import Data.Monoid (Monoid(..))
 import Data.String (IsString(..))
 import qualified Data.Text as T
@@ -224,6 +225,7 @@ import Data.Text.Internal.Lazy.Fusion (stream, unstream)
 import Data.Text.Internal.Lazy (Text(..), chunk, empty, foldlChunks,
                                 foldrChunks, smallChunkSize)
 import Data.Text.Internal (firstf, safe, text)
+import Data.Text.Lazy.Encoding (decodeUtf8, encodeUtf8)
 import qualified Data.Text.Internal.Functions as F
 import Data.Text.Internal.Lazy.Search (indices)
 #if __GLASGOW_HASKELL__ >= 702
@@ -352,6 +354,10 @@ instance NFData Text where
     rnf Empty        = ()
     rnf (Chunk _ ts) = rnf ts
 #endif
+
+instance Binary Text where
+    put t = put (encodeUtf8 t)
+    get   = P.fmap decodeUtf8 get
 
 -- | This instance preserves data abstraction at the cost of inefficiency.
 -- We omit reflection services for the sake of data abstraction.
@@ -961,7 +967,7 @@ cycle t     = let t' = foldrChunks Chunk t' t
 
 -- | @'iterate' f x@ returns an infinite 'Text' of repeated applications
 -- of @f@ to @x@:
--- 
+--
 -- > iterate f x == [x, f x, f (f x), ...]
 iterate :: (Char -> Char) -> Char -> Text
 iterate f c = let t c' = Chunk (T.singleton c') (t (f c'))
