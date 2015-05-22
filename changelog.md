@@ -1,3 +1,9 @@
+1.2.1.0
+
+* Added Binary instances for both Text types. (If you have previously
+  been using the text-binary package to get a Binary instance, it is
+  now obsolete.)
+
 1.2.0.6
 
 * Fixed a space leak in UTF-8 decoding
