@@ -1,3 +1,7 @@
+1.2.1.1
+
+* Expose unpackCString#, which you should never use.
+
 1.2.1.0
 
 * Added Binary instances for both Text types. (If you have previously
