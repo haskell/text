@@ -191,6 +191,7 @@ module Data.Text
 
     -- * Low level operations
     , copy
+    , unpackCString#
     ) where
 
 import Prelude (Char, Bool(..), Int, Maybe(..), String,
@@ -220,7 +221,7 @@ import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import Data.Text.Internal.Fusion (stream, reverseStream, unstream)
 import Data.Text.Internal.Private (span_)
 import Data.Text.Internal (Text(..), empty, firstf, mul, safe, text)
-import Data.Text.Show (singleton, unpack)
+import Data.Text.Show (singleton, unpack, unpackCString#)
 import qualified Prelude as P
 import Data.Text.Unsafe (Iter(..), iter, iter_, lengthWord16, reverseIter,
                          reverseIter_, unsafeHead, unsafeTail)
