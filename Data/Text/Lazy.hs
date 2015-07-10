@@ -225,7 +225,7 @@ import Data.Text.Internal.Lazy.Fusion (stream, unstream)
 import Data.Text.Internal.Lazy (Text(..), chunk, empty, foldlChunks,
                                 foldrChunks, smallChunkSize)
 import Data.Text.Internal (firstf, safe, text)
-import Data.Text.Lazy.Encoding (decodeUtf8, encodeUtf8)
+import Data.Text.Lazy.Encoding (decodeUtf8', encodeUtf8)
 import qualified Data.Text.Internal.Functions as F
 import Data.Text.Internal.Lazy.Search (indices)
 #if __GLASGOW_HASKELL__ >= 702
@@ -357,7 +357,11 @@ instance NFData Text where
 
 instance Binary Text where
     put t = put (encodeUtf8 t)
-    get   = P.fmap decodeUtf8 get
+    get   = do
+      bs <- get
+      case decodeUtf8' bs of
+        P.Left exn -> P.fail (P.show exn)
+        P.Right a -> P.return a
 
 -- | This instance preserves data abstraction at the cost of inefficiency.
 -- We omit reflection services for the sake of data abstraction.
