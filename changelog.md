@@ -1,3 +1,11 @@
+1.2.1.2
+
+* Bug fix: Run literal rewrite rules in simplifier phase 2.
+  The behavior of the simplifier changed in GHC 7.10.2,
+  causing these rules to fail to fire, leading to poor code generation
+  and long compilation times. See
+  [GHC Trac #10528](https://ghc.haskell.org/trac/ghc/ticket/10528).
+
 1.2.1.1
 
 * Expose unpackCString#, which you should never use.
