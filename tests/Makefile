@@ -1,5 +1,10 @@
 count = 1000
 
+all: coverage literal-rule-test
+
+literal-rule-test:
+	./literal-rule-test.sh
+
 coverage: build coverage/hpc_index.html
 
 build: text-test-data
@@ -32,4 +37,4 @@ coverage/hpc_index.html: coverage/coverage.tix
 clean:
 	rm -rf dist coverage .hpc
 
-.PHONY: build coverage
+.PHONY: build coverage all literal-rule-test
