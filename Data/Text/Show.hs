@@ -50,19 +50,19 @@ unpackCString# :: Addr# -> Text
 unpackCString# addr# = unstream (S.streamCString# addr#)
 {-# NOINLINE unpackCString# #-}
 
-{-# RULES "TEXT literal" [2] forall a.
+{-# RULES "TEXT literal" [1] forall a.
     unstream (S.map safe (S.streamList (GHC.unpackCString# a)))
       = unpackCString# a #-}
 
-{-# RULES "TEXT literal UTF8" [2] forall a.
+{-# RULES "TEXT literal UTF8" [1] forall a.
     unstream (S.map safe (S.streamList (GHC.unpackCStringUtf8# a)))
       = unpackCString# a #-}
 
-{-# RULES "TEXT empty literal" [2]
+{-# RULES "TEXT empty literal" [1]
     unstream (S.map safe (S.streamList []))
       = empty_ #-}
 
-{-# RULES "TEXT singleton literal" [2] forall a.
+{-# RULES "TEXT singleton literal" [1] forall a.
     unstream (S.map safe (S.streamList [a]))
       = singleton_ a #-}
 
