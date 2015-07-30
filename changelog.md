@@ -1,3 +1,11 @@
+1.2.1.3
+
+* Bug fix: As it turns out, moving the literal rewrite rules to simplifier 
+  phase 2 does not prevent competition with the `unpack` rule, which is
+  also active in this phase. Unfortunately this was hidden due to a silly
+  test environment mistake. Moving literal rules back to phase 1 finally
+  fixes GHC Trac #10528 correctly.
+
 1.2.1.2
 
 * Bug fix: Run literal rewrite rules in simplifier phase 2.
