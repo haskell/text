@@ -62,7 +62,9 @@ import qualified Data.ByteString.Lazy.Internal as B
 import qualified Data.ByteString.Unsafe as B
 #if MIN_VERSION_bytestring(0,10,4)
 import Data.Word (Word8)
+#if !MIN_VERSION_base(4,8,0)
 import Data.Monoid (mappend, mempty)
+#endif
 import qualified Data.ByteString.Builder as B
 import qualified Data.ByteString.Builder.Extra as B (safeStrategy, toLazyByteStringWith)
 import qualified Data.ByteString.Builder.Prim as BP

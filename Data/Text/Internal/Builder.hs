@@ -58,7 +58,9 @@ module Data.Text.Internal.Builder
    ) where
 
 import Control.Monad.ST (ST, runST)
+#if !MIN_VERSION_base(4,8,0)
 import Data.Monoid (Monoid(..))
+#endif
 import Data.Text.Internal (Text(..))
 import Data.Text.Internal.Lazy (smallChunkSize)
 import Data.Text.Unsafe (inlineInterleaveST)

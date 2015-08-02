@@ -29,7 +29,10 @@ import Data.Int (Int8, Int16, Int32, Int64)
 import Data.Ratio ((%))
 import Data.Text.Internal.Read
 import Data.Text.Lazy as T
-import Data.Word (Word, Word8, Word16, Word32, Word64)
+#if !MIN_VERSION_base(4,8,0)
+import Data.Word (Word)
+#endif
+import Data.Word (Word8, Word16, Word32, Word64)
 
 -- | Read some text.  If the read succeeds, return its value and the
 -- remaining text, otherwise an error message.

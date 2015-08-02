@@ -1,4 +1,4 @@
-{-# LANGUAGE MagicHash #-}
+{-# LANGUAGE CPP, MagicHash #-}
 
 -- |
 -- Module      : Data.Text.Internal.Builder.Functions
@@ -21,7 +21,9 @@ module Data.Text.Internal.Builder.Functions
     , i2d
     ) where
 
+#if !MIN_VERSION_base(4,8,0)
 import Data.Monoid (mappend)
+#endif
 import Data.Text.Lazy.Builder (Builder)
 import GHC.Base
 
