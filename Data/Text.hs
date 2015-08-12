@@ -237,6 +237,7 @@ import Data.Int (Int64)
 #if __GLASGOW_HASKELL__ >= 708
 import qualified GHC.Exts as Exts
 #endif
+import Text.Printf (PrintfArg, formatArg, formatString)
 
 -- $strict
 --
@@ -370,6 +371,9 @@ instance Data Text where
     1 -> k (z pack)
     _ -> P.error "gunfold"
   dataTypeOf _ = textDataType
+
+instance PrintfArg Text where
+  formatArg txt = formatString $ unpack txt
 
 packConstr :: Constr
 packConstr = mkConstr textDataType "pack" [] Prefix

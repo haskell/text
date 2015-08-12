@@ -237,6 +237,7 @@ import qualified GHC.Base as GHC
 import qualified GHC.Exts as Exts
 #endif
 import GHC.Prim (Addr#)
+import Text.Printf (PrintfArg, formatArg, formatString)
 
 -- $fusion
 --
@@ -371,6 +372,9 @@ instance Data Text where
     1 -> k (z pack)
     _ -> error "Data.Text.Lazy.Text.gunfold"
   dataTypeOf _   = textDataType
+
+instance PrintfArg Text where
+  formatArg txt = formatString $ unpack txt
 
 packConstr :: Constr
 packConstr = mkConstr textDataType "pack" [] Prefix
