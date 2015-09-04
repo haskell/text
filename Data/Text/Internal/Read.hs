@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 -- |
 -- Module      : Data.Text.Internal.Read
 -- Copyright   : (c) 2014 Bryan O'Sullivan
@@ -18,7 +19,9 @@ module Data.Text.Internal.Read
     , perhaps
     ) where
 
+#if !MIN_VERSION_base(4,8,0)
 import Control.Applicative (Applicative(..))
+#endif
 import Control.Arrow (first)
 import Control.Monad (ap)
 import Data.Char (ord)

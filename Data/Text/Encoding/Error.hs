@@ -1,6 +1,6 @@
 {-# LANGUAGE CPP, DeriveDataTypeable #-}
 #if __GLASGOW_HASKELL__ >= 702
-{-# LANGUAGE Trustworthy #-}
+{-# LANGUAGE Safe #-}
 #endif
 -- |
 -- Module      : Data.Text.Encoding.Error

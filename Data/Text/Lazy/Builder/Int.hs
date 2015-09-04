@@ -21,15 +21,19 @@ module Data.Text.Lazy.Builder.Int
     ) where
 
 import Data.Int (Int8, Int16, Int32, Int64)
+#if !MIN_VERSION_base(4,8,0)
 import Data.Monoid (mempty)
+#endif
 import qualified Data.ByteString.Unsafe as B
 import Data.Text.Internal.Builder.Functions ((<>), i2d)
 import Data.Text.Internal.Builder
 import Data.Text.Internal.Builder.Int.Digits (digits)
 import Data.Text.Array
-import Data.Word (Word, Word8, Word16, Word32, Word64)
+#if !MIN_VERSION_base(4,8,0)
+import Data.Word (Word)
+#endif
+import Data.Word (Word8, Word16, Word32, Word64)
 import GHC.Base (quotInt, remInt)
-import GHC.Num (quotRemInteger)
 import GHC.Types (Int(..))
 import Control.Monad.ST
 
@@ -38,6 +42,7 @@ import Control.Monad.ST
 import GHC.Integer.GMP.Internals
 # elif defined(INTEGER_SIMPLE)
 import GHC.Integer
+import GHC.Num (quotRemInteger)
 # else
 # error "You need to use either GMP or integer-simple."
 # endif
