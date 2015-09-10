@@ -596,8 +596,11 @@ compareLength t n = S.compareLengthI (stream t) n
 -- -----------------------------------------------------------------------------
 -- * Transformations
 -- | /O(n)/ 'map' @f@ @t@ is the 'Text' obtained by applying @f@ to
--- each element of @t@.  Subject to fusion.  Performs replacement on
--- invalid scalar values.
+-- each element of @t@.
+--
+-- > (map (chr . (+1) . ord) $ pack "baba") ==> (pack "cbcb")
+--
+-- Subject to fusion.  Performs replacement on invalid scalar values.
 map :: (Char -> Char) -> Text -> Text
 map f t = unstream (S.map (safe . f) (stream t))
 {-# INLINE [1] map #-}
@@ -605,13 +608,20 @@ map f t = unstream (S.map (safe . f) (stream t))
 -- | /O(n)/ The 'intercalate' function takes a 'Text' and a list of
 -- 'Text's and concatenates the list after interspersing the first
 -- argument between each element of the list.
+--
+-- > ni = pack "NI!"
+-- > sentence = fmap pack ["Mary", "had", "a", "little", "lamb"]
+-- > intercalate ni sentence  ==> "MaryNI!hadNI!aNI!littleNI!lamb"
 intercalate :: Text -> [Text] -> Text
 intercalate t = concat . (F.intersperse t)
 {-# INLINE intercalate #-}
 
 -- | /O(n)/ The 'intersperse' function takes a character and places it
--- between the characters of a 'Text'.  Subject to fusion.  Performs
--- replacement on invalid scalar values.
+-- between the characters of a 'Text'.
+--
+-- > intersperse '.' $ pack "ARMAGEDDON" ==> "A.R.M.A.G.E.D.D.O.N"
+--
+-- Subject to fusion.  Performs replacement on invalid scalar values.
 intersperse     :: Char -> Text -> Text
 intersperse c t = unstream (S.intersperse (safe c) (stream t))
 {-# INLINE intersperse #-}
