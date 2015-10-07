@@ -516,6 +516,10 @@ sf_takeWhile q p  = (L.takeWhile p . L.filter q) `eqP`
                     (unpackS . S.takeWhile p . S.filter q)
 t_takeWhile p     = L.takeWhile p `eqP` (unpackS . T.takeWhile p)
 tl_takeWhile p    = L.takeWhile p `eqP` (unpackS . TL.takeWhile p)
+t_takeWhileEnd p  = (L.reverse . L.takeWhile p . L.reverse) `eqP`
+                    (unpackS . T.takeWhileEnd p)
+tl_takeWhileEnd p = (L.reverse . L.takeWhile p . L.reverse) `eqP`
+                    (unpackS . TL.takeWhileEnd p)
 s_dropWhile p     = L.dropWhile p `eqP` (unpackS . S.dropWhile p)
 s_dropWhile_s p   = L.dropWhile p `eqP` (unpackS . S.unstream . S.dropWhile p)
 sf_dropWhile q p  = (L.dropWhile p . L.filter q) `eqP`
@@ -1142,6 +1146,8 @@ tests =
         testProperty "sf_takeWhile" sf_takeWhile,
         testProperty "t_takeWhile" t_takeWhile,
         testProperty "tl_takeWhile" tl_takeWhile,
+        testProperty "t_takeWhileEnd" t_takeWhileEnd,
+        testProperty "tl_takeWhileEnd" tl_takeWhileEnd,
         testProperty "sf_dropWhile" sf_dropWhile,
         testProperty "s_dropWhile" s_dropWhile,
         testProperty "s_dropWhile_s" s_dropWhile_s,
