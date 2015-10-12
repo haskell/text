@@ -600,7 +600,7 @@ compareLength t n = S.compareLengthI (stream t) n
 --
 -- Example:
 --
--- > (map (\c -> if c == '.' then '!' else c) $ pack "I am not angry. Not at all.") ==> "I am not angry! Not at all!"
+-- > map (\c -> if c == '.' then '!' else c) $ pack "I am not angry. Not at all." ==> "I am not angry! Not at all!"
 --
 -- Subject to fusion.  Performs replacement on invalid scalar values.
 map :: (Char -> Char) -> Text -> Text
@@ -632,7 +632,13 @@ intersperse     :: Char -> Text -> Text
 intersperse c t = unstream (S.intersperse (safe c) (stream t))
 {-# INLINE intersperse #-}
 
--- | /O(n)/ Reverse the characters of a string. Subject to fusion.
+-- | /O(n)/ Reverse the characters of a string.
+--
+-- Example:
+--
+-- > reverse $ pack "desrever" ==> "reversed"
+--
+-- Subject to fusion.
 reverse :: Text -> Text
 reverse t = S.reverse (stream t)
 {-# INLINE reverse #-}
@@ -832,6 +838,11 @@ center k c t
 -- of its 'Text' argument.  Note that this function uses 'pack',
 -- 'unpack', and the list version of transpose, and is thus not very
 -- efficient.
+--
+-- Examples:
+--
+-- > transpose [pack "green", pack "orange"] ==> ["go","rr","ea","en","ng","e"]
+-- > transpose [pack "blue", pack "red"] ==> ["br","le","ud","e"]
 transpose :: [Text] -> [Text]
 transpose ts = P.map pack (L.transpose (P.map unpack ts))
 
