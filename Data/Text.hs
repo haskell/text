@@ -214,6 +214,9 @@ import qualified Data.Text.Array as A
 import qualified Data.List as L
 import Data.Binary (Binary(get, put))
 import Data.Monoid (Monoid(..))
+#if MIN_VERSION_base(4,9,0)
+import Data.Semigroup (Semigroup(..))
+#endif
 import Data.String (IsString(..))
 import qualified Data.Text.Internal.Fusion as S
 import qualified Data.Text.Internal.Fusion.Common as S
@@ -326,9 +329,21 @@ instance Ord Text where
 instance Read Text where
     readsPrec p str = [(pack x,y) | (x,y) <- readsPrec p str]
 
+#if MIN_VERSION_base(4,9,0)
+-- Semigroup orphan instances for older GHCs are provided by
+-- 'semigroups` package
+
+instance Semigroup Text where
+    (<>) = append
+#endif
+
 instance Monoid Text where
     mempty  = empty
+#if MIN_VERSION_base(4,9,0)
+    mappend = (<>) -- future-proof definition
+#else
     mappend = append
+#endif
     mconcat = concat
 
 instance IsString Text where

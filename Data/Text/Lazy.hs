@@ -214,6 +214,9 @@ import Data.Data (Data(gfoldl, toConstr, gunfold, dataTypeOf), constrIndex,
                   Constr, mkConstr, DataType, mkDataType, Fixity(Prefix))
 import Data.Binary (Binary(get, put))
 import Data.Monoid (Monoid(..))
+#if MIN_VERSION_base(4,9,0)
+import Data.Semigroup (Semigroup(..))
+#endif
 import Data.String (IsString(..))
 import qualified Data.Text as T
 import qualified Data.Text.Internal as T
@@ -335,9 +338,21 @@ instance Show Text where
 instance Read Text where
     readsPrec p str = [(pack x,y) | (x,y) <- readsPrec p str]
 
+#if MIN_VERSION_base(4,9,0)
+-- Semigroup orphan instances for older GHCs are provided by
+-- 'semigroups` package
+
+instance Semigroup Text where
+    (<>) = append
+#endif
+
 instance Monoid Text where
     mempty  = empty
+#if MIN_VERSION_base(4,9,0)
+    mappend = (<>) -- future-proof definition
+#else
     mappend = append
+#endif
     mconcat = concat
 
 instance IsString Text where
