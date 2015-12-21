@@ -240,7 +240,9 @@ import qualified GHC.Base as GHC
 import qualified GHC.Exts as Exts
 #endif
 import GHC.Prim (Addr#)
+#if MIN_VERSION_base(4,7,0)
 import Text.Printf (PrintfArg, formatArg, formatString)
+#endif
 
 -- $fusion
 --
@@ -388,8 +390,11 @@ instance Data Text where
     _ -> error "Data.Text.Lazy.Text.gunfold"
   dataTypeOf _   = textDataType
 
+#if MIN_VERSION_base(4,7,0)
+-- | Only defined for @base-4.7.0.0@ and later
 instance PrintfArg Text where
   formatArg txt = formatString $ unpack txt
+#endif
 
 packConstr :: Constr
 packConstr = mkConstr textDataType "pack" [] Prefix

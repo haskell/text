@@ -240,7 +240,9 @@ import Data.Int (Int64)
 #if __GLASGOW_HASKELL__ >= 708
 import qualified GHC.Exts as Exts
 #endif
+#if MIN_VERSION_base(4,7,0)
 import Text.Printf (PrintfArg, formatArg, formatString)
+#endif
 
 -- $strict
 --
@@ -387,8 +389,11 @@ instance Data Text where
     _ -> P.error "gunfold"
   dataTypeOf _ = textDataType
 
+#if MIN_VERSION_base(4,7,0)
+-- | Only defined for @base-4.7.0.0@ and later
 instance PrintfArg Text where
   formatArg txt = formatString $ unpack txt
+#endif
 
 packConstr :: Constr
 packConstr = mkConstr textDataType "pack" [] Prefix
