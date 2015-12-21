@@ -56,7 +56,7 @@ decimal :: Integral a => Reader a
 {-# SPECIALIZE decimal :: Reader Int32 #-}
 {-# SPECIALIZE decimal :: Reader Int64 #-}
 {-# SPECIALIZE decimal :: Reader Integer #-}
-{-# SPECIALIZE decimal :: Reader Word #-}
+{-# SPECIALIZE decimal :: Reader Data.Word.Word #-}
 {-# SPECIALIZE decimal :: Reader Word8 #-}
 {-# SPECIALIZE decimal :: Reader Word16 #-}
 {-# SPECIALIZE decimal :: Reader Word32 #-}

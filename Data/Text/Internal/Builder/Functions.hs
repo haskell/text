@@ -23,7 +23,8 @@ module Data.Text.Internal.Builder.Functions
 
 import Data.Monoid (mappend)
 import Data.Text.Lazy.Builder (Builder)
-import GHC.Base
+import GHC.Base (chr#,ord#,(+#),Int(I#),Char(C#))
+import Prelude ()
 
 -- | Unsafe conversion for decimal digits.
 {-# INLINE i2d #-}

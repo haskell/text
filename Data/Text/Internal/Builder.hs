@@ -94,7 +94,7 @@ instance Monoid Builder where
    {-# INLINE mempty #-}
    mappend = append
    {-# INLINE mappend #-}
-   mconcat = foldr mappend mempty
+   mconcat = foldr mappend Data.Monoid.mempty
    {-# INLINE mconcat #-}
 
 instance String.IsString Builder where

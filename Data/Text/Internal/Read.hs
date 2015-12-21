@@ -18,7 +18,7 @@ module Data.Text.Internal.Read
     , perhaps
     ) where
 
-import Control.Applicative (Applicative(..))
+import Control.Applicative as App (Applicative(..))
 import Control.Arrow (first)
 import Control.Monad (ap)
 import Data.Char (ord)
@@ -38,7 +38,7 @@ instance Applicative (IParser t) where
     (<*>) = ap
 
 instance Monad (IParser t) where
-    return = pure
+    return = App.pure
     m >>= k  = P $ \t -> case runP m t of
                            Left err     -> Left err
                            Right (a,t') -> runP (k a) t'

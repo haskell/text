@@ -35,7 +35,7 @@ import Control.Monad.ST
 
 #ifdef  __GLASGOW_HASKELL__
 # if defined(INTEGER_GMP)
-import GHC.Integer.GMP.Internals
+import GHC.Integer.GMP.Internals (Integer(S#))
 # elif defined(INTEGER_SIMPLE)
 import GHC.Integer
 # else
@@ -55,7 +55,7 @@ decimal :: Integral a => a -> Builder
 {-# RULES "decimal/Int16" decimal = boundedDecimal :: Int16 -> Builder #-}
 {-# RULES "decimal/Int32" decimal = boundedDecimal :: Int32 -> Builder #-}
 {-# RULES "decimal/Int64" decimal = boundedDecimal :: Int64 -> Builder #-}
-{-# RULES "decimal/Word" decimal = positive :: Word -> Builder #-}
+{-# RULES "decimal/Word" decimal = positive :: Data.Word.Word -> Builder #-}
 {-# RULES "decimal/Word8" decimal = positive :: Word8 -> Builder #-}
 {-# RULES "decimal/Word16" decimal = positive :: Word16 -> Builder #-}
 {-# RULES "decimal/Word32" decimal = positive :: Word32 -> Builder #-}
@@ -247,7 +247,7 @@ integer base i
                     PAIR(x,y) -> pblock q <> pblock r <> putB ns
                         where q = fromInteger x
                               r = fromInteger y
-    putB _ = mempty
+    putB _ = Data.Monoid.mempty
 
     int :: Int -> Builder
     int x | base == 10 = decimal x
