@@ -262,6 +262,13 @@ benchmark kind fp = do
             , benchBSL $ nf (BL.map toUpper) bla
             , benchS   $ nf (L.map toUpper) sa
             ]
+        , bgroup "uncons"
+            [ benchT   $ nf T.uncons ta
+            , benchTL  $ nf TL.uncons tla
+            , benchBS  $ nf BS.uncons bsa
+            , benchBSL $ nf BL.uncons bla
+            , benchS   $ nf L.uncons sa
+            ]
         , bgroup "words"
             [ benchT   $ nf T.words ta
             , benchTL  $ nf TL.words tla
