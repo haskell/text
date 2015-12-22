@@ -71,6 +71,8 @@ flag developer
 
 flag integer-pure
   description: Use the pure-Haskell integer library instead of GMP
+  default: False
+  manual: True
 
 library
   c-sources:    cbits/cbits.c
