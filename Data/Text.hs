@@ -221,7 +221,7 @@ import Data.Semigroup (Semigroup(..))
 import Data.String (IsString(..))
 import qualified Data.Text.Internal.Fusion as S
 import qualified Data.Text.Internal.Fusion.Common as S
-import Data.Text.Encoding (decodeUtf8, encodeUtf8)
+import Data.Text.Encoding (decodeUtf8', encodeUtf8)
 import Data.Text.Internal.Fusion (stream, reverseStream, unstream)
 import Data.Text.Internal.Private (span_)
 import Data.Text.Internal (Text(..), empty, firstf, mul, safe, text)
@@ -365,7 +365,11 @@ instance NFData Text where rnf !_ = ()
 
 instance Binary Text where
     put t = put (encodeUtf8 t)
-    get   = P.fmap decodeUtf8 get
+    get   = do
+      bs <- get
+      case decodeUtf8' bs of
+        P.Left exn -> P.fail (P.show exn)
+        P.Right a -> P.return a
 
 -- | This instance preserves data abstraction at the cost of inefficiency.
 -- We omit reflection services for the sake of data abstraction.
