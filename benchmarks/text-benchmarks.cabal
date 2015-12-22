@@ -34,7 +34,7 @@ executable text-benchmarks
                   binary,
                   blaze-builder,
                   bytestring,
-                  bytestring-lexing,
+                  bytestring-lexing >= 0.5.0,
                   containers,
                   criterion >= 0.10.0.0,
                   deepseq,

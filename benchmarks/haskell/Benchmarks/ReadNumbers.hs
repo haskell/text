@@ -25,8 +25,7 @@ import Data.List (foldl')
 import Numeric (readDec, readFloat, readHex)
 import qualified Data.ByteString.Char8 as B
 import qualified Data.ByteString.Lazy.Char8 as BL
-import qualified Data.ByteString.Lex.Double as B
-import qualified Data.ByteString.Lex.Lazy.Double as BL
+import qualified Data.ByteString.Lex.Fractional as B
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import qualified Data.Text.Lazy as TL
@@ -63,12 +62,10 @@ benchmark fp = do
             whnf (double . text TL.rational) tl
 
         , bench "DecimalByteString" $ whnf (int . byteString B.readInt) b
-        , bench "DoubleByteString"  $ whnf (double . byteString B.readDouble) b
+        , bench "DoubleByteString"  $ whnf (double . byteString B.readDecimal) b
 
         , bench "DecimalLazyByteString" $
             whnf (int . byteString BL.readInt) bl
-        , bench "DoubleLazyByteString" $
-            whnf (double . byteString BL.readDouble) bl
         ]
   where
     -- Used for fixing types
