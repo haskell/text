@@ -1176,9 +1176,11 @@ dropWhile p t0 = dropWhile' t0
 "LAZY TEXT dropWhile -> unfused" [1] forall p t.
     unstream (S.dropWhile p (stream t)) = dropWhile p t
   #-}
+
 -- | /O(n)/ 'dropWhileEnd' @p@ @t@ returns the prefix remaining after
--- dropping characters that fail the predicate @p@ from the end of
+-- dropping characters that satisfy the predicate @p@ from the end of
 -- @t@.
+--
 -- Examples:
 --
 -- > dropWhileEnd (=='.') "foo..." == "foo"
@@ -1195,7 +1197,7 @@ dropWhileEnd p = go
 {-# INLINE dropWhileEnd #-}
 
 -- | /O(n)/ 'dropAround' @p@ @t@ returns the substring remaining after
--- dropping characters that fail the predicate @p@ from both the
+-- dropping characters that satisfy the predicate @p@ from both the
 -- beginning and end of @t@.  Subject to fusion.
 dropAround :: (Char -> Bool) -> Text -> Text
 dropAround p = dropWhile p . dropWhileEnd p

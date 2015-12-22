@@ -1188,8 +1188,9 @@ dropWhile p t@(Text arr off len) = loop 0 0
   #-}
 
 -- | /O(n)/ 'dropWhileEnd' @p@ @t@ returns the prefix remaining after
--- dropping characters that fail the predicate @p@ from the end of
+-- dropping characters that satisfy the predicate @p@ from the end of
 -- @t@.  Subject to fusion.
+--
 -- Examples:
 --
 -- > dropWhileEnd (=='.') "foo..." == "foo"
@@ -1209,7 +1210,7 @@ dropWhileEnd p t@(Text arr off len) = loop (len-1) len
   #-}
 
 -- | /O(n)/ 'dropAround' @p@ @t@ returns the substring remaining after
--- dropping characters that fail the predicate @p@ from both the
+-- dropping characters that satisfy the predicate @p@ from both the
 -- beginning and end of @t@.  Subject to fusion.
 dropAround :: (Char -> Bool) -> Text -> Text
 dropAround p = dropWhile p . dropWhileEnd p
