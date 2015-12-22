@@ -129,6 +129,7 @@ module Data.Text
     , drop
     , dropEnd
     , takeWhile
+    , takeWhileEnd
     , dropWhile
     , dropWhileEnd
     , dropAround
@@ -1142,6 +1143,27 @@ takeWhile p t@(Text arr off len) = loop 0
     takeWhile p t = unstream (S.takeWhile p (stream t))
 "TEXT takeWhile -> unfused" [1] forall p t.
     unstream (S.takeWhile p (stream t)) = takeWhile p t
+  #-}
+
+-- | /O(n)/ 'takeWhileEnd', applied to a predicate @p@ and a 'Text',
+-- returns the longest suffix (possibly empty) of elements that
+-- satisfy @p@.  Subject to fusion.
+-- Examples:
+--
+-- > takeWhileEnd (=='o') "foo" == "oo"
+takeWhileEnd :: (Char -> Bool) -> Text -> Text
+takeWhileEnd p t@(Text arr off len) = loop (len-1) len
+  where loop !i !l | l <= 0    = t
+                   | p c       = loop (i+d) (l+d)
+                   | otherwise = text arr (off+l) (len-l)
+            where (c,d)        = reverseIter t i
+{-# INLINE [1] takeWhileEnd #-}
+
+{-# RULES
+"TEXT takeWhileEnd -> fused" [~1] forall p t.
+    takeWhileEnd p t = S.reverse (S.takeWhile p (S.reverseStream t))
+"TEXT takeWhileEnd -> unfused" [1] forall p t.
+    S.reverse (S.takeWhile p (S.reverseStream t)) = takeWhileEnd p t
   #-}
 
 -- | /O(n)/ 'dropWhile' @p@ @t@ returns the suffix remaining after

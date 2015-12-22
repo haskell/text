@@ -140,6 +140,7 @@ module Data.Text.Lazy
     , drop
     , dropEnd
     , takeWhile
+    , takeWhileEnd
     , dropWhile
     , dropWhileEnd
     , dropAround
@@ -1139,6 +1140,20 @@ takeWhile p t0 = takeWhile' t0
 "LAZY TEXT takeWhile -> unfused" [1] forall p t.
     unstream (S.takeWhile p (stream t)) = takeWhile p t
   #-}
+-- | /O(n)/ 'takeWhileEnd', applied to a predicate @p@ and a 'Text',
+-- returns the longest suffix (possibly empty) of elements that
+-- satisfy @p@.
+-- Examples:
+--
+-- > takeWhileEnd (=='o') "foo" == "oo"
+takeWhileEnd :: (Char -> Bool) -> Text -> Text
+takeWhileEnd p = takeChunk empty . L.reverse . toChunks
+  where takeChunk acc []     = acc
+        takeChunk acc (t:ts) = if T.length t' < T.length t
+                               then (Chunk t' acc)
+                               else takeChunk (Chunk t' acc) ts
+          where t' = T.takeWhileEnd p t
+{-# INLINE takeWhileEnd #-}
 
 -- | /O(n)/ 'dropWhile' @p@ @t@ returns the suffix remaining after
 -- 'takeWhile' @p@ @t@.  Subject to fusion.
