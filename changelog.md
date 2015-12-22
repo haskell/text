@@ -1,5 +1,9 @@
 1.2.2.0
 
+* The `integer-simple` package, upon which this package optionally
+  depended, has been replaced with `integer-pure`.  The build flag has
+  been renamed accordingly.
+
 * Bug fix: For the `Binary` instance, If UTF-8 decoding fails during a
   `get`, the error is propagated via `fail` instead of an uncatchable
   crash.
