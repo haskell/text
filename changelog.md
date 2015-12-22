@@ -1,6 +1,18 @@
+1.2.2.0
+
+* Bug fix: For the `Binary` instance, If UTF-8 decoding fails during a
+  `get`, the error is propagated via `fail` instead of an uncatchable
+  crash.
+
+* New function: `takeWhileEnd`
+
+* New instances for the `Text` types:
+    * if `base` >= 4.7: `PrintfArg`
+    * if `base` >= 4.9: `Semigroup`
+
 1.2.1.3
 
-* Bug fix: As it turns out, moving the literal rewrite rules to simplifier 
+* Bug fix: As it turns out, moving the literal rewrite rules to simplifier
   phase 2 does not prevent competition with the `unpack` rule, which is
   also active in this phase. Unfortunately this was hidden due to a silly
   test environment mistake. Moving literal rules back to phase 1 finally
