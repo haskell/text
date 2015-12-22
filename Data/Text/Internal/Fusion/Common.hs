@@ -593,7 +593,7 @@ concatMap f = foldr (append . f) empty
 {-# INLINE [0] concatMap #-}
 
 -- | /O(n)/ any @p @xs determines if any character in the stream
--- @xs@ satisifes the predicate @p@.
+-- @xs@ satisfies the predicate @p@.
 any :: (Char -> Bool) -> Stream Char -> Bool
 any p (Stream next0 s0 _len) = loop_any s0
     where
@@ -605,7 +605,7 @@ any p (Stream next0 s0 _len) = loop_any s0
 {-# INLINE [0] any #-}
 
 -- | /O(n)/ all @p @xs determines if all characters in the 'Text'
--- @xs@ satisify the predicate @p@.
+-- @xs@ satisfy the predicate @p@.
 all :: (Char -> Bool) -> Stream Char -> Bool
 all p (Stream next0 s0 _len) = loop_all s0
     where
