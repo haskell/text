@@ -7,7 +7,7 @@
 -- Stability   : experimental
 -- Portability : GHC
 --
--- Common internal functiopns for reading textual data.
+-- Common internal functions for reading textual data.
 module Data.Text.Internal.Read
     (
       IReader
