@@ -485,8 +485,8 @@ head t = S.head (stream t)
 uncons :: Text -> Maybe (Char, Text)
 uncons t@(Text arr off len)
     | len <= 0  = Nothing
-    | otherwise = Just (c, text arr (off+d) (len-d))
-    where Iter c d = iter t 0
+    | otherwise = Just $ let !(Iter c d) = iter t 0
+                         in (c, text arr (off+d) (len-d))
 {-# INLINE [1] uncons #-}
 
 -- | Lifted from Control.Arrow and specialized.
