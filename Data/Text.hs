@@ -5,6 +5,7 @@
 #endif
 #if __GLASGOW_HASKELL__ >= 708
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE EmptyDataDecls #-}
 #endif
 
 -- |
@@ -240,6 +241,7 @@ import Data.Int (Int64)
 #endif
 #if __GLASGOW_HASKELL__ >= 708
 import qualified GHC.Exts as Exts
+import GHC.Generics hiding (Prefix)
 #endif
 #if MIN_VERSION_base(4,7,0)
 import Text.Printf (PrintfArg, formatArg, formatString)
@@ -405,6 +407,25 @@ packConstr = mkConstr textDataType "pack" [] Prefix
 
 textDataType :: DataType
 textDataType = mkDataType "Data.Text.Text" [packConstr]
+
+#if __GLASGOW_HASKELL__ >= 708
+type Rep0Text = D1 D1Text (C1 C1Text (S1 NoSelector (Rec0 Text)))
+
+instance Generic Text where
+  type Rep Text = Rep0Text
+  from t = M1 (M1 (M1 (K1 t)))
+  to (M1 (M1 (M1 (K1 t)))) = t
+
+data D1Text
+data C1Text
+
+instance Datatype D1Text where
+  datatypeName _ = "Text"
+  moduleName   _ = "Data.Text"
+
+instance Constructor C1Text where
+  conName     _ = "Text"
+#endif
 
 -- | /O(n)/ Compare two 'Text' values lexicographically.
 compareText :: Text -> Text -> Ordering
