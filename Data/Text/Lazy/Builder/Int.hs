@@ -36,14 +36,14 @@ import Control.Monad.ST
 #ifdef  __GLASGOW_HASKELL__
 # if defined(INTEGER_GMP)
 import GHC.Integer.GMP.Internals (Integer(S#))
-# elif defined(INTEGER_PURE)
+# elif defined(INTEGER_SIMPLE)
 import GHC.Integer
 # else
-# error "You need to use either GMP or integer-pure."
+# error "You need to use either GMP or integer-simple."
 # endif
 #endif
 
-#if defined(INTEGER_GMP) || defined(INTEGER_PURE)
+#if defined(INTEGER_GMP) || defined(INTEGER_SIMPLE)
 # define PAIR(a,b) (# a,b #)
 #else
 # define PAIR(a,b) (a,b)
