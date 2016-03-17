@@ -1,3 +1,14 @@
+1.2.2.1
+
+* The switch to `integer-pure` in 1.2.2.0 was apparently mistaken.
+  The build flag has been renamed accordingly.  Your army of diligent
+  maintainers apologizes for the churn.
+
+* Spec compliance: toCaseFold now follows the Unicode 8.0 spec
+  (updated from 7.0)
+
+* An STG lint error has been fixed
+
 1.2.2.0
 
 * The `integer-simple` package, upon which this package optionally
