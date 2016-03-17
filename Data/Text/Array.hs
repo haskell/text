@@ -74,7 +74,7 @@ import Foreign.C.Types (CInt, CSize)
 #endif
 import GHC.Base (ByteArray#, MutableByteArray#, Int(..),
                  indexWord16Array#, newByteArray#,
-                 unsafeCoerce#, writeWord16Array#)
+                 unsafeFreezeByteArray#, writeWord16Array#)
 import GHC.ST (ST(..), runST)
 import GHC.Word (Word16(..))
 import Prelude hiding (length, read)
@@ -130,8 +130,9 @@ array_size_error = error "Data.Text.Array.new: size overflow"
 
 -- | Freeze a mutable array. Do not mutate the 'MArray' afterwards!
 unsafeFreeze :: MArray s -> ST s Array
-unsafeFreeze MArray{..} = ST $ \s# ->
-                          (# s#, Array (unsafeCoerce# maBA)
+unsafeFreeze MArray{..} = ST $ \s1# ->
+    case unsafeFreezeByteArray# maBA s1# of
+        (# s2#, ba# #) -> (# s2#, Array ba#
 #if defined(ASSERTS)
                              maLen
 #endif
