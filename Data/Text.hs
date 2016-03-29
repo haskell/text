@@ -571,7 +571,9 @@ isSingleton = S.isSingleton . stream
 -- Subject to fusion.
 length :: Text -> Int
 length t = S.length (stream t)
-{-# INLINE length #-}
+{-# INLINE [0] length #-}
+-- length needs to be phased after the compareN/length rules otherwise
+-- it may inline before the rules have an opportunity to fire.
 
 -- | /O(n)/ Compare the count of characters in a 'Text' to a number.
 -- Subject to fusion.
