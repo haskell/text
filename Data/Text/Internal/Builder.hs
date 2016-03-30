@@ -242,6 +242,8 @@ flush = Builder $ \ k buf@(Buffer p o u l) ->
                 !t = Text arr o u
             ts <- inlineInterleaveST (k b)
             return $! t : ts
+{-# INLINE [1] flush #-}
+-- defer inlining so that flush/flush rule may fire.
 
 ------------------------------------------------------------------------
 
