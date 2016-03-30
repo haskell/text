@@ -238,6 +238,7 @@ import Data.ByteString (ByteString)
 import qualified Data.Text.Lazy as L
 import Data.Int (Int64)
 #endif
+import GHC.Base (eqInt, neInt, gtInt, geInt, ltInt, leInt)
 #if __GLASGOW_HASKELL__ >= 708
 import qualified GHC.Exts as Exts
 #endif
@@ -592,32 +593,32 @@ compareLength t n = S.compareLengthI (stream t) n
 
 {-# RULES
 "TEXT ==N/length -> compareLength/==EQ" [~1] forall t n.
-    (==) (length t) n = compareLength t n == EQ
+    eqInt (length t) n = compareLength t n == EQ
   #-}
 
 {-# RULES
 "TEXT /=N/length -> compareLength//=EQ" [~1] forall t n.
-    (/=) (length t) n = compareLength t n /= EQ
+    neInt (length t) n = compareLength t n /= EQ
   #-}
 
 {-# RULES
 "TEXT <N/length -> compareLength/==LT" [~1] forall t n.
-    (<) (length t) n = compareLength t n == LT
+    ltInt (length t) n = compareLength t n == LT
   #-}
 
 {-# RULES
 "TEXT <=N/length -> compareLength//=GT" [~1] forall t n.
-    (<=) (length t) n = compareLength t n /= GT
+    leInt (length t) n = compareLength t n /= GT
   #-}
 
 {-# RULES
 "TEXT >N/length -> compareLength/==GT" [~1] forall t n.
-    (>) (length t) n = compareLength t n == GT
+    gtInt (length t) n = compareLength t n == GT
   #-}
 
 {-# RULES
 "TEXT >=N/length -> compareLength//=LT" [~1] forall t n.
-    (>=) (length t) n = compareLength t n /= LT
+    geInt (length t) n = compareLength t n /= LT
   #-}
 
 -- -----------------------------------------------------------------------------
