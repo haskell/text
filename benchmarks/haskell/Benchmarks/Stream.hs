@@ -18,11 +18,11 @@ import qualified Data.Text.Encoding as T
 import qualified Data.Text.Encoding.Error as E
 import qualified Data.Text.Internal.Encoding.Fusion as T
 import qualified Data.Text.Internal.Encoding.Fusion.Common as F
-import qualified Data.Text.Internal.Fusion as T
+import qualified Data.Text.Internal.Fusion as F
 import qualified Data.Text.IO as T
 import qualified Data.Text.Lazy.Encoding as TL
 import qualified Data.Text.Internal.Lazy.Encoding.Fusion as TL
-import qualified Data.Text.Internal.Lazy.Fusion as TL
+import qualified Data.Text.Internal.Lazy.Fusion as FL
 import qualified Data.Text.Lazy.IO as TL
 
 instance NFData a => NFData (Stream a) where
@@ -53,14 +53,25 @@ benchmark fp = do
         !utf32beL = TL.encodeUtf32BE tl
 
     -- For the functions which operate on streams
-    let !s = T.stream t
+    let !s = F.stream t
 
     return $ bgroup "Stream"
 
         -- Fusion
         [ bgroup "stream" $
-            [ bench "Text"     $ nf T.stream t
-            , bench "LazyText" $ nf TL.stream tl
+            [ bench "Text"     $ nf F.stream t
+            , bench "LazyText" $ nf FL.stream tl
+            ]
+          -- must perform exactly the same as stream above due to
+          -- stream/unstream (i.e. stream after unstream) fusion
+        , bgroup "stream-fusion" $
+            [ bench "Text"     $ nf (F.stream . F.unstream . F.stream) t
+            , bench "LazyText" $ nf (FL.stream . FL.unstream . FL.stream) tl
+            ]
+          -- measure the overhead of unstream after stream
+        , bgroup "stream-unstream" $
+            [ bench "Text"     $ nf (F.unstream . F.stream) t
+            , bench "LazyText" $ nf (FL.unstream . FL.stream) tl
             ]
 
         -- Encoding.Fusion
