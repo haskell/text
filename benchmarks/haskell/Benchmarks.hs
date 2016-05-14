@@ -53,7 +53,7 @@ benchmarks = do
         , Mul.benchmark
         , Pure.benchmark "tiny" (tf "tiny.txt")
         , Pure.benchmark "ascii" (tf "ascii-small.txt")
-        , Pure.benchmark "france" (tf "france.html")
+        -- , Pure.benchmark "france" (tf "france.html")
         , Pure.benchmark "russian" (tf "russian-small.txt")
         , Pure.benchmark "japanese" (tf "japanese.txt")
         , ReadNumbers.benchmark (tf "numbers.txt")
