@@ -20,7 +20,7 @@
 -- > import qualified Data.Text.Array as A
 --
 -- The names in this module resemble those in the 'Data.Array' family
--- of modules, but are shorter due to the assumption of qualifid
+-- of modules, but are shorter due to the assumption of qualified
 -- naming.
 module Data.Text.Array
     (
