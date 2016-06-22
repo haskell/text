@@ -2,7 +2,7 @@
 
 -- Module:      Data.Text.Internal.Builder.Int.Digits
 -- Copyright:   (c) 2013 Bryan O'Sullivan
--- License:     BSD3
+-- License:     BSD-style
 -- Maintainer:  Bryan O'Sullivan <bos@serpentine.com>
 -- Stability:   experimental
 -- Portability: portable

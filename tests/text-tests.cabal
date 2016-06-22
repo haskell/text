@@ -3,7 +3,7 @@ version:       0.0.0.0
 synopsis:      Functional tests for the text package
 description:   Functional tests for the text package
 homepage:      https://github.com/bos/text
-license:       BSD3
+license:       BSD2
 license-file:  ../LICENSE
 author:        Jasper Van der Jeugt <jaspervdj@gmail.com>,
                Bryan O'Sullivan <bos@serpentine.com>,

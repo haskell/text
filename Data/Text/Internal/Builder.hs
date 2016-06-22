@@ -6,7 +6,7 @@
 -- Module      : Data.Text.Internal.Builder
 -- Copyright   : (c) 2013 Bryan O'Sullivan
 --               (c) 2010 Johan Tibell
--- License     : BSD3-style (see LICENSE)
+-- License     : BSD-style (see LICENSE)
 --
 -- Maintainer  : Johan Tibell <johan.tibell@gmail.com>
 -- Stability   : experimental

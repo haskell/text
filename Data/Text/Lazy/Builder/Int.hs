@@ -7,7 +7,7 @@
 -- Module:      Data.Text.Lazy.Builder.Int
 -- Copyright:   (c) 2013 Bryan O'Sullivan
 --              (c) 2011 MailRank, Inc.
--- License:     BSD3
+-- License:     BSD-style
 -- Maintainer:  Bryan O'Sullivan <bos@serpentine.com>
 -- Stability:   experimental
 -- Portability: portable
