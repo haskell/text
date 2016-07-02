@@ -15,6 +15,11 @@ build-type:          Simple
 
 cabal-version:       >=1.2
 
+flag bytestring-builder
+  description: Depend on the bytestring-builder package for backwards compatibility.
+  default: False
+  manual: False
+
 flag llvm
   description: use LLVM
   default: False
@@ -33,7 +38,6 @@ executable text-benchmarks
   build-depends:  base == 4.*,
                   binary,
                   blaze-builder,
-                  bytestring,
                   bytestring-lexing >= 0.5.0,
                   containers,
                   criterion >= 0.10.0.0,
@@ -45,6 +49,12 @@ executable text-benchmarks
                   stringsearch,
                   utf8-string,
                   vector
+
+  if flag(bytestring-builder)
+    build-depends: bytestring         >= 0.9    && < 0.10.4,
+                   bytestring-builder >= 0.10.4
+  else
+    build-depends: bytestring         >= 0.10.4
 
 executable text-multilang
   hs-source-dirs: haskell

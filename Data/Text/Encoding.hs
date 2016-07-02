@@ -55,13 +55,9 @@ module Data.Text.Encoding
     , encodeUtf32LE
     , encodeUtf32BE
 
-#if MIN_VERSION_bytestring(0,10,4)
     -- * Encoding Text using ByteString Builders
-    -- | /Note/ that these functions are only available if built against
-    -- @bytestring >= 0.10.4.0@.
     , encodeUtf8Builder
     , encodeUtf8BuilderEscaped
-#endif
     ) where
 
 #if __GLASGOW_HASKELL__ >= 702
@@ -70,24 +66,15 @@ import Control.Monad.ST.Unsafe (unsafeIOToST, unsafeSTToIO)
 import Control.Monad.ST (unsafeIOToST, unsafeSTToIO)
 #endif
 
-#if MIN_VERSION_bytestring(0,10,4)
-import Data.Bits ((.&.))
-import Data.Text.Internal.Unsafe.Char (ord)
-import qualified Data.ByteString.Builder as B
-import qualified Data.ByteString.Builder.Internal as B hiding (empty, append)
-import qualified Data.ByteString.Builder.Prim as BP
-import qualified Data.ByteString.Builder.Prim.Internal as BP
-import qualified Data.Text.Internal.Encoding.Utf16 as U16
-#endif
-
 import Control.Exception (evaluate, try)
 import Control.Monad.ST (runST)
+import Data.Bits ((.&.))
 import Data.ByteString as B
 import Data.ByteString.Internal as B hiding (c2w)
 import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode)
 import Data.Text.Internal (Text(..), safe, text)
 import Data.Text.Internal.Private (runText)
-import Data.Text.Internal.Unsafe.Char (unsafeWrite)
+import Data.Text.Internal.Unsafe.Char (ord, unsafeWrite)
 import Data.Text.Internal.Unsafe.Shift (shiftR)
 import Data.Text.Show ()
 import Data.Text.Unsafe (unsafeDupablePerformIO)
@@ -98,8 +85,13 @@ import Foreign.Marshal.Utils (with)
 import Foreign.Ptr (Ptr, minusPtr, nullPtr, plusPtr)
 import Foreign.Storable (Storable, peek, poke)
 import GHC.Base (ByteArray#, MutableByteArray#)
+import qualified Data.ByteString.Builder as B
+import qualified Data.ByteString.Builder.Internal as B hiding (empty, append)
+import qualified Data.ByteString.Builder.Prim as BP
+import qualified Data.ByteString.Builder.Prim.Internal as BP
 import qualified Data.Text.Array as A
 import qualified Data.Text.Internal.Encoding.Fusion as E
+import qualified Data.Text.Internal.Encoding.Utf16 as U16
 import qualified Data.Text.Internal.Fusion as F
 
 #include "text_cbits.h"
@@ -315,8 +307,6 @@ decodeUtf8' :: ByteString -> Either UnicodeException Text
 decodeUtf8' = unsafeDupablePerformIO . try . evaluate . decodeUtf8With strictDecode
 {-# INLINE decodeUtf8' #-}
 
-#if MIN_VERSION_bytestring(0,10,4)
-
 -- | Encode text to a ByteString 'B.Builder' using UTF-8 encoding.
 encodeUtf8Builder :: Text -> B.Builder
 encodeUtf8Builder = encodeUtf8BuilderEscaped (BP.liftFixedToBounded BP.word8)
@@ -377,7 +367,6 @@ encodeUtf8BuilderEscaped be =
                       outerLoop i (B.BufferRange op ope)
                   where
                     poke8 j v = poke (op `plusPtr` j) (fromIntegral v :: Word8)
-#endif
 
 -- | Encode text using UTF-8 encoding.
 encodeUtf8 :: Text -> ByteString
