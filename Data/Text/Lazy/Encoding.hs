@@ -46,27 +46,23 @@ module Data.Text.Lazy.Encoding
     , encodeUtf32LE
     , encodeUtf32BE
 
-#if MIN_VERSION_bytestring(0,10,4)
     -- * Encoding Text using ByteString Builders
     , encodeUtf8Builder
     , encodeUtf8BuilderEscaped
-#endif
     ) where
 
 import Control.Exception (evaluate, try)
+import Data.Monoid (Monoid(..))
 import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode)
 import Data.Text.Internal.Lazy (Text(..), chunk, empty, foldrChunks)
-import qualified Data.ByteString as S
-import qualified Data.ByteString.Lazy as B
-import qualified Data.ByteString.Lazy.Internal as B
-import qualified Data.ByteString.Unsafe as B
-#if MIN_VERSION_bytestring(0,10,4)
 import Data.Word (Word8)
-import Data.Monoid (Monoid(..))
+import qualified Data.ByteString as S
 import qualified Data.ByteString.Builder as B
 import qualified Data.ByteString.Builder.Extra as B (safeStrategy, toLazyByteStringWith)
 import qualified Data.ByteString.Builder.Prim as BP
-#endif
+import qualified Data.ByteString.Lazy as B
+import qualified Data.ByteString.Lazy.Internal as B
+import qualified Data.ByteString.Unsafe as B
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text.Internal.Lazy.Encoding.Fusion as E
@@ -146,7 +142,6 @@ decodeUtf8' bs = unsafeDupablePerformIO $ do
 {-# INLINE decodeUtf8' #-}
 
 encodeUtf8 :: Text -> B.ByteString
-#if MIN_VERSION_bytestring(0,10,4)
 encodeUtf8    Empty       = B.empty
 encodeUtf8 lt@(Chunk t _) =
     B.toLazyByteStringWith strategy B.empty $ encodeUtf8Builder lt
@@ -167,11 +162,6 @@ encodeUtf8Builder =
 encodeUtf8BuilderEscaped :: BP.BoundedPrim Word8 -> Text -> B.Builder
 encodeUtf8BuilderEscaped prim =
     foldrChunks (\c b -> TE.encodeUtf8BuilderEscaped prim c `mappend` b) mempty
-
-#else
-encodeUtf8 (Chunk c cs) = B.Chunk (TE.encodeUtf8 c) (encodeUtf8 cs)
-encodeUtf8 Empty        = B.Empty
-#endif
 
 -- | Decode text from little endian UTF-16 encoding.
 decodeUtf16LEWith :: OnDecodeError -> B.ByteString -> Text

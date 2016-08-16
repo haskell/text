@@ -64,6 +64,11 @@ extra-source-files:
     tests/scripts/*.sh
     tests/text-tests.cabal
 
+flag bytestring-builder
+  description: Depend on the bytestring-builder package for backwards compatibility.
+  default: False
+  manual: False
+
 flag developer
   description: operate in developer mode
   default: False
@@ -133,10 +138,11 @@ library
     deepseq    >= 1.1.0.0,
     ghc-prim   >= 0.2
 
-  if impl(ghc >= 7.7)
-    build-depends: bytestring >= 0.10.4.0
+  if flag(bytestring-builder)
+    build-depends: bytestring         >= 0.9    && < 0.10.4,
+                   bytestring-builder >= 0.10.4
   else
-    build-depends: bytestring >= 0.9
+    build-depends: bytestring         >= 0.10.4
 
   cpp-options: -DHAVE_DEEPSEQ
   ghc-options: -Wall -fwarn-tabs -funbox-strict-fields -O2
@@ -171,7 +177,6 @@ test-suite tests
     array,
     base,
     binary,
-    bytestring,
     deepseq,
     directory,
     ghc-prim,
@@ -180,6 +185,12 @@ test-suite tests
     test-framework >= 0.4,
     test-framework-hunit >= 0.2,
     test-framework-quickcheck2 >= 0.2
+
+  if flag(bytestring-builder)
+    build-depends: bytestring         >= 0.9    && < 0.10.4,
+                   bytestring-builder >= 0.10.4
+  else
+    build-depends: bytestring         >= 0.10.4
 
   if flag(integer-simple)
     cpp-options: -DINTEGER_SIMPLE

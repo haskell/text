@@ -6,7 +6,7 @@ function check_firings() {
     rule=$1
     expected=$2
     build="ghc -O -ddump-rule-firings LiteralRuleTest.hs"
-    build="$build -i.. -I../include -DMIN_VERSION_bytestring(a,b,c)=1"
+    build="$build -i.. -I../include"
     touch LiteralRuleTest.hs
     echo -n "Want to see $expected firings of rule $rule... " >&2
     firings=$($build 2>&1 | grep "Rule fired: $rule\$" | wc -l)
