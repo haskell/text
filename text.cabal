@@ -31,7 +31,7 @@ description:
     the @text-icu@ package:
     <http://hackage.haskell.org/package/text-icu>
 
-license:        BSD3
+license:        BSD2
 license-file:   LICENSE
 author:         Bryan O'Sullivan <bos@serpentine.com>
 maintainer:     Bryan O'Sullivan <bos@serpentine.com>

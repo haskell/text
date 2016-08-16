@@ -3,7 +3,7 @@ version:             0.0.0.0
 synopsis:            Benchmarks for the text package
 description:         Benchmarks for the text package
 homepage:            https://bitbucket.org/bos/text
-license:             BSD3
+license:             BSD2
 license-file:        ../LICENSE
 author:              Jasper Van der Jeugt <jaspervdj@gmail.com>,
                      Bryan O'Sullivan <bos@serpentine.com>,
