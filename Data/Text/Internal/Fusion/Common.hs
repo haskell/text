@@ -669,12 +669,12 @@ scanl f z0 (Stream next0 s0 len) = Stream next (Scan1 z0 s0) (len+1) -- HINT may
 -- ** Generating and unfolding streams
 
 replicateCharI :: Integral a => a -> Char -> Stream Char
-replicateCharI n c
+replicateCharI !n !c
     | n < 0     = empty
     | otherwise = Stream next 0 (fromIntegral n) -- HINT maybe too low
   where
-    next i | i >= n    = Done
-           | otherwise = Yield c (i + 1)
+    next !i | i >= n    = Done
+            | otherwise = Yield c (i + 1)
 {-# INLINE [0] replicateCharI #-}
 
 data RI s = RI !s {-# UNPACK #-} !Int64
