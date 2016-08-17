@@ -545,7 +545,7 @@ tail Empty        = emptyError "tail"
     unstream (S.tail (stream t)) = tail t
  #-}
 
--- | /O(1)/ Returns all but the last character of a 'Text', which must
+-- | /O(n\/c)/ Returns all but the last character of a 'Text', which must
 -- be non-empty.  Subject to fusion.
 init :: Text -> Text
 init (Chunk t0 ts0) = go t0 ts0
@@ -581,7 +581,7 @@ isSingleton :: Text -> Bool
 isSingleton = S.isSingleton . stream
 {-# INLINE isSingleton #-}
 
--- | /O(1)/ Returns the last character of a 'Text', which must be
+-- | /O(n\/c)/ Returns the last character of a 'Text', which must be
 -- non-empty.  Subject to fusion.
 last :: Text -> Char
 last Empty        = emptyError "last"
