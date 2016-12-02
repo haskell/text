@@ -326,6 +326,8 @@ t_toUpper_upper t = p (T.toUpper t) >= p t
     where p = T.length . T.filter isUpper
 tl_toUpper_upper t = p (TL.toUpper t) >= p t
     where p = TL.length . TL.filter isUpper
+t_toTitle_title t = all (<= 1) (caps t)
+    where caps = fmap (T.length . T.filter isUpper) . T.words . T.toTitle
 
 justifyLeft k c xs  = xs ++ L.replicate (k - length xs) c
 justifyRight m n xs = L.replicate (m - length xs) n ++ xs
@@ -1030,7 +1032,8 @@ tests =
         testProperty "tl_toLower_lower" tl_toLower_lower,
         testProperty "t_toUpper_length" t_toUpper_length,
         testProperty "t_toUpper_upper" t_toUpper_upper,
-        testProperty "tl_toUpper_upper" tl_toUpper_upper
+        testProperty "tl_toUpper_upper" tl_toUpper_upper,
+        testProperty "t_toTitle_title" t_toTitle_title
       ],
 
       testGroup "justification" [
