@@ -67,9 +67,9 @@ decimal txt
         go n d = (n * 10 + fromIntegral (digitToInt d))
 
 -- | Read a hexadecimal integer, consisting of an optional leading
--- @\"0x\"@ followed by at least one decimal digit. Input is consumed
--- until a non-hex-digit or end of string is reached.  This function
--- is case insensitive.
+-- @\"0x\"@ followed by at least one hexadecimal digit. Input is
+-- consumed until a non-hex-digit or end of string is reached.
+-- This function is case insensitive.
 --
 -- This function does not handle leading sign characters.  If you need
 -- to handle signed input, use @'signed' 'hexadecimal'@.
