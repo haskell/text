@@ -20,6 +20,11 @@ flag hpc
   default:     False
   manual:      True
 
+flag bytestring-builder
+  description: Depend on the bytestring-builder package for backwards compatibility.
+  default: False
+  manual: False
+
 executable text-tests
   main-is: Tests.hs
 
@@ -48,7 +53,6 @@ executable text-tests
     HUnit >= 1.2,
     QuickCheck >= 2.7,
     base == 4.*,
-    bytestring,
     deepseq,
     directory,
     quickcheck-unicode,
@@ -57,6 +61,12 @@ executable text-tests
     test-framework-hunit >= 0.2,
     test-framework-quickcheck2 >= 0.2,
     text-tests
+
+  if flag(bytestring-builder)
+    build-depends: bytestring         >= 0.9    && < 0.10.4,
+                   bytestring-builder >= 0.10.4
+  else
+    build-depends: bytestring         >= 0.10.4
 
 executable text-tests-stdio
   main-is:        Tests/IO.hs
@@ -137,7 +147,12 @@ library
     array,
     base == 4.*,
     binary,
-    bytestring,
     deepseq,
     ghc-prim,
     integer-gmp
+
+  if flag(bytestring-builder)
+    build-depends: bytestring         >= 0.9    && < 0.10.4,
+                   bytestring-builder >= 0.10.4
+  else
+    build-depends: bytestring         >= 0.10.4
