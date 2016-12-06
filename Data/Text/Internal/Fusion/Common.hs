@@ -107,7 +107,7 @@ import Prelude (Bool(..), Char, Eq(..), Int, Integral, Maybe(..),
 import qualified Data.List as L
 import qualified Prelude as P
 import Data.Bits (shiftL)
-import Data.Char (isLetter)
+import Data.Char (isLetter, isSpace)
 import Data.Int (Int64)
 import Data.Text.Internal.Fusion.Types
 import Data.Text.Internal.Fusion.CaseMapping (foldMapping, lowerMapping, titleMapping,
@@ -462,15 +462,16 @@ toTitle (Stream next0 s0 len) = Stream next (CC (False :*: s0) '\0' '\0') len
   where
     next (CC (letter :*: s) '\0' _) =
       case next0 s of
-        Done           -> Done
-        Skip s'        -> Skip (CC (letter :*: s') '\0' '\0')
+        Done            -> Done
+        Skip s'         -> Skip (CC (letter :*: s') '\0' '\0')
         Yield c s'
-          | letter'    -> if letter
-                          then lowerMapping c (letter' :*: s')
-                          else titleMapping c (letter' :*: s')
-          | otherwise  -> Yield c (CC (letter' :*: s') '\0' '\0')
-          where letter' = isLetter c
-    next (CC s a b)     = Yield a (CC s b '\0')
+          | nonSpace    -> if letter
+                           then lowerMapping c (nonSpace :*: s')
+                           else titleMapping c (letter' :*: s')
+          | otherwise   -> Yield c (CC (letter' :*: s') '\0' '\0')
+          where nonSpace = P.not (isSpace c)
+                letter'  = isLetter c
+    next (CC s a b)      = Yield a (CC s b '\0')
 {-# INLINE [0] toTitle #-}
 
 data Justify i s = Just1 !i !s
