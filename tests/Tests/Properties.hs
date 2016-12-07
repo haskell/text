@@ -329,8 +329,12 @@ tl_toUpper_upper t = p (TL.toUpper t) >= p t
     where p = TL.length . TL.filter isUpper
 t_toTitle_title t = all (<= 1) (caps t)
     where caps = fmap (T.length . T.filter isUpper) . T.words . T.toTitle
-t_toTitle_1stNotLower = all id . (notLow . T.toTitle)
+t_toTitle_1stNotLower = and . notLow . T.toTitle . T.filter stable
     where notLow = mapMaybe (fmap (not . isLower) . (T.find isLetter)) . T.words
+          -- Surprise! The Spanish/Portuguese ordinal indicators changed
+          -- from category Ll (letter, lowercase) to Lo (letter, other)
+          -- in Unicode 7.0
+          stable c = c /= '\170' && c /= '\186'
 
 justifyLeft k c xs  = xs ++ L.replicate (k - length xs) c
 justifyRight m n xs = L.replicate (m - length xs) n ++ xs
