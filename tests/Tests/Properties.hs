@@ -11,7 +11,7 @@ module Tests.Properties
 import Control.Applicative ((<$>), (<*>))
 import Control.Arrow ((***), second)
 import Data.Bits ((.&.))
-import Data.Char (chr, isDigit, isHexDigit, isLower, isSpace, isUpper, ord)
+import Data.Char (chr, isDigit, isHexDigit, isLower, isSpace, isLetter, isUpper, ord)
 import Data.Int (Int8, Int16, Int32, Int64)
 import Data.Monoid (Monoid(..))
 import Data.String (IsString(fromString))
@@ -23,6 +23,7 @@ import Data.Text.Internal.Search (indices)
 import Data.Text.Lazy.Read as TL
 import Data.Text.Read as T
 import Data.Word (Word, Word8, Word16, Word32, Word64)
+import Data.Maybe (mapMaybe)
 import Numeric (showEFloat, showFFloat, showGFloat, showHex)
 import Prelude hiding (replicate)
 import Test.Framework (Test, testGroup)
@@ -328,6 +329,8 @@ tl_toUpper_upper t = p (TL.toUpper t) >= p t
     where p = TL.length . TL.filter isUpper
 t_toTitle_title t = all (<= 1) (caps t)
     where caps = fmap (T.length . T.filter isUpper) . T.words . T.toTitle
+t_toTitle_1stNotLower = all id . (notLow . T.toTitle)
+    where notLow = mapMaybe (fmap (not . isLower) . (T.find isLetter)) . T.words
 
 justifyLeft k c xs  = xs ++ L.replicate (k - length xs) c
 justifyRight m n xs = L.replicate (m - length xs) n ++ xs
@@ -1033,7 +1036,8 @@ tests =
         testProperty "t_toUpper_length" t_toUpper_length,
         testProperty "t_toUpper_upper" t_toUpper_upper,
         testProperty "tl_toUpper_upper" tl_toUpper_upper,
-        testProperty "t_toTitle_title" t_toTitle_title
+        testProperty "t_toTitle_title" t_toTitle_title,
+        testProperty "t_toTitle_1stNotLower" t_toTitle_1stNotLower
       ],
 
       testGroup "justification" [
