@@ -81,6 +81,7 @@ flag integer-simple
 
 library
   c-sources:    cbits/cbits.c
+  cc-options:   -fPIC
   include-dirs: include
 
   exposed-modules:
@@ -145,7 +146,7 @@ library
     build-depends: bytestring         >= 0.10.4
 
   cpp-options: -DHAVE_DEEPSEQ
-  ghc-options: -Wall -fwarn-tabs -funbox-strict-fields -O2
+  ghc-options: -Wall -fwarn-tabs -funbox-strict-fields -O2 -fobject-code
   if flag(developer)
     ghc-prof-options: -auto-all
     ghc-options: -Werror
