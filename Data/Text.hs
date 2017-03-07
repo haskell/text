@@ -60,6 +60,7 @@ module Data.Text
     , snoc
     , append
     , uncons
+    , unsnoc
     , head
     , last
     , tail
@@ -544,6 +545,17 @@ init (Text arr off len) | len <= 0                   = emptyError "init"
 "TEXT init -> unfused" [1] forall t.
     unstream (S.init (stream t)) = init t
  #-}
+
+-- | /O(1)/ Returns all but the last character and the last character of a
+-- 'Text', or 'Nothing' if empty.
+unsnoc :: Text -> Maybe (Text, Char)
+unsnoc (Text arr off len)
+    | len <= 0                 = Nothing
+    | n < 0xDC00 || n > 0xDFFF = Just (text arr off (len-1), unsafeChr n)
+    | otherwise                = Just (text arr off (len-2), U16.chr2 n0 n)
+    where n  = A.unsafeIndex arr (off+len-1)
+          n0 = A.unsafeIndex arr (off+len-2)
+{-# INLINE [1] unsnoc #-}
 
 -- | /O(1)/ Tests whether a 'Text' is empty or not.  Subject to
 -- fusion.
