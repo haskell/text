@@ -1099,8 +1099,8 @@ takeEnd n t@(Text arr off len)
 iterNEnd :: Int -> Text -> Int
 iterNEnd n t@(Text _arr _off len) = loop (len-1) n
   where loop i !m
+          | m <= 0    = i+1
           | i <= 0    = 0
-          | m <= 1    = i
           | otherwise = loop (i+d) (m-1)
           where d = reverseIter_ t i
 
