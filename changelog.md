@@ -1,5 +1,7 @@
+1.2.2.2
+
 * The `toTitle` function now correctly handles letters that
-  immediately follow puncutation. Before, `"there's"` would turn into
+  immediately follow punctuation. Before, `"there's"` would turn into
   `"There'S"`. Now, it becomes `"There's"`.
 
 * The implementation of unstreaming is faster, resulting in operations
@@ -9,13 +11,17 @@
 * The optimised length comparison function is now more likely to be
   used after some rewrite rule tweaking.
 
+* Bug fix: an off-by-one bug in `takeEnd` is fixed.
+
+* Bug fix: a logic error in `takeWord16` is fixed.
+
 1.2.2.1
 
 * The switch to `integer-pure` in 1.2.2.0 was apparently mistaken.
   The build flag has been renamed accordingly.  Your army of diligent
   maintainers apologizes for the churn.
 
-* Spec compliance: toCaseFold now follows the Unicode 8.0 spec
+* Spec compliance: `toCaseFold` now follows the Unicode 8.0 spec
   (updated from 7.0)
 
 * An STG lint error has been fixed
