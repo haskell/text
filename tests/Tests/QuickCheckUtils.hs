@@ -106,7 +106,7 @@ smallArbitrary = sized $ \n -> resize (smallish n) arbitrary
   where smallish = round . (sqrt :: Double -> Double) . fromIntegral . abs
 
 instance Arbitrary T.Text where
-    arbitrary = T.pack `fmap` arbitrary
+    arbitrary = T.pack `fmap` string
     shrink = map T.pack . shrink . T.unpack
 
 instance Arbitrary TL.Text where
