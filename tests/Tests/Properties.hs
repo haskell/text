@@ -38,6 +38,7 @@ import qualified Control.Exception as Exception
 import qualified Data.Bits as Bits (shiftL, shiftR)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
+import qualified Data.Char as C
 import qualified Data.List as L
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as E
@@ -327,8 +328,10 @@ t_toUpper_upper t = p (T.toUpper t) >= p t
     where p = T.length . T.filter isUpper
 tl_toUpper_upper t = p (TL.toUpper t) >= p t
     where p = TL.length . TL.filter isUpper
-t_toTitle_title t = all (<= 1) (caps t)
+t_toTitle_title t = all (<= 1) (caps w)
     where caps = fmap (T.length . T.filter isUpper) . T.words . T.toTitle
+          -- TIL: there exist uppercase-only letters
+          w = T.filter (\c -> if C.isUpper c then C.toLower c /= c else True) t
 t_toTitle_1stNotLower = and . notLow . T.toTitle . T.filter stable
     where notLow = mapMaybe (fmap (not . isLower) . (T.find isLetter)) . T.words
           -- Surprise! The Spanish/Portuguese ordinal indicators changed
