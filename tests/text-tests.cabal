@@ -55,7 +55,7 @@ executable text-tests
     base == 4.*,
     deepseq,
     directory,
-    quickcheck-unicode,
+    quickcheck-unicode >= 1.0.1.0,
     random,
     test-framework >= 0.4,
     test-framework-hunit >= 0.2,
