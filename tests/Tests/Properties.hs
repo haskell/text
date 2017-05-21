@@ -876,7 +876,7 @@ tl_write_read_line e m b t = write_read head TL.filter TL.hPutStrLn
 
 t_dropWord16 m t = dropWord16 m t `T.isSuffixOf` t
 t_takeWord16 m t = takeWord16 m t `T.isPrefixOf` t
-t_take_drop_16 m t = T.append (takeWord16 n t) (dropWord16 n t) == t
+t_take_drop_16 m t = T.append (takeWord16 n t) (dropWord16 n t) === t
   where n = small m
 t_use_from t = monadicIO $ assert . (==t) =<< run (useAsPtr t fromPtr)
 
