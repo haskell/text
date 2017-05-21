@@ -337,7 +337,10 @@ t_toTitle_1stNotLower = and . notLow . T.toTitle . T.filter stable
           -- Surprise! The Spanish/Portuguese ordinal indicators changed
           -- from category Ll (letter, lowercase) to Lo (letter, other)
           -- in Unicode 7.0
-          stable c = c /= '\170' && c /= '\186'
+          -- Oh, and there exist lowercase-only letters (see previous test)
+          stable c = if isLower c
+                     then C.toUpper c /= c
+                     else c /= '\170' && c /= '\186'
 
 justifyLeft k c xs  = xs ++ L.replicate (k - length xs) c
 justifyRight m n xs = L.replicate (m - length xs) n ++ xs
