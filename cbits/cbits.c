@@ -222,12 +222,9 @@ _hs_text_decode_utf8(uint16_t *const dest, size_t *destoff,
 {
   uint32_t codepoint;
   uint32_t state = UTF8_ACCEPT;
-  uint8_t const *ret = _hs_text_decode_utf8_int(dest, destoff, &src, srcend,
-						&codepoint, &state);
-  /* Back up if we have an incomplete or invalid encoding */
-  if (state != UTF8_ACCEPT)
-    ret -= 1;
-  return ret;
+  _hs_text_decode_utf8_int(dest, destoff, &src, srcend,
+                          &codepoint, &state);
+  return src;
 }
 
 void

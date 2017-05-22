@@ -180,6 +180,19 @@ genInvalidUTF8 = B.pack <$> oneof [
       k <- choose (0,n)
       vectorOf k gen
 
+-- See http://unicode.org/faq/utf_bom.html#gen8
+-- A sequence such as <110xxxxx2 0xxxxxxx2> is illegal ...
+-- When faced with this illegal byte sequence ... a UTF-8 conformant process
+-- must treat the first byte 110xxxxx2 as an illegal termination error
+-- (e.g. filter it out or replace by 0xFFFD) ...
+-- ... and continue processing at the second byte 0xxxxxxx2
+t_decode_with_error2 =
+  E.decodeUtf8With (\_ _ -> Just 'x') (B.pack [0xC2, 97]) === "xa"
+t_decode_with_error3 =
+  E.decodeUtf8With (\_ _ -> Just 'x') (B.pack [0xE0, 97, 97]) === "xaa"
+t_decode_with_error4 =
+  E.decodeUtf8With (\_ _ -> Just 'x') (B.pack [0xF0, 97, 97, 97]) === "xaaa"
+
 s_Eq s            = (s==)    `eq` ((S.streamList s==) . S.streamList)
     where _types = s :: String
 sf_Eq p s =
@@ -955,6 +968,11 @@ tests =
       testGroup "errors" [
         testProperty "t_utf8_err" t_utf8_err,
         testProperty "t_utf8_err'" t_utf8_err'
+      ],
+      testGroup "error recovery" [
+        testProperty "t_decode_with_error2" t_decode_with_error2,
+        testProperty "t_decode_with_error3" t_decode_with_error3,
+        testProperty "t_decode_with_error4" t_decode_with_error4
       ]
     ],
 
