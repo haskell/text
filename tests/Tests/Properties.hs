@@ -203,6 +203,10 @@ t_decode_with_error4' =
   case E.streamDecodeUtf8With (\_ _ -> Just 'x') (B.pack [0xC2, 97, 97, 97]) of
     E.Some x _ _ -> x === "xaaa"
 
+t_infix_concat bs1 text bs2 rep =
+  text `T.isInfixOf`
+    E.decodeUtf8With (\_ _ -> rep) (B.concat [bs1, E.encodeUtf8 text, bs2])
+
 s_Eq s            = (s==)    `eq` ((S.streamList s==) . S.streamList)
     where _types = s :: String
 sf_Eq p s =
@@ -985,7 +989,8 @@ tests =
         testProperty "t_decode_with_error4" t_decode_with_error4,
         testProperty "t_decode_with_error2'" t_decode_with_error2',
         testProperty "t_decode_with_error3'" t_decode_with_error3',
-        testProperty "t_decode_with_error4'" t_decode_with_error4'
+        testProperty "t_decode_with_error4'" t_decode_with_error4',
+        testProperty "t_infix_concat" t_infix_concat
       ]
     ],
 
