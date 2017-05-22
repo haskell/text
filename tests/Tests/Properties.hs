@@ -193,6 +193,16 @@ t_decode_with_error3 =
 t_decode_with_error4 =
   E.decodeUtf8With (\_ _ -> Just 'x') (B.pack [0xF0, 97, 97, 97]) === "xaaa"
 
+t_decode_with_error2' =
+  case E.streamDecodeUtf8With (\_ _ -> Just 'x') (B.pack [0xC2, 97]) of
+    E.Some x _ _ -> x === "xa"
+t_decode_with_error3' =
+  case E.streamDecodeUtf8With (\_ _ -> Just 'x') (B.pack [0xC2, 97, 97]) of
+    E.Some x _ _ -> x === "xaa"
+t_decode_with_error4' =
+  case E.streamDecodeUtf8With (\_ _ -> Just 'x') (B.pack [0xC2, 97, 97, 97]) of
+    E.Some x _ _ -> x === "xaaa"
+
 s_Eq s            = (s==)    `eq` ((S.streamList s==) . S.streamList)
     where _types = s :: String
 sf_Eq p s =
@@ -972,7 +982,10 @@ tests =
       testGroup "error recovery" [
         testProperty "t_decode_with_error2" t_decode_with_error2,
         testProperty "t_decode_with_error3" t_decode_with_error3,
-        testProperty "t_decode_with_error4" t_decode_with_error4
+        testProperty "t_decode_with_error4" t_decode_with_error4,
+        testProperty "t_decode_with_error2'" t_decode_with_error2',
+        testProperty "t_decode_with_error3'" t_decode_with_error3',
+        testProperty "t_decode_with_error4'" t_decode_with_error4'
       ]
     ],
 

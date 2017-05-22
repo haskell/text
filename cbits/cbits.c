@@ -207,10 +207,8 @@ _hs_text_decode_utf8_state(uint16_t *const dest, size_t *destoff,
                            uint32_t *codepoint0, uint32_t *state0)
 {
   uint8_t const *ret = _hs_text_decode_utf8_int(dest, destoff, src, srcend,
-						codepoint0, state0);
-  if (*state0 == UTF8_REJECT)
-    ret -=1;
-  return ret;
+                                               codepoint0, state0);
+  return *src;
 }
 
 /*
