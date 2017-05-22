@@ -50,9 +50,14 @@ module Data.Text.Lazy.Builder
    , fromText
    , fromLazyText
    , fromString
+   , fromShow
 
      -- * Flushing the buffer state
    , flush
    ) where
 
 import Data.Text.Internal.Builder
+
+-- | A shortcut for @fromString . show@
+fromShow :: Show a => a -> Builder
+fromShow = fromString . show
