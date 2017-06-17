@@ -475,9 +475,7 @@ fromStrict t = chunk t Empty
 -- -----------------------------------------------------------------------------
 -- * Basic functions
 
--- | /O(n)/ Adds a character to the front of a 'Text'.  This function
--- is more costly than its 'List' counterpart because it requires
--- copying a new array.  Subject to fusion.
+-- | /O(1)/ Adds a character to the front of a 'Text'.  Subject to fusion.
 cons :: Char -> Text -> Text
 cons c t = Chunk (T.singleton c) t
 {-# INLINE [1] cons #-}
