@@ -31,6 +31,7 @@ import Test.Framework.Providers.QuickCheck2 (testProperty)
 import Test.QuickCheck hiding ((.&.))
 import Test.QuickCheck.Monadic
 import Test.QuickCheck.Property (Property(..))
+import Test.QuickCheck.Unicode (char)
 import Tests.QuickCheckUtils
 import Tests.Utils
 import Text.Show.Functions ()
@@ -529,12 +530,19 @@ s_takeWhile p     = L.takeWhile p `eqP` (unpackS . S.takeWhile p)
 s_takeWhile_s p   = L.takeWhile p `eqP` (unpackS . S.unstream . S.takeWhile p)
 sf_takeWhile q p  = (L.takeWhile p . L.filter q) `eqP`
                     (unpackS . S.takeWhile p . S.filter q)
+noMatch = do
+  c <- char
+  d <- suchThat char (/= c)
+  return (c,d)
 t_takeWhile p     = L.takeWhile p `eqP` (unpackS . T.takeWhile p)
 tl_takeWhile p    = L.takeWhile p `eqP` (unpackS . TL.takeWhile p)
 t_takeWhileEnd p  = (L.reverse . L.takeWhile p . L.reverse) `eqP`
                     (unpackS . T.takeWhileEnd p)
+t_takeWhileEnd_null n = forAll noMatch $ \(c,d) -> T.null $
+                    T.takeWhileEnd (==d) (T.replicate n (T.singleton c))
 tl_takeWhileEnd p = (L.reverse . L.takeWhile p . L.reverse) `eqP`
                     (unpackS . TL.takeWhileEnd p)
+                    TL.takeWhileEnd (==d) (TL.replicate n (TL.singleton c))
 s_dropWhile p     = L.dropWhile p `eqP` (unpackS . S.dropWhile p)
 s_dropWhile_s p   = L.dropWhile p `eqP` (unpackS . S.unstream . S.dropWhile p)
 sf_dropWhile q p  = (L.dropWhile p . L.filter q) `eqP`
@@ -1164,6 +1172,7 @@ tests =
         testProperty "t_takeWhile" t_takeWhile,
         testProperty "tl_takeWhile" tl_takeWhile,
         testProperty "t_takeWhileEnd" t_takeWhileEnd,
+        testProperty "t_takeWhileEnd_null" t_takeWhileEnd_null,
         testProperty "tl_takeWhileEnd" tl_takeWhileEnd,
         testProperty "sf_dropWhile" sf_dropWhile,
         testProperty "s_dropWhile" s_dropWhile,
