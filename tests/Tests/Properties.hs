@@ -535,14 +535,20 @@ noMatch = do
   d <- suchThat char (/= c)
   return (c,d)
 t_takeWhile p     = L.takeWhile p `eqP` (unpackS . T.takeWhile p)
+t_takeWhile_null n c
+                  = T.null $ T.takeWhile (==c) (T.replicate n (T.singleton c))
 tl_takeWhile p    = L.takeWhile p `eqP` (unpackS . TL.takeWhile p)
+tl_takeWhile_null n c
+                  = TL.null $
+                    TL.takeWhile (==c) (TL.replicate n (TL.singleton c))
 t_takeWhileEnd p  = (L.reverse . L.takeWhile p . L.reverse) `eqP`
                     (unpackS . T.takeWhileEnd p)
-t_takeWhileEnd_null n = forAll noMatch $ \(c,d) -> T.null $
-                    T.takeWhileEnd (==d) (T.replicate n (T.singleton c))
+t_takeWhileEnd_null t = forAll noMatch $ \(c,d) -> T.null $
+                    T.takeWhileEnd (==d) (T.snoc t c)
 tl_takeWhileEnd p = (L.reverse . L.takeWhile p . L.reverse) `eqP`
                     (unpackS . TL.takeWhileEnd p)
-                    TL.takeWhileEnd (==d) (TL.replicate n (TL.singleton c))
+tl_takeWhileEnd_null t = forAll noMatch $ \(c,d) -> TL.null $
+                    TL.takeWhileEnd (==d) (TL.snoc t c)
 s_dropWhile p     = L.dropWhile p `eqP` (unpackS . S.dropWhile p)
 s_dropWhile_s p   = L.dropWhile p `eqP` (unpackS . S.unstream . S.dropWhile p)
 sf_dropWhile q p  = (L.dropWhile p . L.filter q) `eqP`
@@ -1170,10 +1176,13 @@ tests =
         testProperty "s_takeWhile_s" s_takeWhile_s,
         testProperty "sf_takeWhile" sf_takeWhile,
         testProperty "t_takeWhile" t_takeWhile,
+        testProperty "t_takeWhile_null" t_takeWhile_null,
         testProperty "tl_takeWhile" tl_takeWhile,
+        testProperty "tl_takeWhile_null" tl_takeWhile_null,
         testProperty "t_takeWhileEnd" t_takeWhileEnd,
         testProperty "t_takeWhileEnd_null" t_takeWhileEnd_null,
         testProperty "tl_takeWhileEnd" tl_takeWhileEnd,
+        testProperty "tl_takeWhileEnd_null" tl_takeWhileEnd_null,
         testProperty "sf_dropWhile" sf_dropWhile,
         testProperty "s_dropWhile" s_dropWhile,
         testProperty "s_dropWhile_s" s_dropWhile_s,
