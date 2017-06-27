@@ -68,6 +68,7 @@ module Data.Text.Lazy
     , snoc
     , append
     , uncons
+    , unsnoc
     , head
     , last
     , tail
@@ -558,6 +559,15 @@ init Empty = emptyError "init"
 "LAZY TEXT init -> unfused" [1] forall t.
     unstream (S.init (stream t)) = init t
  #-}
+
+-- | /O(n\/c)/ Returns the 'init' and 'last' of a 'Text', or 'Nothing' if
+-- empty.
+--
+-- * It is no faster than using 'init' and 'last'.
+unsnoc :: Text -> Maybe (Text, Char)
+unsnoc Empty          = Nothing
+unsnoc ts@(Chunk _ _) = Just (init ts, last ts)
+{-# INLINE unsnoc #-}
 
 -- | /O(1)/ Tests whether a 'Text' is empty or not.  Subject to
 -- fusion.

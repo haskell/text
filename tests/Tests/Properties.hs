@@ -9,7 +9,7 @@ module Tests.Properties
     ) where
 
 import Control.Applicative ((<$>), (<*>))
-import Control.Arrow ((***), second)
+import Control.Arrow ((***), first, second)
 import Data.Bits ((.&.))
 import Data.Char (chr, isDigit, isHexDigit, isLower, isSpace, isLetter, isUpper, ord)
 import Data.Int (Int8, Int16, Int32, Int64)
@@ -232,6 +232,13 @@ sf_uncons p       = (uncons . L.filter p) `eqP`
                     (fmap (second unpackS) . S.uncons . S.filter p)
 t_uncons          = uncons   `eqP` (fmap (second unpackS) . T.uncons)
 tl_uncons         = uncons   `eqP` (fmap (second unpackS) . TL.uncons)
+
+unsnoc xs@(_:_) = Just (init xs, last xs)
+unsnoc []       = Nothing
+
+t_unsnoc          = unsnoc   `eqP` (fmap (first unpackS) . T.unsnoc)
+tl_unsnoc         = unsnoc   `eqP` (fmap (first unpackS) . TL.unsnoc)
+
 s_head            = head   `eqP` S.head
 sf_head p         = (head . L.filter p) `eqP` (S.head . S.filter p)
 t_head            = head   `eqP` T.head
@@ -991,6 +998,8 @@ tests =
       testProperty "sf_uncons" sf_uncons,
       testProperty "t_uncons" t_uncons,
       testProperty "tl_uncons" tl_uncons,
+      testProperty "t_unsnoc" t_unsnoc,
+      testProperty "tl_unsnoc" tl_unsnoc,
       testProperty "s_head" s_head,
       testProperty "sf_head" sf_head,
       testProperty "t_head" t_head,
