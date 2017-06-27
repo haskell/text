@@ -1,5 +1,7 @@
 1.2.3.0
 
+* `unsnoc` implemented
+
 * Bug fix: the lazy `takeWhileEnd` function violated the
   [lazy text invariant](https://github.com/bos/text/blob/1.2.3.0/Data/Text/Internal/Lazy.hs#L51).
 
