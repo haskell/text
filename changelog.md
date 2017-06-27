@@ -1,3 +1,12 @@
+1.2.3.0
+
+* Bug fix: the lazy `takeWhileEnd` function violated the
+  [lazy text invariant](https://github.com/bos/text/blob/1.2.3.0/Data/Text/Internal/Lazy.hs#L51).
+
+* Spec compliance: `toCaseFold` now follows the Unicode 9.0 spec
+  (updated from 8.0)
+
+
 1.2.2.2
 
 * The `toTitle` function now correctly handles letters that
