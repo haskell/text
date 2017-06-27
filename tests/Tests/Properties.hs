@@ -535,12 +535,7 @@ noMatch = do
   d <- suchThat char (/= c)
   return (c,d)
 t_takeWhile p     = L.takeWhile p `eqP` (unpackS . T.takeWhile p)
-t_takeWhile_null n c
-                  = T.null $ T.takeWhile (==c) (T.replicate n (T.singleton c))
 tl_takeWhile p    = L.takeWhile p `eqP` (unpackS . TL.takeWhile p)
-tl_takeWhile_null n c
-                  = TL.null $
-                    TL.takeWhile (==c) (TL.replicate n (TL.singleton c))
 t_takeWhileEnd p  = (L.reverse . L.takeWhile p . L.reverse) `eqP`
                     (unpackS . T.takeWhileEnd p)
 t_takeWhileEnd_null t = forAll noMatch $ \(c,d) -> T.null $
@@ -1176,9 +1171,7 @@ tests =
         testProperty "s_takeWhile_s" s_takeWhile_s,
         testProperty "sf_takeWhile" sf_takeWhile,
         testProperty "t_takeWhile" t_takeWhile,
-        testProperty "t_takeWhile_null" t_takeWhile_null,
         testProperty "tl_takeWhile" tl_takeWhile,
-        testProperty "tl_takeWhile_null" tl_takeWhile_null,
         testProperty "t_takeWhileEnd" t_takeWhileEnd,
         testProperty "t_takeWhileEnd_null" t_takeWhileEnd_null,
         testProperty "tl_takeWhileEnd" tl_takeWhileEnd,
