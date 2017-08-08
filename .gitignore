@@ -2,4 +2,4 @@ dist
 cabal-dev
 cabal.sandbox.config
 ghc.mk
-GNUMakefile
+GNUmakefile
