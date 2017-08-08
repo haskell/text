@@ -10,6 +10,7 @@ import System.FilePath ((</>))
 import System.IO (IOMode (WriteMode), openFile, hSetEncoding, utf8)
 
 import qualified Benchmarks.Builder as Builder
+import qualified Benchmarks.Concat as Concat
 import qualified Benchmarks.DecodeUtf8 as DecodeUtf8
 import qualified Benchmarks.EncodeUtf8 as EncodeUtf8
 import qualified Benchmarks.Equality as Equality
@@ -41,6 +42,7 @@ benchmarks = do
     -- Traditional benchmarks
     bs <- sequence
         [ Builder.benchmark
+        , Concat.benchmark
         , DecodeUtf8.benchmark "html" (tf "libya-chinese.html")
         , DecodeUtf8.benchmark "xml" (tf "yiwiki.xml")
         , DecodeUtf8.benchmark "ascii" (tf "ascii.txt")
