@@ -434,6 +434,11 @@ pack = unstream . S.map safe . S.streamList
 -- -----------------------------------------------------------------------------
 -- * Basic functions
 
+-- | /O(n)/ Convert an object to readable Text form
+-- using its Show instance
+tshow :: Show a => a -> Text
+tshow = pack . show
+
 -- | /O(n)/ Adds a character to the front of a 'Text'.  This function
 -- is more costly than its 'List' counterpart because it requires
 -- copying a new array.  Subject to fusion.  Performs replacement on
