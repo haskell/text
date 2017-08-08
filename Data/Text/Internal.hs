@@ -170,9 +170,9 @@ infixl 7 `mul32`
 
 -- $internals
 --
--- Internally, the 'Text' type is represented as an array of 'Word16'
--- UTF-16 code units. The offset and length fields in the constructor
--- are in these units, /not/ units of 'Char'.
+-- Internally, the 'Text' type is represented as an array of big-endian 
+-- 'Word16' UTF-16 code units. The offset and length fields in the
+-- constructor are in these units, /not/ units of 'Char'.
 --
 -- Invariants that all functions must maintain:
 --
