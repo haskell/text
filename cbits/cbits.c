@@ -206,8 +206,8 @@ _hs_text_decode_utf8_state(uint16_t *const dest, size_t *destoff,
                            const uint8_t *srcend,
                            uint32_t *codepoint0, uint32_t *state0)
 {
-  uint8_t const *ret = _hs_text_decode_utf8_int(dest, destoff, src, srcend,
-                                               codepoint0, state0);
+  _hs_text_decode_utf8_int(dest, destoff, src, srcend, codepoint0, state0);
+
   return *src;
 }
 
