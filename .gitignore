@@ -1,4 +1,6 @@
 dist
+dist-boot
+dist-install
 cabal-dev
 cabal.sandbox.config
 ghc.mk
