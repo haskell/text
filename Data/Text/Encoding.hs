@@ -373,7 +373,7 @@ encodeUtf8 :: Text -> ByteString
 encodeUtf8 (Text arr off len)
   | len == 0  = B.empty
   | otherwise = unsafeDupablePerformIO $ do
-  fp <- mallocByteString (len*4)
+  fp <- mallocByteString (len*3) -- see https://github.com/haskell/text/issues/194 for why len*3 is enough
   withForeignPtr fp $ \ptr ->
     with ptr $ \destPtr -> do
       c_encode_utf8 destPtr (A.aBA arr) (fromIntegral off) (fromIntegral len)
