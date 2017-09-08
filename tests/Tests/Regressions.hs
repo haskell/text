@@ -72,9 +72,10 @@ mapAccumL_resize = do
   assertEqual "mapAccumL should correctly size buffers for two-word results"
              (count * 2) (T.lengthWord16 (snd val))
 
+-- See GitHub #197
 t197 :: IO ()
 t197 =
-  assertBool "filtered length is incorrect" (currencyParser "0,00")
+    assertBool "length (filter (==',') \"0,00\") should be 1" (currencyParser "0,00")
   where
     currencyParser x = cond == 1
       where
