@@ -19,11 +19,16 @@
 module Data.Text.Internal.Fusion.Size
     (
       Size
-    , exactly
+      -- * Sizes
     , exactSize
     , maxSize
     , betweenSize
     , unknownSize
+    , unionSize
+    , charSize
+    , codePointsSize
+      -- * Querying sizes
+    , exactly
     , smaller
     , larger
     , upperBound
@@ -32,11 +37,13 @@ module Data.Text.Internal.Fusion.Size
     , isEmpty
     ) where
 
+import Data.Char (ord)
 import Data.Text.Internal (mul)
 #if defined(ASSERTS)
 import Control.Exception (assert)
 #endif
 
+-- | A size in UTF-16 code units.
 data Size = Between {-# UNPACK #-} !Int {-# UNPACK #-} !Int -- ^ Lower and upper bounds on size.
           | Unknown                                         -- ^ Unknown size.
             deriving (Eq, Show)
@@ -45,6 +52,17 @@ exactly :: Size -> Maybe Int
 exactly (Between na nb) | na == nb = Just na
 exactly _ = Nothing
 {-# INLINE exactly #-}
+
+-- | The 'Size' of the given code point.
+charSize :: Char -> Size
+charSize c
+  | ord c < 0x10000 = exactSize 1
+  | otherwise       = exactSize 2
+
+-- | The 'Size' of @n@ code points.
+codePointsSize :: Int -> Size
+codePointsSize n = Between n (2*n)
+{-# INLINE codePointsSize #-}
 
 exactSize :: Int -> Size
 exactSize n =
@@ -70,6 +88,10 @@ betweenSize m n =
 #endif
     Between m n
 {-# INLINE betweenSize #-}
+
+unionSize :: Size -> Size -> Size
+unionSize (Between a b) (Between c d) = Between (min a c) (max b d)
+unionSize _ _ = Unknown
 
 unknownSize :: Size
 unknownSize = Unknown
@@ -140,11 +162,15 @@ lowerBound _ (Between n _) = n
 lowerBound k _             = k
 {-# INLINE lowerBound #-}
 
-compareSize :: Size -> Int -> Maybe Ordering
-compareSize (Between ma mb) n
-  | mb < n             = Just LT
-  | ma > n             = Just GT
-  | ma == n && mb == n = Just EQ
+-- | Determine the ordering relationship between two 'Size's, or 'Nothing' in
+-- the indeterminate case.
+compareSize :: Size -> Size -> Maybe Ordering
+compareSize (Between ma mb) (Between na nb)
+  | mb < na            = Just LT
+  | ma > nb            = Just GT
+  | ma == mb
+  , ma == na
+  , ma == nb           = Just EQ
 compareSize _ _        = Nothing
 
 
