@@ -72,6 +72,15 @@ mapAccumL_resize = do
   assertEqual "mapAccumL should correctly size buffers for two-word results"
              (count * 2) (T.lengthWord16 (snd val))
 
+t197 :: IO ()
+t197 =
+  assertBool "filtered length is incorrect" (currencyParser "0,00")
+  where
+    currencyParser x = cond == 1
+      where
+        cond = length fltr
+        fltr = filter (== ',') x
+
 tests :: F.Test
 tests = F.testGroup "Regressions"
     [ F.testCase "hGetContents_crash" hGetContents_crash
@@ -79,4 +88,5 @@ tests = F.testGroup "Regressions"
     , F.testCase "mapAccumL_resize" mapAccumL_resize
     , F.testCase "replicate_crash" replicate_crash
     , F.testCase "utf8_decode_unsafe" utf8_decode_unsafe
+    , F.testCase "t197" t197
     ]
