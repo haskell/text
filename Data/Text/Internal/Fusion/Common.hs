@@ -857,7 +857,8 @@ indexI (Stream next s0 _len) n0
 -- returns a stream containing those characters that satisfy the
 -- predicate.
 filter :: (Char -> Bool) -> Stream Char -> Stream Char
-filter p (Stream next0 s0 len) = Stream next s0 len -- HINT maybe too high
+filter p (Stream next0 s0 len) =
+    Stream next s0 (len - unknownSize) -- HINT maybe too high
   where
     next !s = case next0 s of
                 Done                   -> Done
