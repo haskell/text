@@ -24,6 +24,9 @@ import Data.Text.Lazy.Builder.Int (decimal)
 import Data.Text.Internal.Builder.RealFloat.Functions (roundTo)
 import Data.Text.Lazy.Builder
 import qualified Data.Text as T
+#if MIN_VERSION_base(4,11,0)
+import Prelude hiding ((<>))
+#endif
 
 -- | Control the rendering of floating point numbers.
 data FPFormat = Exponent

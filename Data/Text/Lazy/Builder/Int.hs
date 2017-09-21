@@ -32,6 +32,9 @@ import GHC.Base (quotInt, remInt)
 import GHC.Num (quotRemInteger)
 import GHC.Types (Int(..))
 import Control.Monad.ST
+#if MIN_VERSION_base(4,11,0)
+import Prelude hiding ((<>))
+#endif
 
 #ifdef  __GLASGOW_HASKELL__
 # if defined(INTEGER_GMP)
