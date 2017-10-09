@@ -725,7 +725,7 @@ unfoldrNI n f s0 | n <  0    = empty
 -------------------------------------------------------------------------------
 --  * Substreams
 
--- | /O(n)/ take n, applied to a stream, returns the prefix of the
+-- | /O(n)/ @'take' n@, applied to a stream, returns the prefix of the
 -- stream of length @n@, or the stream itself if @n@ is greater than the
 -- length of the stream.
 take :: Integral a => a -> Stream Char -> Stream Char
@@ -743,7 +743,7 @@ take n0 (Stream next0 s0 len) =
 data Drop a s = NS !s
               | JS !a !s
 
--- | /O(n)/ drop n, applied to a stream, returns the suffix of the
+-- | /O(n)/ @'drop' n@, applied to a stream, returns the suffix of the
 -- stream after the first @n@ characters, or the empty stream if @n@
 -- is greater than the length of the stream.
 drop :: Integral a => a -> Stream Char -> Stream Char
@@ -763,8 +763,8 @@ drop n0 (Stream next0 s0 len) =
       Yield x s' -> Yield x (NS s')
 {-# INLINE [0] drop #-}
 
--- | takeWhile, applied to a predicate @p@ and a stream, returns the
--- longest prefix (possibly empty) of elements that satisfy p.
+-- | 'takeWhile', applied to a predicate @p@ and a stream, returns the
+-- longest prefix (possibly empty) of elements that satisfy @p@.
 takeWhile :: (Char -> Bool) -> Stream Char -> Stream Char
 takeWhile p (Stream next0 s0 len) = Stream next s0 len -- HINT maybe too high
     where
@@ -776,7 +776,7 @@ takeWhile p (Stream next0 s0 len) = Stream next s0 len -- HINT maybe too high
                              | otherwise -> Done
 {-# INLINE [0] takeWhile #-}
 
--- | dropWhile @p @xs returns the suffix remaining after takeWhile @p @xs.
+-- | @'dropWhile' p xs@ returns the suffix remaining after @'takeWhile' p xs@.
 dropWhile :: (Char -> Bool) -> Stream Char -> Stream Char
 dropWhile p (Stream next0 s0 len) = Stream next (L s0) len -- HINT maybe too high
     where
@@ -812,7 +812,7 @@ isPrefixOf (Stream next1 s1 _) (Stream next2 s2 _) = loop (next1 s1) (next2 s2)
 -------------------------------------------------------------------------------
 -- ** Searching by equality
 
--- | /O(n)/ elem is the stream membership predicate.
+-- | /O(n)/ 'elem' is the stream membership predicate.
 elem :: Char -> Stream Char -> Bool
 elem w (Stream next s0 _len) = loop_elem s0
     where
