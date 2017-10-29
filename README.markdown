@@ -19,11 +19,11 @@ library to provide these facilities.
 # Get involved!
 
 Please report bugs via the
-[github issue tracker](https://github.com/bos/text/issues).
+[github issue tracker](https://github.com/haskell/text/issues).
 
-Master [git repository](https://github.com/bos/text):
+Master [git repository](https://github.com/haskell/text):
 
-* `git clone git://github.com/bos/text.git`
+* `git clone git://github.com/haskell/text.git`
 
 There's also a [Mercurial mirror](https://bitbucket.org/bos/text):
 
