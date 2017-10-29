@@ -1,3 +1,4 @@
+VCS = hg
 count = 1000
 
 all: coverage literal-rule-test
@@ -12,7 +13,11 @@ build: text-test-data
 	cabal build
 
 text-test-data:
+ifeq ($(VCS),git)
+	git clone https://github.com/bos/text-test-data.git
+else
 	hg clone https://bitbucket.org/bos/text-test-data
+endif
 	$(MAKE) -C text-test-data
 
 coverage/text-tests.tix:
@@ -37,4 +42,4 @@ coverage/hpc_index.html: coverage/coverage.tix
 clean:
 	rm -rf dist coverage .hpc
 
-.PHONY: build coverage all literal-rule-test
+.PHONY: all build clean coverage literal-rule-test
