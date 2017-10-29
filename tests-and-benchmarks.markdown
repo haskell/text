@@ -13,10 +13,13 @@ you can clone from one of the following locations:
 * Git mirror repository:
   [github.com/bos/text-test-data](https://github.com/bos/text-test-data)
 
-You should clone that repository into the `tests` subdirectory (your
-clone must be named `text-test-data` locally), then run `make -C
-tests/text-test-data` to uncompress the test files.  Many tests and
-benchmarks will fail if the test files are missing.
+You can clone either repository into the `tests` subdirectory using
+
+    cd tests/
+    make text-test-data         # to clone from mercurial, OR
+    make VCS=git text-test-data # to clone from git
+
+Many tests and benchmarks will fail if the test files are missing.
 
 Functional tests
 ----------------
