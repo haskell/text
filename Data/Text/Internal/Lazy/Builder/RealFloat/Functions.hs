@@ -1,7 +1,7 @@
 {-# LANGUAGE CPP #-}
 
 -- |
--- Module:    Data.Text.Internal.Builder.RealFloat.Functions
+-- Module:    Data.Text.Internal.Lazy.Builder.RealFloat.Functions
 -- Copyright: (c) The University of Glasgow 1994-2002
 -- License:   see libraries/base/LICENSE
 --
@@ -9,7 +9,7 @@
 -- API or name. Functions in this module may not check or enforce
 -- preconditions expected by public modules. Use at your own risk!
 
-module Data.Text.Internal.Builder.RealFloat.Functions
+module Data.Text.Internal.Lazy.Builder.RealFloat.Functions
     (
       roundTo
     ) where

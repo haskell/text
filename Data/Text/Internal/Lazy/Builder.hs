@@ -3,7 +3,7 @@
 
 -----------------------------------------------------------------------------
 -- |
--- Module      : Data.Text.Internal.Builder
+-- Module      : Data.Text.Internal.Lazy.Builder
 -- Copyright   : (c) 2013 Bryan O'Sullivan
 --               (c) 2010 Johan Tibell
 -- License     : BSD-style (see LICENSE)
@@ -35,7 +35,7 @@
 --
 -----------------------------------------------------------------------------
 
-module Data.Text.Internal.Builder
+module Data.Text.Internal.Lazy.Builder
    ( -- * Public API
      -- ** The Builder type
      Builder

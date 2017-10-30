@@ -109,12 +109,12 @@ library
     Data.Text.Internal
     Data.Text.Lazy
     Data.Text.Lazy.Builder
-    Data.Text.Internal.Builder.Functions
+    Data.Text.Internal.Lazy.Builder.Functions
     Data.Text.Lazy.Builder.Int
-    Data.Text.Internal.Builder.Int.Digits
-    Data.Text.Internal.Builder
+    Data.Text.Internal.Lazy.Builder.Int.Digits
+    Data.Text.Internal.Lazy.Builder
     Data.Text.Lazy.Builder.RealFloat
-    Data.Text.Internal.Builder.RealFloat.Functions
+    Data.Text.Internal.Lazy.Builder.RealFloat.Functions
     Data.Text.Lazy.Encoding
     Data.Text.Internal.Lazy.Encoding.Fusion
     Data.Text.Internal.Lazy.Fusion

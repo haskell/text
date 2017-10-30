@@ -55,4 +55,4 @@ module Data.Text.Lazy.Builder
    , flush
    ) where
 
-import Data.Text.Internal.Builder
+import Data.Text.Internal.Lazy.Builder
