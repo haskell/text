@@ -92,6 +92,12 @@ benchmark kind fp = do
             , benchBSL $ nf (BL.concatMap (BL.replicate 3)) bla
             , benchS   $ nf (L.concatMap (L.replicate 3 . (:[]))) sa
             ]
+        , bgroup "compareText"
+            [ benchT   $ nf (ta <) ta  -- comparing 2 equal strings is the worst-case
+            , benchTL  $ nf (tla <) tla
+            , benchBS  $ nf (bsa <) bsa
+            , benchBSL $ nf (bla <) bla
+            ]
         , bgroup "decode"
             [ benchT   $ nf T.decodeUtf8 bsa
             , benchTL  $ nf TL.decodeUtf8 bla
