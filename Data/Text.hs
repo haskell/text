@@ -243,6 +243,7 @@ import Data.Text.Internal.Unsafe.Char (unsafeChr)
 import qualified Data.Text.Internal.Functions as F
 import qualified Data.Text.Internal.Encoding.Utf16 as U16
 import Data.Text.Internal.Search (indices)
+import Data.Text.Internal.Unsafe.Shift (UnsafeShift(..))
 #if defined(__HADDOCK__)
 import Data.ByteString (ByteString)
 import qualified Data.Text.Lazy as L
@@ -1110,11 +1111,14 @@ replicate n t@(Text a o l)
     x :: ST s (A.MArray s)
     x = do
       arr <- A.new len
-      let loop !d !i | i >= n    = return arr
-                     | otherwise = let m = d + l
-                                   in A.copyI arr d a o m >> loop m (i+1)
-      loop 0 0
+      A.copyI arr 0 a o l
+      let loop !l =
+            let l2 = l `shiftL` 1 in
+            if l2 > len then A.copyM arr l arr 0 (len - l) >> return arr
+            else A.copyM arr l arr 0 l >> loop l2
+      loop l
 {-# INLINE [1] replicate #-}
+
 
 {-# RULES
 "TEXT replicate/singleton -> replicateChar" [~1] forall n c.
