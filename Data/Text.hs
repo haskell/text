@@ -34,6 +34,7 @@
 -- with Unicode text (including normalization, regular expressions,
 -- non-standard encodings, text breaking, and locales), see
 -- <http://hackage.haskell.org/package/text-icu the text-icu package >.
+--
 
 module Data.Text
     (
@@ -42,6 +43,9 @@ module Data.Text
 
     -- * Acceptable data
     -- $replacement
+
+    -- * Definition of character
+    -- $character_definition
 
     -- * Fusion
     -- $fusion
@@ -246,6 +250,17 @@ import qualified GHC.Exts as Exts
 #if MIN_VERSION_base(4,7,0)
 import Text.Printf (PrintfArg, formatArg, formatString)
 #endif
+
+-- $character-definition
+--
+-- This package uses the word /character/ to denote Unicode code points.
+--
+-- Note that this is not the same thing as a grapheme (e.g. a composition of
+-- code points that form one visual symbol). For instance, consider the grapheme
+-- @ä@. This symbol has two Unicode representations: a single code-point
+-- representation @U+00E4@ (the @LATIN SMALL LETTER A WITH DIAERESIS@ code
+-- point), and a two code point representation @U+0061@ (the @A@ code point) and
+-- @U+0308@ (the @COMBINING DIAERESIS@ code point).
 
 -- $strict
 --
