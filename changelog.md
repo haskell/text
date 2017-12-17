@@ -8,6 +8,12 @@
 * Spec compliance: `toCaseFold` now follows the Unicode 9.0 spec
   (updated from 8.0)
 
+* Bug fix: Fixed usage of size hints causing incorrect behavior (gh-197).
+
+* Improve UTF8 decoder error-recovery (gh-182).
+
+* Reduce memory overhead in `encodeUTF8` (gh-194).
+
 
 1.2.2.2
 
