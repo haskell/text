@@ -79,7 +79,11 @@ import Data.Text.Internal.Unsafe.Shift (shiftR)
 import Data.Text.Show ()
 import Data.Text.Unsafe (unsafeDupablePerformIO)
 import Data.Word (Word8, Word32)
-import Foreign.C.Types (CSize(..))
+#if __GLASGOW_HASKELL__ >= 703
+import Foreign.C.Types (CSize(CSize))
+#else
+import Foreign.C.Types (CSize)
+#endif
 import Foreign.ForeignPtr (withForeignPtr)
 import Foreign.Marshal.Utils (with)
 import Foreign.Ptr (Ptr, minusPtr, nullPtr, plusPtr)
