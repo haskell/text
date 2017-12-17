@@ -564,6 +564,8 @@ init Empty = emptyError "init"
 -- empty.
 --
 -- * It is no faster than using 'init' and 'last'.
+--
+-- @since 1.2.3.0
 unsnoc :: Text -> Maybe (Text, Char)
 unsnoc Empty          = Nothing
 unsnoc ts@(Chunk _ _) = Just (init ts, last ts)
