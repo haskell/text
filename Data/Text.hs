@@ -370,6 +370,7 @@ instance IsString Text where
     fromString = pack
 
 #if __GLASGOW_HASKELL__ >= 708
+-- | @since 1.2.0.0
 instance Exts.IsList Text where
     type Item Text = Char
     fromList       = pack

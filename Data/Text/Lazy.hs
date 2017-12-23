@@ -363,6 +363,7 @@ instance IsString Text where
     fromString = pack
 
 #if __GLASGOW_HASKELL__ >= 708
+-- | @since 1.2.0.0
 instance Exts.IsList Text where
     type Item Text = Char
     fromList       = pack
@@ -984,6 +985,8 @@ mapAccumR f = go
 
 -- | @'repeat' x@ is an infinite 'Text', with @x@ the value of every
 -- element.
+--
+-- @since 1.2.0.5
 repeat :: Char -> Text
 repeat c = let t = Chunk (T.replicate smallChunkSize (T.singleton c)) t
             in t
@@ -1001,6 +1004,8 @@ replicate n t
 
 -- | 'cycle' ties a finite, non-empty 'Text' into a circular one, or
 -- equivalently, the infinite repetition of the original 'Text'.
+--
+-- @since 1.2.0.5
 cycle :: Text -> Text
 cycle Empty = emptyError "cycle"
 cycle t     = let t' = foldrChunks Chunk t' t
@@ -1010,6 +1015,8 @@ cycle t     = let t' = foldrChunks Chunk t' t
 -- of @f@ to @x@:
 --
 -- > iterate f x == [x, f x, f (f x), ...]
+--
+-- @since 1.2.0.5
 iterate :: (Char -> Char) -> Char -> Text
 iterate f c = let t c' = Chunk (T.singleton c') (t (f c'))
                in t c
