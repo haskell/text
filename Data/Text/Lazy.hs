@@ -343,9 +343,13 @@ instance Read Text where
     readsPrec p str = [(pack x,y) | (x,y) <- readsPrec p str]
 
 #if MIN_VERSION_base(4,9,0)
--- Semigroup orphan instances for older GHCs are provided by
--- 'semigroups` package
-
+-- | Non-orphan 'Semigroup' instance only defined for
+-- @base-4.9.0.0@ and later; orphan instances for older GHCs are
+-- provided by
+-- the [semigroups](http://hackage.haskell.org/package/semigroups)
+-- package
+--
+-- @since 1.2.2.0
 instance Semigroup Text where
     (<>) = append
 #endif
@@ -400,6 +404,8 @@ instance Data Text where
 
 #if MIN_VERSION_base(4,7,0)
 -- | Only defined for @base-4.7.0.0@ and later
+--
+-- @since 1.2.2.0
 instance PrintfArg Text where
   formatArg txt = formatString $ unpack txt
 #endif
@@ -1174,6 +1180,8 @@ takeWhile p t0 = takeWhile' t0
 -- Examples:
 --
 -- > takeWhileEnd (=='o') "foo" == "oo"
+--
+-- @since 1.2.2.0
 takeWhileEnd :: (Char -> Bool) -> Text -> Text
 takeWhileEnd p = takeChunk empty . L.reverse . toChunks
   where takeChunk acc []     = acc
