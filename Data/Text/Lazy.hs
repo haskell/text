@@ -830,6 +830,8 @@ toUpper t = unstream (S.toUpper (stream t))
 -- guides disagree on whether the book name \"The Hill of the Red
 -- Fox\" is correctly title cased&#x2014;but this function will
 -- capitalize /every/ word.
+--
+-- @since 1.0.0.0
 toTitle :: Text -> Text
 toTitle t = unstream (S.toTitle (stream t))
 {-# INLINE toTitle #-}

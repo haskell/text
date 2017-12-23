@@ -157,6 +157,8 @@ asForeignPtr t@(Text _arr _off len) = do
 -- | /O(n)/ Decode a C string with explicit length, which is assumed
 -- to have been encoded as UTF-8. If decoding fails, a
 -- 'UnicodeException' is thrown.
+--
+-- @since 1.0.0.0
 peekCStringLen :: CStringLen -> IO Text
 peekCStringLen cs = do
   bs <- unsafePackCStringLen cs
@@ -169,5 +171,7 @@ peekCStringLen cs = do
 -- The temporary storage is freed when the subcomputation terminates
 -- (either normally or via an exception), so the pointer to the
 -- temporary storage must /not/ be used after this function returns.
+--
+-- @since 1.0.0.0
 withCStringLen :: Text -> (CStringLen -> IO a) -> IO a
 withCStringLen t act = unsafeUseAsCStringLen (encodeUtf8 t) act
