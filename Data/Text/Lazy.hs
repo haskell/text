@@ -1073,6 +1073,8 @@ take i t0         = take' i t0
 -- Examples:
 --
 -- > takeEnd 3 "foobar" == "bar"
+--
+-- @since 1.1.1.0
 takeEnd :: Int64 -> Text -> Text
 takeEnd n t0
     | n <= 0    = empty
@@ -1111,6 +1113,8 @@ drop i t0
 -- Examples:
 --
 -- > dropEnd 3 "foobar" == "foo"
+--
+-- @since 1.1.1.0
 dropEnd :: Int64 -> Text -> Text
 dropEnd n t0
     | n <= 0    = t0

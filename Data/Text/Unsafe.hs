@@ -98,6 +98,8 @@ reverseIter (Text arr off _len) i
 -- | /O(1)/ Iterate one step backwards through a UTF-16 array,
 -- returning the delta to add (i.e. a negative number) to give the
 -- next offset to iterate at.
+--
+-- @since 1.1.1.0
 reverseIter_ :: Text -> Int -> Int
 reverseIter_ (Text arr off _len) i
     | m < 0xDC00 || m > 0xDFFF = -1
