@@ -46,6 +46,8 @@ unpack = S.unstreamList . stream
 -- fusion.
 --
 -- This is exposed solely for people writing GHC rewrite rules.
+--
+-- @since 1.2.1.1
 unpackCString# :: Addr# -> Text
 unpackCString# addr# = unstream (S.streamCString# addr#)
 {-# NOINLINE unpackCString# #-}

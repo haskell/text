@@ -381,6 +381,7 @@ instance Exts.IsList Text where
 instance NFData Text where rnf !_ = ()
 #endif
 
+-- | @since 1.2.1.0
 instance Binary Text where
     put t = put (encodeUtf8 t)
     get   = do
