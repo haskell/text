@@ -141,6 +141,7 @@ decodeUtf8' bs = unsafeDupablePerformIO $ do
     rnf (Chunk _ ts) = rnf ts
 {-# INLINE decodeUtf8' #-}
 
+-- | Encode text using UTF-8 encoding.
 encodeUtf8 :: Text -> B.ByteString
 encodeUtf8    Empty       = B.empty
 encodeUtf8 lt@(Chunk t _) =
@@ -154,10 +155,20 @@ encodeUtf8 lt@(Chunk t _) =
     firstChunkSize  = min B.smallChunkSize (4 * (T.length t + 1))
     strategy        = B.safeStrategy firstChunkSize B.defaultChunkSize
 
+-- | Encode text to a ByteString 'B.Builder' using UTF-8 encoding.
+--
+-- @since 1.1.0.0
 encodeUtf8Builder :: Text -> B.Builder
 encodeUtf8Builder =
     foldrChunks (\c b -> TE.encodeUtf8Builder c `mappend` b) Data.Monoid.mempty
 
+-- | Encode text using UTF-8 encoding and escape the ASCII characters using
+-- a 'BP.BoundedPrim'.
+--
+-- Use this function is to implement efficient encoders for text-based formats
+-- like JSON or HTML.
+--
+-- @since 1.1.0.0
 {-# INLINE encodeUtf8BuilderEscaped #-}
 encodeUtf8BuilderEscaped :: BP.BoundedPrim Word8 -> Text -> B.Builder
 encodeUtf8BuilderEscaped prim =
