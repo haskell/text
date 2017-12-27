@@ -54,10 +54,12 @@ To compile the benchmarks, navigate to the `benchmarks` subdirectory and run
 
     ./dist/build/text-benchmarks/text-benchmarks
 
+Or if you have a recent enough `cabal`, you can build and run the
+benchmarks via
+
+    cabal new-run exe:text-benchmarks -- --help
+
 However, since there's quite a lot of benchmarks, you usually don't want to
-run them all. Instead, use the `-l` flag to get a list of benchmarks:
-
-    ./dist/build/text-benchmarks/text-benchmarks
-
-And run the ones you want to inspect. If you want to configure the benchmarks
+run them all. Instead, use the `-l` flag to get a list of benchmarks
+and run the ones you want to inspect. If you want to configure the benchmarks
 further, the exact parameters can be changed in `Benchmarks.hs`.
