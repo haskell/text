@@ -18,7 +18,7 @@
 -- using several standard encodings.
 --
 -- To gain access to a much larger family of encodings, use the
--- @text-icu@ package: <http://hackage.haskell.org/package/text-icu>
+-- <http://hackage.haskell.org/package/text-icu text-icu package>.
 
 module Data.Text.Encoding
     (

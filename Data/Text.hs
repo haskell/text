@@ -32,8 +32,8 @@
 --
 -- To use an extended and very rich family of functions for working
 -- with Unicode text (including normalization, regular expressions,
--- non-standard encodings, text breaking, and locales), see
--- <http://hackage.haskell.org/package/text-icu the text-icu package >.
+-- non-standard encodings, text breaking, and locales), see the
+-- <http://hackage.haskell.org/package/text-icu text-icu package >.
 --
 
 module Data.Text

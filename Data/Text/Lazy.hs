@@ -274,14 +274,16 @@ import Text.Printf (PrintfArg, formatArg, formatString)
 -- $replacement
 --
 -- A 'Text' value is a sequence of Unicode scalar values, as defined
--- in &#xa7;3.9, definition D76 of the Unicode 5.2 standard:
--- <http://www.unicode.org/versions/Unicode5.2.0/ch03.pdf#page=35>. As
--- such, a 'Text' cannot contain values in the range U+D800 to U+DFFF
--- inclusive. Haskell implementations admit all Unicode code points
--- (&#xa7;3.4, definition D10) as 'Char' values, including code points
--- from this invalid range.  This means that there are some 'Char'
--- values that are not valid Unicode scalar values, and the functions
--- in this module must handle those cases.
+-- in
+-- <http://www.unicode.org/versions/Unicode5.2.0/ch03.pdf#page=35 §3.9, definition D76 of the Unicode 5.2 standard >.
+-- As such, a 'Text' cannot contain values in the range U+D800 to
+-- U+DFFF inclusive. Haskell implementations admit all Unicode code
+-- points
+-- (<http://www.unicode.org/versions/Unicode5.2.0/ch03.pdf#page=13 §3.4, definition D10 >)
+-- as 'Char' values, including code points from this invalid range.
+-- This means that there are some 'Char' values that are not valid
+-- Unicode scalar values, and the functions in this module must handle
+-- those cases.
 --
 -- Within this module, many functions construct a 'Text' from one or
 -- more 'Char' values. Those functions will substitute 'Char' values
@@ -295,8 +297,8 @@ import Text.Printf (PrintfArg, formatArg, formatString)
 -- range U+D800 through U+DFFF are used by UTF-16 to denote surrogate
 -- code points, and so cannot be represented. The functions replace
 -- invalid scalar values, instead of dropping them, as a security
--- measure. For details, see Unicode Technical Report 36, &#xa7;3.5:
--- <http://unicode.org/reports/tr36#Deletion_of_Noncharacters>)
+-- measure. For details, see
+-- <http://unicode.org/reports/tr36/#Deletion_of_Noncharacters Unicode Technical Report 36, §3.5 >.)
 
 equal :: Text -> Text -> Bool
 equal Empty Empty = True
