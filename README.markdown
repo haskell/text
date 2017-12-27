@@ -1,20 +1,9 @@
-# Text: Fast, packed Unicode strings, using stream fusion
+# `text`: Fast, packed Unicode strings, using stream fusion
 
 This package provides the Data.Text library, a library for the space-
 and time-efficient manipulation of Unicode text in Haskell.
 
-
-# Normalization, conversion, and collation, oh my!
-
-This library intentionally provides a simple API based on the
-Haskell prelude's list manipulation functions.  For more complicated
-real-world tasks, such as Unicode normalization, conversion to and
-from a larger variety of encodings, and collation, use the [text-icu
-package](http://hackage.haskell.org/cgi-bin/hackage-scripts/package/text-icu).
-
-That library uses the well-respected and liberally licensed ICU
-library to provide these facilities.
-
+**Please refer to the [package description on Hackage](https://hackage.haskell.org/package/text#description) for more information.**
 
 # Get involved!
 
