@@ -39,6 +39,7 @@ license-file:   LICENSE
 author:         Bryan O'Sullivan <bos@serpentine.com>
 maintainer:     Bryan O'Sullivan <bos@serpentine.com>
 copyright:      2009-2011 Bryan O'Sullivan, 2008-2009 Tom Harper
+bug-reports:    https://github.com/haskell/text/issues
 category:       Data, Text
 build-type:     Simple
 cabal-version:  >= 1.8
@@ -173,7 +174,7 @@ test-suite tests
   include-dirs:   include
 
   ghc-options:
-    -Wall -threaded -O1 -rtsopts
+    -Wall -threaded -rtsopts
 
   cpp-options:
     -DASSERTS -DHAVE_DEEPSEQ -DTEST_SUITE
