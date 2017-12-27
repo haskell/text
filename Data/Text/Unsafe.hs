@@ -4,7 +4,6 @@
 -- Copyright   : (c) 2009, 2010, 2011 Bryan O'Sullivan
 -- License     : BSD-style
 -- Maintainer  : bos@serpentine.com
--- Stability   : experimental
 -- Portability : portable
 --
 -- A module containing unsafe 'Text' operations, for very very careful

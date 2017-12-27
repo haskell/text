@@ -7,7 +7,6 @@
 --
 -- License     : BSD-style
 -- Maintainer  : bos@serpentine.com
--- Stability   : experimental
 -- Portability : portable
 --
 -- Packed, unboxed, heap-resident arrays.  Suitable for performance

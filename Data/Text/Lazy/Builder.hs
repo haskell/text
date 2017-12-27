@@ -11,7 +11,6 @@
 -- License     : BSD-style (see LICENSE)
 --
 -- Maintainer  : Johan Tibell <johan.tibell@gmail.com>
--- Stability   : experimental
 -- Portability : portable to Hugs and GHC
 --
 -- Efficient construction of lazy @Text@ values.  The principal

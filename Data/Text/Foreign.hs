@@ -5,7 +5,6 @@
 --
 -- License     : BSD-style
 -- Maintainer  : bos@serpentine.com
--- Stability   : experimental
 -- Portability : GHC
 --
 -- Support for using 'Text' data with native code via the Haskell

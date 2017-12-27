@@ -8,7 +8,6 @@
 --               (c) 2009 Simon Marlow
 -- License     : BSD-style
 -- Maintainer  : bos@serpentine.com
--- Stability   : experimental
 -- Portability : GHC
 --
 -- Efficient locale-sensitive support for text I\/O.

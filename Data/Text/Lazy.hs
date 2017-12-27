@@ -13,7 +13,6 @@
 --
 -- License     : BSD-style
 -- Maintainer  : bos@serpentine.com
--- Stability   : experimental
 -- Portability : GHC
 --
 -- A time and space-efficient implementation of Unicode text using

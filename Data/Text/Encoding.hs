@@ -11,7 +11,6 @@
 --
 -- License     : BSD-style
 -- Maintainer  : bos@serpentine.com
--- Stability   : experimental
 -- Portability : portable
 --
 -- Functions for converting 'Text' values to and from 'ByteString',

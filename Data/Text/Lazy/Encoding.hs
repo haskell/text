@@ -8,7 +8,6 @@
 --
 -- License     : BSD-style
 -- Maintainer  : bos@serpentine.com
--- Stability   : experimental
 -- Portability : portable
 --
 -- Functions for converting lazy 'Text' values to and from lazy

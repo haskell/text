@@ -10,7 +10,6 @@
 --
 -- License     : BSD-style
 -- Maintainer  : bos@serpentine.com
--- Stability   : experimental
 -- Portability : GHC
 --
 -- Types and functions for dealing with encoding and decoding errors
