@@ -337,6 +337,6 @@ putStrLn = hPutStrLn stdout
 -- > putStr_Utf16LE :: Text -> IO ()
 -- > putStr_Utf16LE t = B.putStr (encodeUtf16LE t)
 --
--- If transcoding fails, an exception is thrown. If this behavior is
--- undesired, will have to perform the transcoding yourself, likewise
--- by using functions from "Data.ByteString" and "Data.Text.Encoding".
+-- On transcoding errors, an 'IOError' exception is thrown. You can
+-- use the API in "Data.Text.Encoding" if you need more control over
+-- error handling or transcoding.
