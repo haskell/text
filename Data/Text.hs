@@ -661,8 +661,13 @@ compareLength t n = S.compareLengthI (stream t) n
 -- -----------------------------------------------------------------------------
 -- * Transformations
 -- | /O(n)/ 'map' @f@ @t@ is the 'Text' obtained by applying @f@ to
--- each element of @t@.  Subject to fusion.  Performs replacement on
--- invalid scalar values.
+-- each element of @t@.
+--
+-- Example:
+--
+-- > map (\c -> if c == '.' then '!' else c) $ pack "I am not angry. Not at all." ==> "I am not angry! Not at all!"
+--
+-- Subject to fusion.  Performs replacement on invalid scalar values.
 map :: (Char -> Char) -> Text -> Text
 map f t = unstream (S.map (safe . f) (stream t))
 {-# INLINE [1] map #-}
@@ -670,18 +675,35 @@ map f t = unstream (S.map (safe . f) (stream t))
 -- | /O(n)/ The 'intercalate' function takes a 'Text' and a list of
 -- 'Text's and concatenates the list after interspersing the first
 -- argument between each element of the list.
+--
+-- Example:
+--
+-- > let ni = pack "NI!"
+-- > let sentence = fmap pack ["We", "seek", "the", "Holy", "Grail"]
+-- > intercalate ni sentence  ==> ""WeNI!seekNI!theNI!HolyNI!Grail""
 intercalate :: Text -> [Text] -> Text
 intercalate t = concat . (F.intersperse t)
 {-# INLINE intercalate #-}
 
 -- | /O(n)/ The 'intersperse' function takes a character and places it
--- between the characters of a 'Text'.  Subject to fusion.  Performs
--- replacement on invalid scalar values.
+-- between the characters of a 'Text'.
+--
+-- Example:
+--
+-- > intersperse '.' $ pack "SHIELD" ==> "S.H.I.E.L.D"
+--
+-- Subject to fusion.  Performs replacement on invalid scalar values.
 intersperse     :: Char -> Text -> Text
 intersperse c t = unstream (S.intersperse (safe c) (stream t))
 {-# INLINE intersperse #-}
 
--- | /O(n)/ Reverse the characters of a string. Subject to fusion.
+-- | /O(n)/ Reverse the characters of a string.
+--
+-- Example:
+--
+-- > reverse $ pack "desrever" ==> "reversed"
+--
+-- Subject to fusion.
 reverse :: Text -> Text
 reverse t = S.reverse (stream t)
 {-# INLINE reverse #-}
@@ -883,6 +905,11 @@ center k c t
 -- of its 'Text' argument.  Note that this function uses 'pack',
 -- 'unpack', and the list version of transpose, and is thus not very
 -- efficient.
+--
+-- Examples:
+--
+-- > transpose [pack "green", pack "orange"] ==> ["go","rr","ea","en","ng","e"]
+-- > transpose [pack "blue", pack "red"] ==> ["br","le","ud","e"]
 transpose :: [Text] -> [Text]
 transpose ts = P.map pack (L.transpose (P.map unpack ts))
 
