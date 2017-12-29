@@ -73,7 +73,7 @@ import Data.ByteString.Internal as B hiding (c2w)
 import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode)
 import Data.Text.Internal (Text(..), safe, text)
 import Data.Text.Internal.Private (runText)
-import Data.Text.Internal.Unsafe.Char (ord, unsafeWrite)
+import Data.Text.Internal.Unsafe.Char (ord, unsafeWrite, unsafeWriteSingle)
 import Data.Text.Internal.Unsafe.Shift (shiftR)
 import Data.Text.Show ()
 import Data.Text.Unsafe (unsafeDupablePerformIO)
@@ -131,6 +131,11 @@ decodeLatin1 (PS fp off len) = text a 0 len
     return dest
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text.
+--
+-- Note that, for the provided 'OnDecodeError' function, it is invalid
+-- to provide a 'Char' value as a result which is greater than
+-- @'\xffff'@. This is usually not a concern. For more information,
+-- see <https://github.com/haskell/text/issues/211>.
 decodeUtf8With :: OnDecodeError -> ByteString -> Text
 decodeUtf8With onErr (PS fp off len) = runText $ \done -> do
   let go dest = withForeignPtr fp $ \ptr ->
@@ -146,12 +151,15 @@ decodeUtf8With onErr (PS fp off len) = runText $ \done -> do
                     x <- peek curPtr'
                     case onErr desc (Just x) of
                       Nothing -> loop $ curPtr' `plusPtr` 1
-                      Just c -> do
-                        destOff <- peek destOffPtr
-                        w <- unsafeSTToIO $
-                             unsafeWrite dest (fromIntegral destOff) (safe c)
-                        poke destOffPtr (destOff + fromIntegral w)
-                        loop $ curPtr' `plusPtr` 1
+                      Just c
+                        | c >= '\x10000' ->
+                            error "decodeUtf8With: cannot supply characters beyond \\xffff"
+                        | otherwise -> do
+                            destOff <- peek destOffPtr
+                            unsafeSTToIO $
+                                 unsafeWriteSingle dest (fromIntegral destOff) (safe c)
+                            poke destOffPtr (destOff + 1)
+                            loop $ curPtr' `plusPtr` 1
           loop (ptr `plusPtr` off)
   (unsafeIOToST . go) =<< A.new len
  where

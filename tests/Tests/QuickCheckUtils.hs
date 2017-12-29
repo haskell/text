@@ -210,7 +210,10 @@ genDecodeErr :: DecodeErr -> Gen T.OnDecodeError
 genDecodeErr Lenient = return T.lenientDecode
 genDecodeErr Ignore  = return T.ignore
 genDecodeErr Strict  = return T.strictDecode
-genDecodeErr Replace = arbitrary
+genDecodeErr Replace = (\c _ _ -> c) <$> frequency
+  [ (1, return Nothing)
+  , (50, Just <$> choose ('\x1', '\xffff'))
+  ]
 
 instance Arbitrary DecodeErr where
     arbitrary = elements [Lenient, Ignore, Strict, Replace]

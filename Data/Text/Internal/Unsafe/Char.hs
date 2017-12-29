@@ -23,6 +23,7 @@ module Data.Text.Internal.Unsafe.Char
     , unsafeChr8
     , unsafeChr32
     , unsafeWrite
+    , unsafeWriteSingle
     -- , unsafeWriteRev
     ) where
 
@@ -51,6 +52,19 @@ unsafeChr8 (W8# w#) = C# (chr# (word2Int# w#))
 unsafeChr32 :: Word32 -> Char
 unsafeChr32 (W32# w#) = C# (chr# (word2Int# w#))
 {-# INLINE unsafeChr32 #-}
+
+-- | Write a character into the array, assuming it can be represented by a single Word16, i.e. that it is < 0x10000.
+-- the number of 'Word16's written.
+unsafeWriteSingle :: A.MArray s -> Int -> Char -> ST s ()
+unsafeWriteSingle marr i c = do
+#if defined(ASSERTS)
+        assert (i >= 0)
+          . assert (i < A.length marr)
+          . assert (n < 0x10000)
+          $ return ()
+#endif
+        A.unsafeWrite marr i (fromIntegral n)
+    where n = ord c
 
 -- | Write a character into the array at the given offset.  Returns
 -- the number of 'Word16's written.
