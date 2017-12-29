@@ -148,12 +148,33 @@ decodeUtf8With onErr (PS fp off len) = runText $ \done -> do
                       Nothing -> loop $ curPtr' `plusPtr` 1
                       Just c -> do
                         destOff <- peek destOffPtr
-                        w <- unsafeSTToIO $
+                        -- To understand why we ignore the length and
+                        -- hard-code to `destOff + 1`, see below
+                        _ <- unsafeSTToIO $
                              unsafeWrite dest (fromIntegral destOff) (safe c)
-                        poke destOffPtr (destOff + fromIntegral w)
+                        poke destOffPtr (destOff + 1)
                         loop $ curPtr' `plusPtr` 1
           loop (ptr `plusPtr` off)
-  (unsafeIOToST . go) =<< A.new len
+  -- The use is free to provide any version of `OnDecodeError`
+  -- desired, including a function which returns a character above
+  -- \xffff. In such a case, the `unsafeWrite` call above will
+  -- generate 2 `Word16` values instead of 1, allowing us to overwrite
+  -- beyond the buffer (leading potentially to segfault). We could
+  -- just allocate a buffer twice the size, but this situation is not
+  -- expected: most of the time people will either return the Unicode
+  -- replacement character or nothing at all.
+  --
+  -- Therefore, as an efficient workaround for this, we do two things:
+  --
+  -- 1. Allocate a buffer of size + 1 to account for a single extra
+  --    point being written
+
+  -- 2. Ignore the actual number of `Word16`s written, and instead
+  --    assume the value is always 1. This will generate invalid results,
+  --    but it keeps efficiency and prevents a segfault.
+  --
+  -- For more information, see: https://github.com/haskell/text/issues/211
+  (unsafeIOToST . go) =<< A.new (len + 1)
  where
   desc = "Data.Text.Internal.Encoding.decodeUtf8: Invalid UTF-8 stream"
 {- INLINE[0] decodeUtf8With #-}
