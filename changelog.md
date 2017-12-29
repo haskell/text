@@ -1,3 +1,8 @@
+### 1.2.3.1 TBD
+
+* Make `decodeUtf8With` fail explicitly for unsupported non-BMP
+  replacement characters instead silent undefined behaviour (gh-213)
+
 ### 1.2.3.0
 
 * Spec compliance: `toCaseFold` now follows the Unicode 9.0 spec

@@ -65,7 +65,7 @@ import Control.Monad.ST.Unsafe (unsafeIOToST, unsafeSTToIO)
 import Control.Monad.ST (unsafeIOToST, unsafeSTToIO)
 #endif
 
-import Control.Exception (evaluate, try)
+import Control.Exception (evaluate, try, throwIO, ErrorCall(ErrorCall))
 import Control.Monad.ST (runST)
 import Data.Bits ((.&.))
 import Data.ByteString as B
@@ -131,6 +131,13 @@ decodeLatin1 (PS fp off len) = text a 0 len
     return dest
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text.
+--
+-- __NOTE__: The replacement character returned by 'OnDecodeError'
+-- MUST be within the BMP plane; surrogate code points will
+-- automatically be remapped to the replacement char @U+FFFD@
+-- (/since 0.11.3.0/), whereas code points beyond the BMP will throw an
+-- 'error' (/since 1.2.3.1/); For earlier versions of @text@ using
+-- those unsupported code points would result in undefined behavior.
 decodeUtf8With :: OnDecodeError -> ByteString -> Text
 decodeUtf8With onErr (PS fp off len) = runText $ \done -> do
   let go dest = withForeignPtr fp $ \ptr ->
@@ -146,16 +153,52 @@ decodeUtf8With onErr (PS fp off len) = runText $ \done -> do
                     x <- peek curPtr'
                     case onErr desc (Just x) of
                       Nothing -> loop $ curPtr' `plusPtr` 1
-                      Just c -> do
-                        destOff <- peek destOffPtr
-                        w <- unsafeSTToIO $
-                             unsafeWrite dest (fromIntegral destOff) (safe c)
-                        poke destOffPtr (destOff + fromIntegral w)
-                        loop $ curPtr' `plusPtr` 1
+                      Just c
+                        | c > '\xFFFF' -> throwUnsupportedReplChar
+                        | otherwise -> do
+                            destOff <- peek destOffPtr
+                            w <- unsafeSTToIO $
+                                 unsafeWrite dest (fromIntegral destOff)
+                                             (safe c)
+                            poke destOffPtr (destOff + fromIntegral w)
+                            loop $ curPtr' `plusPtr` 1
           loop (ptr `plusPtr` off)
   (unsafeIOToST . go) =<< A.new len
  where
   desc = "Data.Text.Internal.Encoding.decodeUtf8: Invalid UTF-8 stream"
+
+  throwUnsupportedReplChar = throwIO $
+    ErrorCall "decodeUtf8With: non-BMP replacement characters not supported"
+  -- TODO: The code currently assumes that the transcoded UTF-16
+  -- stream is at most twice as long (in bytes) as the input UTF-8
+  -- stream. To justify this assumption one has to assume that the
+  -- error handler replacement character also satisfies this
+  -- invariant, by emitting at most one UTF16 code unit.
+  --
+  -- One easy way to support the full range of code-points for
+  -- replacement characters in the error handler is to simply change
+  -- the (over-)allocation to `A.new (2*len)` and then shrink back the
+  -- `ByteArray#` to the real size (recent GHCs have a cheap
+  -- `ByteArray#` resize-primop for that which allow the GC to reclaim
+  -- the overallocation). However, this would require 4 times as much
+  -- (temporary) storage as the original UTF-8 required.
+  --
+  -- Another strategy would be to optimistically assume that
+  -- replacement characters are within the BMP, and if the case of a
+  -- non-BMP replacement occurs reallocate the target buffer (or throw
+  -- an exception, and fallback to a pessimistic codepath, like e.g.
+  -- `decodeUtf8With onErr bs = F.unstream (E.streamUtf8 onErr bs)`)
+  --
+  -- Alternatively, `OnDecodeError` could become a datastructure which
+  -- statically encodes the replacement-character range,
+  -- e.g. something isomorphic to
+  --
+  --   Either (... -> Maybe Word16) (... -> Maybe Char)
+  --
+  -- And allow to statically switch between the BMP/non-BMP
+  -- replacement-character codepaths. There's multiple ways to address
+  -- this with different tradeoffs; but ideally we should optimise for
+  -- the optimistic/error-free case.
 {- INLINE[0] decodeUtf8With #-}
 
 -- $stream
