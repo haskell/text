@@ -16,4 +16,4 @@ build_script:
 - stack build --only-snapshot --no-terminal --trace
 
 test_script:
-- echo "" | stack test --no-terminal
+- echo "" | stack test text:tests --no-terminal
