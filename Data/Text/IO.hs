@@ -95,14 +95,22 @@ writeFile p = withFile p WriteMode . flip hPutStr
 appendFile :: FilePath -> Text -> IO ()
 appendFile p = withFile p AppendMode . flip hPutStr
 
-catchError :: String -> Handle -> Handle__ -> IOError -> IO Text
+catchError :: String -> Handle -> Handle__ -> IOError -> IO (Text, Bool)
 catchError caller h Handle__{..} err
     | isEOFError err = do
         buf <- readIORef haCharBuffer
         return $ if isEmptyBuffer buf
-                 then T.empty
-                 else T.singleton '\r'
+                 then (T.empty, True)
+                 else (T.singleton '\r', True)
     | otherwise = E.throwIO (augmentIOError err caller h)
+
+-- | Wrap readChunk and return a value indicating if we're reached the EOF.
+-- This is needed because unpack_nl is unable to discern the difference
+-- between a buffer with just \r due to EOF or because not enough data was left
+-- for decoding. e.g. the final character decoded from the byte buffer was \r.
+readChunkEof :: Handle__ -> CharBuffer -> IO (Text, Bool)
+readChunkEof hh buf = do t <- readChunk hh buf
+                         return (t, False)
 
 -- | /Experimental./ Read a single chunk of strict text from a
 -- 'Handle'. The size of the chunk depends on the amount of input
@@ -116,7 +124,7 @@ hGetChunk h = wantReadableHandle "hGetChunk" h readSingleChunk
  where
   readSingleChunk hh@Handle__{..} = do
     buf <- readIORef haCharBuffer
-    t <- readChunk hh buf `E.catch` catchError "hGetChunk" h hh
+    (t, _) <- readChunkEof hh buf `E.catch` catchError "hGetChunk" h hh
     return (hh, t)
 
 -- | Read the remaining contents of a 'Handle' as a string.  The
@@ -138,8 +146,9 @@ hGetContents h = do
   readAll hh@Handle__{..} = do
     let readChunks = do
           buf <- readIORef haCharBuffer
-          t <- readChunk hh buf `E.catch` catchError "hGetContents" h hh
-          if T.null t
+          (t, eof) <- readChunkEof hh buf
+                         `E.catch` catchError "hGetContents" h hh
+          if eof
             then return [t]
             else (t:) `fmap` readChunks
     ts <- readChunks
