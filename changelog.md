@@ -3,6 +3,9 @@
 * Make `decodeUtf8With` fail explicitly for unsupported non-BMP
   replacement characters instead silent undefined behaviour (gh-213)
 
+* Fix termination condition for file reads via `Data.Text.IO`
+  operations (gh-223)
+
 ### 1.2.3.0
 
 * Spec compliance: `toCaseFold` now follows the Unicode 9.0 spec
