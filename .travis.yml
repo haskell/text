@@ -36,7 +36,8 @@ matrix:
       env: GHCHEAD=true
       addons: {apt: {packages: [ghc-ppa-tools,cabal-install-head,ghc-8.6.1], sources: [hvr-ghc]}}
     - compiler: "ghc-8.4.3"
-    # env: TEST=--disable-tests BENCH=--disable-benchmarks
+      # Fails due to GHC #15436
+      env: TEST=--disable-tests BENCH=--disable-benchmarks
       addons: {apt: {packages: [ghc-ppa-tools,cabal-install-2.2,ghc-8.4.3], sources: [hvr-ghc]}}
     - compiler: "ghc-8.2.2"
     # env: TEST=--disable-tests BENCH=--disable-benchmarks
