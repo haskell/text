@@ -83,6 +83,12 @@ t197 =
         cond = length fltr
         fltr = filter (== ',') x
 
+t221 :: IO ()
+t221 =
+    assertEqual "toLower of large input shouldn't crash"
+                (T.toLower (T.replicate 200000 "0") `seq` ())
+                ()
+
 t227 :: IO ()
 t227 =
     assertEqual "take (-3) shouldn't crash with overflow"
@@ -97,5 +103,6 @@ tests = F.testGroup "Regressions"
     , F.testCase "replicate_crash" replicate_crash
     , F.testCase "utf8_decode_unsafe" utf8_decode_unsafe
     , F.testCase "t197" t197
+    , F.testCase "t221" t221
     , F.testCase "t227" t227
     ]
