@@ -400,7 +400,7 @@ intersperse c (Stream next0 s0 len) = Stream next (I1 s0) (len + unknownSize)
 caseConvert :: (forall s. Char -> s -> Step (CC s) Char)
             -> Stream Char -> Stream Char
 caseConvert remap (Stream next0 s0 len) =
-    Stream next (CC s0 '\0' '\0') (len `unionSize` 3*len)
+    Stream next (CC s0 '\0' '\0') (len `unionSize` (3*len))
   where
     next (CC s '\0' _) =
         case next0 s of
