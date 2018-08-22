@@ -7,6 +7,7 @@ module Tests.Regressions
     ) where
 
 import Control.Exception (SomeException, handle)
+import Data.Char (isLetter)
 import System.IO
 import Test.HUnit (assertBool, assertEqual, assertFailure)
 import qualified Data.ByteString as B
@@ -82,6 +83,12 @@ t197 =
         cond = length fltr
         fltr = filter (== ',') x
 
+t227 :: IO ()
+t227 =
+    assertEqual "take (-3) shouldn't crash with overflow"
+                (T.length $ T.filter isLetter $ T.take (-3) "Hello! How are you doing today?")
+                0
+
 tests :: F.Test
 tests = F.testGroup "Regressions"
     [ F.testCase "hGetContents_crash" hGetContents_crash
@@ -90,4 +97,5 @@ tests = F.testGroup "Regressions"
     , F.testCase "replicate_crash" replicate_crash
     , F.testCase "utf8_decode_unsafe" utf8_decode_unsafe
     , F.testCase "t197" t197
+    , F.testCase "t227" t227
     ]
