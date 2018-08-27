@@ -61,7 +61,11 @@ charSize c
 
 -- | The 'Size' of @n@ code points.
 codePointsSize :: Int -> Size
-codePointsSize n = Between n (2*n)
+codePointsSize n =
+#if defined(ASSERTS)
+    assert (n >= 0)
+#endif
+    Between n (2*n)
 {-# INLINE codePointsSize #-}
 
 exactSize :: Int -> Size

@@ -400,7 +400,7 @@ intersperse c (Stream next0 s0 len) = Stream next (I1 s0) (len + unknownSize)
 caseConvert :: (forall s. Char -> s -> Step (CC s) Char)
             -> Stream Char -> Stream Char
 caseConvert remap (Stream next0 s0 len) =
-    Stream next (CC s0 '\0' '\0') (len `unionSize` 3*len)
+    Stream next (CC s0 '\0' '\0') (len `unionSize` (3*len))
   where
     next (CC s '\0' _) =
         case next0 s of
@@ -735,8 +735,10 @@ unfoldrNI n f s0 | n <  0    = empty
 -- length of the stream.
 take :: Integral a => a -> Stream Char -> Stream Char
 take n0 (Stream next0 s0 len) =
-    Stream next (n0 :*: s0) (smaller len (codePointsSize $ fromIntegral n0))
+    Stream next (n0' :*: s0) (smaller len (codePointsSize $ fromIntegral n0'))
     where
+      n0' = max n0 0
+
       {-# INLINE next #-}
       next (n :*: s) | n <= 0    = Done
                      | otherwise = case next0 s of
@@ -753,8 +755,10 @@ data Drop a s = NS !s
 -- is greater than the length of the stream.
 drop :: Integral a => a -> Stream Char -> Stream Char
 drop n0 (Stream next0 s0 len) =
-    Stream next (JS n0 s0) (len - codePointsSize (fromIntegral n0))
+    Stream next (JS n0' s0) (len - codePointsSize (fromIntegral n0'))
   where
+    n0' = max n0 0
+
     {-# INLINE next #-}
     next (JS n s)
       | n <= 0    = Skip (NS s)
