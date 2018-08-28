@@ -46,6 +46,14 @@ realFloat :: (RealFloat a) => a -> Builder
 {-# SPECIALIZE realFloat :: Double -> Builder #-}
 realFloat x = formatRealFloat Generic Nothing x
 
+-- | Encode a signed 'RealFloat' according to 'FPFormat' and optionally requested precision.
+--
+-- This corresponds to the @show{E,F,G}Float@ operations provided by @base@'s "Numeric" module.
+--
+-- __NOTE__: The functions in @base-4.12@ changed the serialisation in
+-- case of a @Just 0@ precision; this version of @text@ still provides
+-- the serialisation as implemented in @base-4.11@. The next major
+-- version of @text@ will switch to the more correct @base-4.12@ serialisation.
 formatRealFloat :: (RealFloat a) =>
                    FPFormat
                 -> Maybe Int  -- ^ Number of decimal places to render.
