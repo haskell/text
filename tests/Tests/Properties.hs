@@ -1,5 +1,6 @@
 -- | QuickCheck properties for the text library.
 
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE BangPatterns, FlexibleInstances, OverloadedStrings,
              ScopedTypeVariables, TypeSynonymInstances #-}
 {-# OPTIONS_GHC -fno-enable-rewrite-rules -fno-warn-missing-signatures #-}
@@ -853,16 +854,22 @@ tb_realfloat_float (a::Float) = tb_realfloat a
 tb_realfloat_double (a::Double) = tb_realfloat a
 
 showFloat :: (RealFloat a) => TB.FPFormat -> Maybe Int -> a -> ShowS
-showFloat TB.Exponent = showEFloat
-showFloat TB.Fixed    = showFFloat
-showFloat TB.Generic  = showGFloat
+showFloat TB.Exponent (Just 0) = showEFloat (Just 1) -- see gh-231
+showFloat TB.Exponent p = showEFloat p
+showFloat TB.Fixed    p = showFFloat p
+showFloat TB.Generic  p = showGFloat p
 
 tb_formatRealFloat :: (RealFloat a, Show a) =>
                       a -> TB.FPFormat -> Precision a -> Property
-tb_formatRealFloat a fmt prec =
+tb_formatRealFloat a fmt prec = cond ==>
     TB.formatRealFloat fmt p a ===
     TB.fromString (showFloat fmt p a "")
   where p = precision a prec
+        cond = case (p,fmt) of
+#if MIN_VERSION_base(4,12,0)
+                  (Just 0, TB.Generic) -> False -- skipping due to gh-231
+#endif
+                  _                    -> True
 
 tb_formatRealFloat_float (a::Float) = tb_formatRealFloat a
 tb_formatRealFloat_double (a::Double) = tb_formatRealFloat a
