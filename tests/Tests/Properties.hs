@@ -123,22 +123,38 @@ data Badness = Solo | Leading | Trailing
 instance Arbitrary Badness where
     arbitrary = elements [Solo, Leading, Trailing]
 
-t_utf8_err :: Badness -> DecodeErr -> Property
-t_utf8_err bad de = do
+t_utf8_err :: Badness -> Maybe DecodeErr -> Property
+t_utf8_err bad mde = do
   let gen = case bad of
         Solo     -> genInvalidUTF8
         Leading  -> B.append <$> genInvalidUTF8 <*> genUTF8
         Trailing -> B.append <$> genUTF8 <*> genInvalidUTF8
       genUTF8 = E.encodeUtf8 <$> genUnicode
-  forAll gen $ \bs -> MkProperty $ do
-    onErr <- genDecodeErr de
-    unProperty . monadicIO $ do
-    l <- run $ let len = T.length (E.decodeUtf8With onErr bs)
-               in (len `seq` return (Right len)) `Exception.catch`
-                  (\(e::UnicodeException) -> return (Left e))
-    assert $ case l of
-      Left err -> length (show err) >= 0
-      Right _  -> de /= Strict
+  forAll gen $ \bs -> MkProperty $
+    case mde of
+      -- generate an invalid character
+      Nothing -> do
+        c <- choose ('\x10000', maxBound)
+        let onErr _ _ = Just c
+        unProperty . monadicIO $ do
+        l <- run $ let len = T.length (E.decodeUtf8With onErr bs)
+                   in (len `seq` return (Right len)) `Exception.catch`
+                      (\(e::Exception.SomeException) -> return (Left e))
+        assert $ case l of
+          Left err ->
+            "non-BMP replacement characters not supported" `T.isInfixOf` T.pack (show err)
+          Right _  -> False
+
+      -- generate a valid onErr
+      Just de -> do
+        onErr <- genDecodeErr de
+        unProperty . monadicIO $ do
+        l <- run $ let len = T.length (E.decodeUtf8With onErr bs)
+                   in (len `seq` return (Right len)) `Exception.catch`
+                      (\(e::UnicodeException) -> return (Left e))
+        assert $ case l of
+          Left err -> length (show err) >= 0
+          Right _  -> de /= Strict
 
 t_utf8_err' :: B.ByteString -> Property
 t_utf8_err' bs = monadicIO . assert $ case E.decodeUtf8' bs of
@@ -204,9 +220,10 @@ t_decode_with_error4' =
   case E.streamDecodeUtf8With (\_ _ -> Just 'x') (B.pack [0xC2, 97, 97, 97]) of
     E.Some x _ _ -> x === "xaaa"
 
-t_infix_concat bs1 text bs2 rep =
+t_infix_concat bs1 text bs2 =
+  forAll (genDecodeErr Replace) $ \onErr ->
   text `T.isInfixOf`
-    E.decodeUtf8With (\_ _ -> rep) (B.concat [bs1, E.encodeUtf8 text, bs2])
+    E.decodeUtf8With onErr (B.concat [bs1, E.encodeUtf8 text, bs2])
 
 s_Eq s            = (s==)    `eq` ((S.streamList s==) . S.streamList)
     where _types = s :: String

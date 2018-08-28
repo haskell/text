@@ -246,7 +246,7 @@ test-suite tests
 
   build-depends:
     HUnit >= 1.2,
-    QuickCheck >= 2.7 && < 2.10,
+    QuickCheck >= 2.7 && < 2.11,
     array,
     base,
     binary,
