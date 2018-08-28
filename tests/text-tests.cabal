@@ -47,7 +47,6 @@ executable text-tests
   cpp-options:
     -DTEST_SUITE
     -DASSERTS
-    -DHAVE_DEEPSEQ
 
   build-depends:
     HUnit >= 1.2,
@@ -139,7 +138,6 @@ library
 
   cpp-options:
     -DTEST_SUITE
-    -DHAVE_DEEPSEQ
     -DASSERTS
     -DINTEGER_GMP
 

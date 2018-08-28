@@ -205,9 +205,7 @@ import Prelude (Char, Bool(..), Maybe(..), String,
                 (&&), (||), (+), (-), (.), ($), (++),
                 error, flip, fmap, fromIntegral, not, otherwise, quot)
 import qualified Prelude as P
-#if defined(HAVE_DEEPSEQ)
 import Control.DeepSeq (NFData(..))
-#endif
 import Data.Int (Int64)
 import qualified Data.List as L
 import Data.Char (isSpace)
@@ -375,11 +373,9 @@ instance Exts.IsList Text where
     toList         = unpack
 #endif
 
-#if defined(HAVE_DEEPSEQ)
 instance NFData Text where
     rnf Empty        = ()
     rnf (Chunk _ ts) = rnf ts
-#endif
 
 -- | @since 1.2.1.0
 instance Binary Text where

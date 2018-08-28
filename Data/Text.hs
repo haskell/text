@@ -204,9 +204,7 @@ import Prelude (Char, Bool(..), Int, Maybe(..), String,
                 Read(..),
                 (&&), (||), (+), (-), (.), ($), ($!), (>>),
                 not, return, otherwise, quot)
-#if defined(HAVE_DEEPSEQ)
 import Control.DeepSeq (NFData(rnf))
-#endif
 #if defined(ASSERTS)
 import Control.Exception (assert)
 #endif
@@ -381,9 +379,7 @@ instance Exts.IsList Text where
     toList         = unpack
 #endif
 
-#if defined(HAVE_DEEPSEQ)
 instance NFData Text where rnf !_ = ()
-#endif
 
 -- | @since 1.2.1.0
 instance Binary Text where

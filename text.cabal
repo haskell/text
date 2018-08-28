@@ -155,7 +155,6 @@ library
   else
     build-depends: bytestring         >= 0.10.4 && < 0.11
 
-  cpp-options: -DHAVE_DEEPSEQ
   ghc-options: -Wall -fwarn-tabs -funbox-strict-fields -O2
   if flag(developer)
     ghc-prof-options: -auto-all
@@ -178,7 +177,7 @@ test-suite tests
     -Wall -threaded -rtsopts
 
   cpp-options:
-    -DASSERTS -DHAVE_DEEPSEQ -DTEST_SUITE
+    -DASSERTS -DTEST_SUITE
 
   -- modules specific to test-suite
   hs-source-dirs: tests
