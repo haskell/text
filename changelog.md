@@ -1,3 +1,7 @@
+### next
+
+* `Lift` instances `Data.Text.Text` and `Data.Text.Lazy.Text`.
+
 ### 1.2.3.1
 
 * Make `decodeUtf8With` fail explicitly for unsupported non-BMP

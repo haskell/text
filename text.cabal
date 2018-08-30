@@ -1,6 +1,6 @@
 cabal-version:  >= 1.8
 name:           text
-version:        1.2.3.1
+version:        1.2.4.0
 
 homepage:       https://github.com/haskell/text
 bug-reports:    https://github.com/haskell/text/issues
@@ -147,7 +147,8 @@ library
     base       >= 4.2 && < 5,
     binary,
     deepseq    >= 1.1.0.0,
-    ghc-prim   >= 0.2
+    ghc-prim   >= 0.2,
+    template-haskell
 
   if flag(bytestring-builder)
     build-depends: bytestring         >= 0.9    && < 0.10.4,
@@ -255,6 +256,7 @@ test-suite tests
     ghc-prim,
     quickcheck-unicode >= 1.0.1.0,
     random,
+    template-haskell,
     test-framework >= 0.4,
     test-framework-hunit >= 0.2,
     test-framework-quickcheck2 >= 0.2

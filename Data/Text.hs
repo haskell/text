@@ -6,6 +6,17 @@
 #if __GLASGOW_HASKELL__ >= 708
 {-# LANGUAGE TypeFamilies #-}
 #endif
+-- Using TemplateHaskell in text unconditionally is unacceptable, as
+-- it's a GHC boot library. TemplateHaskellQuotes was added in 8.0, so
+-- this would seem to be a problem. However, GHC's policy of only
+-- needing to be able to compile itself from the last few releases
+-- allows us to use full-fat TH on older versions, while using THQ for
+-- GHC versions that may be used for bootstrapping.
+#if __GLASGOW_HASKELL__ >= 800
+{-# LANGUAGE TemplateHaskellQuotes #-}
+#else
+{-# LANGUAGE TemplateHaskell #-}
+#endif
 
 -- |
 -- Module      : Data.Text
@@ -244,6 +255,8 @@ import GHC.Base (eqInt, neInt, gtInt, geInt, ltInt, leInt)
 #if __GLASGOW_HASKELL__ >= 708
 import qualified GHC.Exts as Exts
 #endif
+import qualified Language.Haskell.TH.Lib as TH
+import Language.Haskell.TH.Syntax (Lift, lift)
 #if MIN_VERSION_base(4,7,0)
 import Text.Printf (PrintfArg, formatArg, formatString)
 #endif
@@ -412,6 +425,13 @@ instance Data Text where
     1 -> k (z pack)
     _ -> P.error "gunfold"
   dataTypeOf _ = textDataType
+
+-- | This instance has similar considerations to the 'Data' instance:
+-- it preserves abstraction at the cost of inefficiency.
+--
+-- @since 1.2.4.0
+instance Lift Text where
+  lift = TH.appE (TH.varE 'pack) . TH.stringE . unpack
 
 #if MIN_VERSION_base(4,7,0)
 -- | Only defined for @base-4.7.0.0@ and later

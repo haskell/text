@@ -42,6 +42,7 @@ executable text-benchmarks
                   ghc-prim,
                   integer-gmp,
                   stringsearch,
+                  template-haskell,
                   transformers,
                   utf8-string,
                   vector
