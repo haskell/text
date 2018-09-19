@@ -1,6 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
--- Module:      Data.Text.Internal.Builder.Int.Digits
+-- Module:      Data.Text.Internal.Lazy.Builder.Int.Digits
 -- Copyright:   (c) 2013 Bryan O'Sullivan
 -- License:     BSD-style
 -- Maintainer:  Bryan O'Sullivan <bos@serpentine.com>
@@ -14,7 +14,7 @@
 -- This module exists because the C preprocessor does things that we
 -- shall not speak of when confronted with Haskell multiline strings.
 
-module Data.Text.Internal.Builder.Int.Digits (digits) where
+module Data.Text.Internal.Lazy.Builder.Int.Digits (digits) where
 
 import Data.ByteString.Char8 (ByteString)
 

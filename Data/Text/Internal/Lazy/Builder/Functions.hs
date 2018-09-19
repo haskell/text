@@ -1,7 +1,7 @@
 {-# LANGUAGE MagicHash #-}
 
 -- |
--- Module      : Data.Text.Internal.Builder.Functions
+-- Module      : Data.Text.Internal.Lazy.Builder.Functions
 -- Copyright   : (c) 2011 MailRank, Inc.
 --
 -- License     : BSD-style
@@ -15,7 +15,7 @@
 --
 -- Useful functions and combinators.
 
-module Data.Text.Internal.Builder.Functions
+module Data.Text.Internal.Lazy.Builder.Functions
     (
       (<>)
     , i2d

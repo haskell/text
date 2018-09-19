@@ -102,10 +102,6 @@ library
     Data.Text.Foreign
     Data.Text.IO
     Data.Text.Internal
-    Data.Text.Internal.Builder
-    Data.Text.Internal.Builder.Functions
-    Data.Text.Internal.Builder.Int.Digits
-    Data.Text.Internal.Builder.RealFloat.Functions
     Data.Text.Internal.Encoding.Fusion
     Data.Text.Internal.Encoding.Fusion.Common
     Data.Text.Internal.Encoding.Utf16
@@ -119,6 +115,10 @@ library
     Data.Text.Internal.Fusion.Types
     Data.Text.Internal.IO
     Data.Text.Internal.Lazy
+    Data.Text.Internal.Lazy.Builder
+    Data.Text.Internal.Lazy.Builder.Functions
+    Data.Text.Internal.Lazy.Builder.Int.Digits
+    Data.Text.Internal.Lazy.Builder.RealFloat.Functions
     Data.Text.Internal.Lazy.Encoding.Fusion
     Data.Text.Internal.Lazy.Fusion
     Data.Text.Internal.Lazy.Search

@@ -22,9 +22,9 @@ module Data.Text.Lazy.Builder.Int
 import Data.Int (Int8, Int16, Int32, Int64)
 import Data.Monoid (mempty)
 import qualified Data.ByteString.Unsafe as B
-import Data.Text.Internal.Builder.Functions ((<>), i2d)
-import Data.Text.Internal.Builder
-import Data.Text.Internal.Builder.Int.Digits (digits)
+import Data.Text.Internal.Lazy.Builder.Functions ((<>), i2d)
+import Data.Text.Internal.Lazy.Builder
+import Data.Text.Internal.Lazy.Builder.Int.Digits (digits)
 import Data.Text.Array
 import Data.Word (Word, Word8, Word16, Word32, Word64)
 import GHC.Base (quotInt, remInt)
