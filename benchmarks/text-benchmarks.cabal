@@ -76,6 +76,7 @@ executable text-benchmarks
     Benchmarks.Replace
     Benchmarks.Search
     Benchmarks.Stream
+    Benchmarks.TransformEq
     Benchmarks.WordFrequencies
 
   -- Source code for IUT (implementation under test)

@@ -167,6 +167,7 @@ module Data.Text
     , isPrefixOf
     , isSuffixOf
     , isInfixOf
+    , transformEq
 
     -- ** View patterns
     , stripPrefix
@@ -1752,6 +1753,15 @@ isInfixOf needle haystack
 "TEXT isInfixOf/singleton -> S.elem/S.stream" [~1] forall n h.
     isInfixOf (singleton n) h = S.elem n (S.stream h)
   #-}
+
+-- | The 'transformEq' function takes a `Text -> Text` function
+-- and two 'Text's if the 'Text's are equal after transformation. This
+-- function relies on fusion to avoid materialising the transformed 'Text'
+transformEq :: (Text -> Text) -> Text -> Text -> Bool
+transformEq f x y
+    | length x == length y = P.all (P.uncurry (==)) $ zip (f x) (f y)
+    | otherwise            = False
+{-# INLINE [1] transformEq #-}
 
 -------------------------------------------------------------------------------
 -- * View patterns
