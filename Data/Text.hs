@@ -702,7 +702,7 @@ intersperse c t = unstream (S.intersperse (safe c) (stream t))
 -- >>> T.reverse "desrever"
 -- "reversed"
 --
--- Subject to fusion.
+-- Subject to fusion (fuses with its argument).
 reverse :: Text -> Text
 reverse t = S.reverse (stream t)
 {-# INLINE reverse #-}
