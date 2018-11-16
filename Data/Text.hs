@@ -1235,7 +1235,7 @@ takeWhile p t@(Text arr off len) = loop 0
 
 -- | /O(n)/ 'takeWhileEnd', applied to a predicate @p@ and a 'Text',
 -- returns the longest suffix (possibly empty) of elements that
--- satisfy @p@.  Subject to fusion.
+-- satisfy @p@.
 -- Examples:
 --
 -- >>> takeWhileEnd (=='o') "foo"
@@ -1249,13 +1249,6 @@ takeWhileEnd p t@(Text arr off len) = loop (len-1) len
                    | otherwise = text arr (off+l) (len-l)
             where (c,d)        = reverseIter t i
 {-# INLINE [1] takeWhileEnd #-}
-
-{-# RULES
-"TEXT takeWhileEnd -> fused" [~1] forall p t.
-    takeWhileEnd p t = S.reverse (S.takeWhile p (S.reverseStream t))
-"TEXT takeWhileEnd -> unfused" [1] forall p t.
-    S.reverse (S.takeWhile p (S.reverseStream t)) = takeWhileEnd p t
-  #-}
 
 -- | /O(n)/ 'dropWhile' @p@ @t@ returns the suffix remaining after
 -- 'takeWhile' @p@ @t@. Subject to fusion.
@@ -1276,7 +1269,7 @@ dropWhile p t@(Text arr off len) = loop 0 0
 
 -- | /O(n)/ 'dropWhileEnd' @p@ @t@ returns the prefix remaining after
 -- dropping characters that satisfy the predicate @p@ from the end of
--- @t@.  Subject to fusion.
+-- @t@.
 --
 -- Examples:
 --
@@ -1289,13 +1282,6 @@ dropWhileEnd p t@(Text arr off len) = loop (len-1) len
                    | otherwise = Text arr off l
             where (c,d)        = reverseIter t i
 {-# INLINE [1] dropWhileEnd #-}
-
-{-# RULES
-"TEXT dropWhileEnd -> fused" [~1] forall p t.
-    dropWhileEnd p t = S.reverse (S.dropWhile p (S.reverseStream t))
-"TEXT dropWhileEnd -> unfused" [1] forall p t.
-    S.reverse (S.dropWhile p (S.reverseStream t)) = dropWhileEnd p t
-  #-}
 
 -- | /O(n)/ 'dropAround' @p@ @t@ returns the substring remaining after
 -- dropping characters that satisfy the predicate @p@ from both the
