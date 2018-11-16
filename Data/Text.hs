@@ -1466,7 +1466,7 @@ chunksOf k = go
 
 -- | /O(n)/ The 'find' function takes a predicate and a 'Text', and
 -- returns the first element matching the predicate, or 'Nothing' if
--- there is no such element.
+-- there is no such element. Subject to fusion.
 find :: (Char -> Bool) -> Text -> Maybe Char
 find p t = S.findBy p (stream t)
 {-# INLINE find #-}
@@ -1582,7 +1582,7 @@ breakOnAll pat src@(Text arr off slen)
 -- searching for the index of @\"::\"@ and taking the substrings
 -- before and after that index, you would instead use @breakOnAll \"::\"@.
 
--- | /O(n)/ 'Text' index (subscript) operator, starting from 0.
+-- | /O(n)/ 'Text' index (subscript) operator, starting from 0. Subject to fusion.
 index :: Text -> Int -> Char
 index t n = S.index (stream t) n
 {-# INLINE index #-}
