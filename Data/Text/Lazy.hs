@@ -1229,7 +1229,7 @@ dropWhileEnd p = go
 
 -- | /O(n)/ 'dropAround' @p@ @t@ returns the substring remaining after
 -- dropping characters that satisfy the predicate @p@ from both the
--- beginning and end of @t@.  Subject to fusion.
+-- beginning and end of @t@.
 dropAround :: (Char -> Bool) -> Text -> Text
 dropAround p = dropWhile p . dropWhileEnd p
 {-# INLINE [1] dropAround #-}
