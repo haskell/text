@@ -1241,7 +1241,7 @@ dropAround p = dropWhile p . dropWhileEnd p
 -- > dropWhile isSpace
 stripStart :: Text -> Text
 stripStart = dropWhile isSpace
-{-# INLINE [1] stripStart #-}
+{-# INLINE stripStart #-}
 
 -- | /O(n)/ Remove trailing white space from a string.  Equivalent to:
 --
