@@ -793,7 +793,7 @@ replace s d = intercalate d . splitOn s
 -- itself.
 toCaseFold :: Text -> Text
 toCaseFold t = unstream (S.toCaseFold (stream t))
-{-# INLINE [0] toCaseFold #-}
+{-# INLINE toCaseFold #-}
 
 -- | /O(n)/ Convert a string to lower case, using simple case
 -- conversion.  Subject to fusion.
