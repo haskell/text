@@ -1041,8 +1041,9 @@ replicateChar n c = unstream (S.replicateCharI n (safe c))
 -- 'Text' from a seed value. The function takes the element and
 -- returns 'Nothing' if it is done producing the 'Text', otherwise
 -- 'Just' @(a,b)@.  In this case, @a@ is the next 'Char' in the
--- string, and @b@ is the seed value for further production.  Performs
--- replacement on invalid scalar values.
+-- string, and @b@ is the seed value for further production.
+-- Subject to fusion.
+-- Performs replacement on invalid scalar values.
 unfoldr :: (a -> Maybe (Char,a)) -> a -> Text
 unfoldr f s = unstream (S.unfoldr (firstf safe . f) s)
 {-# INLINE unfoldr #-}
@@ -1052,6 +1053,7 @@ unfoldr f s = unstream (S.unfoldr (firstf safe . f) s)
 -- first argument to 'unfoldrN'. This function is more efficient than
 -- 'unfoldr' when the maximum length of the result is known and
 -- correct, otherwise its performance is similar to 'unfoldr'.
+-- Subject to fusion.
 -- Performs replacement on invalid scalar values.
 unfoldrN :: Int64 -> (a -> Maybe (Char,a)) -> a -> Text
 unfoldrN n f s = unstream (S.unfoldrN n (firstf safe . f) s)
