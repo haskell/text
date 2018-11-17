@@ -1033,6 +1033,8 @@ replicateChar n c = unstream (S.replicateCharI n (safe c))
 {-# RULES
 "LAZY TEXT replicate/singleton -> replicateChar" [~1] forall n c.
     replicate n (singleton c) = replicateChar n c
+"LAZY TEXT replicate/unstream/singleton -> replicateChar" [~1] forall n c.
+    replicate n (unstream (S.singleton c)) = replicateChar n c
   #-}
 
 -- | /O(n)/, where @n@ is the length of the result. The 'unfoldr'
