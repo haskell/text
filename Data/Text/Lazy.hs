@@ -936,8 +936,7 @@ scanl f z t = unstream (S.scanl g z (stream t))
 {-# INLINE scanl #-}
 
 -- | /O(n)/ 'scanl1' is a variant of 'scanl' that has no starting
--- value argument.  Subject to fusion.  Performs replacement on
--- invalid scalar values.
+-- value argument.  Performs replacement on invalid scalar values.
 --
 -- > scanl1 f [x1, x2, ...] == [x1, x1 `f` x2, ...]
 scanl1 :: (Char -> Char -> Char) -> Text -> Text
