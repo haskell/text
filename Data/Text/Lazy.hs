@@ -1659,7 +1659,7 @@ filter p t = unstream (S.filter p (stream t))
 
 -- | /O(n)/ The 'find' function takes a predicate and a 'Text', and
 -- returns the first element in matching the predicate, or 'Nothing'
--- if there is no such element.
+-- if there is no such element. Subject to fusion.
 find :: (Char -> Bool) -> Text -> Maybe Char
 find p t = S.findBy p (stream t)
 {-# INLINE find #-}
@@ -1674,6 +1674,7 @@ partition p t = (filter p t, filter (not . p) t)
 {-# INLINE partition #-}
 
 -- | /O(n)/ 'Text' index (subscript) operator, starting from 0.
+-- Subject to fusion.
 index :: Text -> Int64 -> Char
 index t n = S.index (stream t) n
 {-# INLINE index #-}
