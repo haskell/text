@@ -1759,7 +1759,7 @@ isInfixOf needle haystack
 -- function relies on fusion to avoid materialising the transformed 'Text'
 transformEq :: (Text -> Text) -> Text -> Text -> Bool
 transformEq f x y
-    | length x == length y = P.all (P.uncurry (==)) $ zip (f x) (f y)
+    | length x == length y = S.stream (f x) == S.stream (f y)
     | otherwise            = False
 {-# INLINE [1] transformEq #-}
 
