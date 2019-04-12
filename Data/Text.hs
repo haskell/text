@@ -399,7 +399,7 @@ instance Binary Text where
 -- improvements.
 --
 -- The original discussion is archived here:
--- <http://groups.google.com/group/haskell-cafe/browse_thread/thread/b5bbb1b28a7e525d/0639d46852575b93 could we get a Data instance for Data.Text.Text? >
+-- <https://mail.haskell.org/pipermail/haskell-cafe/2010-January/072379.html could we get a Data instance for Data.Text.Text? >
 --
 -- The followup discussion that changed the behavior of 'Data.Set.Set'
 -- and 'Data.Map.Map' is archived here:
