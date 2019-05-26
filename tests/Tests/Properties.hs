@@ -29,7 +29,7 @@ import Numeric (showEFloat, showFFloat, showGFloat, showHex)
 import Prelude hiding (replicate)
 import Test.Framework (Test, testGroup)
 import Test.Framework.Providers.QuickCheck2 (testProperty)
-import Test.QuickCheck hiding ((.&.))
+import Test.QuickCheck hiding ((.&.), Small(..))
 import Test.QuickCheck.Monadic
 import Test.QuickCheck.Property (Property(..))
 import Test.QuickCheck.Unicode (char)
@@ -849,6 +849,38 @@ tb_decimal_big_int64 (BigBounded (a::Int64)) = tb_decimal a
 tb_decimal_big_word (BigBounded (a::Word)) = tb_decimal a
 tb_decimal_big_word64 (BigBounded (a::Word64)) = tb_decimal a
 
+tb_paddedDecimal :: (Integral a, Show a) => Small -> a -> Bool
+tb_paddedDecimal padLenSmall = (TB.toLazyText . TB.paddedDecimal padLen) `eq` (expected . fromIntegral)
+  where
+  padLen = fromIntegral padLenSmall
+  expected :: Integer -> TL.Text
+  expected a
+    | abs a >= 10 ^ padLen = TL.pack (show a)
+    | a < 0 = "-" `TL.append` expected (abs a)
+    | otherwise =
+        let
+          shown = TL.pack (show a)
+        in
+          TL.replicate (fromIntegral padLen - TL.length shown) "0" `TL.append` shown
+
+tb_paddedDecimal_integer len (a::Integer) = tb_paddedDecimal len a
+tb_paddedDecimal_integer_big len (Big a) = tb_paddedDecimal len a
+tb_paddedDecimal_int len (a::Int) = tb_paddedDecimal len a
+tb_paddedDecimal_int8 len (a::Int8) = tb_paddedDecimal len a
+tb_paddedDecimal_int16 len (a::Int16) = tb_paddedDecimal len a
+tb_paddedDecimal_int32 len (a::Int32) = tb_paddedDecimal len a
+tb_paddedDecimal_int64 len (a::Int64) = tb_paddedDecimal len a
+tb_paddedDecimal_word len (a::Word) = tb_paddedDecimal len a
+tb_paddedDecimal_word8 len (a::Word8) = tb_paddedDecimal len a
+tb_paddedDecimal_word16 len (a::Word16) = tb_paddedDecimal len a
+tb_paddedDecimal_word32 len (a::Word32) = tb_paddedDecimal len a
+tb_paddedDecimal_word64 len (a::Word64) = tb_paddedDecimal len a
+
+tb_paddedDecimal_big_int len (BigBounded (a::Int)) = tb_paddedDecimal len a
+tb_paddedDecimal_big_int64 len (BigBounded (a::Int64)) = tb_paddedDecimal len a
+tb_paddedDecimal_big_word len (BigBounded (a::Word)) = tb_paddedDecimal len a
+tb_paddedDecimal_big_word64 len (BigBounded (a::Word64)) = tb_paddedDecimal len a
+
 tb_hex :: (Integral a, Show a) => a -> Bool
 tb_hex = (TB.toLazyText . TB.hexadecimal) `eq` (TL.pack . flip showHex "")
 
@@ -1400,6 +1432,24 @@ tests =
         testProperty "tb_decimal_big_word" tb_decimal_big_word,
         testProperty "tb_decimal_big_int64" tb_decimal_big_int64,
         testProperty "tb_decimal_big_word64" tb_decimal_big_word64
+      ],
+      testGroup "paddedDecimal" [
+        testProperty "tb_paddedDecimal_int" tb_paddedDecimal_int,
+        testProperty "tb_paddedDecimal_int8" tb_paddedDecimal_int8,
+        testProperty "tb_paddedDecimal_int16" tb_paddedDecimal_int16,
+        testProperty "tb_paddedDecimal_int32" tb_paddedDecimal_int32,
+        testProperty "tb_paddedDecimal_int64" tb_paddedDecimal_int64,
+        testProperty "tb_paddedDecimal_integer" tb_paddedDecimal_integer,
+        testProperty "tb_paddedDecimal_integer_big" tb_paddedDecimal_integer_big,
+        testProperty "tb_paddedDecimal_word" tb_paddedDecimal_word,
+        testProperty "tb_paddedDecimal_word8" tb_paddedDecimal_word8,
+        testProperty "tb_paddedDecimal_word16" tb_paddedDecimal_word16,
+        testProperty "tb_paddedDecimal_word32" tb_paddedDecimal_word32,
+        testProperty "tb_paddedDecimal_word64" tb_paddedDecimal_word64,
+        testProperty "tb_paddedDecimal_big_int" tb_paddedDecimal_big_int,
+        testProperty "tb_paddedDecimal_big_word" tb_paddedDecimal_big_word,
+        testProperty "tb_paddedDecimal_big_int64" tb_paddedDecimal_big_int64,
+        testProperty "tb_paddedDecimal_big_word64" tb_paddedDecimal_big_word64
       ],
       testGroup "hexadecimal" [
         testProperty "tb_hexadecimal_int" tb_hexadecimal_int,

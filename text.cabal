@@ -232,6 +232,7 @@ test-suite tests
     Tests.QuickCheckUtils
     Tests.Regressions
     Tests.SlowFunctions
+    Tests.Unit
     Tests.Utils
 
   -- Same as in `library` stanza; this is needed by cabal for accurate

@@ -16,9 +16,11 @@
 module Data.Text.Lazy.Builder.Int
     (
       decimal
+    , paddedDecimal
     , hexadecimal
     ) where
 
+import Control.Monad (forM_, unless)
 import Data.Int (Int8, Int16, Int32, Int64)
 import Data.Monoid (mempty)
 import qualified Data.ByteString.Unsafe as B
@@ -123,6 +125,49 @@ posDecimal marr off0 ds v0 = go (off0 + ds - 1) v0
           unsafeWrite marr off $ get (j + 1)
           unsafeWrite marr (off - 1) $ get j
         get = fromIntegral . B.unsafeIndex digits
+
+-- | Prefix the output digits with the given with zeroes to the given
+-- length. If the padding length is zero or negative, this is
+-- identical to 'decimal'.
+--
+-- Note that, with fixed padding length /N/, the output is only
+-- constant-width if the input is always both positive or always
+-- negative and with absolute value less than /10^N/.
+--
+-- >>>  paddedDecimal 3 12
+-- "012"
+-- >>>  paddedDecimal 3 1234
+-- "1234"
+-- >>>  paddedDecimal 3 (-123)
+-- "-123"
+-- >>>  paddedDecimal 5 (-12)
+-- "-00012"
+--
+-- @since 1.2.5
+paddedDecimal :: Integral a => Int -> a -> Builder
+paddedDecimal padLen i
+    | i < 0 = let (q, r) = i `quotRem` 10
+                  qq = -q
+                  !n = if q == 0
+                       then 0
+                       else countDigits qq
+                  padding = max 0 $ padLen - n - 1
+              in writeN (n + padding + 2) $ \marr off -> do
+                   unsafeWrite marr off minus
+                   zeroPad marr (off + 1) padding
+                   unless (q == 0) $
+                     posDecimal marr (off + 1 + padding) n qq
+                   unsafeWrite marr (off + 1 + padding + n) (i2w (-r))
+    | otherwise = let !n = countDigits i
+                      padding = max 0 $ padLen - n
+                  in writeN (n + padding) $ \marr off -> do
+                       zeroPad marr off padding
+                       posDecimal marr (off + padding) n i
+
+zeroPad :: forall s. MArray s -> Int -> Int -> ST s ()
+zeroPad marr off iters =
+  forM_ [0..iters - 1] $ \i ->
+    unsafeWrite marr (off + i) zero
 
 minus, zero :: Word16
 {-# INLINE minus #-}
