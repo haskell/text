@@ -111,7 +111,6 @@ library
     Data.Text.Internal.Encoding.Utf16
     Data.Text.Internal.Encoding.Utf32
     Data.Text.Internal.Encoding.Utf8
-    Data.Text.Internal.Functions
     Data.Text.Internal.Fusion
     Data.Text.Internal.Fusion.CaseMapping
     Data.Text.Internal.Fusion.Common
@@ -215,7 +214,6 @@ test-suite tests
     Data.Text.Internal.Encoding.Utf16
     Data.Text.Internal.Encoding.Utf32
     Data.Text.Internal.Encoding.Utf8
-    Data.Text.Internal.Functions
     Data.Text.Internal.Fusion
     Data.Text.Internal.Fusion.CaseMapping
     Data.Text.Internal.Fusion.Common

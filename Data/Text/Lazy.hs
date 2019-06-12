@@ -228,7 +228,6 @@ import Data.Text.Internal.Lazy (Text(..), chunk, empty, foldlChunks,
                                 foldrChunks, smallChunkSize)
 import Data.Text.Internal (firstf, safe, text)
 import Data.Text.Lazy.Encoding (decodeUtf8', encodeUtf8)
-import qualified Data.Text.Internal.Functions as F
 import Data.Text.Internal.Lazy.Search (indices)
 #if __GLASGOW_HASKELL__ >= 702
 import qualified GHC.CString as GHC
@@ -651,7 +650,7 @@ map f t = unstream (S.map (safe . f) (stream t))
 -- 'Text's and concatenates the list after interspersing the first
 -- argument between each element of the list.
 intercalate :: Text -> [Text] -> Text
-intercalate t = concat . (F.intersperse t)
+intercalate t = concat . (L.intersperse t)
 {-# INLINE intercalate #-}
 
 -- | /O(n)/ The 'intersperse' function takes a character and places it
