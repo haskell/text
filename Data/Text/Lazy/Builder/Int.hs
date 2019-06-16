@@ -38,17 +38,7 @@ import Prelude hiding ((<>))
 #ifdef  __GLASGOW_HASKELL__
 # if defined(INTEGER_GMP)
 import GHC.Integer.GMP.Internals (Integer(S#))
-# elif defined(INTEGER_SIMPLE)
-import GHC.Integer
-# else
-# error "You need to use either GMP or integer-simple."
 # endif
-#endif
-
-#if defined(INTEGER_GMP) || defined(INTEGER_SIMPLE)
-# define PAIR(a,b) (# a,b #)
-#else
-# define PAIR(a,b) (a,b)
 #endif
 
 decimal :: Integral a => a -> Builder
@@ -215,12 +205,12 @@ integer base i
       | otherwise   = splith p (splitf (p*p) n)
 
     splith p (n:ns) = case n `quotRemInteger` p of
-                        PAIR(q,r) | q > 0     -> q : r : splitb p ns
+                        (# q,r #) | q > 0     -> q : r : splitb p ns
                                   | otherwise -> r : splitb p ns
     splith _ _      = error "splith: the impossible happened."
 
     splitb p (n:ns) = case n `quotRemInteger` p of
-                        PAIR(q,r) -> q : r : splitb p ns
+                        (# q,r #) -> q : r : splitb p ns
     splitb _ _      = []
 
     T maxInt10 maxDigits10 =
@@ -238,7 +228,7 @@ integer base i
               | otherwise  = maxDigits16
 
     putH (n:ns) = case n `quotRemInteger` maxInt of
-                    PAIR(x,y)
+                    (# x,y #)
                         | q > 0     -> int q <> pblock r <> putB ns
                         | otherwise -> int r <> putB ns
                         where q = fromInteger x
@@ -246,7 +236,7 @@ integer base i
     putH _ = error "putH: the impossible happened"
 
     putB (n:ns) = case n `quotRemInteger` maxInt of
-                    PAIR(x,y) -> pblock q <> pblock r <> putB ns
+                    (# x,y #) -> pblock q <> pblock r <> putB ns
                         where q = fromInteger x
                               r = fromInteger y
     putB _ = Data.Monoid.mempty

@@ -83,11 +83,10 @@ flag developer
   default: False
   manual: True
 
-flag integer-simple
+flag integer-gmp
   description:
-    Use the [simple integer library](http://hackage.haskell.org/package/integer-simple)
-    instead of [integer-gmp](http://hackage.haskell.org/package/integer-gmp)
-  default: False
+    Use [integer-gmp](http://hackage.haskell.org/package/integer-gmp) specific optimizations.
+  default: True
   manual: False
 
 library
@@ -161,10 +160,7 @@ library
     ghc-options: -Werror
     cpp-options: -DASSERTS
 
-  if flag(integer-simple)
-    cpp-options: -DINTEGER_SIMPLE
-    build-depends: integer-simple >= 0.1 && < 0.5
-  else
+  if flag(integer-gmp)
     cpp-options: -DINTEGER_GMP
     build-depends: integer-gmp >= 0.2 && < 1.1
 
@@ -265,10 +261,7 @@ test-suite tests
   else
     build-depends: bytestring         >= 0.10.4
 
-  if flag(integer-simple)
-    cpp-options: -DINTEGER_SIMPLE
-    build-depends: integer-simple >= 0.1 && < 0.5
-  else
+  if flag(integer-gmp)
     cpp-options: -DINTEGER_GMP
     build-depends: integer-gmp >= 0.2
 
