@@ -793,7 +793,7 @@ replace s d = intercalate d . splitOn s
 -- itself.
 toCaseFold :: Text -> Text
 toCaseFold t = unstream (S.toCaseFold (stream t))
-{-# INLINE [0] toCaseFold #-}
+{-# INLINE toCaseFold #-}
 
 -- | /O(n)/ Convert a string to lower case, using simple case
 -- conversion.  Subject to fusion.
@@ -936,8 +936,7 @@ scanl f z t = unstream (S.scanl g z (stream t))
 {-# INLINE scanl #-}
 
 -- | /O(n)/ 'scanl1' is a variant of 'scanl' that has no starting
--- value argument.  Subject to fusion.  Performs replacement on
--- invalid scalar values.
+-- value argument.  Performs replacement on invalid scalar values.
 --
 -- > scanl1 f [x1, x2, ...] == [x1, x1 `f` x2, ...]
 scanl1 :: (Char -> Char -> Char) -> Text -> Text
@@ -1034,6 +1033,8 @@ replicateChar n c = unstream (S.replicateCharI n (safe c))
 {-# RULES
 "LAZY TEXT replicate/singleton -> replicateChar" [~1] forall n c.
     replicate n (singleton c) = replicateChar n c
+"LAZY TEXT replicate/unstream/singleton -> replicateChar" [~1] forall n c.
+    replicate n (unstream (S.singleton c)) = replicateChar n c
   #-}
 
 -- | /O(n)/, where @n@ is the length of the result. The 'unfoldr'
@@ -1041,8 +1042,9 @@ replicateChar n c = unstream (S.replicateCharI n (safe c))
 -- 'Text' from a seed value. The function takes the element and
 -- returns 'Nothing' if it is done producing the 'Text', otherwise
 -- 'Just' @(a,b)@.  In this case, @a@ is the next 'Char' in the
--- string, and @b@ is the seed value for further production.  Performs
--- replacement on invalid scalar values.
+-- string, and @b@ is the seed value for further production.
+-- Subject to fusion.
+-- Performs replacement on invalid scalar values.
 unfoldr :: (a -> Maybe (Char,a)) -> a -> Text
 unfoldr f s = unstream (S.unfoldr (firstf safe . f) s)
 {-# INLINE unfoldr #-}
@@ -1052,6 +1054,7 @@ unfoldr f s = unstream (S.unfoldr (firstf safe . f) s)
 -- first argument to 'unfoldrN'. This function is more efficient than
 -- 'unfoldr' when the maximum length of the result is known and
 -- correct, otherwise its performance is similar to 'unfoldr'.
+-- Subject to fusion.
 -- Performs replacement on invalid scalar values.
 unfoldrN :: Int64 -> (a -> Maybe (Char,a)) -> a -> Text
 unfoldrN n f s = unstream (S.unfoldrN n (firstf safe . f) s)
@@ -1228,7 +1231,7 @@ dropWhileEnd p = go
 
 -- | /O(n)/ 'dropAround' @p@ @t@ returns the substring remaining after
 -- dropping characters that satisfy the predicate @p@ from both the
--- beginning and end of @t@.  Subject to fusion.
+-- beginning and end of @t@.
 dropAround :: (Char -> Bool) -> Text -> Text
 dropAround p = dropWhile p . dropWhileEnd p
 {-# INLINE [1] dropAround #-}
@@ -1238,7 +1241,7 @@ dropAround p = dropWhile p . dropWhileEnd p
 -- > dropWhile isSpace
 stripStart :: Text -> Text
 stripStart = dropWhile isSpace
-{-# INLINE [1] stripStart #-}
+{-# INLINE stripStart #-}
 
 -- | /O(n)/ Remove trailing white space from a string.  Equivalent to:
 --
@@ -1656,7 +1659,7 @@ filter p t = unstream (S.filter p (stream t))
 
 -- | /O(n)/ The 'find' function takes a predicate and a 'Text', and
 -- returns the first element in matching the predicate, or 'Nothing'
--- if there is no such element.
+-- if there is no such element. Subject to fusion.
 find :: (Char -> Bool) -> Text -> Maybe Char
 find p t = S.findBy p (stream t)
 {-# INLINE find #-}
@@ -1671,6 +1674,7 @@ partition p t = (filter p t, filter (not . p) t)
 {-# INLINE partition #-}
 
 -- | /O(n)/ 'Text' index (subscript) operator, starting from 0.
+-- Subject to fusion.
 index :: Text -> Int64 -> Char
 index t n = S.index (stream t) n
 {-# INLINE index #-}

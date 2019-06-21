@@ -605,7 +605,7 @@ isSingleton = S.isSingleton . stream
 -- Subject to fusion.
 length :: Text -> Int
 length t = S.length (stream t)
-{-# INLINE [0] length #-}
+{-# INLINE [1] length #-}
 -- length needs to be phased after the compareN/length rules otherwise
 -- it may inline before the rules have an opportunity to fire.
 
@@ -702,7 +702,7 @@ intersperse c t = unstream (S.intersperse (safe c) (stream t))
 -- >>> T.reverse "desrever"
 -- "reversed"
 --
--- Subject to fusion.
+-- Subject to fusion (fuses with its argument).
 reverse :: Text -> Text
 reverse t = S.reverse (stream t)
 {-# INLINE reverse #-}
@@ -1033,8 +1033,7 @@ scanl f z t = unstream (S.scanl g z (stream t))
 {-# INLINE scanl #-}
 
 -- | /O(n)/ 'scanl1' is a variant of 'scanl' that has no starting
--- value argument.  Subject to fusion.  Performs replacement on
--- invalid scalar values.
+-- value argument. Performs replacement on invalid scalar values.
 --
 -- > scanl1 f [x1, x2, ...] == [x1, x1 `f` x2, ...]
 scanl1 :: (Char -> Char -> Char) -> Text -> Text
@@ -1052,8 +1051,7 @@ scanr f z = S.reverse . S.reverseScanr g z . reverseStream
 {-# INLINE scanr #-}
 
 -- | /O(n)/ 'scanr1' is a variant of 'scanr' that has no starting
--- value argument.  Subject to fusion.  Performs replacement on
--- invalid scalar values.
+-- value argument. Performs replacement on invalid scalar values.
 scanr1 :: (Char -> Char -> Char) -> Text -> Text
 scanr1 f t | null t    = empty
            | otherwise = scanr f (last t) (init t)
@@ -1237,7 +1235,7 @@ takeWhile p t@(Text arr off len) = loop 0
 
 -- | /O(n)/ 'takeWhileEnd', applied to a predicate @p@ and a 'Text',
 -- returns the longest suffix (possibly empty) of elements that
--- satisfy @p@.  Subject to fusion.
+-- satisfy @p@.
 -- Examples:
 --
 -- >>> takeWhileEnd (=='o') "foo"
@@ -1251,13 +1249,6 @@ takeWhileEnd p t@(Text arr off len) = loop (len-1) len
                    | otherwise = text arr (off+l) (len-l)
             where (c,d)        = reverseIter t i
 {-# INLINE [1] takeWhileEnd #-}
-
-{-# RULES
-"TEXT takeWhileEnd -> fused" [~1] forall p t.
-    takeWhileEnd p t = S.reverse (S.takeWhile p (S.reverseStream t))
-"TEXT takeWhileEnd -> unfused" [1] forall p t.
-    S.reverse (S.takeWhile p (S.reverseStream t)) = takeWhileEnd p t
-  #-}
 
 -- | /O(n)/ 'dropWhile' @p@ @t@ returns the suffix remaining after
 -- 'takeWhile' @p@ @t@. Subject to fusion.
@@ -1278,7 +1269,7 @@ dropWhile p t@(Text arr off len) = loop 0 0
 
 -- | /O(n)/ 'dropWhileEnd' @p@ @t@ returns the prefix remaining after
 -- dropping characters that satisfy the predicate @p@ from the end of
--- @t@.  Subject to fusion.
+-- @t@.
 --
 -- Examples:
 --
@@ -1292,13 +1283,6 @@ dropWhileEnd p t@(Text arr off len) = loop (len-1) len
             where (c,d)        = reverseIter t i
 {-# INLINE [1] dropWhileEnd #-}
 
-{-# RULES
-"TEXT dropWhileEnd -> fused" [~1] forall p t.
-    dropWhileEnd p t = S.reverse (S.dropWhile p (S.reverseStream t))
-"TEXT dropWhileEnd -> unfused" [1] forall p t.
-    S.reverse (S.dropWhile p (S.reverseStream t)) = dropWhileEnd p t
-  #-}
-
 -- | /O(n)/ 'dropAround' @p@ @t@ returns the substring remaining after
 -- dropping characters that satisfy the predicate @p@ from both the
 -- beginning and end of @t@.  Subject to fusion.
@@ -1311,7 +1295,7 @@ dropAround p = dropWhile p . dropWhileEnd p
 -- > dropWhile isSpace
 stripStart :: Text -> Text
 stripStart = dropWhile isSpace
-{-# INLINE [1] stripStart #-}
+{-# INLINE stripStart #-}
 
 -- | /O(n)/ Remove trailing white space from a string.  Equivalent to:
 --
@@ -1482,7 +1466,7 @@ chunksOf k = go
 
 -- | /O(n)/ The 'find' function takes a predicate and a 'Text', and
 -- returns the first element matching the predicate, or 'Nothing' if
--- there is no such element.
+-- there is no such element. Subject to fusion.
 find :: (Char -> Bool) -> Text -> Maybe Char
 find p t = S.findBy p (stream t)
 {-# INLINE find #-}
@@ -1598,7 +1582,7 @@ breakOnAll pat src@(Text arr off slen)
 -- searching for the index of @\"::\"@ and taking the substrings
 -- before and after that index, you would instead use @breakOnAll \"::\"@.
 
--- | /O(n)/ 'Text' index (subscript) operator, starting from 0.
+-- | /O(n)/ 'Text' index (subscript) operator, starting from 0. Subject to fusion.
 index :: Text -> Int -> Char
 index t n = S.index (stream t) n
 {-# INLINE index #-}
