@@ -1,6 +1,11 @@
-### next
+### 1.2.4.0
 
-* `Lift` instances `Data.Text.Text` and `Data.Text.Lazy.Text`.
+* Add TH `Lift` instances for `Data.Text.Text` and `Data.Text.Lazy.Text` (ghc-232)
+
+* Update Haddock documentation to better reflect fusion eligibility; improve fusion
+  rules for `takeWhileEnd` and `length` (gh-241, ghc-202)
+
+* Support `base-4.13.0.0`
 
 ### 1.2.3.1
 
