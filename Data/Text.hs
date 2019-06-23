@@ -1107,15 +1107,15 @@ replicate n t@(Text a o l)
     | isSingleton t          = replicateChar n (unsafeHead t)
     | otherwise              = Text (A.run x) 0 len
   where
-    len = l `mul` n
+    len = l `mul` n -- TODO: detect overflows
     x :: ST s (A.MArray s)
     x = do
       arr <- A.new len
       A.copyI arr 0 a o l
-      let loop !l =
-            let l2 = l `shiftL` 1 in
-            if l2 > len then A.copyM arr l arr 0 (len - l) >> return arr
-            else A.copyM arr l arr 0 l >> loop l2
+      let loop !l1 =
+            let rest = len - l1 in
+            if rest <= l1 then A.copyM arr l1 arr 0 rest >> return arr
+            else A.copyM arr l1 arr 0 l1 >> loop (l1 `shiftL` 1)
       loop l
 {-# INLINE [1] replicate #-}
 
