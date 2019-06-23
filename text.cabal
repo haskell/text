@@ -1,4 +1,4 @@
-cabal-version:  >= 1.8
+cabal-version:  >= 1.10
 name:           text
 version:        1.2.4.0
 
@@ -143,16 +143,16 @@ library
     Data.Text.Show
 
   build-depends:
-    array      >= 0.3,
-    base       >= 4.2 && < 5,
-    binary,
-    deepseq    >= 1.1.0.0,
-    ghc-prim   >= 0.2,
-    template-haskell
+    array            >= 0.3 && < 0.6,
+    base             >= 4.3 && < 5,
+    binary           >= 0.5 && < 0.9,
+    deepseq          >= 1.1 && < 1.5,
+    ghc-prim         >= 0.2 && < 0.6,
+    template-haskell >= 2.5 && < 2.16
 
   if flag(bytestring-builder)
     build-depends: bytestring         >= 0.9    && < 0.10.4,
-                   bytestring-builder >= 0.10.4.0.2
+                   bytestring-builder >= 0.10.4.0.2 && < 0.11
   else
     build-depends: bytestring         >= 0.10.4 && < 0.11
 
@@ -168,6 +168,36 @@ library
   else
     cpp-options: -DINTEGER_GMP
     build-depends: integer-gmp >= 0.2 && < 1.1
+
+  -- compiler specification
+  default-language: Haskell2010
+  default-extensions:
+    NondecreasingIndentation
+  other-extensions:
+    BangPatterns
+    CPP
+    DeriveDataTypeable
+    ExistentialQuantification
+    ForeignFunctionInterface
+    GeneralizedNewtypeDeriving
+    MagicHash
+    OverloadedStrings
+    Rank2Types
+    RankNTypes
+    RecordWildCards
+    ScopedTypeVariables
+    TypeFamilies
+    UnboxedTuples
+    UnliftedFFITypes
+
+  if impl(ghc >= 7.2)
+    other-extensions: Trustworthy
+  if impl(ghc >= 7.4)
+    other-extensions: Safe
+  if impl(ghc >= 8.0)
+    other-extensions: TemplateHaskellQuotes
+  else
+    other-extensions: TemplateHaskell
 
 test-suite tests
   type:           exitcode-stdio-1.0
@@ -273,6 +303,9 @@ test-suite tests
   else
     cpp-options: -DINTEGER_GMP
     build-depends: integer-gmp >= 0.2
+
+  default-language: Haskell2010
+  default-extensions: NondecreasingIndentation
 
 source-repository head
   type:     git

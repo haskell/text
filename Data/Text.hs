@@ -1,10 +1,7 @@
-{-# LANGUAGE BangPatterns, CPP, MagicHash, Rank2Types, UnboxedTuples #-}
+{-# LANGUAGE BangPatterns, CPP, MagicHash, Rank2Types, UnboxedTuples, TypeFamilies #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 #if __GLASGOW_HASKELL__ >= 702
 {-# LANGUAGE Trustworthy #-}
-#endif
-#if __GLASGOW_HASKELL__ >= 708
-{-# LANGUAGE TypeFamilies #-}
 #endif
 -- Using TemplateHaskell in text unconditionally is unacceptable, as
 -- it's a GHC boot library. TemplateHaskellQuotes was added in 8.0, so
@@ -252,7 +249,7 @@ import qualified Data.Text.Lazy as L
 import Data.Int (Int64)
 #endif
 import GHC.Base (eqInt, neInt, gtInt, geInt, ltInt, leInt)
-#if __GLASGOW_HASKELL__ >= 708
+#if MIN_VERSION_base(4,7,0)
 import qualified GHC.Exts as Exts
 #endif
 import qualified Language.Haskell.TH.Lib as TH
@@ -384,7 +381,7 @@ instance Monoid Text where
 instance IsString Text where
     fromString = pack
 
-#if __GLASGOW_HASKELL__ >= 708
+#if MIN_VERSION_base(4,7,0)
 -- | @since 1.2.0.0
 instance Exts.IsList Text where
     type Item Text = Char
