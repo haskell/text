@@ -29,12 +29,25 @@ description:
     .
     > import qualified Data.Text as T
     .
+    == ICU Support
+    .
     To use an extended and very rich family of functions for working
     with Unicode text (including normalization, regular expressions,
     non-standard encodings, text breaking, and locales), see
     the [text-icu package](https://hackage.haskell.org/package/text-icu)
     based on the well-respected and liberally
     licensed [ICU library](http://site.icu-project.org/).
+    .
+    == Internal Representation: UTF-16 vs. UTF-8
+    .
+    Currently the @text@ library uses UTF-16 as its internal representation
+    which is [neither a fixed-width nor always the most dense representation](http://utf8everywhere.org/)
+    for Unicode text. We're currently investigating the feasibility
+    of [changing Text's internal representation to UTF-8](https://github.com/text-utf8)
+    and if you need such a 'Text' type right now you might be interested in using the spin-off
+    packages <https://hackage.haskell.org/package/text-utf8 text-utf8> and
+    <https://hackage.haskell.org/package/text-short text-short>.
+
 
 license:        BSD2
 license-file:   LICENSE
