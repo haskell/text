@@ -1,5 +1,5 @@
-{-# LANGUAGE BangPatterns, CPP, GeneralizedNewtypeDeriving, MagicHash,
-    UnliftedFFITypes #-}
+{-# LANGUAGE BangPatterns, CPP, ForeignFunctionInterface,
+    GeneralizedNewtypeDeriving, MagicHash, UnliftedFFITypes #-}
 #if __GLASGOW_HASKELL__ >= 702
 {-# LANGUAGE Trustworthy #-}
 #endif
