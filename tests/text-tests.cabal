@@ -1,5 +1,7 @@
+cabal-version: 1.12
 name:          text-tests
 version:       0.0.0.0
+
 synopsis:      Functional tests for the text package
 description:   Functional tests for the text package
 homepage:      https://github.com/bos/text
@@ -13,7 +15,6 @@ maintainer:    Bryan O'Sullivan <bos@serpentine.com>
 category:      Text
 build-type:    Simple
 
-cabal-version: >=1.8
 
 flag hpc
   description: Enable HPC to generate coverage reports
@@ -65,6 +66,9 @@ executable text-tests
                    bytestring-builder >= 0.10.4
   else
     build-depends: bytestring         >= 0.10.4
+
+  default-language: Haskell2010
+  default-extensions: NondecreasingIndentation
 
 executable text-tests-stdio
   main-is:        Tests/IO.hs
@@ -154,3 +158,6 @@ library
                    bytestring-builder >= 0.10.4
   else
     build-depends: bytestring         >= 0.10.4
+
+  default-language: Haskell2010
+  default-extensions: NondecreasingIndentation
