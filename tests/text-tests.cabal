@@ -138,7 +138,6 @@ library
   cpp-options:
     -DTEST_SUITE
     -DASSERTS
-    -DINTEGER_GMP
 
   build-depends:
     array,

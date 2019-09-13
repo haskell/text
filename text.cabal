@@ -161,7 +161,6 @@ library
     cpp-options: -DASSERTS
 
   if flag(integer-gmp)
-    cpp-options: -DINTEGER_GMP
     build-depends: integer-gmp >= 0.2 && < 1.1
 
 test-suite tests
@@ -262,7 +261,6 @@ test-suite tests
     build-depends: bytestring         >= 0.10.4
 
   if flag(integer-gmp)
-    cpp-options: -DINTEGER_GMP
     build-depends: integer-gmp >= 0.2
 
 source-repository head

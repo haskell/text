@@ -28,7 +28,6 @@ executable text-benchmarks
   ghc-options:    -Wall -O2 -rtsopts
   if flag(llvm)
     ghc-options:  -fllvm
-  cpp-options:    -DINTEGER_GMP
   build-depends:  array,
                   base == 4.*,
                   binary,

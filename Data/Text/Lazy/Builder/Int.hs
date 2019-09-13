@@ -36,7 +36,7 @@ import Prelude hiding ((<>))
 #endif
 
 #ifdef  __GLASGOW_HASKELL__
-# if defined(INTEGER_GMP)
+# if defined(MIN_VERSION_integer_gmp)
 import GHC.Integer.GMP.Internals (Integer(S#))
 # endif
 #endif
@@ -189,7 +189,7 @@ hexDigit n
 data T = T !Integer !Int
 
 integer :: Int -> Integer -> Builder
-#ifdef INTEGER_GMP
+#if defined(MIN_VERSION_integer_gmp)
 integer 10 (S# i#) = decimal (I# i#)
 integer 16 (S# i#) = hexadecimal (I# i#)
 #endif
