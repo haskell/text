@@ -254,7 +254,7 @@ import GHC.Base (eqInt, neInt, gtInt, geInt, ltInt, leInt)
 import qualified GHC.Exts as Exts
 #endif
 import qualified Language.Haskell.TH.Lib as TH
-import Language.Haskell.TH.Syntax (Lift, lift)
+import qualified Language.Haskell.TH.Syntax as TH
 #if MIN_VERSION_base(4,7,0)
 import Text.Printf (PrintfArg, formatArg, formatString)
 #endif
@@ -428,8 +428,11 @@ instance Data Text where
 -- it preserves abstraction at the cost of inefficiency.
 --
 -- @since 1.2.4.0
-instance Lift Text where
+instance TH.Lift Text where
   lift = TH.appE (TH.varE 'pack) . TH.stringE . unpack
+#if MIN_VERSION_template_haskell(2,16,0)
+  liftTyped = TH.unsafeTExpCoerce . TH.lift
+#endif
 
 #if MIN_VERSION_base(4,7,0)
 -- | Only defined for @base-4.7.0.0@ and later
