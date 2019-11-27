@@ -28,16 +28,28 @@ import Data.Text.Internal.Builder.Int.Digits (digits)
 import Data.Text.Array
 import Data.Word (Word, Word8, Word16, Word32, Word64)
 import GHC.Base (quotInt, remInt)
-import GHC.Num (quotRemInteger)
+import GHC.Types (Int(..))
 import Control.Monad.ST
 #if MIN_VERSION_base(4,11,0)
 import Prelude hiding ((<>))
 #endif
 
 #ifdef  __GLASGOW_HASKELL__
+
+#if __GLASGOW_HASKELL__ >= 811
+
+import GHC.Num.Integer
+#define HAS_INTEGER_CONSTR 1
+#define quotRemInteger integerQuotRem#
+
+#else
+
+import GHC.Num (quotRemInteger)
+
 # if defined(INTEGER_GMP)
 import GHC.Integer.GMP.Internals (Integer(S#))
-import GHC.Types (Int(I#))
+#define IS S#
+#define HAS_INTEGER_CONSTR 1
 # elif defined(INTEGER_SIMPLE)
 import GHC.Integer ()
 # else
@@ -45,10 +57,6 @@ import GHC.Integer ()
 # endif
 #endif
 
-#if defined(INTEGER_GMP) || defined(INTEGER_SIMPLE)
-# define PAIR(a,b) (# a,b #)
-#else
-# define PAIR(a,b) (a,b)
 #endif
 
 decimal :: Integral a => a -> Builder
@@ -199,9 +207,9 @@ hexDigit n
 data T = T !Integer !Int
 
 integer :: Int -> Integer -> Builder
-#ifdef INTEGER_GMP
-integer 10 (S# i#) = decimal (I# i#)
-integer 16 (S# i#) = hexadecimal (I# i#)
+#ifdef HAS_INTEGER_CONSTR
+integer 10 (IS i#) = decimal (I# i#)
+integer 16 (IS i#) = hexadecimal (I# i#)
 #endif
 integer base i
     | i < 0     = singleton '-' <> go (-i)
@@ -215,12 +223,12 @@ integer base i
       | otherwise   = splith p (splitf (p*p) n)
 
     splith p (n:ns) = case n `quotRemInteger` p of
-                        PAIR(q,r) | q > 0     -> q : r : splitb p ns
+                        (# q,r #) | q > 0     -> q : r : splitb p ns
                                   | otherwise -> r : splitb p ns
     splith _ _      = error "splith: the impossible happened."
 
     splitb p (n:ns) = case n `quotRemInteger` p of
-                        PAIR(q,r) -> q : r : splitb p ns
+                        (# q,r #) -> q : r : splitb p ns
     splitb _ _      = []
 
     T maxInt10 maxDigits10 =
@@ -238,7 +246,7 @@ integer base i
               | otherwise  = maxDigits16
 
     putH (n:ns) = case n `quotRemInteger` maxInt of
-                    PAIR(x,y)
+                    (# x,y #)
                         | q > 0     -> int q <> pblock r <> putB ns
                         | otherwise -> int r <> putB ns
                         where q = fromInteger x
@@ -246,7 +254,7 @@ integer base i
     putH _ = error "putH: the impossible happened"
 
     putB (n:ns) = case n `quotRemInteger` maxInt of
-                    PAIR(x,y) -> pblock q <> pblock r <> putB ns
+                    (# x,y #) -> pblock q <> pblock r <> putB ns
                         where q = fromInteger x
                               r = fromInteger y
     putB _ = Data.Monoid.mempty
