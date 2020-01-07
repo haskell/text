@@ -185,6 +185,7 @@ module Data.Text
     , filter
     , breakOnAll
     , find
+    , elem
     , partition
 
     -- , findSubstring
@@ -1502,6 +1503,13 @@ chunksOf k = go
 
 -------------------------------------------------------------------------------
 -- ** Searching with a predicate
+
+-- | /O(n)/ The 'elem' function takes a character and a 'Text', and
+-- returns 'True' if the element is found in the given 'Text', or
+-- 'False' otherwise.
+elem :: Char -> Text -> Bool
+elem c t = S.any (== c) (stream t)
+{-# INLINE elem #-}
 
 -- | /O(n)/ The 'find' function takes a predicate and a 'Text', and
 -- returns the first element matching the predicate, or 'Nothing' if
