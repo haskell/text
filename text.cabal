@@ -1,6 +1,6 @@
-cabal-version:  >= 1.8
+cabal-version:  1.12
 name:           text
-version:        1.2.3.1
+version:        1.2.3.2
 
 homepage:       https://github.com/haskell/text
 bug-reports:    https://github.com/haskell/text/issues
@@ -43,9 +43,7 @@ maintainer:     Bryan O'Sullivan <bos@serpentine.com>, Herbert Valerio Riedel <h
 copyright:      2009-2011 Bryan O'Sullivan, 2008-2009 Tom Harper
 category:       Data, Text
 build-type:     Simple
-tested-with:    GHC==8.6.1, GHC==8.4.3,
-                GHC==8.2.2, GHC==8.0.2, GHC==7.10.3, GHC==7.8.4,
-                GHC==7.6.3, GHC==7.4.2, GHC==7.2.2, GHC==7.0.4
+tested-with:    GHC==8.10.1
 extra-source-files:
     -- scripts/CaseFolding.txt
     -- scripts/SpecialCasing.txt
@@ -70,13 +68,6 @@ extra-source-files:
     tests/cabal.config
     tests/scripts/*.sh
     tests/text-tests.cabal
-
-flag bytestring-builder
-  description:
-    Depend on the [bytestring-builder](https://hackage.haskell.org/package/bytestring-builder)
-    package for backwards compatibility.
-  default: False
-  manual: False
 
 flag developer
   description: operate in developer mode
@@ -143,17 +134,12 @@ library
     Data.Text.Show
 
   build-depends:
-    array      >= 0.3,
-    base       >= 4.2 && < 5,
-    binary,
-    deepseq    >= 1.1.0.0,
-    ghc-prim   >= 0.2
-
-  if flag(bytestring-builder)
-    build-depends: bytestring         >= 0.9    && < 0.10.4,
-                   bytestring-builder >= 0.10.4.0.2
-  else
-    build-depends: bytestring         >= 0.10.4 && < 0.11
+    array      == 0.5.*,
+    base       == 4.14.*,
+    binary     == 0.8.*,
+    deepseq    >= 1.1.0.0 && < 1.5,
+    ghc-prim   == 0.6.*,
+    bytestring >= 0.10.4 && < 0.11
 
   ghc-options: -Wall -fwarn-tabs -funbox-strict-fields -O2
   if flag(developer)
@@ -167,6 +153,27 @@ library
   else
     cpp-options: -DINTEGER_GMP
     build-depends: integer-gmp >= 0.2 && < 1.1
+
+  -- compiler specification
+  default-language: Haskell2010
+  default-extensions:
+    NondecreasingIndentation
+  other-extensions:
+    BangPatterns
+    CPP
+    DeriveDataTypeable
+    ExistentialQuantification
+    ForeignFunctionInterface
+    GeneralizedNewtypeDeriving
+    MagicHash
+    OverloadedStrings
+    Rank2Types
+    RankNTypes
+    RecordWildCards
+    ScopedTypeVariables
+    TypeFamilies
+    UnboxedTuples
+    UnliftedFFITypes
 
 test-suite tests
   type:           exitcode-stdio-1.0
@@ -257,13 +264,8 @@ test-suite tests
     random,
     test-framework >= 0.4,
     test-framework-hunit >= 0.2,
-    test-framework-quickcheck2 >= 0.2
-
-  if flag(bytestring-builder)
-    build-depends: bytestring         >= 0.9    && < 0.10.4,
-                   bytestring-builder >= 0.10.4
-  else
-    build-depends: bytestring         >= 0.10.4
+    test-framework-quickcheck2 >= 0.2,
+    bytestring >= 0.10.4
 
   if flag(integer-simple)
     cpp-options: -DINTEGER_SIMPLE
@@ -271,6 +273,9 @@ test-suite tests
   else
     cpp-options: -DINTEGER_GMP
     build-depends: integer-gmp >= 0.2
+
+  default-language: Haskell2010
+  default-extensions: NondecreasingIndentation
 
 source-repository head
   type:     git

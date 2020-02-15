@@ -1,4 +1,8 @@
-### 1.2.3.1
+#### 1.2.3.2
+
+* Special release supporting GHC 8.10.1 / `base-4.14.0.0` only
+
+#### 1.2.3.1
 
 * Make `decodeUtf8With` fail explicitly for unsupported non-BMP
   replacement characters instead silent undefined behaviour (gh-213)
