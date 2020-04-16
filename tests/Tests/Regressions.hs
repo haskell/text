@@ -23,6 +23,7 @@ import qualified Data.Text.Encoding as TE
 import qualified Data.Text.Internal as T
 import qualified Data.Text.IO as T
 import qualified Data.Text.Lazy as LT
+import qualified Data.Text.Lazy.Builder as TB
 import qualified Data.Text.Lazy.Encoding as LE
 import qualified Data.Text.Unsafe as T
 import qualified Test.Tasty as F
@@ -101,6 +102,18 @@ t227 =
                 (T.length $ T.filter isLetter $ T.take (-3) "Hello! How are you doing today?")
                 0
 
+t280_fromString :: IO ()
+t280_fromString =
+    assertEqual "TB.fromString performs replacement on invalid scalar values"
+                (TB.toLazyText (TB.fromString "\xD800"))
+                (LT.pack "\xFFFD")
+
+t280_singleton :: IO ()
+t280_singleton =
+    assertEqual "TB.singleton performs replacement on invalid scalar values"
+                (TB.toLazyText (TB.singleton '\xD800'))
+                (LT.pack "\xFFFD")
+
 -- See GitHub issue #301
 -- This tests whether the "TEXT take . drop -> unfused" rule is applied to the
 -- slice function. When the slice function is fused, a new array will be
@@ -129,5 +142,7 @@ tests = F.testGroup "Regressions"
     , F.testCase "t197" t197
     , F.testCase "t221" t221
     , F.testCase "t227" t227
+    , F.testCase "t280/fromString" t280_fromString
+    , F.testCase "t280/singleton" t280_singleton
     , F.testCase "t301" t301
     ]
