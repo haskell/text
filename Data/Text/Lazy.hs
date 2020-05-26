@@ -415,7 +415,9 @@ instance Data Text where
 -- @since 1.2.4.0
 instance TH.Lift Text where
   lift = TH.appE (TH.varE 'pack) . TH.stringE . unpack
-#if MIN_VERSION_template_haskell(2,16,0)
+#if MIN_VERSION_template_haskell(2,17,0)
+  liftTyped = TH.unsafeCodeCoerce . TH.lift
+#elif MIN_VERSION_template_haskell(2,16,0)
   liftTyped = TH.unsafeTExpCoerce . TH.lift
 #endif
 
