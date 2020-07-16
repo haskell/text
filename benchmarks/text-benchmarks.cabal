@@ -2,10 +2,10 @@ cabal-version:       1.12
 name:                text-benchmarks
 version:             0.0.0.0
 synopsis:            Benchmarks for the text package
-description:         Benchmarks for the text package
+description:         Benchmarks for the text package.
 homepage:            https://bitbucket.org/bos/text
 license:             BSD2
-license-file:        ../LICENSE
+license-file:        LICENSE
 author:              Jasper Van der Jeugt <jaspervdj@gmail.com>,
                      Bryan O'Sullivan <bos@serpentine.com>,
                      Tom Harper <rtomharper@googlemail.com>,
@@ -13,6 +13,11 @@ author:              Jasper Van der Jeugt <jaspervdj@gmail.com>,
 maintainer:          jaspervdj@gmail.com
 category:            Text
 build-type:          Simple
+tested-with:    GHC==8.10.1, GHC==8.8.3, GHC==8.6.5, GHC==8.4.4,
+                GHC==8.2.2, GHC==8.0.2, GHC==7.10.3
+
+extra-source-files:
+    include/*.h
 
 flag bytestring-builder
   description: Depend on the bytestring-builder package for backwards compatibility.
@@ -54,7 +59,7 @@ executable text-benchmarks
     build-depends: bytestring         >= 0.10.4
 
   -- modules for benchmark proper
-  c-sources:      cbits/time_iconv.c
+  c-sources:      cbits-bench/time_iconv.c
   hs-source-dirs: haskell
   main-is:        Benchmarks.hs
   other-modules:
@@ -81,9 +86,9 @@ executable text-benchmarks
 
   -- Source code for IUT (implementation under test)
   -- "borrowed" from parent folder
-  include-dirs:   ../include
-  c-sources:      ../cbits/cbits.c
-  hs-source-dirs: ..
+  include-dirs:   include
+  c-sources:      cbits/cbits.c
+  hs-source-dirs: src
   other-modules:
     Data.Text
     Data.Text.Array
@@ -132,6 +137,7 @@ executable text-benchmarks
 
   default-language: Haskell2010
   default-extensions: NondecreasingIndentation
+  other-extensions: DeriveAnyClass
 
 
 executable text-multilang
