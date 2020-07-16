@@ -11,3 +11,8 @@
 
 # Test data repo ignored. Please see instruction in tests-and-benchmarks.markdown
 /tests/text-test-data/
+
+# Data for case functions
+/scripts/CaseFolding.txt
+/scripts/SpecialCasing.txt
+/scripts/db-*.txt

@@ -1,6 +1,14 @@
 Tests and benchmarks
 ====================
 
+This file is most likely outdated. You can run tests by
+
+    cabal run text-tests:test:tests --project-file=cabal.tests.project --with-compiler ghc-8.6.5 --
+
+Or to run with all GHCs
+
+    sh scripts/tests.sh -- <arguments>
+
 Prerequisites
 -------------
 

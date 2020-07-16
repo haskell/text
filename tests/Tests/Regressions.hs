@@ -7,7 +7,9 @@ module Tests.Regressions
     ) where
 
 import Control.Exception (SomeException, handle)
-import Data.Char (isLetter)
+import Control.Monad (forM_)
+import Data.Char (isLetter, ord)
+import Numeric (showHex)
 import System.IO
 import Test.HUnit (assertBool, assertEqual, assertFailure)
 import qualified Data.ByteString as B
@@ -23,6 +25,8 @@ import qualified Test.Framework as F
 import qualified Test.Framework.Providers.HUnit as F
 
 import Tests.Utils (withTempFile)
+
+import MurMurVariant
 
 -- Reported by Michael Snoyman: UTF-8 encoding a large lazy bytestring
 -- caused either a segfault or attempt to allocate a negative number
@@ -95,6 +99,40 @@ t227 =
                 (T.length $ T.filter isLetter $ T.take (-3) "Hello! How are you doing today?")
                 0
 
+t277 :: IO ()
+t277 = do
+    forM_ [ c | c <- [ minBound .. maxBound ] ] $ \c -> do
+        let t = T.singleton c
+        assertEqual
+            ("toCaseFold should be idempotent: " ++ [c] ++ " 0x" ++ showHex (ord c) "")
+            (T.toCaseFold t)
+            (T.toCaseFold (T.toCaseFold t))
+
+    -- and we also verify that we get same results...
+    let allChars = T.pack [ minBound .. maxBound ]
+    assertEqual "allChars hash"
+        (mmvFromInteger 0x64562e6ae39a64e7)
+        (mmv (TE.encodeUtf8 allChars))
+
+    assertEqual "toCaseFold allChars hash"
+        (mmvFromInteger 0x556b68ddeac651da)
+        (mmv (TE.encodeUtf8 (T.toCaseFold allChars)))
+
+    -- This fails.
+    --
+    -- We get the written hash on GHC-8.10 .. 8.8,
+    -- but with GHC-8.6 (which doesn't use Unicode 12.0 data),
+    -- we get different one.
+    --
+    -- For now, this is "proof" that our hash function notices changes
+    -- in the input :)
+    --
+    -- To fix this we need a parser for UnicodeData.txt
+    --
+    -- assertEqual "toLower allChars hash"
+    --     (mmvFromInteger 0xf6c29da3cab6901c)
+    --     (mmv (TE.encodeUtf8 (T.toLower allChars)))
+
 tests :: F.Test
 tests = F.testGroup "Regressions"
     [ F.testCase "hGetContents_crash" hGetContents_crash
@@ -105,4 +143,5 @@ tests = F.testGroup "Regressions"
     , F.testCase "t197" t197
     , F.testCase "t221" t221
     , F.testCase "t227" t227
+    , F.testCase "t277" t277
     ]

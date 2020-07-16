@@ -92,6 +92,7 @@ test-suite tests
   hs-source-dirs: .
   main-is:        Tests.hs
   other-modules:
+    MurMurVariant
     Tests.Properties
     Tests.Properties.Mul
     Tests.QuickCheckUtils

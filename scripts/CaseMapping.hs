@@ -5,11 +5,23 @@ import Arsec
 import CaseFolding
 import SpecialCasing
 
+import qualified Data.Map as Map
+
+-- 1. download SpecialCasing.txt and CaseFolding.txt files from unicode.org
+--
+-- 2. dump Char DB by running dump.sh
+--
+-- 3. run from scripts/ directory with
+--
+--     runghc-8.6.5 -package-env=- CaseMapping.hs
+--
+
 main = do
   args <- getArgs
   let oname = case args of
-                [] -> "../Data/Text/Internal/Fusion/CaseMapping.hs"
+                [] -> "../src/Data/Text/Internal/Fusion/CaseMapping.hs"
                 [o] -> o
+  dbs <- loadDBs
   psc <- parseSC "SpecialCasing.txt"
   pcf <- parseCF "CaseFolding.txt"
   scs <- case psc of
@@ -34,5 +46,29 @@ main = do
   mapM_ (hPutStrLn h) (mapSC "upper" upper toUpper scs)
   mapM_ (hPutStrLn h) (mapSC "lower" lower toLower scs)
   mapM_ (hPutStrLn h) (mapSC "title" title toTitle scs)
-  mapM_ (hPutStrLn h) (mapCF cfs)
+  mapM_ (hPutStrLn h) (mapCF dbs cfs)
   hClose h
+
+loadDBs :: IO [Map.Map Char (Char,Char,Char)]
+loadDBs = mapM loadDB
+    [ "7.0.4"
+    , "7.2.2"
+    , "7.4.2"
+    , "7.6.3"
+    , "7.8.4"
+    , "7.10.3"
+
+    , "8.0.2"
+    , "8.2.2"
+    , "8.4.4"
+    , "8.6.5"
+    , "8.8.4"
+    , "8.10.2"
+
+    -- , "9.0.1"
+    ]
+  where
+    loadDB v = fmap (f . read) (readFile ("db-" ++ v ++ ".txt"))
+
+    f :: [(Char,Char,Char,Char)] -> Map.Map Char (Char,Char,Char)
+    f = Map.fromList . map (\(c,u,l,t) -> (c,(u,l,t)))

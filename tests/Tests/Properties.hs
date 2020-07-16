@@ -371,11 +371,15 @@ sf_toCaseFold_length p xs =
     where s = S.streamList xs
 t_toCaseFold_length t = T.length (T.toCaseFold t) >= T.length t
 tl_toCaseFold_length t = TL.length (TL.toCaseFold t) >= TL.length t
+t_toCaseFold_idempotent t = T.toCaseFold (T.toCaseFold t) == T.toCaseFold t
+tl_toCaseFold_idempotent t = TL.toCaseFold (TL.toCaseFold t) == TL.toCaseFold t
+
 t_toLower_length t = T.length (T.toLower t) >= T.length t
 t_toLower_lower t = p (T.toLower t) >= p t
     where p = T.length . T.filter isLower
 tl_toLower_lower t = p (TL.toLower t) >= p t
     where p = TL.length . TL.filter isLower
+
 t_toUpper_length t = T.length (T.toUpper t) >= T.length t
 t_toUpper_upper t = p (T.toUpper t) >= p t
     where p = T.length . T.filter isUpper
@@ -1118,6 +1122,8 @@ tests =
         testProperty "sf_toCaseFold_length" sf_toCaseFold_length,
         testProperty "t_toCaseFold_length" t_toCaseFold_length,
         testProperty "tl_toCaseFold_length" tl_toCaseFold_length,
+        testProperty "t_toCaseFold_idempotent" t_toCaseFold_idempotent,
+        testProperty "tl_toCaseFold_idempotent" tl_toCaseFold_idempotent,
         testProperty "t_toLower_length" t_toLower_length,
         testProperty "t_toLower_lower" t_toLower_lower,
         testProperty "tl_toLower_lower" tl_toLower_lower,
