@@ -1,3 +1,7 @@
+### Next
+
+* Added `Data.Text.Lazy.Builder.paddedDecimal`.
+
 ### 1.2.4.0
 
 * Add TH `Lift` instances for `Data.Text.Text` and `Data.Text.Lazy.Text` (gh-232)
