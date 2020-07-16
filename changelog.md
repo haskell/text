@@ -1,3 +1,7 @@
+### 1.2.4.1
+
+* Support `template-haskell-2.17.0.0`
+
 ### 1.2.4.0
 
 * Add TH `Lift` instances for `Data.Text.Text` and `Data.Text.Lazy.Text` (gh-232)
