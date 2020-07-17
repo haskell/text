@@ -1,6 +1,6 @@
 cabal-version:  >= 1.10
 name:           text
-version:        1.2.4.0
+version:        1.2.4.1
 
 homepage:       https://github.com/haskell/text
 bug-reports:    https://github.com/haskell/text/issues
@@ -56,7 +56,7 @@ maintainer:     Bryan O'Sullivan <bos@serpentine.com>, Herbert Valerio Riedel <h
 copyright:      2009-2011 Bryan O'Sullivan, 2008-2009 Tom Harper
 category:       Data, Text
 build-type:     Simple
-tested-with:    GHC==8.6.5, GHC==8.4.4,
+tested-with:    GHC==8.10.1, GHC==8.8.3, GHC==8.6.5, GHC==8.4.4,
                 GHC==8.2.2, GHC==8.0.2, GHC==7.10.3, GHC==7.8.4,
                 GHC==7.6.3, GHC==7.4.2, GHC==7.2.2, GHC==7.0.4
 extra-source-files:
@@ -64,7 +64,7 @@ extra-source-files:
     -- scripts/SpecialCasing.txt
     README.markdown
     benchmarks/Setup.hs
-    benchmarks/cbits/*.c
+    benchmarks/cbits-bench/*.c
     benchmarks/haskell/*.hs
     benchmarks/haskell/Benchmarks/*.hs
     benchmarks/haskell/Benchmarks/Programs/*.hs
@@ -106,6 +106,7 @@ flag integer-simple
 library
   c-sources:    cbits/cbits.c
   include-dirs: include
+  hs-source-dirs: src
 
   exposed-modules:
     Data.Text
@@ -178,7 +179,7 @@ library
   if impl(ghc >= 8.11)
     build-depends: ghc-bignum
 
-  if impl(ghc < 8.11)
+  else
     if flag(integer-simple)
       cpp-options: -DINTEGER_SIMPLE
       build-depends: integer-simple >= 0.1 && < 0.5
@@ -215,118 +216,6 @@ library
     other-extensions: TemplateHaskellQuotes
   else
     other-extensions: TemplateHaskell
-
-test-suite tests
-  type:           exitcode-stdio-1.0
-  c-sources:      cbits/cbits.c
-  include-dirs:   include
-
-  ghc-options:
-    -Wall -threaded -rtsopts
-
-  cpp-options:
-    -DASSERTS -DTEST_SUITE
-
-  -- modules specific to test-suite
-  hs-source-dirs: tests
-  main-is:        Tests.hs
-  other-modules:
-    Tests.Properties
-    Tests.Properties.Mul
-    Tests.QuickCheckUtils
-    Tests.Regressions
-    Tests.SlowFunctions
-    Tests.Utils
-
-  -- Same as in `library` stanza; this is needed by cabal for accurate
-  -- file-monitoring as well as to avoid `-Wmissing-home-modules`
-  -- warnings We can't use an inter-package library dependency because
-  -- of different `ghc-options`/`cpp-options` (as a side-benefitt,
-  -- this enables per-component build parallelism in `cabal
-  -- new-build`!); We could, however, use cabal-version:2.2's `common`
-  -- blocks at some point in the future to reduce the duplication.
-  hs-source-dirs: .
-  other-modules:
-    Data.Text
-    Data.Text.Array
-    Data.Text.Encoding
-    Data.Text.Encoding.Error
-    Data.Text.Foreign
-    Data.Text.IO
-    Data.Text.Internal
-    Data.Text.Internal.Builder
-    Data.Text.Internal.Builder.Functions
-    Data.Text.Internal.Builder.Int.Digits
-    Data.Text.Internal.Builder.RealFloat.Functions
-    Data.Text.Internal.Encoding.Fusion
-    Data.Text.Internal.Encoding.Fusion.Common
-    Data.Text.Internal.Encoding.Utf16
-    Data.Text.Internal.Encoding.Utf32
-    Data.Text.Internal.Encoding.Utf8
-    Data.Text.Internal.Functions
-    Data.Text.Internal.Fusion
-    Data.Text.Internal.Fusion.CaseMapping
-    Data.Text.Internal.Fusion.Common
-    Data.Text.Internal.Fusion.Size
-    Data.Text.Internal.Fusion.Types
-    Data.Text.Internal.IO
-    Data.Text.Internal.Lazy
-    Data.Text.Internal.Lazy.Encoding.Fusion
-    Data.Text.Internal.Lazy.Fusion
-    Data.Text.Internal.Lazy.Search
-    Data.Text.Internal.Private
-    Data.Text.Internal.Read
-    Data.Text.Internal.Search
-    Data.Text.Internal.Unsafe
-    Data.Text.Internal.Unsafe.Char
-    Data.Text.Internal.Unsafe.Shift
-    Data.Text.Lazy
-    Data.Text.Lazy.Builder
-    Data.Text.Lazy.Builder.Int
-    Data.Text.Lazy.Builder.RealFloat
-    Data.Text.Lazy.Encoding
-    Data.Text.Lazy.IO
-    Data.Text.Lazy.Internal
-    Data.Text.Lazy.Read
-    Data.Text.Read
-    Data.Text.Unsafe
-    Data.Text.Show
-
-  build-depends:
-    HUnit >= 1.2,
-    QuickCheck >= 2.7 && < 2.11,
-    array,
-    base,
-    binary,
-    deepseq,
-    directory,
-    ghc-prim,
-    quickcheck-unicode >= 1.0.1.0,
-    random,
-    template-haskell,
-    test-framework >= 0.4,
-    test-framework-hunit >= 0.2,
-    test-framework-quickcheck2 >= 0.2
-
-  if flag(bytestring-builder)
-    build-depends: bytestring         >= 0.9    && < 0.10.4,
-                   bytestring-builder >= 0.10.4
-  else
-    build-depends: bytestring         >= 0.10.4
-
-  if impl(ghc >= 8.11)
-    build-depends: ghc-bignum
-
-  if impl(ghc < 8.11)
-    if flag(integer-simple)
-      cpp-options: -DINTEGER_SIMPLE
-      build-depends: integer-simple >= 0.1 && < 0.5
-    else
-      cpp-options: -DINTEGER_GMP
-      build-depends: integer-gmp >= 0.2
-
-  default-language: Haskell2010
-  default-extensions: NondecreasingIndentation
 
 source-repository head
   type:     git
