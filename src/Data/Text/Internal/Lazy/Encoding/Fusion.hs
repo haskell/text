@@ -52,7 +52,7 @@ import Data.ByteString.Internal (mallocByteString, memcpy)
 #if defined(ASSERTS)
 import Control.Exception (assert)
 #endif
-import qualified Data.ByteString.Internal as B
+import Data.Text.Internal.ByteStringCompat
 
 data S = S0
        | S1 {-# UNPACK #-} !Word8
@@ -297,7 +297,7 @@ unstreamChunks chunkSize (Stream next s0 len0) = chunk s0 (upperBound 4 len0)
               fp' <- copy0 fp n n'
               withForeignPtr fp' $ \p -> pokeByteOff p off x
               loop n' (off+1) s fp'
-            trimUp fp off = B.PS fp 0 off
+            trimUp fp off = mkBS fp off
             copy0 :: ForeignPtr Word8 -> Int -> Int -> IO (ForeignPtr Word8)
             copy0 !src !srcLen !destLen =
 #if defined(ASSERTS)
