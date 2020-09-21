@@ -17,6 +17,7 @@
 module Benchmarks.DecodeUtf8
     ( initEnv
     , benchmark
+    , benchmarkASCII
     ) where
 
 import Foreign.C.Types
@@ -60,6 +61,17 @@ benchmark kind ~(bs, lbs) =
         , bench "Lazy" $ nf TL.decodeUtf8 lbs
         , bench "LazyLength" $ nf (TL.length . TL.decodeUtf8) lbs
         , bench "LazyInitLength" $ nf (TL.length . TL.init . TL.decodeUtf8) lbs
+        ]
+
+benchmarkASCII :: Env -> Benchmark
+benchmarkASCII ~(bs, lbs) =
+    bgroup "DecodeASCII"
+        [ C.bench "strict decodeUtf8" $ nf T.decodeUtf8 bs
+        , C.bench "strict decodeLatin1" $ nf T.decodeLatin1 bs
+        , C.bench "strict decodeASCII" $ nf T.decodeASCII bs
+        , C.bench "lazy decodeUtf8" $ nf TL.decodeUtf8 lbs
+        , C.bench "lazy decodeLatin1" $ nf TL.decodeLatin1 lbs
+        , C.bench "lazy decodeASCII" $ nf TL.decodeASCII lbs
         ]
 
 iconv :: B.ByteString -> IO CInt
