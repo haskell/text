@@ -11,6 +11,11 @@
 #include <stdio.h>
 #include "text_cbits.h"
 
+#if defined(__x86_64__)
+#include <xmmintrin.h>
+#include <emmintrin.h>
+#endif
+
 void _hs_text_memcpy(void *dest, size_t doff, const void *src, size_t soff,
 		     size_t n)
 {
@@ -82,6 +87,23 @@ _hs_text_decode_latin1(uint16_t *dest, const uint8_t *src,
   while (p != srcend && (uintptr_t)p & 0x3)
     *dest++ = *p++;
 
+#if defined(__x86_64__)
+  /* All the intrinsics used here are from SSE2,
+   * so every x86_64 CPU supports them.
+   */
+  const __m128i zeros = _mm_set1_epi32(0);
+  while (p < srcend - 3) {
+    /* Load 4 bytes of ASCII data */
+    const __m128i ascii = _mm_cvtsi32_si128(*((const uint32_t *)p));
+    /* Interleave with zeros */
+    const __m128i utf16 = _mm_unpacklo_epi8(ascii, zeros);
+    /* Store the resulting 8 bytes into destination */
+    _mm_storel_epi64((__m128i *)dest, utf16);
+
+    dest += 4;
+    p += 4;
+  }
+#else
   /* iterate over 32-bit aligned loads */
   while (p < srcend - 3) {
     const uint32_t w = *((const uint32_t *)p);
@@ -93,6 +115,7 @@ _hs_text_decode_latin1(uint16_t *dest, const uint8_t *src,
 
     p += 4;
   }
+#endif
 #endif
 
   /* handle unaligned suffix */
