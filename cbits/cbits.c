@@ -9,7 +9,13 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdio.h>
+#if defined(__x86_64__)
+#include <emmintrin.h>
+#include <xmmintrin.h>
+#endif
+
 #include "text_cbits.h"
+
 
 void _hs_text_memcpy(void *dest, size_t doff, const void *src, size_t soff,
 		     size_t n)
@@ -157,24 +163,40 @@ _hs_text_decode_utf8_int(uint16_t *const dest, size_t *destoff,
      */
 
     if (state == UTF8_ACCEPT) {
-      while (s < srcend - 4) {
-	codepoint = *((uint32_t *) s);
-	if ((codepoint & 0x80808080) != 0)
-	  break;
-	s += 4;
+#if defined(__x86_64__)
+      const __m128i zeros = _mm_set1_epi32(0);
+      while (s < srcend - 8) {
+        const uint64_t hopefully_eight_ascii_chars = *((uint64_t *) s);
+        if ((hopefully_eight_ascii_chars & 0x8080808080808080LL) != 0LL)
+          break;
+        s += 8;
 
-	/*
-	 * Tried 32-bit stores here, but the extra bit-twiddling
-	 * slowed the code down.
-	 */
-
-	*d++ = (uint16_t) (codepoint & 0xff);
-	*d++ = (uint16_t) ((codepoint >> 8) & 0xff);
-	*d++ = (uint16_t) ((codepoint >> 16) & 0xff);
-	*d++ = (uint16_t) ((codepoint >> 24) & 0xff);
+        /* Load 8 bytes of ASCII data */
+        const __m128i eight_ascii_chars = _mm_cvtsi64_si128(hopefully_eight_ascii_chars);
+        /* Interleave with zeros */
+        const __m128i eight_utf16_chars = _mm_unpacklo_epi8(eight_ascii_chars, zeros);
+        /* Store the resulting 8 bytes into destination */
+        _mm_storeu_si128((__m128i *)d, eight_utf16_chars);
+        d += 8;
       }
+#else  
+      while (s < srcend - 4) {
+        codepoint = *((uint32_t *) s);
+        if ((codepoint & 0x80808080) != 0)
+          break;
+        s += 4;
+        /*
+         * Tried 32-bit stores here, but the extra bit-twiddling
+         * slowed the code down.
+         */
+        *d++ = (uint16_t) (codepoint & 0xff);
+        *d++ = (uint16_t) ((codepoint >> 8) & 0xff);
+        *d++ = (uint16_t) ((codepoint >> 16) & 0xff);
+        *d++ = (uint16_t) ((codepoint >> 24) & 0xff);
+      }
+#endif
       last = s;
-    }
+    } /* end if (state == UTF8_ACCEPT) */
 #endif
 
     if (decode(&state, &codepoint, *s++) != UTF8_ACCEPT) {
