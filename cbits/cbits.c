@@ -9,6 +9,11 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdio.h>
+#if defined(__x86_64__)
+#include <emmintrin.h>
+#include <xmmintrin.h>
+#endif
+
 #include "text_cbits.h"
 
 void _hs_text_memcpy(void *dest, size_t doff, const void *src, size_t soff,
@@ -300,6 +305,35 @@ _hs_text_encode_utf8(uint8_t **destp, const uint16_t *src, size_t srcoff,
       *dest++ = ((c >> 6) & 0x3F) | 0x80;
       *dest++ = (c & 0x3F) | 0x80;
     }
+  }
+
+  *destp = dest;
+}
+
+void
+_hs_text_encode_ascii(uint8_t **destp, const uint16_t *src, size_t srcoff,
+		     size_t srclen)
+{
+  const uint16_t *srcend;
+  uint8_t *dest = *destp;
+
+  src += srcoff;
+  srcend = src + srclen;
+
+#if defined(__x86_64__)
+  while (srcend - src >= 8) {
+    const __m128i eight_utf16_chars = _mm_loadu_si128((__m128i *)src);
+    __m128i eight_ascii_chars = _mm_packus_epi16(eight_utf16_chars, eight_utf16_chars);
+    _mm_storel_epi64((__m128i *)dest, eight_ascii_chars);
+
+    src += 8;
+    dest += 8;
+  }
+#endif
+
+  while (src < srcend) {
+    uint16_t c = *src++;
+    *dest++ = c;
   }
 
   *destp = dest;

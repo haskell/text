@@ -48,6 +48,7 @@ module Data.Text.Encoding
     , Decoding(..)
 
     -- * Encoding Text to ByteStrings
+    , encodeASCII
     , encodeUtf8
     , encodeUtf16LE
     , encodeUtf16BE
@@ -443,6 +444,17 @@ encodeUtf8 (Text arr off len)
             memcpy ptr' ptr (fromIntegral utf8len)
             return (PS fp' 0 utf8len)
 
+-- | Encode text using ASCII encoding.
+encodeASCII :: Text -> ByteString
+encodeASCII (Text arr off len)
+  | len == 0  = B.empty
+  | otherwise = unsafeDupablePerformIO $ do
+  fp <- mallocByteString len
+  withForeignPtr fp $ \ptr ->
+    with ptr $ \destPtr -> do
+      c_encode_ascii destPtr (A.aBA arr) (fromIntegral off) (fromIntegral len)
+      return (PS fp 0 len)
+
 -- | Decode text from little endian UTF-16 encoding.
 decodeUtf16LEWith :: OnDecodeError -> ByteString -> Text
 decodeUtf16LEWith onErr bs = F.unstream (E.streamUtf16LE onErr bs)
@@ -532,4 +544,7 @@ foreign import ccall unsafe "_hs_text_decode_latin1" c_decode_latin1
     :: MutableByteArray# s -> Ptr Word8 -> Ptr Word8 -> IO ()
 
 foreign import ccall unsafe "_hs_text_encode_utf8" c_encode_utf8
+    :: Ptr (Ptr Word8) -> ByteArray# -> CSize -> CSize -> IO ()
+
+foreign import ccall unsafe "_hs_text_encode_ascii" c_encode_ascii
     :: Ptr (Ptr Word8) -> ByteArray# -> CSize -> CSize -> IO ()

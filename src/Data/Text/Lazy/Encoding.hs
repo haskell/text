@@ -39,6 +39,7 @@ module Data.Text.Lazy.Encoding
     , decodeUtf32BEWith
 
     -- * Encoding Text to ByteStrings
+    , encodeASCII
     , encodeUtf8
     , encodeUtf16LE
     , encodeUtf16BE
@@ -160,6 +161,9 @@ encodeUtf8 lt@(Chunk t _) =
 encodeUtf8Builder :: Text -> B.Builder
 encodeUtf8Builder =
     foldrChunks (\c b -> TE.encodeUtf8Builder c `mappend` b) Data.Monoid.mempty
+
+encodeASCII :: Text -> B.ByteString
+encodeASCII = encodeUtf8
 
 -- | Encode text using UTF-8 encoding and escape the ASCII characters using
 -- a 'BP.BoundedPrim'.
