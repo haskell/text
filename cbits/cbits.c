@@ -9,6 +9,10 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdio.h>
+#if defined(__x86_64__)
+#include <xmmintrin.h>
+#include <emmintrin.h>
+#endif
 #include "text_cbits.h"
 
 void _hs_text_memcpy(void *dest, size_t doff, const void *src, size_t soff,
@@ -237,29 +241,36 @@ _hs_text_encode_utf8(uint8_t **destp, const uint16_t *src, size_t srcoff,
 
  ascii:
 #if defined(__x86_64__)
-  while (srcend - src >= 4) {
-    uint64_t w = *((uint64_t *) src);
+  while (srcend - src >= 8) {
+    union { uint64_t halves[2]; __m128i whole; } eight_chars;
+    eight_chars.whole = _mm_loadu_si128((__m128i *) src);
 
+    const uint64_t w = eight_chars.halves[0];
     if (w & 0xFF80FF80FF80FF80ULL) {
       if (!(w & 0x000000000000FF80ULL)) {
-	*dest++ = w & 0xFFFF;
-	src++;
-	if (!(w & 0x00000000FF800000ULL)) {
-	  *dest++ = (w >> 16) & 0xFFFF;
-	  src++;
-	  if (!(w & 0x0000FF8000000000ULL)) {
-	    *dest++ = (w >> 32) & 0xFFFF;
-	    src++;
-	  }
-	}
+        *dest++ = w & 0xFFFF;
+        src++;
+        if (!(w & 0x00000000FF800000ULL)) {
+          *dest++ = (w >> 16) & 0xFFFF;
+          src++;
+          if (!(w & 0x0000FF8000000000ULL)) {
+            *dest++ = (w >> 32) & 0xFFFF;
+            src++;
+          }
+        }
       }
       break;
     }
-    *dest++ = w & 0xFFFF;
-    *dest++ = (w >> 16) & 0xFFFF;
-    *dest++ = (w >> 32) & 0xFFFF;
-    *dest++ = w >> 48;
-    src += 4;
+
+    if (eight_chars.halves[1] & 0xFF80FF80FF80FF80ULL) {
+      break;
+    }
+
+    const __m128i eight_ascii_chars = _mm_packus_epi16(eight_chars.whole, eight_chars.whole);
+    _mm_storel_epi64((__m128i *)dest, eight_ascii_chars);
+
+    dest += 8;
+    src += 8;
   }
 #endif
 

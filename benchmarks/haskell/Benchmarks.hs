@@ -43,7 +43,8 @@ main = do
         , env (DecodeUtf8.initEnv (tf "ascii.txt")) (DecodeUtf8.benchmark "ascii")
         , env (DecodeUtf8.initEnv (tf "russian.txt")) (DecodeUtf8.benchmark  "russian")
         , env (DecodeUtf8.initEnv (tf "japanese.txt")) (DecodeUtf8.benchmark "japanese")
-        , EncodeUtf8.benchmark "επανάληψη 竺法蘭共譯"
+        , EncodeUtf8.benchmark "non-ASCII" "επανάληψη 竺法蘭共譯"
+        , EncodeUtf8.benchmark "ASCII" "lorem ipsum"
         , env (Equality.initEnv (tf "japanese.txt")) Equality.benchmark
         , FileRead.benchmark (tf "russian.txt")
         , FoldLines.benchmark (tf "russian.txt")
