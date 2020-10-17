@@ -120,6 +120,7 @@ library
     Data.Text.Internal.Builder.Functions
     Data.Text.Internal.Builder.Int.Digits
     Data.Text.Internal.Builder.RealFloat.Functions
+    Data.Text.Internal.ByteStringCompat
     Data.Text.Internal.Encoding.Fusion
     Data.Text.Internal.Encoding.Fusion.Common
     Data.Text.Internal.Encoding.Utf16
@@ -168,7 +169,7 @@ library
     build-depends: bytestring         >= 0.9    && < 0.10.4,
                    bytestring-builder >= 0.10.4.0.2 && < 0.11
   else
-    build-depends: bytestring         >= 0.10.4 && < 0.11
+    build-depends: bytestring         >= 0.10.4 && < 0.12
 
   ghc-options: -Wall -fwarn-tabs -funbox-strict-fields -O2
   if flag(developer)

@@ -96,6 +96,7 @@ import qualified Data.Text.Array as A
 import qualified Data.Text.Internal.Encoding.Fusion as E
 import qualified Data.Text.Internal.Encoding.Utf16 as U16
 import qualified Data.Text.Internal.Fusion as F
+import Data.Text.Internal.ByteStringCompat
 
 #include "text_cbits.h"
 
@@ -123,12 +124,13 @@ decodeASCII = decodeUtf8
 -- 'decodeLatin1' is semantically equivalent to
 --  @Data.Text.pack . Data.ByteString.Char8.unpack@
 decodeLatin1 :: ByteString -> Text
-decodeLatin1 (PS fp off len) = text a 0 len
- where
-  a = A.run (A.new len >>= unsafeIOToST . go)
-  go dest = withForeignPtr fp $ \ptr -> do
-    c_decode_latin1 (A.maBA dest) (ptr `plusPtr` off) (ptr `plusPtr` (off+len))
-    return dest
+decodeLatin1 bs = withBS bs aux where
+  aux fp len = text a 0 len
+   where
+    a = A.run (A.new len >>= unsafeIOToST . go)
+    go dest = withForeignPtr fp $ \ptr -> do
+      c_decode_latin1 (A.maBA dest) ptr (ptr `plusPtr` len)
+      return dest
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text.
 --
@@ -139,36 +141,38 @@ decodeLatin1 (PS fp off len) = text a 0 len
 -- 'error' (/since 1.2.3.1/); For earlier versions of @text@ using
 -- those unsupported code points would result in undefined behavior.
 decodeUtf8With :: OnDecodeError -> ByteString -> Text
-decodeUtf8With onErr (PS fp off len) = runText $ \done -> do
-  let go dest = withForeignPtr fp $ \ptr ->
-        with (0::CSize) $ \destOffPtr -> do
-          let end = ptr `plusPtr` (off + len)
-              loop curPtr = do
-                curPtr' <- c_decode_utf8 (A.maBA dest) destOffPtr curPtr end
-                if curPtr' == end
-                  then do
-                    n <- peek destOffPtr
-                    unsafeSTToIO (done dest (fromIntegral n))
-                  else do
-                    x <- peek curPtr'
-                    case onErr desc (Just x) of
-                      Nothing -> loop $ curPtr' `plusPtr` 1
-                      Just c
-                        | c > '\xFFFF' -> throwUnsupportedReplChar
-                        | otherwise -> do
-                            destOff <- peek destOffPtr
-                            w <- unsafeSTToIO $
-                                 unsafeWrite dest (fromIntegral destOff)
-                                             (safe c)
-                            poke destOffPtr (destOff + fromIntegral w)
-                            loop $ curPtr' `plusPtr` 1
-          loop (ptr `plusPtr` off)
-  (unsafeIOToST . go) =<< A.new len
+decodeUtf8With onErr bs = withBS bs aux
  where
-  desc = "Data.Text.Internal.Encoding.decodeUtf8: Invalid UTF-8 stream"
+  aux fp len = runText $ \done -> do
+    let go dest = withForeignPtr fp $ \ptr ->
+          with (0::CSize) $ \destOffPtr -> do
+            let end = ptr `plusPtr` len
+                loop curPtr = do
+                  curPtr' <- c_decode_utf8 (A.maBA dest) destOffPtr curPtr end
+                  if curPtr' == end
+                    then do
+                      n <- peek destOffPtr
+                      unsafeSTToIO (done dest (fromIntegral n))
+                    else do
+                      x <- peek curPtr'
+                      case onErr desc (Just x) of
+                        Nothing -> loop $ curPtr' `plusPtr` 1
+                        Just c
+                          | c > '\xFFFF' -> throwUnsupportedReplChar
+                          | otherwise -> do
+                              destOff <- peek destOffPtr
+                              w <- unsafeSTToIO $
+                                   unsafeWrite dest (fromIntegral destOff)
+                                               (safe c)
+                              poke destOffPtr (destOff + fromIntegral w)
+                              loop $ curPtr' `plusPtr` 1
+            loop ptr
+    (unsafeIOToST . go) =<< A.new len
+   where
+    desc = "Data.Text.Internal.Encoding.decodeUtf8: Invalid UTF-8 stream"
 
-  throwUnsupportedReplChar = throwIO $
-    ErrorCall "decodeUtf8With: non-BMP replacement characters not supported"
+    throwUnsupportedReplChar = throwIO $
+      ErrorCall "decodeUtf8With: non-BMP replacement characters not supported"
   -- TODO: The code currently assumes that the transcoded UTF-16
   -- stream is at most twice as long (in bytes) as the input UTF-8
   -- stream. To justify this assumption one has to assume that the
@@ -292,50 +296,50 @@ streamDecodeUtf8With onErr = decodeChunk B.empty 0 0
   -- potential surrogate pair started in the last buffer
   decodeChunk :: ByteString -> CodePoint -> DecoderState -> ByteString
               -> Decoding
-  decodeChunk undecoded0 codepoint0 state0 bs@(PS fp off len) =
-    runST $ (unsafeIOToST . decodeChunkToBuffer) =<< A.new (len+1)
-   where
-    decodeChunkToBuffer :: A.MArray s -> IO Decoding
-    decodeChunkToBuffer dest = withForeignPtr fp $ \ptr ->
-      with (0::CSize) $ \destOffPtr ->
-      with codepoint0 $ \codepointPtr ->
-      with state0 $ \statePtr ->
-      with nullPtr $ \curPtrPtr ->
-        let end = ptr `plusPtr` (off + len)
-            loop curPtr = do
-              poke curPtrPtr curPtr
-              curPtr' <- c_decode_utf8_with_state (A.maBA dest) destOffPtr
-                         curPtrPtr end codepointPtr statePtr
-              state <- peek statePtr
-              case state of
-                UTF8_REJECT -> do
-                  -- We encountered an encoding error
-                  x <- peek curPtr'
-                  poke statePtr 0
-                  case onErr desc (Just x) of
-                    Nothing -> loop $ curPtr' `plusPtr` 1
-                    Just c -> do
-                      destOff <- peek destOffPtr
-                      w <- unsafeSTToIO $
-                           unsafeWrite dest (fromIntegral destOff) (safe c)
-                      poke destOffPtr (destOff + fromIntegral w)
-                      loop $ curPtr' `plusPtr` 1
+  decodeChunk undecoded0 codepoint0 state0 bs = withBS bs aux where
+    aux fp len = runST $ (unsafeIOToST . decodeChunkToBuffer) =<< A.new (len+1)
+       where
+        decodeChunkToBuffer :: A.MArray s -> IO Decoding
+        decodeChunkToBuffer dest = withForeignPtr fp $ \ptr ->
+          with (0::CSize) $ \destOffPtr ->
+          with codepoint0 $ \codepointPtr ->
+          with state0 $ \statePtr ->
+          with nullPtr $ \curPtrPtr ->
+            let end = ptr `plusPtr` len
+                loop curPtr = do
+                  poke curPtrPtr curPtr
+                  curPtr' <- c_decode_utf8_with_state (A.maBA dest) destOffPtr
+                             curPtrPtr end codepointPtr statePtr
+                  state <- peek statePtr
+                  case state of
+                    UTF8_REJECT -> do
+                      -- We encountered an encoding error
+                      x <- peek curPtr'
+                      poke statePtr 0
+                      case onErr desc (Just x) of
+                        Nothing -> loop $ curPtr' `plusPtr` 1
+                        Just c -> do
+                          destOff <- peek destOffPtr
+                          w <- unsafeSTToIO $
+                               unsafeWrite dest (fromIntegral destOff) (safe c)
+                          poke destOffPtr (destOff + fromIntegral w)
+                          loop $ curPtr' `plusPtr` 1
 
-                _ -> do
-                  -- We encountered the end of the buffer while decoding
-                  n <- peek destOffPtr
-                  codepoint <- peek codepointPtr
-                  chunkText <- unsafeSTToIO $ do
-                      arr <- A.unsafeFreeze dest
-                      return $! text arr 0 (fromIntegral n)
-                  lastPtr <- peek curPtrPtr
-                  let left = lastPtr `minusPtr` curPtr
-                      !undecoded = case state of
-                        UTF8_ACCEPT -> B.empty
-                        _           -> B.append undecoded0 (B.drop left bs)
-                  return $ Some chunkText undecoded
-                           (decodeChunk undecoded codepoint state)
-        in loop (ptr `plusPtr` off)
+                    _ -> do
+                      -- We encountered the end of the buffer while decoding
+                      n <- peek destOffPtr
+                      codepoint <- peek codepointPtr
+                      chunkText <- unsafeSTToIO $ do
+                          arr <- A.unsafeFreeze dest
+                          return $! text arr 0 (fromIntegral n)
+                      lastPtr <- peek curPtrPtr
+                      let left = lastPtr `minusPtr` curPtr
+                          !undecoded = case state of
+                            UTF8_ACCEPT -> B.empty
+                            _           -> B.append undecoded0 (B.drop left bs)
+                      return $ Some chunkText undecoded
+                               (decodeChunk undecoded codepoint state)
+            in loop ptr
   desc = "Data.Text.Internal.Encoding.streamDecodeUtf8With: Invalid UTF-8 stream"
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text that is known
@@ -436,12 +440,12 @@ encodeUtf8 (Text arr off len)
       newDest <- peek destPtr
       let utf8len = newDest `minusPtr` ptr
       if utf8len >= len `shiftR` 1
-        then return (PS fp 0 utf8len)
+        then return (mkBS fp utf8len)
         else do
           fp' <- mallocByteString utf8len
           withForeignPtr fp' $ \ptr' -> do
             memcpy ptr' ptr (fromIntegral utf8len)
-            return (PS fp' 0 utf8len)
+            return (mkBS fp' utf8len)
 
 -- | Decode text from little endian UTF-16 encoding.
 decodeUtf16LEWith :: OnDecodeError -> ByteString -> Text
