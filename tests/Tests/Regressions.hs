@@ -14,7 +14,9 @@ import qualified Data.ByteString as B
 import Data.ByteString.Char8 ()
 import qualified Data.ByteString.Lazy as LB
 import qualified Data.Text as T
+import qualified Data.Text.Array as TA
 import qualified Data.Text.Encoding as TE
+import qualified Data.Text.Internal as T
 import qualified Data.Text.IO as T
 import qualified Data.Text.Lazy as LT
 import qualified Data.Text.Lazy.Encoding as LE
@@ -95,6 +97,24 @@ t227 =
                 (T.length $ T.filter isLetter $ T.take (-3) "Hello! How are you doing today?")
                 0
 
+-- See GitHub issue #301
+-- This tests whether the "TEXT take . drop -> unfused" rule is applied to the
+-- slice function. When the slice function is fused, a new array will be
+-- constructed that is shorter than the original array. Without fusion the
+-- array remains unmodified.
+t301 :: IO ()
+t301 = do
+    assertEqual "The length of the array remains the same despite slicing"
+                (TA.length originalArr)
+                (TA.length newArr)
+
+    assertEqual "The new array still contains the original value"
+                (T.Text newArr originalOff originalLen)
+                original
+  where
+    original@(T.Text originalArr originalOff originalLen) = T.pack "1234567890"
+    T.Text newArr _off _len = T.take 1 $ T.drop 1 original
+
 tests :: F.Test
 tests = F.testGroup "Regressions"
     [ F.testCase "hGetContents_crash" hGetContents_crash
@@ -105,4 +125,5 @@ tests = F.testGroup "Regressions"
     , F.testCase "t197" t197
     , F.testCase "t221" t221
     , F.testCase "t227" t227
+    , F.testCase "t301" t301
     ]
