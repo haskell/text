@@ -1224,6 +1224,8 @@ drop n t@(Text arr off len)
     drop n t = unstream (S.drop n (stream t))
 "TEXT drop -> unfused" [1] forall n t.
     unstream (S.drop n (stream t)) = drop n t
+"TEXT take . drop -> unfused" [1] forall len off t.
+    unstream (S.take len (S.drop off (stream t))) = take len (drop off t)
   #-}
 
 -- | /O(n)/ 'dropEnd' @n@ @t@ returns the prefix remaining after
