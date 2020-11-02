@@ -36,20 +36,33 @@ import GHC.Exts (Char(..), Int(..), chr#, ord#, word2Int#)
 import GHC.Word (Word8(..), Word16(..), Word32(..))
 import qualified Data.Text.Array as A
 
+#if MIN_VERSION_base(4,16,0)
+import GHC.Exts ( extendWord8#, extendWord16#, extendWord32# )
+#else
+import GHC.Prim (Word#)
+extendWord8#, extendWord16#, extendWord32# :: Word# -> Word#
+extendWord8#  w = w
+extendWord16# w = w
+extendWord32# w = w
+{-# INLINE extendWord8# #-}
+{-# INLINE extendWord16# #-}
+{-# INLINE extendWord32# #-}
+#endif
+
 ord :: Char -> Int
 ord (C# c#) = I# (ord# c#)
 {-# INLINE ord #-}
 
 unsafeChr :: Word16 -> Char
-unsafeChr (W16# w#) = C# (chr# (word2Int# w#))
+unsafeChr (W16# w#) = C# (chr# (word2Int# (extendWord16# w#)))
 {-# INLINE unsafeChr #-}
 
 unsafeChr8 :: Word8 -> Char
-unsafeChr8 (W8# w#) = C# (chr# (word2Int# w#))
+unsafeChr8 (W8# w#) = C# (chr# (word2Int# (extendWord8# w#)))
 {-# INLINE unsafeChr8 #-}
 
 unsafeChr32 :: Word32 -> Char
-unsafeChr32 (W32# w#) = C# (chr# (word2Int# w#))
+unsafeChr32 (W32# w#) = C# (chr# (word2Int# (extendWord32# w#)))
 {-# INLINE unsafeChr32 #-}
 
 -- | Write a character into the array at the given offset.  Returns

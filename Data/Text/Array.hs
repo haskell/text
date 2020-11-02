@@ -78,6 +78,17 @@ import GHC.ST (ST(..), runST)
 import GHC.Word (Word16(..))
 import Prelude hiding (length, read)
 
+#if MIN_VERSION_base(4,16,0)
+import GHC.Base ( extendWord16#, narrowWord16# )
+#else
+import GHC.Prim (Word#)
+extendWord16#, narrowWord16# :: Word# -> Word#
+extendWord16# w = w
+narrowWord16# w = w
+{-# INLINE narrowWord16# #-}
+{-# INLINE extendWord16# #-}
+#endif
+
 -- | Immutable array type.
 --
 -- The 'Array' constructor is exposed since @text-1.1.1.3@
@@ -153,7 +164,7 @@ bytesInArray n = n `shiftL` 1
 unsafeIndex :: Array -> Int -> Word16
 unsafeIndex Array{..} i@(I# i#) =
   CHECK_BOUNDS("unsafeIndex",aLen,i)
-    case indexWord16Array# aBA i# of r# -> (W16# r#)
+    case indexWord16Array# aBA i# of r# -> (W16# (narrowWord16# r#))
 {-# INLINE unsafeIndex #-}
 
 -- | Unchecked write of a mutable array.  May return garbage or crash
@@ -161,7 +172,7 @@ unsafeIndex Array{..} i@(I# i#) =
 unsafeWrite :: MArray s -> Int -> Word16 -> ST s ()
 unsafeWrite MArray{..} i@(I# i#) (W16# e#) = ST $ \s1# ->
   CHECK_BOUNDS("unsafeWrite",maLen,i)
-  case writeWord16Array# maBA i# e# s1# of
+  case writeWord16Array# maBA i# (extendWord16# e#) s1# of
     s2# -> (# s2#, () #)
 {-# INLINE unsafeWrite #-}
 
