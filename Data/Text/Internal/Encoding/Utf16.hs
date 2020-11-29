@@ -1,4 +1,6 @@
-{-# LANGUAGE MagicHash, BangPatterns, CPP #-}
+{-# LANGUAGE CPP #-}
+{-# LANGUAGE MagicHash #-}
+{-# LANGUAGE BangPatterns #-}
 
 -- |
 -- Module      : Data.Text.Internal.Encoding.Utf16
@@ -23,22 +25,19 @@ module Data.Text.Internal.Encoding.Utf16
     , validate2
     ) where
 
-import GHC.Word (Word16(..))
-#if MIN_VERSION_base(4,16,0)
 import GHC.Exts
-#else
-import GHC.Exts hiding (extendWord16#)
-import GHC.Prim (Word#)
-extendWord16# :: Word# -> Word#
-extendWord16# w = w
-{-# INLINE extendWord16# #-}
+import GHC.Word (Word16(..))
+
+#if !MIN_VERSION_base(4,16,0)
+-- harmless to import, except for warnings that it is unused.
+import Data.Text.Internal.PrimCompat ( word16ToWord# )
 #endif
 
 chr2 :: Word16 -> Word16 -> Char
 chr2 (W16# a#) (W16# b#) = C# (chr# (upper# +# lower# +# 0x10000#))
     where
-      !x# = word2Int# (extendWord16# a#)
-      !y# = word2Int# (extendWord16# b#)
+      !x# = word2Int# (word16ToWord# a#)
+      !y# = word2Int# (word16ToWord# b#)
       !upper# = uncheckedIShiftL# (x# -# 0xD800#) 10#
       !lower# = y# -# 0xDC00#
 {-# INLINE chr2 #-}

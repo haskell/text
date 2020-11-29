@@ -1,4 +1,5 @@
-{-# LANGUAGE MagicHash, CPP #-}
+{-# LANGUAGE CPP #-}
+{-# LANGUAGE MagicHash #-}
 
 -- |
 -- Module      : Data.Text.Internal.Unsafe.Shift
@@ -21,23 +22,11 @@ module Data.Text.Internal.Unsafe.Shift
     ) where
 
 -- import qualified Data.Bits as Bits
-import GHC.Word
-
-#if MIN_VERSION_base(4,16,0)
 import GHC.Base
-#else
-import GHC.Base hiding (extendWord16#, narrowWord16#)
-import GHC.Prim (Word#)
-extendWord16#, extendWord32# :: Word# -> Word#
-narrowWord16#, narrowWord32# :: Word# -> Word#
-extendWord16# w = w
-extendWord32# w = w
-narrowWord16# w = w
-narrowWord32# w = w
-{-# INLINE narrowWord16# #-}
-{-# INLINE extendWord16# #-}
-{-# INLINE narrowWord32# #-}
-{-# INLINE extendWord32# #-}
+import GHC.Word
+#if !MIN_VERSION_base(4,16,0)
+-- harmless to import, except for warnings that it is unused.
+import Data.Text.Internal.PrimCompat
 #endif
 
 -- | This is a workaround for poor optimisation in GHC 6.8.2.  It
@@ -52,17 +41,17 @@ class UnsafeShift a where
 
 instance UnsafeShift Word16 where
     {-# INLINE shiftL #-}
-    shiftL (W16# x#) (I# i#) = W16# (narrowWord16# ((extendWord16# x#) `uncheckedShiftL#` i#))
+    shiftL (W16# x#) (I# i#) = W16# (wordToWord16# ((word16ToWord# x#) `uncheckedShiftL#` i#))
 
     {-# INLINE shiftR #-}
-    shiftR (W16# x#) (I# i#) = W16# (narrowWord16# ((extendWord16# x#) `uncheckedShiftRL#` i#))
+    shiftR (W16# x#) (I# i#) = W16# (wordToWord16# ((word16ToWord# x#) `uncheckedShiftRL#` i#))
 
 instance UnsafeShift Word32 where
     {-# INLINE shiftL #-}
-    shiftL (W32# x#) (I# i#) = W32# (narrowWord32# ((extendWord32# x#) `uncheckedShiftL#` i#))
+    shiftL (W32# x#) (I# i#) = W32# (wordToWord32# ((word32ToWord# x#) `uncheckedShiftL#` i#))
 
     {-# INLINE shiftR #-}
-    shiftR (W32# x#) (I# i#) = W32# (narrowWord32# ((extendWord32# x#) `uncheckedShiftRL#` i#))
+    shiftR (W32# x#) (I# i#) = W32# (wordToWord32# ((word32ToWord# x#) `uncheckedShiftRL#` i#))
 
 instance UnsafeShift Word64 where
     {-# INLINE shiftL #-}
