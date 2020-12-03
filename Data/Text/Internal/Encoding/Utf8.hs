@@ -49,7 +49,6 @@ import GHC.Word (Word8(..))
 import GHC.Exts
 #else
 import GHC.Exts hiding ( extendWord8# )
-import GHC.Prim (Word#)
 extendWord8# :: Word# -> Word#
 extendWord8#  w = w
 {-# INLINE extendWord8# #-}
