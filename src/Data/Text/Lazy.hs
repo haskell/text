@@ -307,6 +307,11 @@ import Text.Printf (PrintfArg, formatArg, formatString)
 -- measure. For details, see
 -- <http://unicode.org/reports/tr36/#Deletion_of_Noncharacters Unicode Technical Report 36, §3.5 >.)
 
+-- $setup
+-- >>> import Data.Text
+-- >>> import qualified Data.Text as T
+-- >>> :seti -XOverloadedStrings
+
 equal :: Text -> Text -> Bool
 equal Empty Empty = True
 equal Empty _     = False
@@ -1385,6 +1390,9 @@ breakOnAll pat src
 
 -- | /O(n)/ 'break' is like 'span', but the prefix returned is over
 -- elements that fail the predicate @p@.
+--
+-- >>> T.break (=='c') "180cm"
+-- ("180","cm")
 break :: (Char -> Bool) -> Text -> (Text, Text)
 break p t0 = break' t0
   where break' Empty          = (empty, empty)
@@ -1400,6 +1408,9 @@ break p t0 = break' t0
 -- a pair whose first element is the longest prefix (possibly empty)
 -- of @t@ of elements that satisfy @p@, and whose second is the
 -- remainder of the list.
+--
+-- >>> T.span (=='0') "000AB"
+-- ("000","AB")
 span :: (Char -> Bool) -> Text -> (Text, Text)
 span p = break (not . p)
 {-# INLINE span #-}
