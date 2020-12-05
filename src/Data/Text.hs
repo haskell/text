@@ -1354,6 +1354,9 @@ splitAt n t@(Text arr off len)
 -- a pair whose first element is the longest prefix (possibly empty)
 -- of @t@ of elements that satisfy @p@, and whose second is the
 -- remainder of the list.
+--
+-- >>> span (=='0') "000AB"
+-- ("000","AB")
 span :: (Char -> Bool) -> Text -> (Text, Text)
 span p t = case span_ p t of
              (# hd,tl #) -> (hd,tl)
@@ -1361,6 +1364,9 @@ span p t = case span_ p t of
 
 -- | /O(n)/ 'break' is like 'span', but the prefix returned is
 -- over elements that fail the predicate @p@.
+--
+-- >>> break (=='c') "180cm"
+-- ("180","cm")
 break :: (Char -> Bool) -> Text -> (Text, Text)
 break p = span (not . p)
 {-# INLINE break #-}

@@ -1385,6 +1385,9 @@ breakOnAll pat src
 
 -- | /O(n)/ 'break' is like 'span', but the prefix returned is over
 -- elements that fail the predicate @p@.
+--
+-- >>> break (=='c') "180cm"
+-- ("180","cm")
 break :: (Char -> Bool) -> Text -> (Text, Text)
 break p t0 = break' t0
   where break' Empty          = (empty, empty)
@@ -1400,6 +1403,9 @@ break p t0 = break' t0
 -- a pair whose first element is the longest prefix (possibly empty)
 -- of @t@ of elements that satisfy @p@, and whose second is the
 -- remainder of the list.
+--
+-- >>> span (=='0') "000AB"
+-- ("000","AB")
 span :: (Char -> Bool) -> Text -> (Text, Text)
 span p = break (not . p)
 {-# INLINE span #-}
