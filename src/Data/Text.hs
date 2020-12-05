@@ -259,6 +259,11 @@ import qualified Language.Haskell.TH.Syntax as TH
 import Text.Printf (PrintfArg, formatArg, formatString)
 #endif
 
+-- $setup
+-- >>> import Data.Text
+-- >>> import qualified Data.Text as T
+-- >>> :seti -XOverloadedStrings
+
 -- $character_definition
 --
 -- This package uses the term /character/ to denote Unicode /code points/.
