@@ -78,7 +78,10 @@ import System.IO.Unsafe (unsafeInterleaveIO)
 -- | Read a file and return its contents as a string.  The file is
 -- read lazily, as with 'getContents'.
 readFile :: FilePath -> IO Text
-readFile name = openFile name ReadMode >>= hGetContents
+readFile name =
+  E.mask $ \restore -> do
+    h <- openFile name ReadMode
+    restore (hGetContents h)
 
 -- | Write a string to a file.  The file is truncated to zero length
 -- before writing begins.

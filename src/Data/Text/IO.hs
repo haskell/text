@@ -84,7 +84,7 @@ import System.IO.Error (isEOFError)
 -- the file as a string.  The entire file is read strictly, as with
 -- 'getContents'.
 readFile :: FilePath -> IO Text
-readFile name = openFile name ReadMode >>= hGetContents
+readFile name = withFile name ReadMode hGetContents
 
 -- | Write a string to a file.  The file is truncated to zero length
 -- before writing begins.
