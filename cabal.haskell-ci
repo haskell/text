@@ -1,0 +1,8 @@
+benchmarks: >=7.4
+jobs-selection: any
+doctest: True
+doctest-options: -fobject-code -DINTEGER_GMP
+branches: master
+
+installed: +all -text -parsec
+install-dependencies: False

@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import math
 import sys
@@ -12,23 +12,22 @@ def timer(f, count=100):
     a = 1e300
     def g():
         return
-    for i in xrange(3):
+    for i in range(3):
         start = time.time()
-        for j in xrange(count):
+        for j in range(count):
             g()
         a = min(a, (time.time() - start) / count)
 
     b = 1e300
-    for i in xrange(3):
+    for i in range(3):
         start = time.time()
-        for j in xrange(count):
+        for j in range(count):
             f()
         b = min(b, (time.time() - start) / count)
 
     return round(b - a, int(round(math.log(count, 10) - math.log(b - a, 10))))
 
 contents = open('../../tests/text-test-data/yiwiki.xml', 'r').read()
-contents = contents.decode('utf-8')
 
 benchmarks = (
     find_first,
@@ -47,4 +46,4 @@ else:
 for b in bms:
     sys.stdout.write(b.__name__ + ' ')
     sys.stdout.flush()
-    print b()
+    print(b())

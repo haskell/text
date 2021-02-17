@@ -259,6 +259,11 @@ import qualified Language.Haskell.TH.Syntax as TH
 import Text.Printf (PrintfArg, formatArg, formatString)
 #endif
 
+-- $setup
+-- >>> import Data.Text
+-- >>> import qualified Data.Text as T
+-- >>> :seti -XOverloadedStrings
+
 -- $character_definition
 --
 -- This package uses the term /character/ to denote Unicode /code points/.
@@ -1224,6 +1229,8 @@ drop n t@(Text arr off len)
     drop n t = unstream (S.drop n (stream t))
 "TEXT drop -> unfused" [1] forall n t.
     unstream (S.drop n (stream t)) = drop n t
+"TEXT take . drop -> unfused" [1] forall len off t.
+    unstream (S.take len (S.drop off (stream t))) = take len (drop off t)
   #-}
 
 -- | /O(n)/ 'dropEnd' @n@ @t@ returns the prefix remaining after
@@ -1352,6 +1359,9 @@ splitAt n t@(Text arr off len)
 -- a pair whose first element is the longest prefix (possibly empty)
 -- of @t@ of elements that satisfy @p@, and whose second is the
 -- remainder of the list.
+--
+-- >>> T.span (=='0') "000AB"
+-- ("000","AB")
 span :: (Char -> Bool) -> Text -> (Text, Text)
 span p t = case span_ p t of
              (# hd,tl #) -> (hd,tl)
@@ -1359,6 +1369,9 @@ span p t = case span_ p t of
 
 -- | /O(n)/ 'break' is like 'span', but the prefix returned is
 -- over elements that fail the predicate @p@.
+--
+-- >>> T.break (=='c') "180cm"
+-- ("180","cm")
 break :: (Char -> Bool) -> Text -> (Text, Text)
 break p = span (not . p)
 {-# INLINE break #-}

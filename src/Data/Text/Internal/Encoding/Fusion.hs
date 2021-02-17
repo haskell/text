@@ -53,6 +53,7 @@ import qualified Data.Text.Internal.Encoding.Utf8 as U8
 import qualified Data.Text.Internal.Encoding.Utf16 as U16
 import qualified Data.Text.Internal.Encoding.Utf32 as U32
 import Data.Text.Unsafe (unsafeDupablePerformIO)
+import Data.Text.Internal.ByteStringCompat
 
 streamASCII :: ByteString -> Stream Char
 streamASCII bs = Stream next 0 (maxSize l)
@@ -185,7 +186,7 @@ unstream (Stream next s0 len) = unsafeDupablePerformIO $ do
         withForeignPtr fp' $ \p -> pokeByteOff p off x
         loop n' (off+1) s fp'
       {-# NOINLINE trimUp #-}
-      trimUp fp _ off = return $! PS fp 0 off
+      trimUp fp _ off = return $! mkBS fp off
       copy0 :: ForeignPtr Word8 -> Int -> Int -> IO (ForeignPtr Word8)
       copy0 !src !srcLen !destLen =
 #if defined(ASSERTS)
