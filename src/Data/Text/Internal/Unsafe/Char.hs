@@ -35,21 +35,22 @@ import Data.Text.Internal.Unsafe.Shift (shiftR)
 import GHC.Exts (Char(..), Int(..), chr#, ord#, word2Int#)
 import GHC.Word (Word8(..), Word16(..), Word32(..))
 import qualified Data.Text.Array as A
+import Data.Text.Internal.PrimCompat ( word8ToWord#, word16ToWord#, word32ToWord# )
 
 ord :: Char -> Int
 ord (C# c#) = I# (ord# c#)
 {-# INLINE ord #-}
 
 unsafeChr :: Word16 -> Char
-unsafeChr (W16# w#) = C# (chr# (word2Int# w#))
+unsafeChr (W16# w#) = C# (chr# (word2Int# (word16ToWord# w#)))
 {-# INLINE unsafeChr #-}
 
 unsafeChr8 :: Word8 -> Char
-unsafeChr8 (W8# w#) = C# (chr# (word2Int# w#))
+unsafeChr8 (W8# w#) = C# (chr# (word2Int# (word8ToWord# w#)))
 {-# INLINE unsafeChr8 #-}
 
 unsafeChr32 :: Word32 -> Char
-unsafeChr32 (W32# w#) = C# (chr# (word2Int# w#))
+unsafeChr32 (W32# w#) = C# (chr# (word2Int# (word32ToWord# w#)))
 {-# INLINE unsafeChr32 #-}
 
 -- | Write a character into the array at the given offset.  Returns

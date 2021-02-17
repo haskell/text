@@ -102,6 +102,7 @@ executable text-benchmarks
     Data.Text.Internal.Builder.Int.Digits
     Data.Text.Internal.Builder.RealFloat.Functions
     Data.Text.Internal.ByteStringCompat
+    Data.Text.Internal.PrimCompat
     Data.Text.Internal.Encoding.Fusion
     Data.Text.Internal.Encoding.Fusion.Common
     Data.Text.Internal.Encoding.Utf16
