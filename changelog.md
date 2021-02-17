@@ -1,3 +1,7 @@
+### 1.2.4.2
+
+* Support GHC-9.2
+
 ### 1.2.4.1
 
 * Support `template-haskell-2.17.0.0`
