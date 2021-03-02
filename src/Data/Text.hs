@@ -141,7 +141,9 @@ module Data.Text
     , breakOn
     , breakOnEnd
     , break
+    , breakEnd
     , span
+    , spanEnd
     , group
     , groupBy
     , inits
@@ -221,7 +223,7 @@ import qualified Data.Text.Internal.Fusion as S
 import qualified Data.Text.Internal.Fusion.Common as S
 import Data.Text.Encoding (decodeUtf8', encodeUtf8)
 import Data.Text.Internal.Fusion (stream, reverseStream, unstream)
-import Data.Text.Internal.Private (span_)
+import Data.Text.Internal.Private (span_, spanEnd_)
 import Data.Text.Internal (Text(..), empty, firstf, mul, safe, text)
 import Data.Text.Show (singleton, unpack, unpackCString#)
 import qualified Prelude as P
@@ -1333,6 +1335,15 @@ span p t = case span_ p t of
              (# hd,tl #) -> (hd,tl)
 {-# INLINE span #-}
 
+-- | /O(n)/ Similar to 'span', but searches from the end of the
+-- string.
+--
+-- >>> T.spanEnd (=='0') "AB000"
+-- ("AB", "000")
+spanEnd :: (Char -> Bool) -> Text -> (Text, Text)
+spanEnd p t = case spanEnd_ p t of (# hd, tl #) -> (hd, tl)
+{-# inline spanEnd #-}
+
 -- | /O(n)/ 'break' is like 'span', but the prefix returned is
 -- over elements that fail the predicate @p@.
 --
@@ -1341,6 +1352,15 @@ span p t = case span_ p t of
 break :: (Char -> Bool) -> Text -> (Text, Text)
 break p = span (not . p)
 {-# INLINE break #-}
+
+-- | /O(n)/ Similar to 'break', but searches from the end of the
+-- string.
+--
+-- >>> T.breakEnd (=='0') "180cm"
+-- ("180","cm")
+breakEnd :: (Char -> Bool) -> Text -> (Text, Text)
+breakEnd p = spanEnd (not . p)
+{-# inline breakEnd #-}
 
 -- | /O(n)/ Group characters in a string according to a predicate.
 groupBy :: (Char -> Char -> Bool) -> Text -> [Text]
