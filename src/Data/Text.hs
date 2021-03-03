@@ -1339,7 +1339,7 @@ span p t = case span_ p t of
 -- string.
 --
 -- >>> T.spanEnd (=='0') "AB000"
--- ("AB", "000")
+-- ("AB","000")
 spanEnd :: (Char -> Bool) -> Text -> (Text, Text)
 spanEnd p t = case spanEnd_ p t of (# hd, tl #) -> (hd, tl)
 {-# inline spanEnd #-}
