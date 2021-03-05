@@ -159,7 +159,6 @@ test-suite tests
     Data.Text.Show
 
   build-depends:
-    HUnit >= 1.2,
     QuickCheck >= 2.14.1 && < 2.15,
     array,
     base <5,
@@ -170,9 +169,9 @@ test-suite tests
     quickcheck-unicode >= 1.0.1.0,
     random,
     template-haskell,
-    test-framework >= 0.4,
-    test-framework-hunit >= 0.2,
-    test-framework-quickcheck2 >= 0.2
+    tasty,
+    tasty-hunit,
+    tasty-quickcheck
 
   if flag(bytestring-builder)
     build-depends: bytestring         >= 0.9    && < 0.10.4,

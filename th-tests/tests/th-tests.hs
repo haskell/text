@@ -4,9 +4,9 @@ module Main
     ( main
     ) where
 
-import Test.Framework (defaultMain)
+import Test.Tasty (defaultMain)
 
 import qualified Lift
 
 main :: IO ()
-main = defaultMain [Lift.tests]
+main = defaultMain Lift.tests
