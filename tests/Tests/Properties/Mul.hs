@@ -7,8 +7,8 @@ import Control.Exception as E (SomeException, catch, evaluate)
 import Data.Int (Int32, Int64)
 import Data.Text.Internal (mul, mul32, mul64)
 import System.IO.Unsafe (unsafePerformIO)
-import Test.Framework (Test)
-import Test.Framework.Providers.QuickCheck2 (testProperty)
+import Test.Tasty (TestTree)
+import Test.Tasty.QuickCheck (testProperty)
 import Test.QuickCheck hiding ((.&.))
 
 mulRef :: (Integral a, Bounded a) => a -> a -> Maybe a
@@ -32,7 +32,7 @@ t_mul64 a b = mulRef a b === eval mul64 a b
 t_mul :: Int -> Int -> Property
 t_mul a b = mulRef a b === eval mul a b
 
-tests :: [Test]
+tests :: [TestTree]
 tests = [
    testProperty "t_mul" t_mul
  , testProperty "t_mul32" t_mul32

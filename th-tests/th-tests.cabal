@@ -24,9 +24,8 @@ test-suite th-tests
   other-modules:
     Lift
   build-depends:
-    HUnit >= 1.2,
     base <5,
     template-haskell,
     text,
-    test-framework >= 0.4,
-    test-framework-hunit >= 0.2
+    tasty,
+    tasty-hunit

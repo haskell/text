@@ -9,7 +9,7 @@ module Tests.Regressions
 import Control.Exception (SomeException, handle)
 import Data.Char (isLetter)
 import System.IO
-import Test.HUnit (assertBool, assertEqual, assertFailure)
+import Test.Tasty.HUnit (assertBool, assertEqual, assertFailure)
 import qualified Data.ByteString as B
 import Data.ByteString.Char8 ()
 import qualified Data.ByteString.Lazy as LB
@@ -21,8 +21,8 @@ import qualified Data.Text.IO as T
 import qualified Data.Text.Lazy as LT
 import qualified Data.Text.Lazy.Encoding as LE
 import qualified Data.Text.Unsafe as T
-import qualified Test.Framework as F
-import qualified Test.Framework.Providers.HUnit as F
+import qualified Test.Tasty as F
+import qualified Test.Tasty.HUnit as F
 
 import Tests.Utils (withTempFile)
 
@@ -115,7 +115,7 @@ t301 = do
     original@(T.Text originalArr originalOff originalLen) = T.pack "1234567890"
     T.Text newArr _off _len = T.take 1 $ T.drop 1 original
 
-tests :: F.Test
+tests :: F.TestTree
 tests = F.testGroup "Regressions"
     [ F.testCase "hGetContents_crash" hGetContents_crash
     , F.testCase "lazy_encode_crash" lazy_encode_crash

@@ -27,8 +27,8 @@ import Data.Word (Word, Word8, Word16, Word32, Word64)
 import Data.Maybe (mapMaybe)
 import Numeric (showEFloat, showFFloat, showGFloat, showHex)
 import Prelude hiding (replicate)
-import Test.Framework (Test, testGroup)
-import Test.Framework.Providers.QuickCheck2 (testProperty)
+import Test.Tasty (TestTree, testGroup)
+import Test.Tasty.QuickCheck (testProperty)
 import Test.QuickCheck hiding ((.&.))
 import Test.QuickCheck.Monadic
 import Test.QuickCheck.Property (Property(..))
@@ -968,7 +968,7 @@ shorten n t@(S.Stream arr off len)
     | n > 0     = S.Stream arr off (smaller (exactSize n) len)
     | otherwise = t
 
-tests :: Test
+tests :: TestTree
 tests =
   testGroup "Properties" [
     testGroup "creation/elimination" [
