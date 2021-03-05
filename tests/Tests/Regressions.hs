@@ -1,6 +1,9 @@
 -- | Regression tests for specific bugs.
 --
-{-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
+{-# LANGUAGE MagicHash #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+
 module Tests.Regressions
     (
       tests
@@ -8,6 +11,7 @@ module Tests.Regressions
 
 import Control.Exception (SomeException, handle)
 import Data.Char (isLetter)
+import GHC.Exts (Int(..), sizeofByteArray#)
 import System.IO
 import Test.Tasty.HUnit (assertBool, assertEqual, assertFailure)
 import qualified Data.ByteString as B
@@ -105,8 +109,8 @@ t227 =
 t301 :: IO ()
 t301 = do
     assertEqual "The length of the array remains the same despite slicing"
-                (TA.length originalArr)
-                (TA.length newArr)
+                (I# (sizeofByteArray# (TA.aBA originalArr)))
+                (I# (sizeofByteArray# (TA.aBA newArr)))
 
     assertEqual "The new array still contains the original value"
                 (T.Text newArr originalOff originalLen)
