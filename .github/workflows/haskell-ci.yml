@@ -144,9 +144,7 @@ jobs:
         run: |
           touch cabal.project
           echo "packages: $GITHUB_WORKSPACE/source/." >> cabal.project
-          echo "packages: $GITHUB_WORKSPACE/source/tests" >> cabal.project
-          echo "packages: $GITHUB_WORKSPACE/source/th-tests" >> cabal.project
-          if [ $((HCNUMVER >= 71000)) -ne 0 ] ; then echo "packages: $GITHUB_WORKSPACE/source/benchmarks" >> cabal.project ; fi
+          if [ $((HCNUMVER >= 80000)) -ne 0 ] ; then echo "packages: $GITHUB_WORKSPACE/source/benchmarks" >> cabal.project ; fi
           cat cabal.project
       - name: sdist
         run: |
@@ -160,29 +158,20 @@ jobs:
         run: |
           PKGDIR_text="$(find "$GITHUB_WORKSPACE/unpacked" -maxdepth 1 -type d -regex '.*/text-[0-9.]*')"
           echo "PKGDIR_text=${PKGDIR_text}" >> $GITHUB_ENV
-          PKGDIR_text_tests="$(find "$GITHUB_WORKSPACE/unpacked" -maxdepth 1 -type d -regex '.*/text-tests-[0-9.]*')"
-          echo "PKGDIR_text_tests=${PKGDIR_text_tests}" >> $GITHUB_ENV
-          PKGDIR_th_tests="$(find "$GITHUB_WORKSPACE/unpacked" -maxdepth 1 -type d -regex '.*/th-tests-[0-9.]*')"
-          echo "PKGDIR_th_tests=${PKGDIR_th_tests}" >> $GITHUB_ENV
           PKGDIR_text_benchmarks="$(find "$GITHUB_WORKSPACE/unpacked" -maxdepth 1 -type d -regex '.*/text-benchmarks-[0-9.]*')"
           echo "PKGDIR_text_benchmarks=${PKGDIR_text_benchmarks}" >> $GITHUB_ENV
           touch cabal.project
           touch cabal.project.local
           echo "packages: ${PKGDIR_text}" >> cabal.project
-          echo "packages: ${PKGDIR_text_tests}" >> cabal.project
-          echo "packages: ${PKGDIR_th_tests}" >> cabal.project
-          if [ $((HCNUMVER >= 71000)) -ne 0 ] ; then echo "packages: ${PKGDIR_text_benchmarks}" >> cabal.project ; fi
+          if [ $((HCNUMVER >= 80000)) -ne 0 ] ; then echo "packages: ${PKGDIR_text_benchmarks}" >> cabal.project ; fi
           if [ $((HCNUMVER >= 80200)) -ne 0 ] ; then echo "package text" >> cabal.project ; fi
-          if [ $((HCNUMVER >= 80200)) -ne 0 ] ; then echo "    ghc-options: -Werror=missing-methods" >> cabal.project ; fi
-          if [ $((HCNUMVER >= 80200)) -ne 0 ] ; then echo "package text-tests" >> cabal.project ; fi
-          if [ $((HCNUMVER >= 80200)) -ne 0 ] ; then echo "    ghc-options: -Werror=missing-methods" >> cabal.project ; fi
-          if [ $((HCNUMVER >= 80200)) -ne 0 ] ; then echo "package th-tests" >> cabal.project ; fi
           if [ $((HCNUMVER >= 80200)) -ne 0 ] ; then echo "    ghc-options: -Werror=missing-methods" >> cabal.project ; fi
           if [ $((HCNUMVER >= 80200)) -ne 0 ] ; then echo "package text-benchmarks" >> cabal.project ; fi
           if [ $((HCNUMVER >= 80200)) -ne 0 ] ; then echo "    ghc-options: -Werror=missing-methods" >> cabal.project ; fi
           cat >> cabal.project <<EOF
+          constraints: semigroups -text -hashable -unordered-containers
           EOF
-          $HCPKG list --simple-output --names-only | perl -ne 'for (split /\s+/) { print "constraints: $_ installed\n" unless /^(parsec|text|text-benchmarks|text-tests|th-tests)$/; }' >> cabal.project.local
+          $HCPKG list --simple-output --names-only | perl -ne 'for (split /\s+/) { print "constraints: $_ installed\n" unless /^(parsec|text|text-benchmarks)$/; }' >> cabal.project.local
           cat cabal.project
           cat cabal.project.local
       - name: dump install plan
@@ -212,12 +201,8 @@ jobs:
         run: |
           cd ${PKGDIR_text} || false
           ${CABAL} -vnormal check
-          cd ${PKGDIR_text_tests} || false
-          ${CABAL} -vnormal check
-          cd ${PKGDIR_th_tests} || false
-          ${CABAL} -vnormal check
-          if [ $((HCNUMVER >= 71000)) -ne 0 ] ; then cd ${PKGDIR_text_benchmarks} || false ; fi
-          if [ $((HCNUMVER >= 71000)) -ne 0 ] ; then ${CABAL} -vnormal check ; fi
+          if [ $((HCNUMVER >= 80000)) -ne 0 ] ; then cd ${PKGDIR_text_benchmarks} || false ; fi
+          if [ $((HCNUMVER >= 80000)) -ne 0 ] ; then ${CABAL} -vnormal check ; fi
       - name: haddock
         run: |
           $CABAL v2-haddock $ARG_COMPILER --with-haddock $HADDOCK $ARG_TESTS $ARG_BENCH all
