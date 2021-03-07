@@ -1,5 +1,4 @@
--- See http://cabal.readthedocs.io/en/latest/nix-local-build-overview.html
 packages: .
-packages: tests
 packages: benchmarks
 tests: True
+constraints: semigroups -text -hashable -unordered-containers

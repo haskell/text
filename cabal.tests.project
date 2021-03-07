@@ -1,5 +1,0 @@
--- this project doesn't have local 'text' package,
--- so tests build faster.
-
-packages: tests
-tests: True
