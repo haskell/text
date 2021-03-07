@@ -76,14 +76,8 @@ extra-source-files:
     include/*.h
     scripts/*.hs
     tests-and-benchmarks.markdown
-    tests/*.hs
-    tests/.ghci
-    tests/Makefile
-    tests/Tests/*.hs
-    tests/Tests/Properties/*.hs
-    tests/cabal.config
-    tests/scripts/*.sh
-    tests/text-tests.cabal
+    tests/literal-rule-test.sh
+    tests/LiteralRuleTest.hs
 
 flag bytestring-builder
   description:
@@ -227,3 +221,36 @@ source-repository head
 source-repository head
   type:     mercurial
   location: https://bitbucket.org/bos/text
+
+test-suite tests
+  type:           exitcode-stdio-1.0
+  ghc-options:
+    -Wall -threaded -rtsopts
+
+  hs-source-dirs: tests
+  main-is:        Tests.hs
+  other-modules:
+    Tests.Lift
+    Tests.Properties
+    Tests.Properties.Mul
+    Tests.QuickCheckUtils
+    Tests.Regressions
+    Tests.SlowFunctions
+    Tests.Utils
+
+  build-depends:
+    QuickCheck >= 2.14.1 && < 2.15,
+    base <5,
+    bytestring,
+    deepseq,
+    directory,
+    quickcheck-unicode >= 1.0.1.0,
+    random,
+    tasty,
+    tasty-hunit,
+    tasty-quickcheck,
+    template-haskell,
+    text
+
+  default-language: Haskell2010
+  default-extensions: NondecreasingIndentation
