@@ -1,6 +1,6 @@
 benchmarks: >=7.4
 jobs-selection: any
-doctest: True
+doctest: <9.0
 doctest-options: -fobject-code -DINTEGER_GMP
 branches: master
 
