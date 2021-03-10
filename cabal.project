@@ -1,6 +1,5 @@
 -- See http://cabal.readthedocs.io/en/latest/nix-local-build-overview.html
 packages: .
 packages: tests
-packages: th-tests
 packages: benchmarks
 tests: True
