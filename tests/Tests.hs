@@ -6,8 +6,13 @@ module Main
 
 import Test.Tasty (defaultMain, testGroup)
 
+import qualified Tests.Lift as Lift
 import qualified Tests.Properties as Properties
 import qualified Tests.Regressions as Regressions
 
 main :: IO ()
-main = defaultMain $ testGroup "All" [Properties.tests, Regressions.tests]
+main = defaultMain $ testGroup "All"
+  [ Lift.tests
+  , Properties.tests
+  , Regressions.tests
+  ]
