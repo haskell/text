@@ -30,7 +30,8 @@ flag llvm
   default: False
   manual: True
 
-executable text-benchmarks
+benchmark text-benchmarks
+  type:           exitcode-stdio-1.0
   ghc-options:    -Wall -O2 -rtsopts
   if flag(llvm)
     ghc-options:  -fllvm
@@ -143,7 +144,8 @@ executable text-benchmarks
   other-extensions: DeriveAnyClass
 
 
-executable text-multilang
+benchmark text-multilang
+  type:           exitcode-stdio-1.0
   hs-source-dirs: haskell
   main-is:        Multilang.hs
   other-modules:  Timer
