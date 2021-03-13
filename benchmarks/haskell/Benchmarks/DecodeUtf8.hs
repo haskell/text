@@ -27,7 +27,6 @@ import Foreign.ForeignPtr (withForeignPtr)
 import Data.Word (Word8)
 import qualified Test.Tasty.Bench as C
 import Test.Tasty.Bench (Benchmark, bgroup, nf, whnfIO)
-import qualified Codec.Binary.UTF8.Generic as U8
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Text as T
@@ -61,10 +60,6 @@ benchmark kind ~(bs, lbs) =
         , bench "Lazy" $ nf TL.decodeUtf8 lbs
         , bench "LazyLength" $ nf (TL.length . TL.decodeUtf8) lbs
         , bench "LazyInitLength" $ nf (TL.length . TL.init . TL.decodeUtf8) lbs
-        , bench "StrictStringUtf8" $ nf U8.toString bs
-        , bench "StrictStringUtf8Length" $ nf (length . U8.toString) bs
-        , bench "LazyStringUtf8" $ nf U8.toString lbs
-        , bench "LazyStringUtf8Length" $ nf (length . U8.toString) lbs
         ]
 
 iconv :: B.ByteString -> IO CInt
