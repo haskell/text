@@ -105,12 +105,13 @@ benchmark kind ~Env{..} =
             , benchBS  $ nf (BS.cons c) bsa
             , benchBSL $ nf (BL.cons c) bla
             ]
-        , bgroup "concatMap"
-            [ benchT   $ nf (T.concatMap (T.replicate 3 . T.singleton)) ta
-            , benchTL  $ nf (TL.concatMap (TL.replicate 3 . TL.singleton)) tla
-            , benchBS  $ nf (BS.concatMap (BS.replicate 3)) bsa
-            , benchBSL $ nf (BL.concatMap (BL.replicate 3)) bla
-            ]
+        -- concatMap exceeds 4G heap size on current test data
+        -- , bgroup "concatMap"
+        --     [ benchT   $ nf (T.concatMap (T.replicate 3 . T.singleton)) ta
+        --     , benchTL  $ nf (TL.concatMap (TL.replicate 3 . TL.singleton)) tla
+        --     , benchBS  $ nf (BS.concatMap (BS.replicate 3)) bsa
+        --     , benchBSL $ nf (BL.concatMap (BL.replicate 3)) bla
+        --     ]
         , bgroup "decode"
             [ benchT   $ nf T.decodeUtf8 bsa
             , benchTL  $ nf TL.decodeUtf8 bla
