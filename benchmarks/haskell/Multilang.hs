@@ -25,7 +25,7 @@ benchmarks = [
 
 main :: IO ()
 main = do
-  !contents <- decodeUtf8 `fmap` B.readFile "../tests/text-test-data/yiwiki.xml"
+  !contents <- decodeUtf8 `fmap` B.readFile "benchmarks/text-test-data/yiwiki.xml"
   forM_ benchmarks $ \(name, bmark) -> do
     putStr $ name ++ " "
     hFlush stdout
