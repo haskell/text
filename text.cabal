@@ -261,7 +261,6 @@ benchmark text-benchmarks
                   tasty-bench >= 0.2,
                   text,
                   transformers,
-                  utf8-string,
                   vector
 
   if flag(bytestring-builder)
