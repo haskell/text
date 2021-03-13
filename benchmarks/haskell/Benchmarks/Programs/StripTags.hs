@@ -15,7 +15,7 @@ module Benchmarks.Programs.StripTags
     ( benchmark
     ) where
 
-import Criterion (Benchmark, bgroup, bench, whnfIO)
+import Test.Tasty.Bench (Benchmark, bgroup, bench, whnfIO)
 import Data.List (mapAccumL)
 import System.IO (Handle, hPutStr)
 import qualified Data.ByteString as B

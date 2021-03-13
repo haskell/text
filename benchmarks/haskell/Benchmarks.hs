@@ -5,7 +5,7 @@ module Main
     ( main
     ) where
 
-import Criterion.Main (defaultMain, bgroup, env)
+import Test.Tasty.Bench (defaultMain, bgroup, env)
 import System.FilePath ((</>))
 import System.IO (IOMode (WriteMode), openFile, hSetEncoding, utf8)
 

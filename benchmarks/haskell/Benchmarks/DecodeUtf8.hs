@@ -25,8 +25,8 @@ import Data.ByteString.Lazy.Internal (ByteString(..))
 import Foreign.Ptr (Ptr, plusPtr)
 import Foreign.ForeignPtr (withForeignPtr)
 import Data.Word (Word8)
-import qualified Criterion as C
-import Criterion (Benchmark, bgroup, nf, whnfIO)
+import qualified Test.Tasty.Bench as C
+import Test.Tasty.Bench (Benchmark, bgroup, nf, whnfIO)
 import qualified Codec.Binary.UTF8.Generic as U8
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL

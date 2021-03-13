@@ -16,7 +16,7 @@ module Benchmarks.Programs.Cut
     ( benchmark
     ) where
 
-import Criterion (Benchmark, bgroup, bench, whnfIO)
+import Test.Tasty.Bench (Benchmark, bgroup, bench, whnfIO)
 import System.IO (Handle, hPutStr)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Char8 as BC

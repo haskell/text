@@ -14,7 +14,7 @@ module Benchmarks.Pure
 
 import Control.DeepSeq (NFData (..))
 import Control.Exception (evaluate)
-import Criterion (Benchmark, bgroup, bench, nf)
+import Test.Tasty.Bench (Benchmark, bgroup, bench, nf)
 import Data.Char (toLower, toUpper)
 import Data.Monoid (mappend, mempty)
 import GHC.Base (Char (..), Int (..), chr#, ord#, (+#))

@@ -9,7 +9,7 @@ module Benchmarks.Builder
     ( benchmark
     ) where
 
-import Criterion (Benchmark, bgroup, bench, nf)
+import Test.Tasty.Bench (Benchmark, bgroup, bench, nf)
 import Data.Binary.Builder as B
 import Data.ByteString.Char8 ()
 import Data.Monoid (mconcat, mempty)

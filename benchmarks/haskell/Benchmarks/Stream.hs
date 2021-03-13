@@ -14,7 +14,7 @@ module Benchmarks.Stream
     ) where
 
 import Control.DeepSeq (NFData (..))
-import Criterion (Benchmark, bgroup, bench, nf)
+import Test.Tasty.Bench (Benchmark, bgroup, bench, nf)
 import qualified Data.Text as T
 import qualified Data.ByteString as B
 import qualified Data.Text.Lazy as TL
@@ -58,7 +58,7 @@ data Env = Env
     } deriving (Generic, NFData)
 
 initEnv :: FilePath -> IO Env
-initEnv fp = do 
+initEnv fp = do
     -- Different formats
     t  <- T.readFile fp
     let !utf8    = T.encodeUtf8 t

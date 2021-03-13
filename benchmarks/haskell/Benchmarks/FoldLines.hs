@@ -10,7 +10,7 @@ module Benchmarks.FoldLines
     ( benchmark
     ) where
 
-import Criterion (Benchmark, bgroup, bench, whnfIO)
+import Test.Tasty.Bench (Benchmark, bgroup, bench, whnfIO)
 import System.IO
 import qualified Data.ByteString as B
 import qualified Data.Text as T

@@ -42,7 +42,7 @@ benchmark text-benchmarks
                   blaze-builder,
                   bytestring-lexing >= 0.5.0,
                   containers,
-                  criterion >= 0.10.0.0,
+                  tasty-bench >= 0.2,
                   deepseq,
                   directory,
                   filepath,
