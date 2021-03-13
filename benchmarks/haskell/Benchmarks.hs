@@ -17,6 +17,7 @@ import qualified Benchmarks.Equality as Equality
 import qualified Benchmarks.FileRead as FileRead
 import qualified Benchmarks.FoldLines as FoldLines
 import qualified Benchmarks.Mul as Mul
+import qualified Benchmarks.Multilang as Multilang
 import qualified Benchmarks.Pure as Pure
 import qualified Benchmarks.ReadNumbers as ReadNumbers
 import qualified Benchmarks.Replace as Replace
@@ -48,6 +49,7 @@ main = do
         , FileRead.benchmark (tf "russian.txt")
         , FoldLines.benchmark (tf "russian.txt")
         , env Mul.initEnv Mul.benchmark
+        , Multilang.benchmark
         , env (Pure.initEnv (tf "tiny.txt")) (Pure.benchmark "tiny")
         , env (Pure.initEnv (tf "ascii-small.txt")) (Pure.benchmark "ascii-small")
         , env (Pure.initEnv (tf "ascii.txt")) (Pure.benchmark "ascii")

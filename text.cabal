@@ -283,6 +283,7 @@ benchmark text-benchmarks
     Benchmarks.FileRead
     Benchmarks.FoldLines
     Benchmarks.Mul
+    Benchmarks.Multilang
     Benchmarks.Programs.BigTable
     Benchmarks.Programs.Cut
     Benchmarks.Programs.Fold
@@ -299,17 +300,3 @@ benchmark text-benchmarks
   default-language: Haskell2010
   default-extensions: NondecreasingIndentation
   other-extensions: DeriveGeneric
-
-benchmark text-multilang
-  type:           exitcode-stdio-1.0
-  hs-source-dirs: benchmarks/haskell
-  main-is:        Multilang.hs
-  other-modules:  Timer
-  ghc-options:    -Wall -O2
-  build-depends:  base == 4.*,
-                  bytestring,
-                  text,
-                  time
-
-  default-language: Haskell2010
-  default-extensions: NondecreasingIndentation
