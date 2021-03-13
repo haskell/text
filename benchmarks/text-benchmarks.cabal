@@ -17,9 +17,6 @@ tested-with:    GHC==9.0.1,
                 GHC==8.10.4, GHC==8.8.4, GHC==8.6.5, GHC==8.4.4,
                 GHC==8.2.2, GHC==8.0.2
 
-extra-source-files:
-    include/*.h
-
 flag bytestring-builder
   description: Depend on the bytestring-builder package for backwards compatibility.
   default: False
@@ -49,6 +46,7 @@ benchmark text-benchmarks
                   integer-gmp,
                   stringsearch,
                   template-haskell,
+                  text,
                   transformers,
                   utf8-string,
                   vector
@@ -85,63 +83,9 @@ benchmark text-benchmarks
     Benchmarks.Stream
     Benchmarks.WordFrequencies
 
-  -- Source code for IUT (implementation under test)
-  -- "borrowed" from parent folder
-  include-dirs:   include
-  c-sources:      cbits/cbits.c
-  hs-source-dirs: src
-  other-modules:
-    Data.Text
-    Data.Text.Array
-    Data.Text.Encoding
-    Data.Text.Encoding.Error
-    Data.Text.Foreign
-    Data.Text.IO
-    Data.Text.Internal
-    Data.Text.Internal.Builder
-    Data.Text.Internal.Builder.Functions
-    Data.Text.Internal.Builder.Int.Digits
-    Data.Text.Internal.Builder.RealFloat.Functions
-    Data.Text.Internal.ByteStringCompat
-    Data.Text.Internal.PrimCompat
-    Data.Text.Internal.Encoding.Fusion
-    Data.Text.Internal.Encoding.Fusion.Common
-    Data.Text.Internal.Encoding.Utf16
-    Data.Text.Internal.Encoding.Utf32
-    Data.Text.Internal.Encoding.Utf8
-    Data.Text.Internal.Functions
-    Data.Text.Internal.Fusion
-    Data.Text.Internal.Fusion.CaseMapping
-    Data.Text.Internal.Fusion.Common
-    Data.Text.Internal.Fusion.Size
-    Data.Text.Internal.Fusion.Types
-    Data.Text.Internal.IO
-    Data.Text.Internal.Lazy
-    Data.Text.Internal.Lazy.Encoding.Fusion
-    Data.Text.Internal.Lazy.Fusion
-    Data.Text.Internal.Lazy.Search
-    Data.Text.Internal.Private
-    Data.Text.Internal.Read
-    Data.Text.Internal.Search
-    Data.Text.Internal.Unsafe
-    Data.Text.Internal.Unsafe.Char
-    Data.Text.Internal.Unsafe.Shift
-    Data.Text.Lazy
-    Data.Text.Lazy.Builder
-    Data.Text.Lazy.Builder.Int
-    Data.Text.Lazy.Builder.RealFloat
-    Data.Text.Lazy.Encoding
-    Data.Text.Lazy.IO
-    Data.Text.Lazy.Internal
-    Data.Text.Lazy.Read
-    Data.Text.Read
-    Data.Text.Unsafe
-    Data.Text.Show
-
   default-language: Haskell2010
   default-extensions: NondecreasingIndentation
   other-extensions: DeriveAnyClass
-
 
 benchmark text-multilang
   type:           exitcode-stdio-1.0
