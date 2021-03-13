@@ -67,7 +67,6 @@ extra-source-files:
     changelog.md
     include/*.h
     scripts/*.hs
-    tests-and-benchmarks.markdown
     tests/literal-rule-test.sh
     tests/LiteralRuleTest.hs
 
