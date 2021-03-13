@@ -6,7 +6,7 @@
 -- * Most streaming functions
 --
 {-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE DeriveAnyClass, DeriveGeneric, RecordWildCards #-}
+{-# LANGUAGE DeriveGeneric, RecordWildCards #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Benchmarks.Stream
     ( initEnv
@@ -55,7 +55,9 @@ data Env = Env
     , utf32leL :: !BL.ByteString
     , utf32beL :: !BL.ByteString
     , s :: T.Stream Char
-    } deriving (Generic, NFData)
+    } deriving (Generic)
+
+instance NFData Env
 
 initEnv :: FilePath -> IO Env
 initEnv fp = do

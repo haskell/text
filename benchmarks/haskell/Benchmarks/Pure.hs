@@ -5,7 +5,7 @@
 -- * Most pure functions defined the string types
 --
 {-# LANGUAGE BangPatterns, CPP, GADTs, MagicHash #-}
-{-# LANGUAGE DeriveAnyClass, DeriveGeneric, RecordWildCards #-}
+{-# LANGUAGE DeriveGeneric, RecordWildCards #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Benchmarks.Pure
     ( initEnv
@@ -51,8 +51,9 @@ data Env = Env
     , tl :: [T.Text]
     , tll :: [TL.Text]
     , sl :: [String]
-    } deriving (Generic, NFData)
+    } deriving (Generic)
 
+instance NFData Env
 
 initEnv :: FilePath -> IO Env
 initEnv fp = do
@@ -299,7 +300,8 @@ benchmark kind ~Env{..} =
             , benchTL  $ nf TL.uncons tla
             , benchBS  $ nf BS.uncons bsa
             , benchBSL $ nf BL.uncons bla
-            , benchS   $ nf L.uncons sa
+            -- Old GHCs do not export L.uncons
+            , benchS   $ nf (\xs -> case xs of [] -> Nothing; y : ys -> Just (y, ys)) sa
             ]
         , bgroup "words"
             [ benchT   $ nf T.words ta
