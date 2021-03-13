@@ -70,4 +70,4 @@ main = do
         ]
     where
     -- Location of a test file
-    tf = ("../tests/text-test-data" </>)
+    tf = ("benchmarks/text-test-data" </>)
