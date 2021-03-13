@@ -10,7 +10,7 @@ module Benchmarks.Equality
     , benchmark
     ) where
 
-import Criterion (Benchmark, bgroup, bench, whnf)
+import Test.Tasty.Bench (Benchmark, bgroup, bench, whnf)
 import qualified Data.ByteString.Char8 as B
 import qualified Data.ByteString.Lazy.Char8 as BL
 import qualified Data.Text as T

@@ -9,7 +9,7 @@ module Benchmarks.FileRead
     ) where
 
 import Control.Applicative ((<$>))
-import Criterion (Benchmark, bgroup, bench, whnfIO)
+import Test.Tasty.Bench (Benchmark, bgroup, bench, whnfIO)
 import qualified Data.ByteString as SB
 import qualified Data.ByteString.Lazy as LB
 import qualified Data.Text as T

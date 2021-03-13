@@ -17,7 +17,7 @@ module Benchmarks.Programs.Sort
     ( benchmark
     ) where
 
-import Criterion (Benchmark, bgroup, bench, whnfIO)
+import Test.Tasty.Bench (Benchmark, bgroup, bench, whnfIO)
 import Data.Monoid (mconcat)
 import System.IO (Handle, hPutStr)
 import qualified Data.ByteString as B
