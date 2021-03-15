@@ -6,7 +6,6 @@ Before submitting your PR, check that you've:
 After submitting your PR:
 
 - [ ] Update the Changelog.md file with a link to your PR
-- [ ] Bumped the version number if there isn't an `(unreleased)` on the Changelog
 - [ ] Check that CI passes (or if it fails, for reasons unrelated to your change, like CI timeouts)
 
 <!---Thanks so much for contributing! :)
