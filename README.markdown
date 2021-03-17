@@ -1,22 +1,26 @@
-# `text`: Fast, packed Unicode strings, using stream fusion
+# `text`: Fast, packed Unicode strings, using stream fusion [![Hackage](http://img.shields.io/hackage/v/text.svg)](https://hackage.haskell.org/package/text)
 
 This package provides the Data.Text library, a library for the space-
 and time-efficient manipulation of Unicode text in Haskell.
-
-**Please refer to the [package description on Hackage](https://hackage.haskell.org/package/text#description) for more information.**
 
 # Get involved!
 
 Please report bugs via the
 [github issue tracker](https://github.com/haskell/text/issues).
 
-Master [git repository](https://github.com/haskell/text):
+The main repo:
 
-* `git clone git://github.com/haskell/text.git`
+```bash
+git clone git://github.com/haskell/text.git
+```
 
-To run benchmarks please clone and unpack
-[test files](https://github.com/bos/text-test-data)
-into `benchmarks/text-test-data`.
+To run benchmarks please clone and unpack test files:
+
+```bash
+git clone https://github.com/bos/text-test-data benchmarks/text-test-data
+cd benchmarks/text-test-data
+make
+```
 
 # Authors
 
