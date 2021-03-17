@@ -280,9 +280,12 @@ benchmark kind ~Env{..} =
                 ]
               ]
         , bgroup "Builder"
-            [ bench "mappend char" $ nf (TL.length . TB.toLazyText . mappendNChar 'a') 10000
-            , bench "mappend 8 char" $ nf (TL.length . TB.toLazyText . mappend8Char) 'a'
-            , bench "mappend text" $ nf (TL.length . TB.toLazyText . mappendNText short) 10000
+            [ bench ("mappend char+" ++ kind) $
+                nf (TL.length . TB.toLazyText . mappendNChar 'a') 10000
+            , bench ("mappend 8 char+" ++ kind) $
+                nf (TL.length . TB.toLazyText . mappend8Char) 'a'
+            , bench ("mappend text+" ++ kind) $
+                nf (TL.length . TB.toLazyText . mappendNText short) 10000
             ]
         ]
   where
