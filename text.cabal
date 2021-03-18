@@ -159,7 +159,7 @@ library
     binary           >= 0.5 && < 0.9,
     deepseq          >= 1.1 && < 1.5,
     ghc-prim         >= 0.2 && < 0.9,
-    template-haskell >= 2.5 && < 2.18
+    template-haskell >= 2.5 && < 2.19
 
   if flag(bytestring-builder)
     build-depends: bytestring         >= 0.9    && < 0.10.4,
