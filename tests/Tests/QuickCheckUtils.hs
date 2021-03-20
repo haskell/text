@@ -26,6 +26,7 @@ module Tests.QuickCheckUtils
     , genDecodeErr
 
     , Stringy(..)
+    , unpack2
     , eq
     , eqP
 
@@ -246,6 +247,9 @@ instance Stringy TL.Text where
     unpackS  = TL.unpack
     splitAtS = ((TL.lazyInvariant *** TL.lazyInvariant) .) .
                TL.splitAt . fromIntegral
+
+unpack2 :: (Stringy s) => (s,s) -> (String,String)
+unpack2 = unpackS *** unpackS
 
 -- Do two functions give the same answer?
 eq :: (Eq a, Show a) => (t -> a) -> (t -> a) -> t -> Bool
