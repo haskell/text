@@ -145,9 +145,11 @@ module Data.Text.Lazy
     , stripEnd
     , splitAt
     , span
+    , spanEnd
     , breakOn
     , breakOnEnd
     , break
+    , breakEnd
     , group
     , groupBy
     , inits
@@ -1365,6 +1367,15 @@ break p t0 = break' t0
                    | otherwise -> let (a,b) = T.splitAt n t
                                   in (Chunk a Empty, Chunk b ts)
 
+-- | /O(n)/ Similar to 'break', but searches from the end of the string.
+--
+-- >>> T.breakEnd (=='0') "180cm"
+-- ("180","cm")
+breakEnd :: (Char -> Bool) -> Text -> (Text, Text)
+breakEnd p src = let (a,b) = break p (reverse src)
+                 in  (reverse b, reverse a)
+{-# INLINE breakEnd #-}
+
 -- | /O(n)/ 'span', applied to a predicate @p@ and text @t@, returns
 -- a pair whose first element is the longest prefix (possibly empty)
 -- of @t@ of elements that satisfy @p@, and whose second is the
@@ -1375,6 +1386,14 @@ break p t0 = break' t0
 span :: (Char -> Bool) -> Text -> (Text, Text)
 span p = break (not . p)
 {-# INLINE span #-}
+
+-- | /O(n)/ Similar to 'span', but searches from the end of the string.
+--
+-- >>> T.spanEnd Data.Char.isAlpha "000AB"
+-- ("000","AB")
+spanEnd :: (Char -> Bool) -> Text -> (Text, Text)
+spanEnd p = breakEnd (not . p)
+{-# INLINE spanEnd #-}
 
 -- | The 'group' function takes a 'Text' and returns a list of 'Text's
 -- such that the concatenation of the result is equal to the argument.
