@@ -1341,7 +1341,7 @@ span p t = case span_ p t of
 -- >>> T.spanEnd (=='0') "AB000"
 -- ("AB","000")
 spanEnd :: (Char -> Bool) -> Text -> (Text, Text)
-spanEnd p t = case spanEnd_ p t of (# hd, tl #) -> (hd, tl)
+spanEnd p t = case spanEnd_ p t of (# hd,tl #) -> (hd,tl)
 {-# inline spanEnd #-}
 
 -- | /O(n)/ 'break' is like 'span', but the prefix returned is

@@ -32,13 +32,13 @@ span_ p t@(Text arr off len) = (# hd,tl #)
 {-# INLINE span_ #-}
 
 spanEnd_ :: (Char -> Bool) -> Text -> (# Text, Text #)
-spanEnd_ p t@(Text arr off len) = (# hd, tl #)
+spanEnd_ p t@(Text arr off len) = (# hd,tl #)
   where hd = text arr off (k+1)
         tl = text arr (off+k+1) (len-k-1)
         !k = loop (len-1)
         loop !i | i >= off && p c = loop (i+d)
                 | otherwise       = i
-         where (c, d)             = reverseIter t i
+            where (c,d)           = reverseIter t i
 {-# INLINE spanEnd_ #-}
 
 runText :: (forall s. (A.MArray s -> Int -> ST s Text) -> ST s Text) -> Text
