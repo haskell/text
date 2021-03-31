@@ -62,7 +62,7 @@ import Data.Monoid (Monoid(..))
 #if !MIN_VERSION_base(4,11,0) && MIN_VERSION_base(4,9,0)
 import Data.Semigroup (Semigroup(..))
 #endif
-import Data.Text.Internal (Text(..))
+import Data.Text.Internal (Text(..), safe)
 import Data.Text.Internal.Lazy (smallChunkSize)
 import Data.Text.Unsafe (inlineInterleaveST)
 import Data.Text.Internal.Unsafe.Char (unsafeWrite)
@@ -138,7 +138,7 @@ empty = Builder (\ k buf -> k buf)
 --  * @'toLazyText' ('singleton' c) = 'L.singleton' c@
 --
 singleton :: Char -> Builder
-singleton c = writeAtMost 2 $ \ marr o -> unsafeWrite marr o c
+singleton c = writeAtMost 2 $ \ marr o -> unsafeWrite marr o (safe c)
 {-# INLINE singleton #-}
 
 ------------------------------------------------------------------------
@@ -190,7 +190,7 @@ fromString str = Builder $ \k (Buffer p0 o0 u0 l0) ->
                 ts <- inlineInterleaveST (loop marr' 0 0 chunkSize s)
                 return $ t : ts
             | otherwise = do
-                n <- unsafeWrite marr (o+u) c
+                n <- unsafeWrite marr (o+u) (safe c)
                 loop marr o (u+n) (l-n) cs
     in loop p0 o0 u0 l0 str
   where
