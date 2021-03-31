@@ -223,7 +223,15 @@ test-suite tests
   other-modules:
     Tests.Lift
     Tests.Properties
-    Tests.Properties.Mul
+    Tests.Properties.Basics
+    Tests.Properties.Builder
+    Tests.Properties.Folds
+    Tests.Properties.Instances
+    Tests.Properties.LowLevel
+    Tests.Properties.Read
+    Tests.Properties.Substrings
+    Tests.Properties.Text
+    Tests.Properties.Transcoding
     Tests.QuickCheckUtils
     Tests.Regressions
     Tests.SlowFunctions
