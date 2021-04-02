@@ -1,0 +1,38 @@
+name: win-mac-ci
+on:
+  push:
+    branches:
+      - master
+  pull_request: {}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: ['windows-latest', 'macOS-latest']
+        ghc: ['9.0']
+      fail-fast: false
+    steps:
+    - uses: actions/checkout@v2
+    - uses: haskell/actions/setup@v1
+      id: setup-haskell-cabal
+      with:
+        ghc-version: ${{ matrix.ghc }}
+    - name: Update cabal package database
+      run: cabal update
+    - uses: actions/cache@v2.1.4
+      name: Cache cabal stuff
+      with:
+        path: ${{ steps.setup-haskell-cabal.outputs.cabal-store }}
+        key: ${{ runner.os }}-${{ matrix.ghc }}
+    - name: Test
+      run: cabal test
+    - name: Haddock
+      run: cabal haddock
+    - name: SDist
+      run: cabal sdist
