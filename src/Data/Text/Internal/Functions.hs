@@ -1,3 +1,5 @@
+{-# LANGUAGE CPP #-}
+
 -- |
 -- Module      : Data.Text.Internal.Functions
 -- Copyright   : 2010 Bryan O'Sullivan
@@ -15,8 +17,17 @@
 
 module Data.Text.Internal.Functions
     (
-      intersperse
+      intersperse,
+      unsafeWithForeignPtr
     ) where
+
+import Foreign.Ptr (Ptr)
+import Foreign.ForeignPtr (ForeignPtr)
+#if MIN_VERSION_base(4,15,0)
+import qualified GHC.ForeignPtr (unsafeWithForeignPtr)
+#else
+import qualified Foreign.ForeignPtr (withForeignPtr)
+#endif
 
 -- | A lazier version of Data.List.intersperse.  The other version
 -- causes space leaks!
@@ -27,3 +38,10 @@ intersperse sep (x:xs) = x : go xs
     go []     = []
     go (y:ys) = sep : y: go ys
 {-# INLINE intersperse #-}
+
+unsafeWithForeignPtr :: ForeignPtr a -> (Ptr a -> IO b) -> IO b
+#if MIN_VERSION_base(4,15,0)
+unsafeWithForeignPtr = GHC.ForeignPtr.unsafeWithForeignPtr
+#else
+unsafeWithForeignPtr = Foreign.ForeignPtr.withForeignPtr
+#endif

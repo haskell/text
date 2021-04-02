@@ -53,3 +53,4 @@ plusForeignPtr (ForeignPtr addr guts) (I# offset) = ForeignPtr (plusAddr# addr o
  #-}
 #endif
 #endif
+

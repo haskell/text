@@ -44,8 +44,9 @@ import Data.Text.Encoding.Error
 import Data.Text.Internal.Encoding.Fusion.Common
 import Data.Text.Internal.Unsafe.Char (unsafeChr, unsafeChr8, unsafeChr32)
 import Data.Text.Internal.Unsafe.Shift (shiftL, shiftR)
+import Data.Text.Internal.Functions (unsafeWithForeignPtr)
 import Data.Word (Word8, Word16, Word32)
-import Foreign.ForeignPtr (withForeignPtr, ForeignPtr)
+import Foreign.ForeignPtr (ForeignPtr)
 import Foreign.Storable (pokeByteOff)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Unsafe as B
@@ -177,13 +178,13 @@ unstream (Stream next s0 len) = unsafeDupablePerformIO $ do
           Yield x s'
               | off == n -> realloc fp n off s' x
               | otherwise -> do
-            withForeignPtr fp $ \p -> pokeByteOff p off x
+            unsafeWithForeignPtr fp $ \p -> pokeByteOff p off x
             loop n (off+1) s' fp
       {-# NOINLINE realloc #-}
       realloc fp n off s x = do
         let n' = n+n
         fp' <- copy0 fp n n'
-        withForeignPtr fp' $ \p -> pokeByteOff p off x
+        unsafeWithForeignPtr fp' $ \p -> pokeByteOff p off x
         loop n' (off+1) s fp'
       {-# NOINLINE trimUp #-}
       trimUp fp _ off = return $! mkBS fp off
@@ -194,8 +195,8 @@ unstream (Stream next s0 len) = unsafeDupablePerformIO $ do
 #endif
         do
           dest <- mallocByteString destLen
-          withForeignPtr src  $ \src'  ->
-              withForeignPtr dest $ \dest' ->
+          unsafeWithForeignPtr src  $ \src'  ->
+              unsafeWithForeignPtr dest $ \dest' ->
                   memcpy dest' src' (fromIntegral srcLen)
           return dest
 

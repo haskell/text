@@ -35,18 +35,20 @@ module Data.Text.Internal.Lazy.Encoding.Fusion
 import Data.ByteString.Lazy.Internal (ByteString(..), defaultChunkSize)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Unsafe as B
+import Data.Text.Internal.ByteStringCompat
 import Data.Text.Internal.Encoding.Fusion.Common
 import Data.Text.Encoding.Error
 import Data.Text.Internal.Fusion (Step(..), Stream(..))
 import Data.Text.Internal.Fusion.Size
 import Data.Text.Internal.Unsafe.Char (unsafeChr, unsafeChr8, unsafeChr32)
 import Data.Text.Internal.Unsafe.Shift (shiftL)
+import Data.Text.Internal.Functions (unsafeWithForeignPtr)
 import Data.Word (Word8, Word16, Word32)
 import qualified Data.Text.Internal.Encoding.Utf8 as U8
 import qualified Data.Text.Internal.Encoding.Utf16 as U16
 import qualified Data.Text.Internal.Encoding.Utf32 as U32
 import Data.Text.Unsafe (unsafeDupablePerformIO)
-import Foreign.ForeignPtr (withForeignPtr, ForeignPtr)
+import Foreign.ForeignPtr (ForeignPtr)
 import Foreign.Storable (pokeByteOff)
 import Data.ByteString.Internal (mallocByteString, memcpy)
 #if defined(ASSERTS)
@@ -289,13 +291,13 @@ unstreamChunks chunkSize (Stream next s0 len0) = chunk s0 (upperBound 4 len0)
                       return $! Chunk (trimUp fp off) (chunk s newLen)
                     | off == n -> realloc fp n off s' x
                     | otherwise -> do
-                      withForeignPtr fp $ \p -> pokeByteOff p off x
+                      unsafeWithForeignPtr fp $ \p -> pokeByteOff p off x
                       loop n (off+1) s' fp
             {-# NOINLINE realloc #-}
             realloc fp n off s x = do
               let n' = min (n+n) chunkSize
               fp' <- copy0 fp n n'
-              withForeignPtr fp' $ \p -> pokeByteOff p off x
+              unsafeWithForeignPtr fp' $ \p -> pokeByteOff p off x
               loop n' (off+1) s fp'
             trimUp fp off = mkBS fp off
             copy0 :: ForeignPtr Word8 -> Int -> Int -> IO (ForeignPtr Word8)
@@ -305,8 +307,8 @@ unstreamChunks chunkSize (Stream next s0 len0) = chunk s0 (upperBound 4 len0)
 #endif
               do
                 dest <- mallocByteString destLen
-                withForeignPtr src  $ \src'  ->
-                    withForeignPtr dest $ \dest' ->
+                unsafeWithForeignPtr src  $ \src'  ->
+                    unsafeWithForeignPtr dest $ \dest' ->
                         memcpy dest' src' (fromIntegral srcLen)
                 return dest
 
