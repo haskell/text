@@ -42,10 +42,11 @@ import Control.Monad.ST (unsafeIOToST)
 import Data.ByteString.Unsafe (unsafePackCStringLen, unsafeUseAsCStringLen)
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import Data.Text.Internal (Text(..), empty)
+import Data.Text.Internal.Functions (unsafeWithForeignPtr)
 import Data.Text.Unsafe (lengthWord16)
 import Data.Word (Word16)
 import Foreign.C.String (CStringLen)
-import Foreign.ForeignPtr (ForeignPtr, mallocForeignPtrArray, withForeignPtr)
+import Foreign.ForeignPtr (ForeignPtr, mallocForeignPtrArray)
 import Foreign.Marshal.Alloc (allocaBytes)
 import Foreign.Ptr (Ptr, castPtr, plusPtr)
 import Foreign.Storable (peek, poke)
@@ -150,7 +151,7 @@ useAsPtr t@(Text _arr _off len) action =
 asForeignPtr :: Text -> IO (ForeignPtr Word16, I16)
 asForeignPtr t@(Text _arr _off len) = do
   fp <- mallocForeignPtrArray len
-  withForeignPtr fp $ unsafeCopyToPtr t
+  unsafeWithForeignPtr fp $ unsafeCopyToPtr t
   return (fp, I16 len)
 
 -- | /O(n)/ Decode a C string with explicit length, which is assumed

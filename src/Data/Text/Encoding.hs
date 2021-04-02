@@ -69,9 +69,10 @@ import Control.Exception (evaluate, try, throwIO, ErrorCall(ErrorCall))
 import Control.Monad.ST (runST)
 import Data.Bits ((.&.))
 import Data.ByteString as B
-import Data.ByteString.Internal as B hiding (c2w)
+import qualified Data.ByteString.Internal as B
 import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode)
 import Data.Text.Internal (Text(..), safe, text)
+import Data.Text.Internal.Functions
 import Data.Text.Internal.Private (runText)
 import Data.Text.Internal.Unsafe.Char (ord, unsafeWrite)
 import Data.Text.Internal.Unsafe.Shift (shiftR)
@@ -83,7 +84,6 @@ import Foreign.C.Types (CSize(CSize))
 #else
 import Foreign.C.Types (CSize)
 #endif
-import Foreign.ForeignPtr (withForeignPtr)
 import Foreign.Marshal.Utils (with)
 import Foreign.Ptr (Ptr, minusPtr, nullPtr, plusPtr)
 import Foreign.Storable (Storable, peek, poke)
@@ -128,7 +128,7 @@ decodeLatin1 bs = withBS bs aux where
   aux fp len = text a 0 len
    where
     a = A.run (A.new len >>= unsafeIOToST . go)
-    go dest = withForeignPtr fp $ \ptr -> do
+    go dest = unsafeWithForeignPtr fp $ \ptr -> do
       c_decode_latin1 (A.maBA dest) ptr (ptr `plusPtr` len)
       return dest
 
@@ -144,7 +144,7 @@ decodeUtf8With :: OnDecodeError -> ByteString -> Text
 decodeUtf8With onErr bs = withBS bs aux
  where
   aux fp len = runText $ \done -> do
-    let go dest = withForeignPtr fp $ \ptr ->
+    let go dest = unsafeWithForeignPtr fp $ \ptr ->
           with (0::CSize) $ \destOffPtr -> do
             let end = ptr `plusPtr` len
                 loop curPtr = do
@@ -300,7 +300,7 @@ streamDecodeUtf8With onErr = decodeChunk B.empty 0 0
     aux fp len = runST $ (unsafeIOToST . decodeChunkToBuffer) =<< A.new (len+1)
        where
         decodeChunkToBuffer :: A.MArray s -> IO Decoding
-        decodeChunkToBuffer dest = withForeignPtr fp $ \ptr ->
+        decodeChunkToBuffer dest = unsafeWithForeignPtr fp $ \ptr ->
           with (0::CSize) $ \destOffPtr ->
           with codepoint0 $ \codepointPtr ->
           with state0 $ \statePtr ->
@@ -433,8 +433,8 @@ encodeUtf8 :: Text -> ByteString
 encodeUtf8 (Text arr off len)
   | len == 0  = B.empty
   | otherwise = unsafeDupablePerformIO $ do
-  fp <- mallocByteString (len*3) -- see https://github.com/haskell/text/issues/194 for why len*3 is enough
-  withForeignPtr fp $ \ptr ->
+  fp <- B.mallocByteString (len*3) -- see https://github.com/haskell/text/issues/194 for why len*3 is enough
+  unsafeWithForeignPtr fp $ \ptr ->
     with ptr $ \destPtr -> do
       c_encode_utf8 destPtr (A.aBA arr) (fromIntegral off) (fromIntegral len)
       newDest <- peek destPtr
@@ -442,9 +442,9 @@ encodeUtf8 (Text arr off len)
       if utf8len >= len `shiftR` 1
         then return (mkBS fp utf8len)
         else do
-          fp' <- mallocByteString utf8len
-          withForeignPtr fp' $ \ptr' -> do
-            memcpy ptr' ptr (fromIntegral utf8len)
+          fp' <- B.mallocByteString utf8len
+          unsafeWithForeignPtr fp' $ \ptr' -> do
+            B.memcpy ptr' ptr (fromIntegral utf8len)
             return (mkBS fp' utf8len)
 
 -- | Decode text from little endian UTF-16 encoding.
