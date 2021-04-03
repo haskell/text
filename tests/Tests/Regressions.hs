@@ -27,6 +27,7 @@ import qualified Data.Text.Lazy.Encoding as LE
 import qualified Data.Text.Unsafe as T
 import qualified Test.Tasty as F
 import qualified Test.Tasty.HUnit as F
+import System.Directory (removeFile)
 
 import Tests.Utils (withTempFile)
 
@@ -41,12 +42,15 @@ lazy_encode_crash = withTempFile $ \ _ h ->
 -- encoded file can result in a crash in the RTS (i.e. not merely an
 -- exception).
 hGetContents_crash :: IO ()
-hGetContents_crash = withTempFile $ \ path h -> do
+hGetContents_crash = do
+  (path, h) <- openTempFile "." "crashy.txt"
   B.hPut h (B.pack [0x78, 0xc4 ,0x0a]) >> hClose h
   h' <- openFile path ReadMode
   hSetEncoding h' utf8
   handle (\(_::SomeException) -> return ()) $
     T.hGetContents h' >> assertFailure "T.hGetContents should crash"
+  hClose h'
+  removeFile path
 
 -- Reported by Ian Lynagh: attempting to allocate a sufficiently large
 -- string (via either Array.new or Text.replicate) could result in an
