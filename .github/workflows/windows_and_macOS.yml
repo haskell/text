@@ -36,3 +36,6 @@ jobs:
       run: cabal haddock
     - name: SDist
       run: cabal sdist
+    - name: Build bench
+      run: cabal bench --benchmark-option=-l
+      if: contains(matrix.os, 'macOS')
