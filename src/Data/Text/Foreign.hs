@@ -20,7 +20,9 @@ module Data.Text.Foreign
     , useAsPtr
     , asForeignPtr
     -- ** Encoding as UTF-8
+    , peekCString
     , peekCStringLen
+    , withCString
     , withCStringLen
     -- * Unsafe conversion code
     , lengthWord16
@@ -39,12 +41,13 @@ import Control.Monad.ST.Unsafe (unsafeIOToST)
 #else
 import Control.Monad.ST (unsafeIOToST)
 #endif
-import Data.ByteString.Unsafe (unsafePackCStringLen, unsafeUseAsCStringLen)
+import Data.ByteString (useAsCString)
+import Data.ByteString.Unsafe (unsafePackCString, unsafePackCStringLen, unsafeUseAsCStringLen)
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import Data.Text.Internal (Text(..), empty)
 import Data.Text.Unsafe (lengthWord16)
 import Data.Word (Word16)
-import Foreign.C.String (CStringLen)
+import Foreign.C.String (CString, CStringLen)
 import Foreign.ForeignPtr (ForeignPtr, mallocForeignPtrArray, withForeignPtr)
 import Foreign.Marshal.Alloc (allocaBytes)
 import Foreign.Ptr (Ptr, castPtr, plusPtr)
@@ -153,6 +156,16 @@ asForeignPtr t@(Text _arr _off len) = do
   withForeignPtr fp $ unsafeCopyToPtr t
   return (fp, I16 len)
 
+-- | /O(n)/ Decode a NUL terminated C string, which is assumed to have
+-- been encoded as UTF-8. If decoding fails, a 'UnicodeException' is
+-- thrown.
+--
+-- @since 1.2.5.0
+peekCString :: CString -> IO Text
+peekCString cs = do
+  bs <- unsafePackCString cs
+  return $! decodeUtf8 bs
+
 -- | /O(n)/ Decode a C string with explicit length, which is assumed
 -- to have been encoded as UTF-8. If decoding fails, a
 -- 'UnicodeException' is thrown.
@@ -163,9 +176,22 @@ peekCStringLen cs = do
   bs <- unsafePackCStringLen cs
   return $! decodeUtf8 bs
 
--- | Marshal a 'Text' into a C string encoded as UTF-8 in temporary
--- storage, with explicit length information. The encoded string may
--- contain NUL bytes, and is not followed by a trailing NUL byte.
+-- | /O(n)/ Marshal a 'Text' into a NUL terminated C string encoded as
+-- UTF-8 in temporary storage. The 'Text' must not contain any NUL
+-- characters.
+--
+-- The temporary storage is freed when the subcomputation terminates
+-- (either normally or via an exception), so the pointer to the
+-- temporary storage must /not/ be used after this function returns.
+--
+-- @since 1.2.5.0
+withCString :: Text -> (CString -> IO a) -> IO a
+withCString t act = useAsCString (encodeUtf8 t) act
+
+-- | /O(n)/ Marshal a 'Text' into a C string encoded as UTF-8 in
+-- temporary storage, with explicit length information. The encoded
+-- string may contain NUL bytes, and is not followed by a trailing NUL
+-- byte.
 --
 -- The temporary storage is freed when the subcomputation terminates
 -- (either normally or via an exception), so the pointer to the
