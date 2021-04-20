@@ -192,7 +192,7 @@ _hs_text_decode_utf8_int(uint16_t *const dest, size_t *destoff,
         const __m128i eight_ascii_chars = _mm_cvtsi64_si128(hopefully_eight_ascii_chars);
         /* Interleave with zeros */
         const __m128i eight_utf16_chars = _mm_unpacklo_epi8(eight_ascii_chars, zeros);
-        /* Store the resulting 8 bytes into destination */
+        /* Store the resulting 16 bytes into destination */
         _mm_storeu_si128((__m128i *)d, eight_utf16_chars);
         d += 8;
       }
