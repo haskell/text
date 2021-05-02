@@ -49,6 +49,7 @@ import Test.QuickCheck.Monadic (assert, monadicIO, run)
 import Test.QuickCheck.Unicode (string)
 import Tests.Utils
 import qualified Data.ByteString as B
+import qualified Data.ByteString.Lazy as BL
 import qualified Data.Text as T
 import qualified Data.Text.Encoding.Error as T
 import qualified Data.Text.Internal.Fusion as TF
@@ -61,6 +62,9 @@ import qualified System.IO as IO
 genUnicode :: IsString a => Gen a
 genUnicode = fromString <$> string
 
+genWord8 :: Gen Word8
+genWord8 = chooseAny
+
 instance Random I16 where
     randomR = integralRandomR
     random  = randomR (minBound,maxBound)
@@ -70,8 +74,22 @@ instance Arbitrary I16 where
     shrink        = shrinkIntegral
 
 instance Arbitrary B.ByteString where
-    arbitrary     = B.pack `fmap` arbitrary
+    arbitrary     = B.pack `fmap` listOf genWord8
     shrink        = map B.pack . shrink . B.unpack
+
+instance Arbitrary BL.ByteString where
+    arbitrary = oneof
+      [ BL.fromChunks <$> arbitrary
+      -- so that a single utf8 code point could appear split over up to 4 chunks
+      , BL.fromChunks . map B.singleton <$> listOf genWord8
+      -- so that a code point with 4 byte long utf8 representation
+      -- could appear split over 3 non-singleton chunks
+      , (\a b c -> BL.fromChunks [a, b, c])
+        <$> arbitrary
+        <*> ((\a b -> B.pack [a, b]) <$> genWord8 <*> genWord8)
+        <*> arbitrary
+      ]
+    shrink xs = BL.fromChunks <$> shrink (BL.toChunks xs)
 
 -- For tests that have O(n^2) running times or input sizes, resize
 -- their inputs to the square root of the originals.
