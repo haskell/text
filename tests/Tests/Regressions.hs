@@ -20,6 +20,7 @@ import qualified Data.ByteString.Lazy as LB
 import qualified Data.Text as T
 import qualified Data.Text.Array as TA
 import qualified Data.Text.Encoding as TE
+import qualified Data.Text.Encoding.Error as E
 import qualified Data.Text.Internal as T
 import qualified Data.Text.IO as T
 import qualified Data.Text.Lazy as LT
@@ -136,6 +137,13 @@ t301 = do
     original@(T.Text originalArr originalOff originalLen) = T.pack "1234567890"
     T.Text newArr _off _len = T.take 1 $ T.drop 1 original
 
+t330 :: IO ()
+t330 = do
+  let decodeL = LE.decodeUtf8With E.lenientDecode
+  assertEqual "The lenient decoding of lazy bytestrings should not depend on how they are chunked"
+    (decodeL (LB.fromChunks [B.pack [194], B.pack [97, 98, 99]]))
+    (decodeL (LB.fromChunks [B.pack [194, 97, 98, 99]]))
+
 tests :: F.TestTree
 tests = F.testGroup "Regressions"
     [ F.testCase "hGetContents_crash" hGetContents_crash
@@ -149,4 +157,5 @@ tests = F.testGroup "Regressions"
     , F.testCase "t280/fromString" t280_fromString
     , F.testCase "t280/singleton" t280_singleton
     , F.testCase "t301" t301
+    , F.testCase "t330" t330
     ]

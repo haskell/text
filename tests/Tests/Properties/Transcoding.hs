@@ -24,6 +24,7 @@ import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as E
+import qualified Data.Text.Encoding.Error as E
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as EL
 
@@ -152,6 +153,18 @@ genInvalidUTF8 = B.pack <$> oneof [
       k <- choose (0,n)
       vectorOf k gen
 
+decodeLL :: BL.ByteString -> TL.Text
+decodeLL = EL.decodeUtf8With E.lenientDecode
+
+decodeL :: B.ByteString -> T.Text
+decodeL = E.decodeUtf8With E.lenientDecode
+
+-- The lenient decoding of lazy bytestrings should not depend on how they are chunked,
+-- and it should behave the same as decoding of strict bytestrings.
+t_decode_utf8_lenient :: Property
+t_decode_utf8_lenient = forAllShrinkShow arbitrary shrink (show . BL.toChunks) $ \bs ->
+    decodeLL bs === (TL.fromStrict . decodeL . B.concat . BL.toChunks) bs
+
 -- See http://unicode.org/faq/utf_bom.html#gen8
 -- A sequence such as <110xxxxx2 0xxxxxxx2> is illegal ...
 -- When faced with this illegal byte sequence ... a UTF-8 conformant process
@@ -206,6 +219,7 @@ testTranscoding =
       testProperty "t_utf8_err'" t_utf8_err'
     ],
     testGroup "error recovery" [
+      testProperty "t_decode_utf8_lenient" t_decode_utf8_lenient,
       testProperty "t_decode_with_error2" t_decode_with_error2,
       testProperty "t_decode_with_error3" t_decode_with_error3,
       testProperty "t_decode_with_error4" t_decode_with_error4,

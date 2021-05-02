@@ -64,6 +64,7 @@ import Control.Monad.ST (runST)
 import Data.Bits ((.&.))
 import Data.ByteString as B
 import qualified Data.ByteString.Internal as B
+import Data.Foldable (traverse_)
 import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode)
 import Data.Text.Internal (Text(..), safe, text)
 import Data.Text.Internal.Functions
@@ -275,7 +276,7 @@ newtype DecoderState = DecoderState Word32 deriving (Eq, Show, Num, Storable)
 streamDecodeUtf8 :: ByteString -> Decoding
 streamDecodeUtf8 = streamDecodeUtf8With strictDecode
 
--- | Decode, in a stream oriented way, a 'ByteString' containing UTF-8
+-- | Decode, in a stream oriented way, a lazy 'ByteString' containing UTF-8
 -- encoded text.
 --
 -- @since 1.0.0.0
@@ -283,11 +284,14 @@ streamDecodeUtf8With :: OnDecodeError -> ByteString -> Decoding
 streamDecodeUtf8With onErr = decodeChunk B.empty 0 0
  where
   -- We create a slightly larger than necessary buffer to accommodate a
-  -- potential surrogate pair started in the last buffer
+  -- potential surrogate pair started in the last buffer (@undecoded0@), or
+  -- replacement characters for each byte in @undecoded0@ if the
+  -- sequence turns out to be invalid. There can be up to three bytes there,
+  -- hence we allocate @len+3@ 16-bit words.
   decodeChunk :: ByteString -> CodePoint -> DecoderState -> ByteString
               -> Decoding
   decodeChunk undecoded0 codepoint0 state0 bs = withBS bs aux where
-    aux fp len = runST $ (unsafeIOToST . decodeChunkToBuffer) =<< A.new (len+1)
+    aux fp len = runST $ (unsafeIOToST . decodeChunkToBuffer) =<< A.new (len+3)
        where
         decodeChunkToBuffer :: A.MArray s -> IO Decoding
         decodeChunkToBuffer dest = unsafeWithForeignPtr fp $ \ptr ->
@@ -297,23 +301,32 @@ streamDecodeUtf8With onErr = decodeChunk B.empty 0 0
           with nullPtr $ \curPtrPtr ->
             let end = ptr `plusPtr` len
                 loop curPtr = do
+                  prevState <- peek statePtr
                   poke curPtrPtr curPtr
-                  curPtr' <- c_decode_utf8_with_state (A.maBA dest) destOffPtr
+                  lastPtr <- c_decode_utf8_with_state (A.maBA dest) destOffPtr
                              curPtrPtr end codepointPtr statePtr
                   state <- peek statePtr
                   case state of
                     UTF8_REJECT -> do
                       -- We encountered an encoding error
-                      x <- peek curPtr'
                       poke statePtr 0
-                      case onErr desc (Just x) of
-                        Nothing -> loop $ curPtr' `plusPtr` 1
-                        Just c -> do
-                          destOff <- peek destOffPtr
-                          w <- unsafeSTToIO $
-                               unsafeWrite dest (fromIntegral destOff) (safe c)
-                          poke destOffPtr (destOff + fromIntegral w)
-                          loop $ curPtr' `plusPtr` 1
+                      let skipByte x = case onErr desc (Just x) of
+                            Nothing -> return ()
+                            Just c -> do
+                              destOff <- peek destOffPtr
+                              w <- unsafeSTToIO $
+                                   unsafeWrite dest (fromIntegral destOff) (safe c)
+                              poke destOffPtr (destOff + fromIntegral w)
+                      if ptr == lastPtr && prevState /= UTF8_ACCEPT then do
+                        -- If we can't complete the sequence @undecoded0@ from
+                        -- the previous chunk, we invalidate the bytes from
+                        -- @undecoded0@ and retry decoding the current chunk from
+                        -- the initial state.
+                        traverse_ skipByte (B.unpack undecoded0 )
+                        loop lastPtr
+                      else do
+                        peek lastPtr >>= skipByte
+                        loop (lastPtr `plusPtr` 1)
 
                     _ -> do
                       -- We encountered the end of the buffer while decoding
@@ -322,11 +335,11 @@ streamDecodeUtf8With onErr = decodeChunk B.empty 0 0
                       chunkText <- unsafeSTToIO $ do
                           arr <- A.unsafeFreeze dest
                           return $! text arr 0 (fromIntegral n)
-                      lastPtr <- peek curPtrPtr
-                      let left = lastPtr `minusPtr` curPtr
+                      let left = lastPtr `minusPtr` ptr
                           !undecoded = case state of
                             UTF8_ACCEPT -> B.empty
-                            _           -> B.append undecoded0 (B.drop left bs)
+                            _ | left == 0 && prevState /= UTF8_ACCEPT -> B.append undecoded0 bs
+                              | otherwise -> B.drop left bs
                       return $ Some chunkText undecoded
                                (decodeChunk undecoded codepoint state)
             in loop ptr

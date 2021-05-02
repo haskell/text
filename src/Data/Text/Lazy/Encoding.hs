@@ -100,9 +100,13 @@ decodeUtf8With onErr (B.Chunk b0 bs0) =
         TE.Some t l f -> chunk t (go f l bs)
     go _ l _
       | S.null l  = empty
-      | otherwise = case onErr desc (Just (B.unsafeHead l)) of
-                      Nothing -> empty
-                      Just c  -> Chunk (T.singleton c) Empty
+      | otherwise =
+        let !t = T.pack (skipBytes l)
+            skipBytes = S.foldr (\x s' ->
+                  case onErr desc (Just x) of
+                    Just c -> c : s'
+                    Nothing -> s') [] in
+        Chunk t Empty
     desc = "Data.Text.Lazy.Encoding.decodeUtf8With: Invalid UTF-8 stream"
 decodeUtf8With _ _ = empty
 
