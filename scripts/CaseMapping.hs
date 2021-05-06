@@ -8,7 +8,7 @@ import SpecialCasing
 main = do
   args <- getArgs
   let oname = case args of
-                [] -> "../Data/Text/Internal/Fusion/CaseMapping.hs"
+                [] -> "../src/Data/Text/Internal/Fusion/CaseMapping.hs"
                 [o] -> o
   psc <- parseSC "SpecialCasing.txt"
   pcf <- parseCF "CaseFolding.txt"
