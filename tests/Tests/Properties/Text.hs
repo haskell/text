@@ -110,7 +110,7 @@ t_toTitle_title t = all (<= 1) (caps w)
     where caps = fmap (T.length . T.filter isUpper) . T.words . T.toTitle
           -- TIL: there exist uppercase-only letters
           w = T.filter (\c -> if C.isUpper c then C.toLower c /= c else True) t
-t_toTitle_1stNotLower = and . notLow . T.toTitle . T.filter stable
+t_toTitle_1stNotLower = and . notLow . T.toTitle . T.filter stable . T.filter (not . isGeorgian)
     where notLow = mapMaybe (fmap (not . isLower) . (T.find isLetter)) . T.words
           -- Surprise! The Spanish/Portuguese ordinal indicators changed
           -- from category Ll (letter, lowercase) to Lo (letter, other)
@@ -119,6 +119,9 @@ t_toTitle_1stNotLower = and . notLow . T.toTitle . T.filter stable
           stable c = if isLower c
                      then C.toUpper c /= c
                      else c /= '\170' && c /= '\186'
+          -- Georgian text does not have a concept of title case
+          -- https://en.wikipedia.org/wiki/Georgian_Extended
+          isGeorgian c = c >= '\4256' && c < '\4352'
 
 justifyLeft k c xs  = xs ++ L.replicate (k - length xs) c
 justifyRight m n xs = L.replicate (m - length xs) n ++ xs
