@@ -12,13 +12,15 @@
 --
 -- * Writing back to a handle
 --
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE CPP, OverloadedStrings #-}
 module Benchmarks.Programs.Sort
     ( benchmark
     ) where
 
 import Test.Tasty.Bench (Benchmark, bgroup, bench, whnfIO)
+#if !MIN_VERSION_base(4,8,0)
 import Data.Monoid (mconcat)
+#endif
 import System.IO (Handle)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL

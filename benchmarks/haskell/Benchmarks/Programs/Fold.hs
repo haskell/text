@@ -12,14 +12,16 @@
 --
 -- * Writing back to a handle
 --
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE CPP, OverloadedStrings #-}
 module Benchmarks.Programs.Fold
     ( benchmark
     ) where
 
 import Data.List (foldl')
 import Data.List (intersperse)
+#if !MIN_VERSION_base(4,8,0)
 import Data.Monoid (mempty, mappend, mconcat)
+#endif
 import System.IO (Handle)
 import Test.Tasty.Bench (Benchmark, bench, whnfIO)
 import qualified Data.Text as T

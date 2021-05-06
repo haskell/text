@@ -54,7 +54,6 @@ import Data.ByteString.Internal (mallocByteString, memcpy)
 #if defined(ASSERTS)
 import Control.Exception (assert)
 #endif
-import Data.Text.Internal.ByteStringCompat
 
 data S = S0
        | S1 {-# UNPACK #-} !Word8

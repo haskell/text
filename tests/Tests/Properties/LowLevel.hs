@@ -74,12 +74,12 @@ t_copy t = T.copy t === t
 
 -- Input and output.
 
-t_put_get = write_read T.unlines T.filter put get
-  where put h = withRedirect h IO.stdout . T.putStr
-        get h = withRedirect h IO.stdin T.getContents
-tl_put_get = write_read TL.unlines TL.filter put get
-  where put h = withRedirect h IO.stdout . TL.putStr
-        get h = withRedirect h IO.stdin TL.getContents
+-- t_put_get = write_read T.unlines T.filter put get
+--   where put h = withRedirect h IO.stdout . T.putStr
+--         get h = withRedirect h IO.stdin T.getContents
+-- tl_put_get = write_read TL.unlines TL.filter put get
+--   where put h = withRedirect h IO.stdout . TL.putStr
+--         get h = withRedirect h IO.stdin TL.getContents
 t_write_read = write_read T.unlines T.filter T.hPutStr T.hGetContents
 tl_write_read = write_read TL.unlines TL.filter TL.hPutStr TL.hGetContents
 
@@ -113,19 +113,16 @@ testLowLevel =
       testProperty "t_take_drop_16" t_take_drop_16,
       testProperty "t_use_from" t_use_from,
       testProperty "t_copy" t_copy
-    ]
+    ],
 
-    {-
     testGroup "input-output" [
       testProperty "t_write_read" t_write_read,
       testProperty "tl_write_read" tl_write_read,
       testProperty "t_write_read_line" t_write_read_line,
       testProperty "tl_write_read_line" tl_write_read_line
-      -- These tests are subject to I/O race conditions when run under
-      -- test-framework-quickcheck2.
-      -- testProperty "t_put_get" t_put_get
+      -- These tests are subject to I/O race conditions
+      -- testProperty "t_put_get" t_put_get,
       -- testProperty "tl_put_get" tl_put_get
-    ],
-    -}
+    ]
   ]
 
