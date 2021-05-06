@@ -13,7 +13,7 @@ module Benchmarks.Programs.BigTable
 
 import Test.Tasty.Bench (Benchmark, bench, whnfIO)
 #if !MIN_VERSION_base(4,8,0)
-import Data.Monoid (mconcat, mempty)
+import Data.Monoid (mconcat, mempty, mappend)
 #endif
 import Data.Text.Lazy.Builder (Builder, fromText, toLazyText)
 import Data.Text.Lazy.IO (hPutStr)
