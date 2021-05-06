@@ -4,7 +4,7 @@
 --
 -- * Concatenating many small strings using a builder
 --
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE CPP, OverloadedStrings #-}
 module Benchmarks.Builder
     ( benchmark
     ) where
@@ -12,7 +12,9 @@ module Benchmarks.Builder
 import Test.Tasty.Bench (Benchmark, bgroup, bench, nf)
 import Data.Binary.Builder as B
 import Data.ByteString.Char8 ()
+#if !MIN_VERSION_base(4,8,0)
 import Data.Monoid (mconcat, mempty)
+#endif
 import qualified Data.ByteString.Builder as Blaze
 import qualified Data.ByteString as SB
 import qualified Data.ByteString.Lazy as LB

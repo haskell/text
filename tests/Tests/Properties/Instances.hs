@@ -1,11 +1,14 @@
 -- | Test instances
 
+{-# LANGUAGE CPP #-}
 {-# OPTIONS_GHC -fno-enable-rewrite-rules -fno-warn-missing-signatures #-}
 module Tests.Properties.Instances
     ( testInstances
     ) where
 
+#if !MIN_VERSION_base(4,8,0)
 import Data.Monoid (Monoid(..))
+#endif
 import Data.String (IsString(fromString))
 import Test.QuickCheck
 import Test.Tasty (TestTree, testGroup)

@@ -1,4 +1,5 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
+{-# OPTIONS_GHC -fno-warn-deprecations #-}
 
 -- | Test decoding of UTF-8
 --

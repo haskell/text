@@ -15,7 +15,9 @@ module Benchmarks.Pure
 import Control.DeepSeq (NFData (..))
 import Control.Exception (evaluate)
 import Test.Tasty.Bench (Benchmark, bgroup, bench, nf)
+#if !MIN_VERSION_base(4,8,0)
 import Data.Monoid (mappend, mempty)
+#endif
 import GHC.Base (Char (..), Int (..), chr#, ord#, (+#))
 import GHC.Generics (Generic)
 import GHC.Int (Int64)

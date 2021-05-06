@@ -7,9 +7,11 @@ module Tests.Properties.Builder
     ( testBuilder
     ) where
 
+#if !MIN_VERSION_base(4,8,0)
 import Data.Monoid (Monoid(..))
+#endif
 import Data.Int (Int8, Int16, Int32, Int64)
-import Data.Word (Word, Word8, Word16, Word32, Word64)
+import Data.Word
 import Numeric (showEFloat, showFFloat, showGFloat, showHex)
 import Test.QuickCheck
 import Test.Tasty (TestTree, testGroup)
