@@ -1,8 +1,6 @@
 {-# LANGUAGE BangPatterns, CPP, MagicHash, RankNTypes, ScopedTypeVariables,
     UnboxedTuples #-}
-#if __GLASGOW_HASKELL__ >= 702
 {-# LANGUAGE Trustworthy #-}
-#endif
 
 -- Module:      Data.Text.Lazy.Builder.Int
 -- Copyright:   (c) 2013 Bryan O'Sullivan
@@ -34,8 +32,6 @@ import Control.Monad.ST
 import Prelude hiding ((<>))
 #endif
 
-#ifdef  __GLASGOW_HASKELL__
-
 #if __GLASGOW_HASKELL__ >= 811
 
 import GHC.Num.Integer
@@ -55,8 +51,6 @@ import GHC.Integer ()
 # else
 # error "You need to use either GMP or integer-simple."
 # endif
-#endif
-
 #endif
 
 decimal :: Integral a => a -> Builder

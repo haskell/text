@@ -59,7 +59,7 @@ module Data.Text.Internal.Builder
 
 import Control.Monad.ST (ST, runST)
 import Data.Monoid (Monoid(..))
-#if !MIN_VERSION_base(4,11,0) && MIN_VERSION_base(4,9,0)
+#if !MIN_VERSION_base(4,11,0)
 import Data.Semigroup (Semigroup(..))
 #endif
 import Data.Text.Internal (Text(..), safe)
@@ -92,20 +92,14 @@ newtype Builder = Builder {
                 -> ST s [S.Text]
    }
 
-#if MIN_VERSION_base(4,9,0)
 instance Semigroup Builder where
    (<>) = append
    {-# INLINE (<>) #-}
-#endif
 
 instance Monoid Builder where
    mempty  = empty
    {-# INLINE mempty #-}
-#if MIN_VERSION_base(4,9,0)
-   mappend = (<>) -- future-proof definition
-#else
-   mappend = append
-#endif
+   mappend = (<>)
    {-# INLINE mappend #-}
    mconcat = foldr mappend Data.Monoid.mempty
    {-# INLINE mconcat #-}

@@ -20,10 +20,6 @@
 -- with the internals, as the functions here do just about nothing to
 -- preserve data invariants.  You have been warned!
 
-#if defined(__GLASGOW_HASKELL__) && !defined(__HADDOCK__)
-#include "MachDeps.h"
-#endif
-
 module Data.Text.Internal
     (
     -- * Types
@@ -124,11 +120,11 @@ firstf _  Nothing      = Nothing
 -- | Checked multiplication.  Calls 'error' if the result would
 -- overflow.
 mul :: Int -> Int -> Int
-#if WORD_SIZE_IN_BITS == 64
-mul a b = fromIntegral $ fromIntegral a `mul64` fromIntegral b
-#else
-mul a b = fromIntegral $ fromIntegral a `mul32` fromIntegral b
-#endif
+mul a b
+  | finiteBitSize (0 :: Word) == 64
+  = fromIntegral $ fromIntegral a `mul64` fromIntegral b
+  | otherwise
+  = fromIntegral $ fromIntegral a `mul32` fromIntegral b
 {-# INLINE mul #-}
 infixl 7 `mul`
 

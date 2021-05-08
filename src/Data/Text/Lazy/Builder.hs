@@ -1,7 +1,5 @@
 {-# LANGUAGE BangPatterns, CPP, Rank2Types #-}
-#if __GLASGOW_HASKELL__ >= 702
 {-# LANGUAGE Trustworthy #-}
-#endif
 
 -----------------------------------------------------------------------------
 -- |

@@ -1,7 +1,5 @@
 {-# LANGUAGE CPP, OverloadedStrings #-}
-#if __GLASGOW_HASKELL__ >= 702
 {-# LANGUAGE Trustworthy #-}
-#endif
 
 -- |
 -- Module:    Data.Text.Lazy.Builder.RealFloat

@@ -11,9 +11,6 @@ module Benchmarks.FileRead
     ( benchmark
     ) where
 
-#if !MIN_VERSION_base(4,8,0)
-import Control.Applicative ((<$>))
-#endif
 import Test.Tasty.Bench (Benchmark, bgroup, bench, whnfIO)
 import qualified Data.ByteString as SB
 import qualified Data.ByteString.Lazy as LB

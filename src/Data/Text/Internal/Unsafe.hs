@@ -22,24 +22,17 @@ module Data.Text.Internal.Unsafe
     ) where
 
 import GHC.ST (ST(..))
-#if defined(__GLASGOW_HASKELL__)
 import GHC.IO (IO(IO))
 import GHC.Base (realWorld#)
-#endif
-
 
 -- | Just like unsafePerformIO, but we inline it. Big performance gains as
 -- it exposes lots of things to further inlining. /Very unsafe/. In
 -- particular, you should do no memory allocation inside an
--- 'inlinePerformIO' block. On Hugs this is just @unsafePerformIO@.
+-- 'inlinePerformIO' block.
 --
 {-# INLINE inlinePerformIO #-}
 inlinePerformIO :: IO a -> a
-#if defined(__GLASGOW_HASKELL__)
 inlinePerformIO (IO m) = case m realWorld# of (# _, r #) -> r
-#else
-inlinePerformIO = unsafePerformIO
-#endif
 
 -- | Allow an 'ST' computation to be deferred lazily. When passed an
 -- action of type 'ST' @s@ @a@, the action will only be performed when
