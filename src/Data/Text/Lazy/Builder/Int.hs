@@ -26,31 +26,9 @@ import Data.Text.Internal.Builder.Int.Digits (digits)
 import Data.Text.Array
 import Data.Word (Word, Word8, Word16, Word32, Word64)
 import GHC.Base (quotInt, remInt)
-import GHC.Types (Int(..))
 import Control.Monad.ST
 #if MIN_VERSION_base(4,11,0)
 import Prelude hiding ((<>))
-#endif
-
-#if __GLASGOW_HASKELL__ >= 811
-
-import GHC.Num.Integer
-#define HAS_INTEGER_CONSTR 1
-#define quotRemInteger integerQuotRem#
-
-#else
-
-import GHC.Num (quotRemInteger)
-
-# if defined(INTEGER_GMP)
-import GHC.Integer.GMP.Internals (Integer(S#))
-#define IS S#
-#define HAS_INTEGER_CONSTR 1
-# elif defined(INTEGER_SIMPLE)
-import GHC.Integer ()
-# else
-# error "You need to use either GMP or integer-simple."
-# endif
 #endif
 
 decimal :: Integral a => a -> Builder
@@ -201,10 +179,10 @@ hexDigit n
 data T = T !Integer !Int
 
 integer :: Int -> Integer -> Builder
-#ifdef HAS_INTEGER_CONSTR
-integer 10 (IS i#) = decimal (I# i#)
-integer 16 (IS i#) = hexadecimal (I# i#)
-#endif
+integer 10 i
+    | i' <- fromInteger i, toInteger i' == i = decimal (i' :: Int)
+integer 16 i
+    | i' <- fromInteger i, toInteger i' == i = hexadecimal (i' :: Int)
 integer base i
     | i < 0     = singleton '-' <> go (-i)
     | otherwise = go i
@@ -216,13 +194,13 @@ integer base i
       | p > n       = [n]
       | otherwise   = splith p (splitf (p*p) n)
 
-    splith p (n:ns) = case n `quotRemInteger` p of
-                        (# q,r #) | q > 0     -> q : r : splitb p ns
-                                  | otherwise -> r : splitb p ns
+    splith p (n:ns) = case n `quotRem` p of
+                        (q, r) | q > 0     -> q : r : splitb p ns
+                               | otherwise -> r : splitb p ns
     splith _ _      = error "splith: the impossible happened."
 
-    splitb p (n:ns) = case n `quotRemInteger` p of
-                        (# q,r #) -> q : r : splitb p ns
+    splitb p (n:ns) = case n `quotRem` p of
+                        (q, r) -> q : r : splitb p ns
     splitb _ _      = []
 
     T maxInt10 maxDigits10 =
@@ -239,16 +217,16 @@ integer base i
     maxDigits | base == 10 = maxDigits10
               | otherwise  = maxDigits16
 
-    putH (n:ns) = case n `quotRemInteger` maxInt of
-                    (# x,y #)
+    putH (n:ns) = case n `quotRem` maxInt of
+                    (x, y)
                         | q > 0     -> int q <> pblock r <> putB ns
                         | otherwise -> int r <> putB ns
                         where q = fromInteger x
                               r = fromInteger y
     putH _ = error "putH: the impossible happened"
 
-    putB (n:ns) = case n `quotRemInteger` maxInt of
-                    (# x,y #) -> pblock q <> pblock r <> putB ns
+    putB (n:ns) = case n `quotRem` maxInt of
+                    (x, y) -> pblock q <> pblock r <> putB ns
                         where q = fromInteger x
                               r = fromInteger y
     putB _ = Data.Monoid.mempty
