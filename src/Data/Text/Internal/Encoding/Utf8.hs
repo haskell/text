@@ -33,13 +33,6 @@ module Data.Text.Internal.Encoding.Utf8
     , validate4
     ) where
 
-#if defined(TEST_SUITE)
-# undef ASSERTS
-#endif
-
-#if defined(ASSERTS)
-import Control.Exception (assert)
-#endif
 import Data.Bits ((.&.))
 import Data.Text.Internal.Unsafe.Char (ord)
 import Data.Text.Internal.Unsafe.Shift (shiftR)
@@ -62,9 +55,9 @@ between x y z = x >= y && x <= z
 
 ord2 :: Char -> (Word8,Word8)
 ord2 c =
-#if defined(ASSERTS)
-    assert (n >= 0x80 && n <= 0x07ff)
-#endif
+    -- ord2 is used only in test suite to construct a deliberately invalid ByteString,
+    -- actually violating the assertion, so it is commented out
+    -- assert (n >= 0x80 && n <= 0x07ff)
     (x1,x2)
     where
       n  = ord c
@@ -73,9 +66,9 @@ ord2 c =
 
 ord3 :: Char -> (Word8,Word8,Word8)
 ord3 c =
-#if defined(ASSERTS)
-    assert (n >= 0x0800 && n <= 0xffff)
-#endif
+    -- ord3 is used only in test suite to construct a deliberately invalid ByteString,
+    -- actually violating the assertion, so it is commented out
+    -- assert (n >= 0x0800 && n <= 0xffff)
     (x1,x2,x3)
     where
       n  = ord c
@@ -85,9 +78,9 @@ ord3 c =
 
 ord4 :: Char -> (Word8,Word8,Word8,Word8)
 ord4 c =
-#if defined(ASSERTS)
-    assert (n >= 0x10000)
-#endif
+    -- ord4 is used only in test suite to construct a deliberately invalid ByteString,
+    -- actually violating the assertion, so it is commented out
+    -- assert (n >= 0x10000)
     (x1,x2,x3,x4)
     where
       n  = ord c
