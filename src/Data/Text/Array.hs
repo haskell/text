@@ -24,17 +24,13 @@
 module Data.Text.Array
     (
     -- * Types
-      Array(Array, aBA)
-    , MArray(MArray, maBA)
-
+      Array(..)
+    , MArray(..)
     -- * Functions
     , copyM
     , copyI
     , empty
     , equal
-#if defined(ASSERTS)
-    , length
-#endif
     , run
     , run2
     , toList
@@ -43,17 +39,6 @@ module Data.Text.Array
     , new
     , unsafeWrite
     ) where
-
-#if defined(ASSERTS)
--- This fugly hack is brought by GHC's apparent reluctance to deal
--- with MagicHash and UnboxedTuples when inferring types. Eek!
-# define CHECK_BOUNDS(_func_,_len_,_k_) \
-if (_k_) < 0 || (_k_) >= (_len_) then error ("Data.Text.Array." ++ (_func_) ++ ": bounds error, offset " ++ show (_k_) ++ ", length " ++ show (_len_)) else
-#else
-# define CHECK_BOUNDS(_func_,_len_,_k_)
-#endif
-
-#include "MachDeps.h"
 
 #if defined(ASSERTS)
 import Control.Exception (assert)
@@ -73,7 +58,7 @@ import Foreign.C.Types (CInt, CSize)
 #endif
 import GHC.Base (ByteArray#, MutableByteArray#, Int(..),
                  indexWord16Array#, newByteArray#,
-                 unsafeFreezeByteArray#, writeWord16Array#)
+                 unsafeFreezeByteArray#, writeWord16Array#, sizeofByteArray#, sizeofMutableByteArray#)
 import GHC.ST (ST(..), runST)
 import GHC.Word (Word16(..))
 import Prelude hiding (length, read)
@@ -81,37 +66,12 @@ import Prelude hiding (length, read)
 -- | Immutable array type.
 --
 -- The 'Array' constructor is exposed since @text-1.1.1.3@
-data Array = Array {
-      aBA :: ByteArray#
-#if defined(ASSERTS)
-    , aLen :: {-# UNPACK #-} !Int -- length (in units of Word16, not bytes)
-#endif
-    }
+data Array = Array { aBA :: ByteArray# }
 
 -- | Mutable array type, for use in the ST monad.
 --
 -- The 'MArray' constructor is exposed since @text-1.1.1.3@
-data MArray s = MArray {
-      maBA :: MutableByteArray# s
-#if defined(ASSERTS)
-    , maLen :: {-# UNPACK #-} !Int -- length (in units of Word16, not bytes)
-#endif
-    }
-
-#if defined(ASSERTS)
--- | Operations supported by all arrays.
-class IArray a where
-    -- | Return the length of an array.
-    length :: a -> Int
-
-instance IArray Array where
-    length = aLen
-    {-# INLINE length #-}
-
-instance IArray (MArray s) where
-    length = maLen
-    {-# INLINE length #-}
-#endif
+data MArray s = MArray { maBA :: MutableByteArray# s }
 
 -- | Create an uninitialized mutable array.
 new :: forall s. Int -> ST s (MArray s)
@@ -119,11 +79,7 @@ new n
   | n < 0 || n .&. highBit /= 0 = array_size_error
   | otherwise = ST $ \s1# ->
        case newByteArray# len# s1# of
-         (# s2#, marr# #) -> (# s2#, MArray marr#
-#if defined(ASSERTS)
-                                n
-#endif
-                                #)
+         (# s2#, marr# #) -> (# s2#, MArray marr# #)
   where !(I# len#) = bytesInArray n
         highBit    = maxBound `xor` (maxBound `shiftR` 1)
 {-# INLINE new #-}
@@ -135,11 +91,7 @@ array_size_error = error "Data.Text.Array.new: size overflow"
 unsafeFreeze :: MArray s -> ST s Array
 unsafeFreeze MArray{..} = ST $ \s1# ->
     case unsafeFreezeByteArray# maBA s1# of
-        (# s2#, ba# #) -> (# s2#, Array ba#
-#if defined(ASSERTS)
-                             maLen
-#endif
-                             #)
+        (# s2#, ba# #) -> (# s2#, Array ba# #)
 {-# INLINE unsafeFreeze #-}
 
 -- | Indicate how many bytes would be used for an array of the given
@@ -151,16 +103,24 @@ bytesInArray n = n `shiftL` 1
 -- | Unchecked read of an immutable array.  May return garbage or
 -- crash on an out-of-bounds access.
 unsafeIndex :: Array -> Int -> Word16
-unsafeIndex Array{..} i@(I# i#) =
-  CHECK_BOUNDS("unsafeIndex",aLen,i)
-    case indexWord16Array# aBA i# of r# -> (W16# r#)
+unsafeIndex a@Array{..} i@(I# i#) =
+#if defined(ASSERTS)
+  let word16len = I# (sizeofByteArray# aBA) `quot` 2 in
+  if i < 0 || i >= word16len
+  then error ("Data.Text.Array.unsafeIndex: bounds error, offset " ++ show i ++ ", length " ++ show word16len)
+  else
+#endif
+  case indexWord16Array# aBA i# of r# -> (W16# r#)
 {-# INLINE unsafeIndex #-}
 
 -- | Unchecked write of a mutable array.  May return garbage or crash
 -- on an out-of-bounds access.
 unsafeWrite :: MArray s -> Int -> Word16 -> ST s ()
-unsafeWrite MArray{..} i@(I# i#) (W16# e#) = ST $ \s1# ->
-  CHECK_BOUNDS("unsafeWrite",maLen,i)
+unsafeWrite ma@MArray{..} i@(I# i#) (W16# e#) = ST $ \s1# ->
+#if defined(ASSERTS)
+  let word16len = I# (sizeofMutableByteArray# maBA) `quot` 2 in
+  if i < 0 || i >= word16len then error ("Data.Text.Array.unsafeWrite: bounds error, offset " ++ show i ++ ", length " ++ show word16len) else
+#endif
   case writeWord16Array# maBA i# e# s1# of
     s2# -> (# s2#, () #)
 {-# INLINE unsafeWrite #-}
@@ -200,8 +160,8 @@ copyM dest didx src sidx count
     | count <= 0 = return ()
     | otherwise =
 #if defined(ASSERTS)
-    assert (sidx + count <= length src) .
-    assert (didx + count <= length dest) .
+    assert (sidx + count <= I# (sizeofMutableByteArray# (maBA src))  `quot` 2) .
+    assert (didx + count <= I# (sizeofMutableByteArray# (maBA dest)) `quot` 2) .
 #endif
     unsafeIOToST $ memcpyM (maBA dest) (fromIntegral didx)
                            (maBA src) (fromIntegral sidx)
