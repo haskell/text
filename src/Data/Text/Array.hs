@@ -42,6 +42,7 @@ module Data.Text.Array
 
 #if defined(ASSERTS)
 import Control.Exception (assert)
+import GHC.Base (sizeofByteArray#, sizeofMutableByteArray#)
 #endif
 import Control.Monad.ST.Unsafe (unsafeIOToST)
 import Data.Bits ((.&.), xor)
@@ -50,7 +51,7 @@ import Data.Text.Internal.Unsafe.Shift (shiftL, shiftR)
 import Foreign.C.Types (CInt(CInt), CSize(CSize))
 import GHC.Base (ByteArray#, MutableByteArray#, Int(..),
                  indexWord16Array#, newByteArray#,
-                 unsafeFreezeByteArray#, writeWord16Array#, sizeofByteArray#, sizeofMutableByteArray#)
+                 unsafeFreezeByteArray#, writeWord16Array#)
 import GHC.ST (ST(..), runST)
 import GHC.Word (Word16(..))
 import Prelude hiding (length, read)
