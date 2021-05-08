@@ -160,8 +160,7 @@ library
 
   ghc-options: -Wall -fwarn-tabs -funbox-strict-fields -O2
   if flag(developer)
-    ghc-prof-options: -auto-all
-    ghc-options: -Werror
+    ghc-options: -fno-ignore-asserts
     cpp-options: -DASSERTS
 
   if impl(ghc >= 8.11)

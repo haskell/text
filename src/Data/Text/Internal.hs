@@ -68,10 +68,8 @@ text_ :: A.Array -> Int -> Int -> Text
 text_ arr off len =
 #if defined(ASSERTS)
   let c    = A.unsafeIndex arr off
-      alen = A.length arr
   in assert (len >= 0) .
      assert (off >= 0) .
-     assert (alen == 0 || len == 0 || off < alen) .
      assert (len == 0 || c < 0xDC00 || c > 0xDFFF) $
 #endif
      Text arr off len
