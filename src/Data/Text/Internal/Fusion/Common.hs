@@ -322,6 +322,7 @@ compareLengthI (Stream next s0 len) n
     -- Note that @len@ tracks code units whereas we want to compare the length
     -- in code points. Specifically, a stream with hint @len@ may consist of
     -- anywhere from @len/2@ to @len@ code points.
+  | n < 0 = GT
   | Just r <- compareSize len n' = r
   | otherwise = loop_cmp 0 s0
     where
