@@ -182,6 +182,8 @@ test-suite tests
   hs-source-dirs: tests
   main-is:        Tests.hs
   other-modules:
+    Tests.Inspection.Lazy
+    Tests.Inspection.Strict
     Tests.Lift
     Tests.Properties
     Tests.Properties.Basics
@@ -208,6 +210,7 @@ test-suite tests
     random,
     tasty,
     tasty-hunit,
+    tasty-inspection-testing,
     tasty-quickcheck,
     template-haskell,
     text
