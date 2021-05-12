@@ -139,7 +139,7 @@ jobs:
           if [ $((HCNUMVER >= 80000 && HCNUMVER < 90000)) -ne 0 ] ; then $CABAL --store-dir=$HOME/.haskell-ci-tools/store v2-install $ARG_COMPILER --ignore-project -j2 doctest --constraint='doctest ^>=0.17' ; fi
           if [ $((HCNUMVER >= 80000 && HCNUMVER < 90000)) -ne 0 ] ; then doctest --version ; fi
       - name: checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v2.3.4
         with:
           path: source
       - name: initial cabal.project for sdist
