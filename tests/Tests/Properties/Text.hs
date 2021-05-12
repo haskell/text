@@ -156,6 +156,8 @@ t_center k c = center j c `eqP` (unpackS . T.center j c)
 tl_center k c = center j c `eqP` (unpackS . TL.center (fromIntegral j) c)
     where j = fromIntegral (k :: Word8)
 
+t_elem c          = L.elem c `eqP` T.elem c
+tl_elem c         = L.elem c `eqP` TL.elem c
 sf_elem p c       = (L.elem c . L.filter p) `eqP` (S.elem c . S.filter p)
 sf_filter q p     = (L.filter p . L.filter q) `eqP`
                     (unpackS . S.filter p . S.filter q)
@@ -271,6 +273,8 @@ testText =
     ],
 
     testGroup "searching" [
+      testProperty "t_elem" t_elem,
+      testProperty "tl_elem" tl_elem,
       testProperty "sf_elem" sf_elem,
       testProperty "sf_filter" sf_filter,
       testProperty "t_filter" t_filter,
