@@ -35,9 +35,6 @@ module Tests.QuickCheckUtils
     , write_read
     ) where
 
-#if !MIN_VERSION_base(4,8,0)
-import Control.Applicative ((<$>))
-#endif
 import Control.Arrow (first, (***))
 import Control.DeepSeq (NFData (..), deepseq)
 import Control.Exception (bracket)
@@ -61,11 +58,6 @@ import qualified Data.Text.Internal.Lazy.Fusion as TLF
 import qualified Data.Text.Lazy as TL
 import qualified System.IO as IO
 
-#if !MIN_VERSION_base(4,4,0)
-import Data.Int (Int64)
-import Data.Word (Word, Word64)
-#endif
-
 genUnicode :: IsString a => Gen a
 genUnicode = fromString <$> string
 
@@ -80,24 +72,6 @@ instance Arbitrary I16 where
 instance Arbitrary B.ByteString where
     arbitrary     = B.pack `fmap` arbitrary
     shrink        = map B.pack . shrink . B.unpack
-
-#if !MIN_VERSION_base(4,4,0)
-instance Random Int64 where
-    randomR = integralRandomR
-    random  = randomR (minBound,maxBound)
-
-instance Random Word where
-    randomR = integralRandomR
-    random  = randomR (minBound,maxBound)
-
-instance Random Word8 where
-    randomR = integralRandomR
-    random  = randomR (minBound,maxBound)
-
-instance Random Word64 where
-    randomR = integralRandomR
-    random  = randomR (minBound,maxBound)
-#endif
 
 -- For tests that have O(n^2) running times or input sizes, resize
 -- their inputs to the square root of the originals.

@@ -1,8 +1,7 @@
 {-# LANGUAGE CPP, MagicHash #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
-#if __GLASGOW_HASKELL__ >= 702
 {-# LANGUAGE Trustworthy #-}
-#endif
+
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 -- |
 -- Module      : Data.Text.Show
@@ -28,11 +27,7 @@ import GHC.Prim (Addr#)
 import qualified Data.Text.Array as A
 import qualified Data.Text.Internal.Fusion.Common as S
 
-#if __GLASGOW_HASKELL__ >= 702
 import qualified GHC.CString as GHC
-#else
-import qualified GHC.Base as GHC
-#endif
 
 instance Show Text where
     showsPrec p ps r = showsPrec p (unpack ps) r

@@ -1,8 +1,6 @@
 {-# LANGUAGE BangPatterns, CPP, GeneralizedNewtypeDeriving, MagicHash,
     UnliftedFFITypes #-}
-#if __GLASGOW_HASKELL__ >= 702
 {-# LANGUAGE Trustworthy #-}
-#endif
 -- |
 -- Module      : Data.Text.Encoding
 -- Copyright   : (c) 2009, 2010, 2011 Bryan O'Sullivan,
@@ -59,11 +57,7 @@ module Data.Text.Encoding
     , encodeUtf8BuilderEscaped
     ) where
 
-#if MIN_VERSION_base(4,4,0)
 import Control.Monad.ST.Unsafe (unsafeIOToST, unsafeSTToIO)
-#else
-import Control.Monad.ST (unsafeIOToST, unsafeSTToIO)
-#endif
 
 import Control.Exception (evaluate, try, throwIO, ErrorCall(ErrorCall))
 import Control.Monad.ST (runST)
@@ -79,11 +73,7 @@ import Data.Text.Internal.Unsafe.Shift (shiftR)
 import Data.Text.Show ()
 import Data.Text.Unsafe (unsafeDupablePerformIO)
 import Data.Word (Word8, Word32)
-#if MIN_VERSION_base(4,5,0)
 import Foreign.C.Types (CSize(CSize))
-#else
-import Foreign.C.Types (CSize)
-#endif
 import Foreign.Marshal.Utils (with)
 import Foreign.Ptr (Ptr, minusPtr, nullPtr, plusPtr)
 import Foreign.Storable (Storable, peek, poke)

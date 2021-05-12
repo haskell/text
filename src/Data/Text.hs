@@ -1,19 +1,8 @@
 {-# LANGUAGE BangPatterns, CPP, MagicHash, Rank2Types, UnboxedTuples, TypeFamilies #-}
-{-# OPTIONS_GHC -fno-warn-orphans #-}
-#if __GLASGOW_HASKELL__ >= 702
-{-# LANGUAGE Trustworthy #-}
-#endif
--- Using TemplateHaskell in text unconditionally is unacceptable, as
--- it's a GHC boot library. TemplateHaskellQuotes was added in 8.0, so
--- this would seem to be a problem. However, GHC's policy of only
--- needing to be able to compile itself from the last few releases
--- allows us to use full-fat TH on older versions, while using THQ for
--- GHC versions that may be used for bootstrapping.
-#if __GLASGOW_HASKELL__ >= 800
 {-# LANGUAGE TemplateHaskellQuotes #-}
-#else
-{-# LANGUAGE TemplateHaskell #-}
-#endif
+{-# LANGUAGE Trustworthy #-}
+
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 
 -- |
 -- Module      : Data.Text
@@ -226,9 +215,7 @@ import qualified Data.Text.Array as A
 import qualified Data.List as L
 import Data.Binary (Binary(get, put))
 import Data.Monoid (Monoid(..))
-#if MIN_VERSION_base(4,9,0)
 import Data.Semigroup (Semigroup(..))
-#endif
 import Data.String (IsString(..))
 import qualified Data.Text.Internal.Fusion as S
 import qualified Data.Text.Internal.Fusion.Common as S
@@ -251,14 +238,10 @@ import qualified Data.Text.Lazy as L
 import Data.Int (Int64)
 #endif
 import GHC.Base (eqInt, neInt, gtInt, geInt, ltInt, leInt)
-#if MIN_VERSION_base(4,7,0)
 import qualified GHC.Exts as Exts
-#endif
 import qualified Language.Haskell.TH.Lib as TH
 import qualified Language.Haskell.TH.Syntax as TH
-#if MIN_VERSION_base(4,7,0)
 import Text.Printf (PrintfArg, formatArg, formatString)
-#endif
 
 -- $setup
 -- >>> import Data.Text
@@ -364,37 +347,23 @@ instance Ord Text where
 instance Read Text where
     readsPrec p str = [(pack x,y) | (x,y) <- readsPrec p str]
 
-#if MIN_VERSION_base(4,9,0)
--- | Non-orphan 'Semigroup' instance only defined for
--- @base-4.9.0.0@ and later; orphan instances for older GHCs are
--- provided by
--- the [semigroups](http://hackage.haskell.org/package/semigroups)
--- package
---
--- @since 1.2.2.0
+-- | @since 1.2.2.0
 instance Semigroup Text where
     (<>) = append
-#endif
 
 instance Monoid Text where
     mempty  = empty
-#if MIN_VERSION_base(4,9,0)
-    mappend = (<>) -- future-proof definition
-#else
-    mappend = append
-#endif
+    mappend = (<>)
     mconcat = concat
 
 instance IsString Text where
     fromString = pack
 
-#if MIN_VERSION_base(4,7,0)
 -- | @since 1.2.0.0
 instance Exts.IsList Text where
     type Item Text = Char
     fromList       = pack
     toList         = unpack
-#endif
 
 instance NFData Text where rnf !_ = ()
 
@@ -442,13 +411,9 @@ instance TH.Lift Text where
   liftTyped = TH.unsafeTExpCoerce . TH.lift
 #endif
 
-#if MIN_VERSION_base(4,7,0)
--- | Only defined for @base-4.7.0.0@ and later
---
--- @since 1.2.2.0
+-- | @since 1.2.2.0
 instance PrintfArg Text where
   formatArg txt = formatString $ unpack txt
-#endif
 
 packConstr :: Constr
 packConstr = mkConstr textDataType "pack" [] Prefix

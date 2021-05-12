@@ -15,9 +15,6 @@ module Benchmarks.Pure
 import Control.DeepSeq (NFData (..))
 import Control.Exception (evaluate)
 import Test.Tasty.Bench (Benchmark, bgroup, bench, nf)
-#if !MIN_VERSION_base(4,8,0)
-import Data.Monoid (mappend, mempty)
-#endif
 import GHC.Base (Char (..), Int (..), chr#, ord#, (+#))
 import GHC.Generics (Generic)
 import GHC.Int (Int64)
@@ -304,14 +301,6 @@ benchmark kind ~Env{..} =
     g (I# i#) (C# c#) = (I# (i# +# 1#), C# (chr# (ord# c# +# i#)))
     len l _ = l + (1::Int)
     short = T.pack "short"
-
-#if !MIN_VERSION_bytestring(0,10,0)
-instance NFData BS.ByteString
-
-instance NFData BL.ByteString where
-    rnf BL.Empty        = ()
-    rnf (BL.Chunk _ ts) = rnf ts
-#endif
 
 data B where
     B :: NFData a => a -> B

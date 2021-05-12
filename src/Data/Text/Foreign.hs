@@ -34,11 +34,7 @@ module Data.Text.Foreign
 #if defined(ASSERTS)
 import Control.Exception (assert)
 #endif
-#if MIN_VERSION_base(4,4,0)
 import Control.Monad.ST.Unsafe (unsafeIOToST)
-#else
-import Control.Monad.ST (unsafeIOToST)
-#endif
 import Data.ByteString.Unsafe (unsafePackCStringLen, unsafeUseAsCStringLen)
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import Data.Text.Internal (Text(..), empty)

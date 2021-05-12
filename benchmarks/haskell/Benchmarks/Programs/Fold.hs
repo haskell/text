@@ -19,9 +19,6 @@ module Benchmarks.Programs.Fold
 
 import Data.List (foldl')
 import Data.List (intersperse)
-#if !MIN_VERSION_base(4,8,0)
-import Data.Monoid (mempty, mappend, mconcat)
-#endif
 import System.IO (Handle)
 import Test.Tasty.Bench (Benchmark, bench, whnfIO)
 import qualified Data.Text as T

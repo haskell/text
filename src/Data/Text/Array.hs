@@ -42,23 +42,16 @@ module Data.Text.Array
 
 #if defined(ASSERTS)
 import Control.Exception (assert)
+import GHC.Base (sizeofByteArray#, sizeofMutableByteArray#)
 #endif
-#if MIN_VERSION_base(4,4,0)
 import Control.Monad.ST.Unsafe (unsafeIOToST)
-#else
-import Control.Monad.ST (unsafeIOToST)
-#endif
 import Data.Bits ((.&.), xor)
 import Data.Text.Internal.Unsafe (inlinePerformIO)
 import Data.Text.Internal.Unsafe.Shift (shiftL, shiftR)
-#if MIN_VERSION_base(4,5,0)
 import Foreign.C.Types (CInt(CInt), CSize(CSize))
-#else
-import Foreign.C.Types (CInt, CSize)
-#endif
 import GHC.Base (ByteArray#, MutableByteArray#, Int(..),
                  indexWord16Array#, newByteArray#,
-                 unsafeFreezeByteArray#, writeWord16Array#, sizeofByteArray#, sizeofMutableByteArray#)
+                 unsafeFreezeByteArray#, writeWord16Array#)
 import GHC.ST (ST(..), runST)
 import GHC.Word (Word16(..))
 import Prelude hiding (length, read)
