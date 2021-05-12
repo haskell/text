@@ -18,7 +18,7 @@ jobs:
         ghc: ['9.0']
       fail-fast: false
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v2.3.4
     - uses: haskell/actions/setup@v1.2.1
       id: setup-haskell-cabal
       with:
