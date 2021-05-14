@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -fno-warn-orphans #-}
-{-# LANGUAGE BangPatterns, MagicHash, CPP, TypeFamilies #-}
+{-# LANGUAGE BangPatterns, MagicHash, CPP, OverloadedStrings, TypeFamilies #-}
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE TemplateHaskellQuotes #-}
 
@@ -1372,8 +1372,15 @@ break p t0 = break' t0
 -- >>> T.breakEnd (=='0') "180cm"
 -- ("180","cm")
 breakEnd :: (Char -> Bool) -> Text -> (Text, Text)
-breakEnd p src = let (a,b) = break p (reverse src)
-                 in  (reverse b, reverse a)
+breakEnd p src = breakEnd' (reverseSpine src) where
+  reverseSpine = go Empty where
+    go res Empty        = res
+    go res (Chunk t ts) = go (Chunk t res) ts
+  breakEnd' = go Empty where
+    go r Empty = (empty, r)
+    go r (Chunk t ts) = case T.breakEnd p t of
+      ("", _) -> go (Chunk t r) ts
+      (l, r') -> (reverseSpine (Chunk l ts), Chunk r' r)
 {-# INLINE breakEnd #-}
 
 -- | /O(n)/ 'span', applied to a predicate @p@ and text @t@, returns
