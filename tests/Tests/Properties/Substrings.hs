@@ -87,8 +87,14 @@ t_strip           = T.dropAround isSpace `eq` T.strip
 tl_strip          = TL.dropAround isSpace `eq` TL.strip
 t_splitAt n       = L.splitAt n   `eqP` (unpack2 . T.splitAt n)
 tl_splitAt n      = L.splitAt n   `eqP` (unpack2 . TL.splitAt (fromIntegral n))
-t_span p        = L.span p      `eqP` (unpack2 . T.span p)
-tl_span p       = L.span p      `eqP` (unpack2 . TL.span p)
+t_span p          = L.span p  `eqP` (unpack2 . T.span p)
+tl_span p         = L.span p  `eqP` (unpack2 . TL.span p)
+t_spanEnd p       = spanEnd p `eqP` (unpack2 . T.spanEnd p)
+tl_spanEnd p      = spanEnd p `eqP` (unpack2 . TL.spanEnd p)
+
+spanEnd :: (a -> Bool) -> [a] -> ([a], [a])
+spanEnd p l = case span p $ reverse l of
+  (s, e) -> (reverse e, reverse s)
 
 t_breakOn_id s      = squid `eq` (uncurry T.append . T.breakOn s)
   where squid t | T.null s  = error "empty"
@@ -110,6 +116,13 @@ tl_breakOnEnd_end (NotEmpty s) t =
     in k `TL.isSuffixOf` t && (TL.null m || s `TL.isSuffixOf` m)
 t_break p       = L.break p     `eqP` (unpack2 . T.break p)
 tl_break p      = L.break p     `eqP` (unpack2 . TL.break p)
+t_breakEnd p    = breakEnd p    `eqP` (unpack2 . T.breakEnd p)
+tl_breakEnd p   = breakEnd p    `eqP` (unpack2 . TL.breakEnd p)
+
+breakEnd :: (a -> Bool) -> [a] -> ([a], [a])
+breakEnd p l = case break p $ reverse l of
+  (s, e) -> (reverse e, reverse s)
+
 t_group           = L.group       `eqP` (map unpackS . T.group)
 tl_group          = L.group       `eqP` (map unpackS . TL.group)
 t_groupBy p       = L.groupBy p   `eqP` (map unpackS . T.groupBy p)
@@ -275,6 +288,8 @@ testSubstrings =
       testProperty "tl_splitAt" tl_splitAt,
       testProperty "t_span" t_span,
       testProperty "tl_span" tl_span,
+      testProperty "t_spanEnd" t_spanEnd,
+      testProperty "tl_spanEnd" tl_spanEnd,
       testProperty "t_breakOn_id" t_breakOn_id,
       testProperty "tl_breakOn_id" tl_breakOn_id,
       testProperty "t_breakOn_start" t_breakOn_start,
@@ -283,6 +298,8 @@ testSubstrings =
       testProperty "tl_breakOnEnd_end" tl_breakOnEnd_end,
       testProperty "t_break" t_break,
       testProperty "tl_break" tl_break,
+      testProperty "t_breakEnd" t_breakEnd,
+      testProperty "tl_breakEnd" tl_breakEnd,
       testProperty "t_group" t_group,
       testProperty "tl_group" tl_group,
       testProperty "t_groupBy" t_groupBy,
