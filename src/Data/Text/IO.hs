@@ -167,7 +167,7 @@ chooseGoodBuffering h = do
            if ioe_type e == InappropriateType
            then return 16384 -- faster than the 2KB default
            else E.throwIO e
-      when (d > 0) . hSetBuffering h . BlockBuffering . Just . fromIntegral $ d
+      when (d > 0) . hSetBuffering h . BlockBuffering . Just . fromInteger $ d
     _ -> return ()
 
 -- | Read a single line from a handle.

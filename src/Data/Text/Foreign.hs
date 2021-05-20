@@ -141,7 +141,7 @@ useAsPtr :: Text -> (Ptr Word16 -> I16 -> IO a) -> IO a
 useAsPtr t@(Text _arr _off len) action =
     allocaBytes (len * 2) $ \buf -> do
       unsafeCopyToPtr t buf
-      action (castPtr buf) (fromIntegral len)
+      action (castPtr buf) (I16 len)
 
 -- | /O(n)/ Make a mutable copy of a 'Text'.
 asForeignPtr :: Text -> IO (ForeignPtr Word16, I16)

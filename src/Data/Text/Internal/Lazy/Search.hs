@@ -57,7 +57,7 @@ indices needle@(Chunk n ns) _haystack@(Chunk k ks)
          | c == z && candidateMatch 0  = g : scan (g+nlen) (i+nlen)
          | otherwise                   = scan (g+delta) (i+delta)
        where
-         m = fromIntegral l
+         m = intToInt64 l
          c = hindex (i + nlast)
          delta | nextInPattern = nlen + 1
                | c == z        = skip + 1
@@ -74,7 +74,10 @@ indices needle@(Chunk n ns) _haystack@(Chunk k ks)
     z         = foldlChunks fin 0 needle
         where fin _ (T.Text farr foff flen) = A.unsafeIndex farr (foff+flen-1)
     (mask :: Word64) :*: skip = buildTable n ns 0 0 0 (nlen-2)
-    swizzle w = 1 `shiftL` (fromIntegral w .&. 0x3f)
+
+    swizzle :: Word16 -> Word64
+    swizzle w = 1 `shiftL` (word16ToInt w .&. 0x3f)
+
     buildTable (T.Text xarr xoff xlen) xs = go
       where
         go !(g::Int64) !i !msk !skp
@@ -87,14 +90,16 @@ indices needle@(Chunk n ns) _haystack@(Chunk k ks)
                   skp' | c == z    = nlen - g - 2
                        | otherwise = skp
                   xlast = xlen - 1
+
     -- | Check whether an attempt to index into the haystack at the
     -- given offset would fail.
+    lackingHay :: Int64 -> T.Text -> Text -> Bool
     lackingHay q = go 0
       where
         go p (T.Text _ _ l) ps = p' < q && case ps of
                                              Empty      -> True
                                              Chunk r rs -> go p' r rs
-            where p' = p + fromIntegral l
+            where p' = p + intToInt64 l
 indices _ _ = []
 
 -- | Fast index into a partly unpacked 'Text'.  We take into account
@@ -109,26 +114,38 @@ index (T.Text arr off len) xs !i
                         | j == len  -> 0
                         -- should never happen, due to lackingHay above
                         | otherwise -> emptyError "index"
-                    Chunk c cs -> index c cs (i-fromIntegral len)
-    where j = fromIntegral i
+                    Chunk c cs -> index c cs (i-intToInt64 len)
+    where j = int64ToInt i
 
 -- | A variant of 'indices' that scans linearly for a single 'Word16'.
 indicesOne :: Word16 -> Int64 -> T.Text -> Text -> [Int64]
 indicesOne c = chunk
   where
+    chunk :: Int64 -> T.Text -> Text -> [Int64]
     chunk !i (T.Text oarr ooff olen) os = go 0
       where
         go h | h >= olen = case os of
                              Empty      -> []
-                             Chunk y ys -> chunk (i+fromIntegral olen) y ys
-             | on == c = i + fromIntegral h : go (h+1)
+                             Chunk y ys -> chunk (i+intToInt64 olen) y ys
+             | on == c = i + intToInt64 h : go (h+1)
              | otherwise = go (h+1)
              where on = A.unsafeIndex oarr (ooff+h)
 
 -- | The number of 'Word16' values in a 'Text'.
 wordLength :: Text -> Int64
 wordLength = foldlChunks sumLength 0
-    where sumLength i (T.Text _ _ l) = i + fromIntegral l
+  where
+    sumLength :: Int64 -> T.Text -> Int64
+    sumLength i (T.Text _ _ l) = i + intToInt64 l
 
 emptyError :: String -> a
 emptyError fun = error ("Data.Text.Lazy.Search." ++ fun ++ ": empty input")
+
+intToInt64 :: Int -> Int64
+intToInt64 = fromIntegral
+
+int64ToInt :: Int64 -> Int
+int64ToInt = fromIntegral
+
+word16ToInt :: Word16 -> Int
+word16ToInt = fromIntegral

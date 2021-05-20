@@ -688,7 +688,7 @@ data RI s = RI !s {-# UNPACK #-} !Int64
 
 replicateI :: Int64 -> Stream Char -> Stream Char
 replicateI n (Stream next0 s0 len) =
-    Stream next (RI s0 0) (fromIntegral (max 0 n) * len)
+    Stream next (RI s0 0) (int64ToSize (max 0 n) * len)
   where
     next (RI s k)
         | k >= n = Done
@@ -948,3 +948,6 @@ emptyError func = internalError func "Empty input"
 
 internalError :: String -> a
 internalError func = streamError func "Internal error"
+
+int64ToSize :: Int64 -> Size
+int64ToSize = fromIntegral
