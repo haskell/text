@@ -604,7 +604,9 @@ last (Chunk t ts) = go t ts
 -- Subject to fusion.
 length :: Text -> Int64
 length = foldlChunks go 0
-    where go l t = l + fromIntegral (T.length t)
+    where
+        go :: Int64 -> T.Text -> Int64
+        go l t = l + intToInt64 (T.length t)
 {-# INLINE [1] length #-}
 
 {-# RULES
@@ -1054,12 +1056,14 @@ unfoldrN n f s = unstream (S.unfoldrN n (firstf safe . f) s)
 take :: Int64 -> Text -> Text
 take i _ | i <= 0 = Empty
 take i t0         = take' i t0
-  where take' 0 _            = Empty
-        take' _ Empty        = Empty
-        take' n (Chunk t ts)
-            | n < len   = Chunk (T.take (fromIntegral n) t) Empty
-            | otherwise = Chunk t (take' (n - len) ts)
-            where len = fromIntegral (T.length t)
+  where
+    take' :: Int64 -> Text -> Text
+    take' 0 _            = Empty
+    take' _ Empty        = Empty
+    take' n (Chunk t ts)
+        | n < len   = Chunk (T.take (int64ToInt n) t) Empty
+        | otherwise = Chunk t (take' (n - len) ts)
+        where len = intToInt64 (T.length t)
 {-# INLINE [1] take #-}
 
 {-# RULES
@@ -1081,11 +1085,13 @@ takeEnd :: Int64 -> Text -> Text
 takeEnd n t0
     | n <= 0    = empty
     | otherwise = takeChunk n empty . L.reverse . toChunks $ t0
-  where takeChunk _ acc [] = acc
-        takeChunk i acc (t:ts)
-          | i <= l    = chunk (T.takeEnd (fromIntegral i) t) acc
-          | otherwise = takeChunk (i-l) (Chunk t acc) ts
-          where l = fromIntegral (T.length t)
+  where
+    takeChunk :: Int64 -> Text -> [T.Text] -> Text
+    takeChunk _ acc [] = acc
+    takeChunk i acc (t:ts)
+      | i <= l    = chunk (T.takeEnd (int64ToInt i) t) acc
+      | otherwise = takeChunk (i-l) (Chunk t acc) ts
+      where l = intToInt64 (T.length t)
 
 -- | /O(n)/ 'drop' @n@, applied to a 'Text', returns the suffix of the
 -- 'Text' after the first @n@ characters, or the empty 'Text' if @n@
@@ -1094,12 +1100,14 @@ drop :: Int64 -> Text -> Text
 drop i t0
     | i <= 0    = t0
     | otherwise = drop' i t0
-  where drop' 0 ts           = ts
-        drop' _ Empty        = Empty
-        drop' n (Chunk t ts)
-            | n < len   = Chunk (T.drop (fromIntegral n) t) ts
-            | otherwise = drop' (n - len) ts
-            where len   = fromIntegral (T.length t)
+  where
+    drop' :: Int64 -> Text -> Text
+    drop' 0 ts           = ts
+    drop' _ Empty        = Empty
+    drop' n (Chunk t ts)
+        | n < len   = Chunk (T.drop (int64ToInt n) t) ts
+        | otherwise = drop' (n - len) ts
+        where len   = intToInt64 (T.length t)
 {-# INLINE [1] drop #-}
 
 {-# RULES
@@ -1121,12 +1129,14 @@ dropEnd :: Int64 -> Text -> Text
 dropEnd n t0
     | n <= 0    = t0
     | otherwise = dropChunk n . L.reverse . toChunks $ t0
-  where dropChunk _ [] = empty
-        dropChunk m (t:ts)
-          | m >= l    = dropChunk (m-l) ts
-          | otherwise = fromChunks . L.reverse $
-                        T.dropEnd (fromIntegral m) t : ts
-          where l = fromIntegral (T.length t)
+  where
+    dropChunk :: Int64 -> [T.Text] -> Text
+    dropChunk _ [] = empty
+    dropChunk m (t:ts)
+      | m >= l    = dropChunk (m-l) ts
+      | otherwise = fromChunks . L.reverse $
+                    T.dropEnd (int64ToInt m) t : ts
+      where l = intToInt64 (T.length t)
 
 -- | /O(n)/ 'dropWords' @n@ returns the suffix with @n@ 'Word16'
 -- values dropped, or the empty 'Text' if @n@ is greater than the
@@ -1135,13 +1145,15 @@ dropWords :: Int64 -> Text -> Text
 dropWords i t0
     | i <= 0    = t0
     | otherwise = drop' i t0
-  where drop' 0 ts           = ts
-        drop' _ Empty        = Empty
-        drop' n (Chunk (T.Text arr off len) ts)
-            | n < len'  = chunk (text arr (off+n') (len-n')) ts
-            | otherwise = drop' (n - len') ts
-            where len'  = fromIntegral len
-                  n'    = fromIntegral n
+  where
+    drop' :: Int64 -> Text -> Text
+    drop' 0 ts           = ts
+    drop' _ Empty        = Empty
+    drop' n (Chunk (T.Text arr off len) ts)
+        | n < len'  = chunk (text arr (off+n') (len-n')) ts
+        | otherwise = drop' (n - len') ts
+        where len'  = intToInt64 len
+              n'    = int64ToInt n
 
 -- | /O(n)/ 'takeWhile', applied to a predicate @p@ and a 'Text',
 -- returns the longest prefix (possibly empty) of elements that
@@ -1251,14 +1263,16 @@ strip = dropAround isSpace
 -- the string. It is equivalent to @('take' n t, 'drop' n t)@.
 splitAt :: Int64 -> Text -> (Text, Text)
 splitAt = loop
-  where loop _ Empty      = (empty, empty)
-        loop n t | n <= 0 = (empty, t)
-        loop n (Chunk t ts)
-             | n < len   = let (t',t'') = T.splitAt (fromIntegral n) t
-                           in (Chunk t' Empty, Chunk t'' ts)
-             | otherwise = let (ts',ts'') = loop (n - len) ts
-                           in (Chunk t ts', ts'')
-             where len = fromIntegral (T.length t)
+  where
+    loop :: Int64 -> Text -> (Text, Text)
+    loop _ Empty      = (empty, empty)
+    loop n t | n <= 0 = (empty, t)
+    loop n (Chunk t ts)
+         | n < len   = let (t',t'') = T.splitAt (int64ToInt n) t
+                       in (Chunk t' Empty, Chunk t'' ts)
+         | otherwise = let (ts',ts'') = loop (n - len) ts
+                       in (Chunk t ts', ts'')
+         where len = intToInt64 (T.length t)
 
 -- | /O(n)/ 'splitAtWord' @n t@ returns a strict pair whose first
 -- element is a prefix of @t@ whose chunks contain @n@ 'Word16'
@@ -1266,11 +1280,11 @@ splitAt = loop
 splitAtWord :: Int64 -> Text -> PairS Text Text
 splitAtWord _ Empty = empty :*: empty
 splitAtWord x (Chunk c@(T.Text arr off len) cs)
-    | y >= len  = let h :*: t = splitAtWord (x-fromIntegral len) cs
+    | y >= len  = let h :*: t = splitAtWord (x-intToInt64 len) cs
                   in  Chunk c h :*: t
     | otherwise = chunk (text arr off y) empty :*:
                   chunk (text arr (off+y) (len-y)) cs
-    where y = fromIntegral x
+    where y = int64ToInt x
 
 -- | /O(n+m)/ Find the first instance of @needle@ (which must be
 -- non-'null') in @haystack@.  The first element of the returned tuple
@@ -1456,7 +1470,7 @@ splitOn pat src
     go  _ []     cs = [cs]
     go !i (x:xs) cs = let h :*: t = splitAtWord (x-i) cs
                       in  h : go (x+l) xs (dropWords l t)
-    l = foldlChunks (\a (T.Text _ _ b) -> a + fromIntegral b) 0 pat
+    l = foldlChunks (\a (T.Text _ _ b) -> a + intToInt64 b) 0 pat
 {-# INLINE [1] splitOn #-}
 
 {-# RULES
@@ -1728,3 +1742,9 @@ emptyError fun = P.error ("Data.Text.Lazy." ++ fun ++ ": empty input")
 
 impossibleError :: String -> a
 impossibleError fun = P.error ("Data.Text.Lazy." ++ fun ++ ": impossible case")
+
+intToInt64 :: Exts.Int -> Int64
+intToInt64 = fromIntegral
+
+int64ToInt :: Int64 -> Exts.Int
+int64ToInt = fromIntegral

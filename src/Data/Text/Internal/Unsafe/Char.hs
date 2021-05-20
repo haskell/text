@@ -54,7 +54,7 @@ unsafeChr32 (W32# w#) = C# (chr# (word2Int# (word32ToWord# w#)))
 unsafeWrite :: A.MArray s -> Int -> Char -> ST s Int
 unsafeWrite marr i c
     | n < 0x10000 = do
-        A.unsafeWrite marr i (fromIntegral n)
+        A.unsafeWrite marr i (intToWord16 n)
         return 1
     | otherwise = do
         A.unsafeWrite marr i lo
@@ -62,6 +62,9 @@ unsafeWrite marr i c
         return 2
     where n = ord c
           m = n - 0x10000
-          lo = fromIntegral $ (m `shiftR` 10) + 0xD800
-          hi = fromIntegral $ (m .&. 0x3FF) + 0xDC00
+          lo = intToWord16 $ (m `shiftR` 10) + 0xD800
+          hi = intToWord16 $ (m .&. 0x3FF) + 0xDC00
 {-# INLINE unsafeWrite #-}
+
+intToWord16 :: Int -> Word16
+intToWord16 = fromIntegral

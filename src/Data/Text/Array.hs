@@ -156,9 +156,9 @@ copyM dest didx src sidx count
     assert (sidx + count <= I# (sizeofMutableByteArray# (maBA src))  `quot` 2) .
     assert (didx + count <= I# (sizeofMutableByteArray# (maBA dest)) `quot` 2) .
 #endif
-    unsafeIOToST $ memcpyM (maBA dest) (fromIntegral didx)
-                           (maBA src) (fromIntegral sidx)
-                           (fromIntegral count)
+    unsafeIOToST $ memcpyM (maBA dest) (intToCSize didx)
+                           (maBA src) (intToCSize sidx)
+                           (intToCSize count)
 {-# INLINE copyM #-}
 
 -- | Copy some elements of an immutable array.
@@ -172,9 +172,9 @@ copyI :: MArray s               -- ^ Destination
 copyI dest i0 src j0 top
     | i0 >= top = return ()
     | otherwise = unsafeIOToST $
-                  memcpyI (maBA dest) (fromIntegral i0)
-                          (aBA src) (fromIntegral j0)
-                          (fromIntegral (top-i0))
+                  memcpyI (maBA dest) (intToCSize i0)
+                          (aBA src) (intToCSize j0)
+                          (intToCSize (top-i0))
 {-# INLINE copyI #-}
 
 -- | Compare portions of two arrays for equality.  No bounds checking
@@ -186,10 +186,13 @@ equal :: Array                  -- ^ First
       -> Int                    -- ^ Count
       -> Bool
 equal arrA offA arrB offB count = inlinePerformIO $ do
-  i <- memcmp (aBA arrA) (fromIntegral offA)
-                     (aBA arrB) (fromIntegral offB) (fromIntegral count)
+  i <- memcmp (aBA arrA) (intToCSize offA)
+                     (aBA arrB) (intToCSize offB) (intToCSize count)
   return $! i == 0
 {-# INLINE equal #-}
+
+intToCSize :: Int -> CSize
+intToCSize = fromIntegral
 
 foreign import ccall unsafe "_hs_text_memcpy" memcpyI
     :: MutableByteArray# s -> CSize -> ByteArray# -> CSize -> CSize -> IO ()

@@ -197,7 +197,7 @@ floatToDigits x =
         -- f :: Integer, log :: Float -> Float,
         --               ceiling :: Float -> Int
         ceiling ((log (fromInteger (f+1) :: Float) +
-                 fromIntegral e * log (fromInteger b)) /
+                 intToFloat e * log (fromInteger b)) /
                    log 10)
 --WAS:            fromInt e * log (fromInteger b))
 
@@ -228,7 +228,7 @@ floatToDigits x =
      let bk = expt 10 (-k) in
      gen [] (r * bk) s (mUp * bk) (mDn * bk)
  in
- (map fromIntegral (reverse rds), k)
+ (map fromInteger (reverse rds), k)
 
 -- Exponentiation with a cache for the most common numbers.
 minExpt, maxExpt :: Int
@@ -249,3 +249,6 @@ maxExpt10 = 324
 
 expts10 :: Array Int Integer
 expts10 = array (minExpt,maxExpt10) [(n,10^n) | n <- [minExpt .. maxExpt10]]
+
+intToFloat :: Int -> Float
+intToFloat = fromIntegral

@@ -155,8 +155,8 @@ rational = floaty $ \real frac fracDenom -> fromRational $
 -- function will lose precision at the 13th or 14th decimal place.
 double :: Reader Double
 double = floaty $ \real frac fracDenom ->
-                   fromIntegral real +
-                   fromIntegral frac / fromIntegral fracDenom
+                   fromInteger real +
+                   fromInteger frac / fromInteger fracDenom
 
 signa :: Num a => Parser a -> Parser a
 {-# SPECIALIZE signa :: Parser Int -> Parser Int #-}
@@ -188,8 +188,8 @@ floaty f = runP $ do
   power <- perhaps 0 (char e >> signa (P decimal) :: Parser Int)
   let n = if fracDigits == 0
           then if power == 0
-               then fromIntegral real
-               else fromIntegral real * (10 ^^ power)
+               then fromInteger real
+               else fromInteger real * (10 ^^ power)
           else if power == 0
                then f real fraction (10 ^ fracDigits)
                else f real fraction (10 ^ fracDigits) * (10 ^^ power)

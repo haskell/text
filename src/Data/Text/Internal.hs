@@ -122,9 +122,9 @@ firstf _  Nothing      = Nothing
 mul :: Int -> Int -> Int
 mul a b
   | finiteBitSize (0 :: Word) == 64
-  = fromIntegral $ fromIntegral a `mul64` fromIntegral b
+  = int64ToInt $ intToInt64 a `mul64` intToInt64 b
   | otherwise
-  = fromIntegral $ fromIntegral a `mul32` fromIntegral b
+  = int32ToInt $ intToInt32 a `mul32` intToInt32 b
 {-# INLINE mul #-}
 infixl 7 `mul`
 
@@ -154,13 +154,31 @@ mul64_ a b
 -- | Checked multiplication.  Calls 'error' if the result would
 -- overflow.
 mul32 :: Int32 -> Int32 -> Int32
-mul32 a b = case fromIntegral a * fromIntegral b of
+mul32 a b = case int32ToInt64 a * int32ToInt64 b of
               ab | ab < min32 || ab > max32 -> error "overflow"
-                 | otherwise                -> fromIntegral ab
+                 | otherwise                -> int64ToInt32 ab
   where min32 = -0x80000000 :: Int64
         max32 =  0x7fffffff
 {-# INLINE mul32 #-}
 infixl 7 `mul32`
+
+intToInt64 :: Int -> Int64
+intToInt64 = fromIntegral
+
+int64ToInt :: Int64 -> Int
+int64ToInt = fromIntegral
+
+intToInt32 :: Int -> Int32
+intToInt32 = fromIntegral
+
+int32ToInt :: Int32 -> Int
+int32ToInt = fromIntegral
+
+int32ToInt64 :: Int32 -> Int64
+int32ToInt64 = fromIntegral
+
+int64ToInt32 :: Int64 -> Int32
+int64ToInt32 = fromIntegral
 
 -- $internals
 --

@@ -43,17 +43,17 @@ restreamUtf16BE (Stream next0 s0 len) = Stream next (RS0 s0) (len * 2)
         Done -> Done
         Skip s' -> Skip (RS0 s')
         Yield x s'
-            | n < 0x10000 -> Yield (fromIntegral $ n `shiftR` 8) $
-                             RS1 s' (fromIntegral n)
+            | n < 0x10000 -> Yield (intToWord8 $ n `shiftR` 8) $
+                             RS1 s' (intToWord8 n)
             | otherwise   -> Yield c1 $ RS3 s' c2 c3 c4
             where
               n  = ord x
               n1 = n - 0x10000
-              c1 = fromIntegral (n1 `shiftR` 18 + 0xD8)
-              c2 = fromIntegral (n1 `shiftR` 10)
+              c1 = intToWord8 (n1 `shiftR` 18 + 0xD8)
+              c2 = intToWord8 (n1 `shiftR` 10)
               n2 = n1 .&. 0x3FF
-              c3 = fromIntegral (n2 `shiftR` 8 + 0xDC)
-              c4 = fromIntegral n2
+              c3 = intToWord8 (n2 `shiftR` 8 + 0xDC)
+              c4 = intToWord8 n2
     next (RS1 s x2)       = Yield x2 (RS0 s)
     next (RS2 s x2 x3)    = Yield x2 (RS1 s x3)
     next (RS3 s x2 x3 x4) = Yield x2 (RS2 s x3 x4)
@@ -67,17 +67,17 @@ restreamUtf16LE (Stream next0 s0 len) = Stream next (RS0 s0) (len * 2)
         Done -> Done
         Skip s' -> Skip (RS0 s')
         Yield x s'
-            | n < 0x10000 -> Yield (fromIntegral n) $
-                             RS1 s' (fromIntegral $ shiftR n 8)
+            | n < 0x10000 -> Yield (intToWord8 n) $
+                             RS1 s' (intToWord8 $ shiftR n 8)
             | otherwise   -> Yield c1 $ RS3 s' c2 c3 c4
           where
             n  = ord x
             n1 = n - 0x10000
-            c2 = fromIntegral (shiftR n1 18 + 0xD8)
-            c1 = fromIntegral (shiftR n1 10)
+            c2 = intToWord8 (shiftR n1 18 + 0xD8)
+            c1 = intToWord8 (shiftR n1 10)
             n2 = n1 .&. 0x3FF
-            c4 = fromIntegral (shiftR n2 8 + 0xDC)
-            c3 = fromIntegral n2
+            c4 = intToWord8 (shiftR n2 8 + 0xDC)
+            c3 = intToWord8 n2
     next (RS1 s x2)       = Yield x2 (RS0 s)
     next (RS2 s x2 x3)    = Yield x2 (RS1 s x3)
     next (RS3 s x2 x3 x4) = Yield x2 (RS2 s x3 x4)
@@ -93,10 +93,10 @@ restreamUtf32BE (Stream next0 s0 len) = Stream next (RS0 s0) (len * 2)
         Yield x s' -> Yield c1 (RS3 s' c2 c3 c4)
           where
             n  = ord x
-            c1 = fromIntegral $ shiftR n 24
-            c2 = fromIntegral $ shiftR n 16
-            c3 = fromIntegral $ shiftR n 8
-            c4 = fromIntegral n
+            c1 = intToWord8 $ shiftR n 24
+            c2 = intToWord8 $ shiftR n 16
+            c3 = intToWord8 $ shiftR n 8
+            c4 = intToWord8 n
     next (RS1 s x2)       = Yield x2 (RS0 s)
     next (RS2 s x2 x3)    = Yield x2 (RS1 s x3)
     next (RS3 s x2 x3 x4) = Yield x2 (RS2 s x3 x4)
@@ -112,12 +112,15 @@ restreamUtf32LE (Stream next0 s0 len) = Stream next (RS0 s0) (len * 2)
         Yield x s' -> Yield c1 (RS3 s' c2 c3 c4)
           where
             n  = ord x
-            c4 = fromIntegral $ shiftR n 24
-            c3 = fromIntegral $ shiftR n 16
-            c2 = fromIntegral $ shiftR n 8
-            c1 = fromIntegral n
+            c4 = intToWord8 $ shiftR n 24
+            c3 = intToWord8 $ shiftR n 16
+            c2 = intToWord8 $ shiftR n 8
+            c1 = intToWord8 n
     next (RS1 s x2)       = Yield x2 (RS0 s)
     next (RS2 s x2 x3)    = Yield x2 (RS1 s x3)
     next (RS3 s x2 x3 x4) = Yield x2 (RS2 s x3 x4)
     {-# INLINE next #-}
 {-# INLINE restreamUtf32LE #-}
+
+intToWord8 :: Int -> Word8
+intToWord8 = fromIntegral

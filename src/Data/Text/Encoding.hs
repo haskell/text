@@ -1,6 +1,7 @@
 {-# LANGUAGE BangPatterns, CPP, GeneralizedNewtypeDeriving, MagicHash,
     UnliftedFFITypes #-}
 {-# LANGUAGE Trustworthy #-}
+{-# LANGUAGE TypeApplications #-}
 -- |
 -- Module      : Data.Text.Encoding
 -- Copyright   : (c) 2009, 2010, 2011 Bryan O'Sullivan,
@@ -73,7 +74,7 @@ import Data.Text.Internal.Unsafe.Char (ord, unsafeWrite)
 import Data.Text.Internal.Unsafe.Shift (shiftR)
 import Data.Text.Show ()
 import Data.Text.Unsafe (unsafeDupablePerformIO)
-import Data.Word (Word8, Word32)
+import Data.Word (Word8, Word16, Word32)
 import Foreign.C.Types (CSize(CSize))
 import Foreign.Marshal.Utils (with)
 import Foreign.Ptr (Ptr, minusPtr, nullPtr, plusPtr)
@@ -143,7 +144,7 @@ decodeUtf8With onErr bs = withBS bs aux
                   if curPtr' == end
                     then do
                       n <- peek destOffPtr
-                      unsafeSTToIO (done dest (fromIntegral n))
+                      unsafeSTToIO (done dest (cSizeToInt n))
                     else do
                       x <- peek curPtr'
                       case onErr desc (Just x) of
@@ -153,9 +154,9 @@ decodeUtf8With onErr bs = withBS bs aux
                           | otherwise -> do
                               destOff <- peek destOffPtr
                               w <- unsafeSTToIO $
-                                   unsafeWrite dest (fromIntegral destOff)
+                                   unsafeWrite dest (cSizeToInt destOff)
                                                (safe c)
-                              poke destOffPtr (destOff + fromIntegral w)
+                              poke destOffPtr (destOff + intToCSize w)
                               loop $ curPtr' `plusPtr` 1
             loop ptr
     (unsafeIOToST . go) =<< A.new len
@@ -315,8 +316,8 @@ streamDecodeUtf8With onErr = decodeChunk B.empty 0 0
                             Just c -> do
                               destOff <- peek destOffPtr
                               w <- unsafeSTToIO $
-                                   unsafeWrite dest (fromIntegral destOff) (safe c)
-                              poke destOffPtr (destOff + fromIntegral w)
+                                   unsafeWrite dest (cSizeToInt destOff) (safe c)
+                              poke destOffPtr (destOff + intToCSize w)
                       if ptr == lastPtr && prevState /= UTF8_ACCEPT then do
                         -- If we can't complete the sequence @undecoded0@ from
                         -- the previous chunk, we invalidate the bytes from
@@ -334,7 +335,7 @@ streamDecodeUtf8With onErr = decodeChunk B.empty 0 0
                       codepoint <- peek codepointPtr
                       chunkText <- unsafeSTToIO $ do
                           arr <- A.unsafeFreeze dest
-                          return $! text arr 0 (fromIntegral n)
+                          return $! text arr 0 (cSizeToInt n)
                       let left = lastPtr `minusPtr` ptr
                           !undecoded = case state of
                             UTF8_ACCEPT -> B.empty
@@ -409,26 +410,28 @@ encodeUtf8BuilderEscaped be =
                 go !i !op
                   | i < iendTmp = case A.unsafeIndex arr i of
                       w | w <= 0x7F -> do
-                            BP.runB be (fromIntegral w) op >>= go (i + 1)
+                            BP.runB be (word16ToWord8 w) op >>= go (i + 1)
                         | w <= 0x7FF -> do
-                            poke8 0 $ (w `shiftR` 6) + 0xC0
-                            poke8 1 $ (w .&. 0x3f) + 0x80
+                            poke8 @Word16 0 $ (w `shiftR` 6) + 0xC0
+                            poke8 @Word16 1 $ (w .&. 0x3f) + 0x80
                             go (i + 1) (op `plusPtr` 2)
                         | 0xD800 <= w && w <= 0xDBFF -> do
                             let c = ord $ U16.chr2 w (A.unsafeIndex arr (i+1))
-                            poke8 0 $ (c `shiftR` 18) + 0xF0
-                            poke8 1 $ ((c `shiftR` 12) .&. 0x3F) + 0x80
-                            poke8 2 $ ((c `shiftR` 6) .&. 0x3F) + 0x80
-                            poke8 3 $ (c .&. 0x3F) + 0x80
+                            poke8 @Int 0 $ (c `shiftR` 18) + 0xF0
+                            poke8 @Int 1 $ ((c `shiftR` 12) .&. 0x3F) + 0x80
+                            poke8 @Int 2 $ ((c `shiftR` 6) .&. 0x3F) + 0x80
+                            poke8 @Int 3 $ (c .&. 0x3F) + 0x80
                             go (i + 2) (op `plusPtr` 4)
                         | otherwise -> do
-                            poke8 0 $ (w `shiftR` 12) + 0xE0
-                            poke8 1 $ ((w `shiftR` 6) .&. 0x3F) + 0x80
-                            poke8 2 $ (w .&. 0x3F) + 0x80
+                            poke8 @Word16 0 $ (w `shiftR` 12) + 0xE0
+                            poke8 @Word16 1 $ ((w `shiftR` 6) .&. 0x3F) + 0x80
+                            poke8 @Word16 2 $ (w .&. 0x3F) + 0x80
                             go (i + 1) (op `plusPtr` 3)
                   | otherwise =
                       outerLoop i (B.BufferRange op ope)
                   where
+                    -- Take care, a is either Word16 or Int above
+                    poke8 :: Integral a => Int -> a -> IO ()
                     poke8 j v = poke (op `plusPtr` j) (fromIntegral v :: Word8)
 
 -- | Encode text using UTF-8 encoding.
@@ -439,7 +442,7 @@ encodeUtf8 (Text arr off len)
   fp <- B.mallocByteString (len*3) -- see https://github.com/haskell/text/issues/194 for why len*3 is enough
   unsafeWithForeignPtr fp $ \ptr ->
     with ptr $ \destPtr -> do
-      c_encode_utf8 destPtr (A.aBA arr) (fromIntegral off) (fromIntegral len)
+      c_encode_utf8 destPtr (A.aBA arr) (intToCSize off) (intToCSize len)
       newDest <- peek destPtr
       let utf8len = newDest `minusPtr` ptr
       if utf8len >= len `shiftR` 1
@@ -447,7 +450,7 @@ encodeUtf8 (Text arr off len)
         else do
           fp' <- B.mallocByteString utf8len
           unsafeWithForeignPtr fp' $ \ptr' -> do
-            B.memcpy ptr' ptr (fromIntegral utf8len)
+            B.memcpy ptr' ptr utf8len
             return (mkBS fp' utf8len)
 
 -- | Decode text from little endian UTF-16 encoding.
@@ -525,6 +528,15 @@ encodeUtf32LE txt = E.unstream (E.restreamUtf32LE (F.stream txt))
 encodeUtf32BE :: Text -> ByteString
 encodeUtf32BE txt = E.unstream (E.restreamUtf32BE (F.stream txt))
 {-# INLINE encodeUtf32BE #-}
+
+cSizeToInt :: CSize -> Int
+cSizeToInt = fromIntegral
+
+intToCSize :: Int -> CSize
+intToCSize = fromIntegral
+
+word16ToWord8 :: Word16 -> Word8
+word16ToWord8 = fromIntegral
 
 foreign import ccall unsafe "_hs_text_decode_utf8" c_decode_utf8
     :: MutableByteArray# s -> Ptr CSize

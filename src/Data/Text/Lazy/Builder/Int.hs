@@ -102,7 +102,7 @@ posDecimal marr off0 ds v0 = go (off0 + ds - 1) v0
           let i = fromIntegral i0; j = i + i
           unsafeWrite marr off $ get (j + 1)
           unsafeWrite marr (off - 1) $ get j
-        get = fromIntegral . B.unsafeIndex digits
+        get = word8ToWord16 . B.unsafeIndex digits
 
 minus, zero :: Word16
 {-# INLINE minus #-}
@@ -118,11 +118,11 @@ countDigits :: (Integral a) => a -> Int
 {-# INLINE countDigits #-}
 countDigits v0
   | fromIntegral v64 == v0 = go 1 v64
-  | otherwise              = goBig 1 (fromIntegral v0)
+  | otherwise              = goBig 1 (toInteger v0)
   where v64 = fromIntegral v0
         goBig !k (v :: Integer)
            | v > big   = goBig (k + 19) (v `quot` big)
-           | otherwise = go k (fromIntegral v)
+           | otherwise = go k (fromInteger v)
         big = 10000000000000000000
         go !k (v :: Word64)
            | v < 10    = k
@@ -205,10 +205,10 @@ integer base i
 
     T maxInt10 maxDigits10 =
         until ((>mi) . (*10) . fstT) (\(T n d) -> T (n*10) (d+1)) (T 10 1)
-      where mi = fromIntegral (maxBound :: Int)
+      where mi = toInteger (maxBound :: Int)
     T maxInt16 maxDigits16 =
         until ((>mi) . (*16) . fstT) (\(T n d) -> T (n*16) (d+1)) (T 16 1)
-      where mi = fromIntegral (maxBound :: Int)
+      where mi = toInteger (maxBound :: Int)
 
     fstT (T a _) = a
 
@@ -242,3 +242,6 @@ integer base i
             | otherwise = loop (d-1) q <> hexDigit r
             where q = n `quotInt` base
                   r = n `remInt` base
+
+word8ToWord16 :: Word8 -> Word16
+word8ToWord16 = fromIntegral

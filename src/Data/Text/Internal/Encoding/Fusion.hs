@@ -105,7 +105,7 @@ streamUtf16LE onErr bs = Stream next 0 (maxSize (l `shiftR` 1))
           where
             x1    = idx i       + (idx (i + 1) `shiftL` 8)
             x2    = idx (i + 2) + (idx (i + 3) `shiftL` 8)
-            idx = fromIntegral . B.unsafeIndex bs :: Int -> Word16
+            idx = word8ToWord16 . B.unsafeIndex bs :: Int -> Word16
 {-# INLINE [0] streamUtf16LE #-}
 
 -- | /O(n)/ Convert a 'ByteString' into a 'Stream Char', using big
@@ -123,7 +123,7 @@ streamUtf16BE onErr bs = Stream next 0 (maxSize (l `shiftR` 1))
           where
             x1    = (idx i `shiftL` 8)       + idx (i + 1)
             x2    = (idx (i + 2) `shiftL` 8) + idx (i + 3)
-            idx = fromIntegral . B.unsafeIndex bs :: Int -> Word16
+            idx = word8ToWord16 . B.unsafeIndex bs :: Int -> Word16
 {-# INLINE [0] streamUtf16BE #-}
 
 -- | /O(n)/ Convert a 'ByteString' into a 'Stream Char', using big
@@ -143,7 +143,7 @@ streamUtf32BE onErr bs = Stream next 0 (maxSize (l `shiftR` 2))
             x2    = idx (i+1)
             x3    = idx (i+2)
             x4    = idx (i+3)
-            idx = fromIntegral . B.unsafeIndex bs :: Int -> Word32
+            idx = word8ToWord32 . B.unsafeIndex bs :: Int -> Word32
 {-# INLINE [0] streamUtf32BE #-}
 
 -- | /O(n)/ Convert a 'ByteString' into a 'Stream Char', using little
@@ -163,7 +163,7 @@ streamUtf32LE onErr bs = Stream next 0 (maxSize (l `shiftR` 2))
             x2    = idx $ i+1
             x3    = idx $ i+2
             x4    = idx $ i+3
-            idx = fromIntegral . B.unsafeIndex bs :: Int -> Word32
+            idx = word8ToWord32 . B.unsafeIndex bs :: Int -> Word32
 {-# INLINE [0] streamUtf32LE #-}
 
 -- | /O(n)/ Convert a 'Stream' 'Word8' to a 'ByteString'.
@@ -197,7 +197,7 @@ unstream (Stream next s0 len) = unsafeDupablePerformIO $ do
           dest <- mallocByteString destLen
           unsafeWithForeignPtr src  $ \src'  ->
               unsafeWithForeignPtr dest $ \dest' ->
-                  memcpy dest' src' (fromIntegral srcLen)
+                  memcpy dest' src' srcLen
           return dest
 
 decodeError :: forall s. String -> String -> OnDecodeError -> Maybe Word8
@@ -208,3 +208,9 @@ decodeError func kind onErr mb i =
       Just c  -> Yield c i
     where desc = "Data.Text.Internal.Encoding.Fusion." ++ func ++ ": Invalid " ++
                  kind ++ " stream"
+
+word8ToWord16 :: Word8 -> Word16
+word8ToWord16 = fromIntegral
+
+word8ToWord32 :: Word8 -> Word32
+word8ToWord32 = fromIntegral

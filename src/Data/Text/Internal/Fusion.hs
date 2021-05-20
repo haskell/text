@@ -63,6 +63,7 @@ import Data.Text.Internal.Fusion.Types
 import Data.Text.Internal.Fusion.Size
 import qualified Data.Text.Internal as I
 import qualified Data.Text.Internal.Encoding.Utf16 as U16
+import Data.Word (Word16)
 
 default(Int)
 
@@ -161,11 +162,11 @@ reverse (Stream next s len0)
                   least | n < 0x10000 = 0
                         | otherwise   = 1
                   m = n - 0x10000
-                  lo = fromIntegral $ (m `shiftR` 10) + 0xD800
-                  hi = fromIntegral $ (m .&. 0x3FF) + 0xDC00
+                  lo = intToWord16 $ (m `shiftR` 10) + 0xD800
+                  hi = intToWord16 $ (m .&. 0x3FF) + 0xDC00
                   write t j l mar
                       | n < 0x10000 = do
-                          A.unsafeWrite mar j (fromIntegral n)
+                          A.unsafeWrite mar j (intToWord16 n)
                           loop t (j-1) l mar
                       | otherwise = do
                           A.unsafeWrite mar (j-1) lo
@@ -242,3 +243,6 @@ mapAccumL f z0 (Stream next0 s0 len) = (nz, I.text na 0 nl)
                       j | ord c < 0x10000 = i
                         | otherwise       = i + 1
 {-# INLINE [0] mapAccumL #-}
+
+intToWord16 :: Int -> Word16
+intToWord16 = fromIntegral

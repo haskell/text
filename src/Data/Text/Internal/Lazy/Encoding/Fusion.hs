@@ -119,7 +119,7 @@ streamUtf16LE onErr bs0 = Stream next (T bs0 S0 0) unknownSize
             x1   = c (idx  i)      (idx (i + 1))
             x2   = c (idx (i + 2)) (idx (i + 3))
             c w1 w2 = w1 + (w2 `shiftL` 8)
-            idx = fromIntegral . B.unsafeIndex ps :: Int -> Word16
+            idx = word8ToWord16 . B.unsafeIndex ps :: Int -> Word16
     next st@(T bs s i) =
       case s of
         S2 w1 w2       | U16.validate1 (c w1 w2)           ->
@@ -129,7 +129,7 @@ streamUtf16LE onErr bs0 = Stream next (T bs0 S0 0) unknownSize
         _ -> consume st
        where es = T bs S0 i
              c :: Word8 -> Word8 -> Word16
-             c w1 w2 = fromIntegral w1 + (fromIntegral w2 `shiftL` 8)
+             c w1 w2 = word8ToWord16 w1 + (word8ToWord16 w2 `shiftL` 8)
     consume (T bs@(Chunk ps rest) s i)
         | i >= B.length ps = consume (T rest s 0)
         | otherwise =
@@ -159,7 +159,7 @@ streamUtf16BE onErr bs0 = Stream next (T bs0 S0 0) unknownSize
             x1   = c (idx  i)      (idx (i + 1))
             x2   = c (idx (i + 2)) (idx (i + 3))
             c w1 w2 = (w1 `shiftL` 8) + w2
-            idx = fromIntegral . B.unsafeIndex ps :: Int -> Word16
+            idx = word8ToWord16 . B.unsafeIndex ps :: Int -> Word16
     next st@(T bs s i) =
       case s of
         S2 w1 w2       | U16.validate1 (c w1 w2)           ->
@@ -169,7 +169,7 @@ streamUtf16BE onErr bs0 = Stream next (T bs0 S0 0) unknownSize
         _ -> consume st
        where es = T bs S0 i
              c :: Word8 -> Word8 -> Word16
-             c w1 w2 = (fromIntegral w1 `shiftL` 8) + fromIntegral w2
+             c w1 w2 = (word8ToWord16 w1 `shiftL` 8) + word8ToWord16 w2
     consume (T bs@(Chunk ps rest) s i)
         | i >= B.length ps = consume (T rest s 0)
         | otherwise =
@@ -199,7 +199,7 @@ streamUtf32BE onErr bs0 = Stream next (T bs0 S0 0) unknownSize
             x2    = idx (i+1)
             x3    = idx (i+2)
             x4    = idx (i+3)
-            idx = fromIntegral . B.unsafeIndex ps :: Int -> Word32
+            idx = word8ToWord32 . B.unsafeIndex ps :: Int -> Word32
     next st@(T bs s i) =
       case s of
         S4 w1 w2 w3 w4 | U32.validate (c w1 w2 w3 w4) ->
@@ -210,10 +210,10 @@ streamUtf32BE onErr bs0 = Stream next (T bs0 S0 0) unknownSize
              c w1 w2 w3 w4 = shifted
               where
                shifted = shiftL x1 24 + shiftL x2 16 + shiftL x3 8 + x4
-               x1 = fromIntegral w1
-               x2 = fromIntegral w2
-               x3 = fromIntegral w3
-               x4 = fromIntegral w4
+               x1 = word8ToWord32 w1
+               x2 = word8ToWord32 w2
+               x3 = word8ToWord32 w3
+               x4 = word8ToWord32 w4
     consume (T bs@(Chunk ps rest) s i)
         | i >= B.length ps = consume (T rest s 0)
         | otherwise =
@@ -243,7 +243,7 @@ streamUtf32LE onErr bs0 = Stream next (T bs0 S0 0) unknownSize
             x2    = idx (i+1)
             x3    = idx (i+2)
             x4    = idx (i+3)
-            idx = fromIntegral . B.unsafeIndex ps :: Int -> Word32
+            idx = word8ToWord32 . B.unsafeIndex ps :: Int -> Word32
     next st@(T bs s i) =
       case s of
         S4 w1 w2 w3 w4 | U32.validate (c w1 w2 w3 w4) ->
@@ -254,10 +254,10 @@ streamUtf32LE onErr bs0 = Stream next (T bs0 S0 0) unknownSize
              c w1 w2 w3 w4 = shifted
               where
                shifted = shiftL x4 24 + shiftL x3 16 + shiftL x2 8 + x1
-               x1 = fromIntegral w1
-               x2 = fromIntegral w2
-               x3 = fromIntegral w3
-               x4 = fromIntegral w4
+               x1 = word8ToWord32 w1
+               x2 = word8ToWord32 w2
+               x3 = word8ToWord32 w3
+               x4 = word8ToWord32 w4
     consume (T bs@(Chunk ps rest) s i)
         | i >= B.length ps = consume (T rest s 0)
         | otherwise =
@@ -308,7 +308,7 @@ unstreamChunks chunkSize (Stream next s0 len0) = chunk s0 (upperBound 4 len0)
                 dest <- mallocByteString destLen
                 unsafeWithForeignPtr src  $ \src'  ->
                     unsafeWithForeignPtr dest $ \dest' ->
-                        memcpy dest' src' (fromIntegral srcLen)
+                        memcpy dest' src' srcLen
                 return dest
 
 -- | /O(n)/ Convert a 'Stream' 'Word8' to a lazy 'ByteString'.
@@ -323,3 +323,9 @@ decodeError func kind onErr mb i =
       Just c  -> Yield c i
     where desc = "Data.Text.Lazy.Encoding.Fusion." ++ func ++ ": Invalid " ++
                  kind ++ " stream"
+
+word8ToWord16 :: Word8 -> Word16
+word8ToWord16 = fromIntegral
+
+word8ToWord32 :: Word8 -> Word32
+word8ToWord32 = fromIntegral
