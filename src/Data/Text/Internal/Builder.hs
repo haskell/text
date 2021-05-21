@@ -73,6 +73,10 @@ import qualified Data.Text as S
 import qualified Data.Text.Array as A
 import qualified Data.Text.Lazy as L
 
+#if defined(ASSERTS)
+import GHC.Stack (HasCallStack)
+#endif
+
 ------------------------------------------------------------------------
 
 -- | A @Builder@ is an efficient way to build lazy @Text@ values.
@@ -131,7 +135,11 @@ empty = Builder (\ k buf -> k buf)
 --
 --  * @'toLazyText' ('singleton' c) = 'L.singleton' c@
 --
-singleton :: Char -> Builder
+singleton ::
+#if defined(ASSERTS)
+  HasCallStack =>
+#endif
+  Char -> Builder
 singleton c = writeAtMost 2 $ \ marr o -> unsafeWrite marr o (safe c)
 {-# INLINE singleton #-}
 

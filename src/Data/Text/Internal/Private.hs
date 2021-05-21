@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, Rank2Types, UnboxedTuples #-}
+{-# LANGUAGE BangPatterns, CPP, Rank2Types, UnboxedTuples #-}
 
 -- |
 -- Module      : Data.Text.Internal.Private
@@ -20,6 +20,10 @@ import Data.Text.Internal (Text(..), text)
 import Data.Text.Unsafe (Iter(..), iter)
 import qualified Data.Text.Array as A
 
+#if defined(ASSERTS)
+import GHC.Stack (HasCallStack)
+#endif
+
 span_ :: (Char -> Bool) -> Text -> (# Text, Text #)
 span_ p t@(Text arr off len) = (# hd,tl #)
   where hd = text arr off k
@@ -30,7 +34,11 @@ span_ p t@(Text arr off len) = (# hd,tl #)
             where Iter c d       = iter t i
 {-# INLINE span_ #-}
 
-runText :: (forall s. (A.MArray s -> Int -> ST s Text) -> ST s Text) -> Text
+runText ::
+#if defined(ASSERTS)
+  HasCallStack =>
+#endif
+  (forall s. (A.MArray s -> Int -> ST s Text) -> ST s Text) -> Text
 runText act = runST (act $ \ !marr !len -> do
                              arr <- A.unsafeFreeze marr
                              return $! text arr 0 len)

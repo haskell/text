@@ -32,6 +32,9 @@ import GHC.Exts (Char(..), Int(..), chr#, ord#, word2Int#)
 import GHC.Word (Word8(..), Word16(..), Word32(..))
 import qualified Data.Text.Array as A
 import Data.Text.Internal.PrimCompat ( word8ToWord#, word16ToWord#, word32ToWord# )
+#if defined(ASSERTS)
+import GHC.Stack (HasCallStack)
+#endif
 
 ord :: Char -> Int
 ord (C# c#) = I# (ord# c#)
@@ -51,7 +54,11 @@ unsafeChr32 (W32# w#) = C# (chr# (word2Int# (word32ToWord# w#)))
 
 -- | Write a character into the array at the given offset.  Returns
 -- the number of 'Word16's written.
-unsafeWrite :: A.MArray s -> Int -> Char -> ST s Int
+unsafeWrite ::
+#if defined(ASSERTS)
+    HasCallStack =>
+#endif
+    A.MArray s -> Int -> Char -> ST s Int
 unsafeWrite marr i c
     | n < 0x10000 = do
         A.unsafeWrite marr i (intToWord16 n)

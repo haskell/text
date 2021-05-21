@@ -29,11 +29,19 @@ import qualified Data.Text.Internal.Fusion.Common as S
 
 import qualified GHC.CString as GHC
 
+#if defined(ASSERTS)
+import GHC.Stack (HasCallStack)
+#endif
+
 instance Show Text where
     showsPrec p ps r = showsPrec p (unpack ps) r
 
 -- | /O(n)/ Convert a 'Text' into a 'String'.  Subject to fusion.
-unpack :: Text -> String
+unpack ::
+#if defined(ASSERTS)
+  HasCallStack =>
+#endif
+  Text -> String
 unpack = S.unstreamList . stream
 {-# INLINE [1] unpack #-}
 
@@ -64,7 +72,11 @@ unpackCString# addr# = unstream (S.streamCString# addr#)
 
 -- | /O(1)/ Convert a character into a Text.  Subject to fusion.
 -- Performs replacement on invalid scalar values.
-singleton :: Char -> Text
+singleton ::
+#if defined(ASSERTS)
+  HasCallStack =>
+#endif
+  Char -> Text
 singleton = unstream . S.singleton . safe
 {-# INLINE [1] singleton #-}
 
@@ -73,7 +85,11 @@ singleton = unstream . S.singleton . safe
       = singleton_ a #-}
 
 -- This is intended to reduce inlining bloat.
-singleton_ :: Char -> Text
+singleton_ ::
+#if defined(ASSERTS)
+  HasCallStack =>
+#endif
+  Char -> Text
 singleton_ c = Text (A.run x) 0 len
   where x :: ST s (A.MArray s)
         x = do arr <- A.new len
