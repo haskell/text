@@ -102,15 +102,15 @@ posDecimal marr off0 ds v0 = go (off0 + ds - 1) v0
           let i = fromIntegral i0; j = i + i
           unsafeWrite marr off $ get (j + 1)
           unsafeWrite marr (off - 1) $ get j
-        get = word8ToWord16 . B.unsafeIndex digits
+        get = B.unsafeIndex digits
 
-minus, zero :: Word16
+minus, zero :: Word8
 {-# INLINE minus #-}
 {-# INLINE zero #-}
 minus = 45
 zero = 48
 
-i2w :: (Integral a) => a -> Word16
+i2w :: (Integral a) => a -> Word8
 {-# INLINE i2w #-}
 i2w v = zero + fromIntegral v
 
@@ -242,6 +242,3 @@ integer base i
             | otherwise = loop (d-1) q <> hexDigit r
             where q = n `quotInt` base
                   r = n `remInt` base
-
-word8ToWord16 :: Word8 -> Word16
-word8ToWord16 = fromIntegral

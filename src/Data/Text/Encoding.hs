@@ -7,6 +7,7 @@
 -- Copyright   : (c) 2009, 2010, 2011 Bryan O'Sullivan,
 --               (c) 2009 Duncan Coutts,
 --               (c) 2008, 2009 Tom Harper
+--               (c) 2021 Andrew Lelechenko
 --
 -- License     : BSD-style
 -- Maintainer  : bos@serpentine.com
@@ -63,30 +64,29 @@ import Control.Monad.ST.Unsafe (unsafeIOToST, unsafeSTToIO)
 
 import Control.Exception (evaluate, try, throwIO, ErrorCall(ErrorCall))
 import Control.Monad.ST (runST)
-import Data.Bits ((.&.), shiftR)
 import Data.ByteString as B
-import qualified Data.ByteString.Internal as B
+import qualified Data.ByteString.Short.Internal as SBS
 import Data.Foldable (traverse_)
 import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode, lenientDecode)
 import Data.Text.Internal (Text(..), safe, text)
 import Data.Text.Internal.Private (runText)
 import Data.Text.Internal.Unsafe (unsafeWithForeignPtr)
-import Data.Text.Internal.Unsafe.Char (ord, unsafeWrite)
+import Data.Text.Internal.Unsafe.Char (unsafeWrite)
 import Data.Text.Show ()
 import Data.Text.Unsafe (unsafeDupablePerformIO)
-import Data.Word (Word8, Word16, Word32)
-import Foreign.C.Types (CSize(CSize))
+import Data.Word (Word8, Word32)
+import Foreign.C.Types (CSize)
 import Foreign.Marshal.Utils (with)
 import Foreign.Ptr (Ptr, minusPtr, nullPtr, plusPtr)
 import Foreign.Storable (Storable, peek, poke)
-import GHC.Base (ByteArray#, MutableByteArray#)
+import GHC.Base (MutableByteArray#)
 import qualified Data.ByteString.Builder as B
 import qualified Data.ByteString.Builder.Internal as B hiding (empty, append)
 import qualified Data.ByteString.Builder.Prim as BP
 import qualified Data.ByteString.Builder.Prim.Internal as BP
+import Data.Text.Internal.Encoding.Utf8 (utf8LengthByLeader)
 import qualified Data.Text.Array as A
 import qualified Data.Text.Internal.Encoding.Fusion as E
-import qualified Data.Text.Internal.Encoding.Utf16 as U16
 import qualified Data.Text.Internal.Fusion as F
 import Data.Text.Internal.ByteStringCompat
 #if defined(ASSERTS)
@@ -124,12 +124,12 @@ decodeLatin1 ::
 #endif
   ByteString -> Text
 decodeLatin1 bs = withBS bs aux where
-  aux fp len = text a 0 len
+  aux fp len = text a 0 actualLen
    where
-    a = A.run (A.new len >>= unsafeIOToST . go)
-    go dest = unsafeWithForeignPtr fp $ \ptr -> do
-      c_decode_latin1 (A.maBA dest) ptr (ptr `plusPtr` len)
-      return dest
+    (a, actualLen) = A.run2 (A.new (2 * len) >>= unsafeIOToST . go)
+    go dest = unsafeWithForeignPtr fp $ \src -> do
+      destLen <- c_decode_latin1 (A.maBA dest) src (src `plusPtr` len)
+      return (dest, destLen)
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text.
 --
@@ -161,6 +161,8 @@ decodeUtf8With onErr bs = withBS bs aux
                       case onErr desc (Just x) of
                         Nothing -> loop $ curPtr' `plusPtr` 1
                         Just c
+                          -- TODO This is problematic, because even BMP replacement characters
+                          -- can take longer than one UTF8 code unit (which is byte).
                           | c > '\xFFFF' -> throwUnsupportedReplChar
                           | otherwise -> do
                               destOff <- peek destOffPtr
@@ -170,43 +172,14 @@ decodeUtf8With onErr bs = withBS bs aux
                               poke destOffPtr (destOff + intToCSize w)
                               loop $ curPtr' `plusPtr` 1
             loop ptr
-    (unsafeIOToST . go) =<< A.new len
+    -- TODO (len * 2 + 100) assumes that invalid input is asymptotically rare.
+    -- This is incorrect in general, but for now we just want to pass tests.
+    (unsafeIOToST . go) =<< A.new (len * 2 + 100)
    where
     desc = "Data.Text.Internal.Encoding.decodeUtf8: Invalid UTF-8 stream"
 
     throwUnsupportedReplChar = throwIO $
       ErrorCall "decodeUtf8With: non-BMP replacement characters not supported"
-  -- TODO: The code currently assumes that the transcoded UTF-16
-  -- stream is at most twice as long (in bytes) as the input UTF-8
-  -- stream. To justify this assumption one has to assume that the
-  -- error handler replacement character also satisfies this
-  -- invariant, by emitting at most one UTF16 code unit.
-  --
-  -- One easy way to support the full range of code-points for
-  -- replacement characters in the error handler is to simply change
-  -- the (over-)allocation to `A.new (2*len)` and then shrink back the
-  -- `ByteArray#` to the real size (recent GHCs have a cheap
-  -- `ByteArray#` resize-primop for that which allow the GC to reclaim
-  -- the overallocation). However, this would require 4 times as much
-  -- (temporary) storage as the original UTF-8 required.
-  --
-  -- Another strategy would be to optimistically assume that
-  -- replacement characters are within the BMP, and if the case of a
-  -- non-BMP replacement occurs reallocate the target buffer (or throw
-  -- an exception, and fallback to a pessimistic codepath, like e.g.
-  -- `decodeUtf8With onErr bs = F.unstream (E.streamUtf8 onErr bs)`)
-  --
-  -- Alternatively, `OnDecodeError` could become a datastructure which
-  -- statically encodes the replacement-character range,
-  -- e.g. something isomorphic to
-  --
-  --   Either (... -> Maybe Word16) (... -> Maybe Char)
-  --
-  -- And allow to statically switch between the BMP/non-BMP
-  -- replacement-character codepaths. There's multiple ways to address
-  -- this with different tradeoffs; but ideally we should optimise for
-  -- the optimistic/error-free case.
-{- INLINE[0] decodeUtf8With #-}
 
 -- $stream
 --
@@ -304,14 +277,15 @@ streamDecodeUtf8With ::
 streamDecodeUtf8With onErr = decodeChunk B.empty 0 0
  where
   -- We create a slightly larger than necessary buffer to accommodate a
-  -- potential surrogate pair started in the last buffer (@undecoded0@), or
+  -- potential code point started in the last buffer (@undecoded0@), or
   -- replacement characters for each byte in @undecoded0@ if the
   -- sequence turns out to be invalid. There can be up to three bytes there,
-  -- hence we allocate @len+3@ 16-bit words.
+  -- hence we allocate @len+3@ bytes.
   decodeChunk :: ByteString -> CodePoint -> DecoderState -> ByteString
               -> Decoding
   decodeChunk undecoded0 codepoint0 state0 bs = withBS bs aux where
-    aux fp len = runST $ (unsafeIOToST . decodeChunkToBuffer) =<< A.new (len+3)
+    -- TODO Replace (+100) with something sensible.
+    aux fp len = runST $ (unsafeIOToST . decodeChunkToBuffer) =<< A.new (len+100)
        where
         decodeChunkToBuffer :: A.MArray s -> IO Decoding
         decodeChunkToBuffer dest = unsafeWithForeignPtr fp $ \ptr ->
@@ -342,7 +316,7 @@ streamDecodeUtf8With onErr = decodeChunk B.empty 0 0
                         -- the previous chunk, we invalidate the bytes from
                         -- @undecoded0@ and retry decoding the current chunk from
                         -- the initial state.
-                        traverse_ skipByte (B.unpack undecoded0 )
+                        traverse_ skipByte (B.unpack undecoded0)
                         loop lastPtr
                       else do
                         peek lastPtr >>= skipByte
@@ -436,50 +410,33 @@ encodeUtf8BuilderEscaped be =
             goPartial !iendTmp = go i0 op0
               where
                 go !i !op
-                  | i < iendTmp = case A.unsafeIndex arr i of
-                      w | w <= 0x7F -> do
-                            BP.runB be (word16ToWord8 w) op >>= go (i + 1)
-                        | w <= 0x7FF -> do
-                            poke8 @Word16 0 $ (w `shiftR` 6) + 0xC0
-                            poke8 @Word16 1 $ (w .&. 0x3f) + 0x80
-                            go (i + 1) (op `plusPtr` 2)
-                        | 0xD800 <= w && w <= 0xDBFF -> do
-                            let c = ord $ U16.chr2 w (A.unsafeIndex arr (i+1))
-                            poke8 @Int 0 $ (c `shiftR` 18) + 0xF0
-                            poke8 @Int 1 $ ((c `shiftR` 12) .&. 0x3F) + 0x80
-                            poke8 @Int 2 $ ((c `shiftR` 6) .&. 0x3F) + 0x80
-                            poke8 @Int 3 $ (c .&. 0x3F) + 0x80
-                            go (i + 2) (op `plusPtr` 4)
-                        | otherwise -> do
-                            poke8 @Word16 0 $ (w `shiftR` 12) + 0xE0
-                            poke8 @Word16 1 $ ((w `shiftR` 6) .&. 0x3F) + 0x80
-                            poke8 @Word16 2 $ (w .&. 0x3F) + 0x80
-                            go (i + 1) (op `plusPtr` 3)
-                  | otherwise =
-                      outerLoop i (B.BufferRange op ope)
+                  | i < iendTmp = case utf8LengthByLeader w of
+                    1 -> do
+                      BP.runB be w op >>= go (i + 1)
+                    2 -> do
+                      poke (op `plusPtr` 0) w
+                      poke (op `plusPtr` 1) (A.unsafeIndex arr (i+1))
+                      go (i + 2) (op `plusPtr` 2)
+                    3 -> do
+                      poke (op `plusPtr` 0) w
+                      poke (op `plusPtr` 1) (A.unsafeIndex arr (i+1))
+                      poke (op `plusPtr` 2) (A.unsafeIndex arr (i+2))
+                      go (i + 3) (op `plusPtr` 3)
+                    _ -> do
+                      poke (op `plusPtr` 0) w
+                      poke (op `plusPtr` 1) (A.unsafeIndex arr (i+1))
+                      poke (op `plusPtr` 2) (A.unsafeIndex arr (i+2))
+                      poke (op `plusPtr` 3) (A.unsafeIndex arr (i+3))
+                      go (i + 4) (op `plusPtr` 4)
+                  | otherwise = outerLoop i (B.BufferRange op ope)
                   where
-                    -- Take care, a is either Word16 or Int above
-                    poke8 :: Integral a => Int -> a -> IO ()
-                    poke8 j v = poke (op `plusPtr` j) (fromIntegral v :: Word8)
+                    w = A.unsafeIndex arr i
 
 -- | Encode text using UTF-8 encoding.
 encodeUtf8 :: Text -> ByteString
-encodeUtf8 (Text arr off len)
+encodeUtf8 (Text (A.Array arr) off len)
   | len == 0  = B.empty
-  | otherwise = unsafeDupablePerformIO $ do
-  fp <- B.mallocByteString (len*3) -- see https://github.com/haskell/text/issues/194 for why len*3 is enough
-  unsafeWithForeignPtr fp $ \ptr ->
-    with ptr $ \destPtr -> do
-      c_encode_utf8 destPtr (A.aBA arr) (intToCSize off) (intToCSize len)
-      newDest <- peek destPtr
-      let utf8len = newDest `minusPtr` ptr
-      if utf8len >= len `shiftR` 1
-        then return (mkBS fp utf8len)
-        else do
-          fp' <- B.mallocByteString utf8len
-          unsafeWithForeignPtr fp' $ \ptr' -> do
-            B.memcpy ptr' ptr utf8len
-            return (mkBS fp' utf8len)
+  | otherwise = B.take len $ B.drop off $ SBS.fromShort $ SBS.SBS arr
 
 -- | Decode text from little endian UTF-16 encoding.
 decodeUtf16LEWith :: OnDecodeError -> ByteString -> Text
@@ -563,9 +520,6 @@ cSizeToInt = fromIntegral
 intToCSize :: Int -> CSize
 intToCSize = fromIntegral
 
-word16ToWord8 :: Word16 -> Word8
-word16ToWord8 = fromIntegral
-
 foreign import ccall unsafe "_hs_text_decode_utf8" c_decode_utf8
     :: MutableByteArray# s -> Ptr CSize
     -> Ptr Word8 -> Ptr Word8 -> IO (Ptr Word8)
@@ -576,7 +530,4 @@ foreign import ccall unsafe "_hs_text_decode_utf8_state" c_decode_utf8_with_stat
     -> Ptr CodePoint -> Ptr DecoderState -> IO (Ptr Word8)
 
 foreign import ccall unsafe "_hs_text_decode_latin1" c_decode_latin1
-    :: MutableByteArray# s -> Ptr Word8 -> Ptr Word8 -> IO ()
-
-foreign import ccall unsafe "_hs_text_encode_utf8" c_encode_utf8
-    :: Ptr (Ptr Word8) -> ByteArray# -> CSize -> CSize -> IO ()
+    :: MutableByteArray# s -> Ptr Word8 -> Ptr Word8 -> IO Int

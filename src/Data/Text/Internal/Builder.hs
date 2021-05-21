@@ -140,7 +140,7 @@ singleton ::
   HasCallStack =>
 #endif
   Char -> Builder
-singleton c = writeAtMost 2 $ \ marr o -> unsafeWrite marr o (safe c)
+singleton c = writeAtMost 4 $ \ marr o -> unsafeWrite marr o (safe c)
 {-# INLINE singleton #-}
 
 ------------------------------------------------------------------------
@@ -185,7 +185,7 @@ fromString :: String -> Builder
 fromString str = Builder $ \k (Buffer p0 o0 u0 l0) ->
     let loop !marr !o !u !l [] = k (Buffer marr o u l)
         loop marr o u l s@(c:cs)
-            | l <= 1 = do
+            | l <= 3 = do
                 arr <- A.unsafeFreeze marr
                 let !t = Text arr o u
                 marr' <- A.new chunkSize

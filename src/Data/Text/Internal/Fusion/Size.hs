@@ -37,13 +37,13 @@ module Data.Text.Internal.Fusion.Size
     , isEmpty
     ) where
 
-import Data.Char (ord)
+import Data.Text.Internal.Encoding.Utf8 (utf8Length)
 import Data.Text.Internal (mul)
 #if defined(ASSERTS)
 import Control.Exception (assert)
 #endif
 
--- | A size in UTF-16 code units.
+-- | A size in UTF-8 code units (which is bytes).
 data Size = Between {-# UNPACK #-} !Int {-# UNPACK #-} !Int -- ^ Lower and upper bounds on size.
           | Unknown                                         -- ^ Unknown size.
             deriving (Eq, Show)
@@ -55,9 +55,7 @@ exactly _ = Nothing
 
 -- | The 'Size' of the given code point.
 charSize :: Char -> Size
-charSize c
-  | ord c < 0x10000 = exactSize 1
-  | otherwise       = exactSize 2
+charSize = exactSize . utf8Length
 
 -- | The 'Size' of @n@ code points.
 codePointsSize :: Int -> Size
@@ -65,7 +63,7 @@ codePointsSize n =
 #if defined(ASSERTS)
     assert (n >= 0)
 #endif
-    Between n (2*n)
+    Between n (4*n)
 {-# INLINE codePointsSize #-}
 
 exactSize :: Int -> Size
@@ -160,7 +158,7 @@ upperBound _ (Between _ n) = n
 upperBound k _             = k
 {-# INLINE upperBound #-}
 
--- | Compute the maximum size from a size hint, if possible.
+-- | Compute the minimum size from a size hint, if possible.
 lowerBound :: Int -> Size -> Int
 lowerBound _ (Between n _) = n
 lowerBound k _             = k

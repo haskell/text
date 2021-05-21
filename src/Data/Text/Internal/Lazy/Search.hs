@@ -25,7 +25,7 @@ module Data.Text.Internal.Lazy.Search
 import Data.Bits (unsafeShiftL)
 import qualified Data.Text.Array as A
 import Data.Int (Int64)
-import Data.Word (Word16, Word64)
+import Data.Word (Word8, Word64)
 import qualified Data.Text.Internal as T
 import Data.Text.Internal.Fusion.Types (PairS(..))
 import Data.Text.Internal.Lazy (Text(..), foldlChunks)
@@ -75,8 +75,8 @@ indices needle@(Chunk n ns) _haystack@(Chunk k ks)
         where fin _ (T.Text farr foff flen) = A.unsafeIndex farr (foff+flen-1)
     (mask :: Word64) :*: skip = buildTable n ns 0 0 0 (nlen-2)
 
-    swizzle :: Word16 -> Word64
-    swizzle w = 1 `unsafeShiftL` (word16ToInt w .&. 0x3f)
+    swizzle :: Word8 -> Word64
+    swizzle w = 1 `unsafeShiftL` (word8ToInt w .&. 0x3f)
 
     buildTable (T.Text xarr xoff xlen) xs = go
       where
@@ -105,7 +105,7 @@ indices _ _ = []
 -- | Fast index into a partly unpacked 'Text'.  We take into account
 -- the possibility that the caller might try to access one element
 -- past the end.
-index :: T.Text -> Text -> Int64 -> Word16
+index :: T.Text -> Text -> Int64 -> Word8
 index (T.Text arr off len) xs !i
     | j < len   = A.unsafeIndex arr (off+j)
     | otherwise = case xs of
@@ -117,8 +117,8 @@ index (T.Text arr off len) xs !i
                     Chunk c cs -> index c cs (i-intToInt64 len)
     where j = int64ToInt i
 
--- | A variant of 'indices' that scans linearly for a single 'Word16'.
-indicesOne :: Word16 -> Int64 -> T.Text -> Text -> [Int64]
+-- | A variant of 'indices' that scans linearly for a single 'Word8'.
+indicesOne :: Word8 -> Int64 -> T.Text -> Text -> [Int64]
 indicesOne c = chunk
   where
     chunk :: Int64 -> T.Text -> Text -> [Int64]
@@ -131,7 +131,7 @@ indicesOne c = chunk
              | otherwise = go (h+1)
              where on = A.unsafeIndex oarr (ooff+h)
 
--- | The number of 'Word16' values in a 'Text'.
+-- | The number of 'Word8' values in a 'Text'.
 wordLength :: Text -> Int64
 wordLength = foldlChunks sumLength 0
   where
@@ -147,5 +147,5 @@ intToInt64 = fromIntegral
 int64ToInt :: Int64 -> Int
 int64ToInt = fromIntegral
 
-word16ToInt :: Word16 -> Int
-word16ToInt = fromIntegral
+word8ToInt :: Word8 -> Int
+word8ToInt = fromIntegral

@@ -29,4 +29,4 @@ based on the stream fusion framework developed by Roman Leshchinskiy,
 Duncan Coutts, and Don Stewart.
 
 The core library was fleshed out, debugged, and tested by Bryan
-O'Sullivan <bos@serpentine.com>, and he is the current maintainer.
+O'Sullivan. Transition from UTF-16 to UTF-8 is by Andrew Lelechenko.

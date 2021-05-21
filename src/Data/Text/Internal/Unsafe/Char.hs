@@ -19,14 +19,14 @@
 module Data.Text.Internal.Unsafe.Char
     (
       ord
-    , unsafeChr
+    , unsafeChr16
     , unsafeChr8
     , unsafeChr32
     , unsafeWrite
     ) where
 
 import Control.Monad.ST (ST)
-import Data.Bits ((.&.), shiftR)
+import Data.Text.Internal.Encoding.Utf8
 import GHC.Exts (Char(..), Int(..), chr#, ord#, word2Int#)
 import GHC.Word (Word8(..), Word16(..), Word32(..))
 import qualified Data.Text.Array as A
@@ -39,9 +39,9 @@ ord :: Char -> Int
 ord (C# c#) = I# (ord# c#)
 {-# INLINE ord #-}
 
-unsafeChr :: Word16 -> Char
-unsafeChr (W16# w#) = C# (chr# (word2Int# (word16ToWord# w#)))
-{-# INLINE unsafeChr #-}
+unsafeChr16 :: Word16 -> Char
+unsafeChr16 (W16# w#) = C# (chr# (word2Int# (word16ToWord# w#)))
+{-# INLINE unsafeChr16 #-}
 
 unsafeChr8 :: Word8 -> Char
 unsafeChr8 (W8# w#) = C# (chr# (word2Int# (word8ToWord# w#)))
@@ -52,25 +52,36 @@ unsafeChr32 (W32# w#) = C# (chr# (word2Int# (word32ToWord# w#)))
 {-# INLINE unsafeChr32 #-}
 
 -- | Write a character into the array at the given offset.  Returns
--- the number of 'Word16's written.
+-- the number of 'Word8's written.
 unsafeWrite ::
 #if defined(ASSERTS)
     HasCallStack =>
 #endif
     A.MArray s -> Int -> Char -> ST s Int
-unsafeWrite marr i c
-    | n < 0x10000 = do
-        A.unsafeWrite marr i (intToWord16 n)
+unsafeWrite marr i c = case utf8Length c of
+    1 -> do
+        let n0 = intToWord8 (ord c)
+        A.unsafeWrite marr i n0
         return 1
-    | otherwise = do
-        A.unsafeWrite marr i lo
-        A.unsafeWrite marr (i+1) hi
+    2 -> do
+        let (n0, n1) = ord2 c
+        A.unsafeWrite marr i     n0
+        A.unsafeWrite marr (i+1) n1
         return 2
-    where n = ord c
-          m = n - 0x10000
-          lo = intToWord16 $ (m `shiftR` 10) + 0xD800
-          hi = intToWord16 $ (m .&. 0x3FF) + 0xDC00
+    3 -> do
+        let (n0, n1, n2) = ord3 c
+        A.unsafeWrite marr i     n0
+        A.unsafeWrite marr (i+1) n1
+        A.unsafeWrite marr (i+2) n2
+        return 3
+    _ -> do
+        let (n0, n1, n2, n3) = ord4 c
+        A.unsafeWrite marr i     n0
+        A.unsafeWrite marr (i+1) n1
+        A.unsafeWrite marr (i+2) n2
+        A.unsafeWrite marr (i+3) n3
+        return 4
 {-# INLINE unsafeWrite #-}
 
-intToWord16 :: Int -> Word16
-intToWord16 = fromIntegral
+intToWord8 :: Int -> Word8
+intToWord8 = fromIntegral

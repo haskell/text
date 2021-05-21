@@ -5,6 +5,7 @@
 -- Copyright   : (c) 2008, 2009 Tom Harper,
 --               (c) 2009, 2010 Bryan O'Sullivan,
 --               (c) 2009 Duncan Coutts
+--               (c) 2021 Andrew Lelechenko
 --
 -- License     : BSD-style
 -- Maintainer  : bos@serpentine.com
@@ -17,9 +18,10 @@
 --
 -- Basic UTF-8 validation and character manipulation.
 module Data.Text.Internal.Encoding.Utf8
-    (
+    ( utf8Length
+    , utf8LengthByLeader
     -- Decomposition
-      ord2
+    , ord2
     , ord3
     , ord4
     -- Construction
@@ -34,7 +36,7 @@ module Data.Text.Internal.Encoding.Utf8
     ) where
 
 import Data.Bits ((.&.), shiftR)
-import Data.Text.Internal.Unsafe.Char (ord)
+import Data.Char (ord)
 import GHC.Exts
 import GHC.Word (Word8(..))
 
@@ -51,6 +53,21 @@ between :: Word8                -- ^ byte to check
         -> Bool
 between x y z = x >= y && x <= z
 {-# INLINE between #-}
+
+-- TODO make branchless by looking into Word64 by clz (ord c)
+utf8Length :: Char -> Int
+utf8Length c
+  | ord c < 0x80    = 1
+  | ord c < 0x800   = 2
+  | ord c < 0x10000 = 3
+  | otherwise       = 4
+
+utf8LengthByLeader :: Word8 -> Int
+utf8LengthByLeader w
+  | w < 0x80  = 1
+  | w < 0xE0  = 2
+  | w < 0xF0  = 3
+  | otherwise = 4
 
 ord2 :: Char -> (Word8,Word8)
 ord2 c =

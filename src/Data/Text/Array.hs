@@ -44,14 +44,14 @@ module Data.Text.Array
 import Control.Exception (assert)
 import GHC.Stack (HasCallStack)
 #endif
-import Data.Bits ((.&.), xor, shiftL, shiftR)
+import Data.Bits ((.&.), xor, shiftR)
 #if !MIN_VERSION_base(4,11,0)
 import Data.Text.Internal.Unsafe (inlinePerformIO)
-#endif
 import Foreign.C.Types (CInt(..))
+#endif
 import GHC.Exts hiding (toList)
 import GHC.ST (ST(..), runST)
-import GHC.Word (Word16(..))
+import GHC.Word (Word8(..))
 import Prelude hiding (length, read)
 
 -- | Immutable array type.
@@ -88,7 +88,7 @@ unsafeFreeze MArray{..} = ST $ \s1# ->
 -- | Indicate how many bytes would be used for an array of the given
 -- size.
 bytesInArray :: Int -> Int
-bytesInArray n = n `shiftL` 1
+bytesInArray n = n
 {-# INLINE bytesInArray #-}
 
 -- | Unchecked read of an immutable array.  May return garbage or
@@ -97,15 +97,15 @@ unsafeIndex ::
 #if defined(ASSERTS)
   HasCallStack =>
 #endif
-  Array -> Int -> Word16
+  Array -> Int -> Word8
 unsafeIndex a@Array{..} i@(I# i#) =
 #if defined(ASSERTS)
-  let word16len = I# (sizeofByteArray# aBA) `quot` 2 in
-  if i < 0 || i >= word16len
-  then error ("Data.Text.Array.unsafeIndex: bounds error, offset " ++ show i ++ ", length " ++ show word16len)
+  let word8len = I# (sizeofByteArray# aBA) in
+  if i < 0 || i >= word8len
+  then error ("Data.Text.Array.unsafeIndex: bounds error, offset " ++ show i ++ ", length " ++ show word8len)
   else
 #endif
-  case indexWord16Array# aBA i# of r# -> (W16# r#)
+  case indexWord8Array# aBA i# of r# -> (W8# r#)
 {-# INLINE unsafeIndex #-}
 
 #if defined(ASSERTS)
@@ -130,17 +130,17 @@ unsafeWrite ::
 #if defined(ASSERTS)
   HasCallStack =>
 #endif
-  MArray s -> Int -> Word16 -> ST s ()
-unsafeWrite ma@MArray{..} i@(I# i#) (W16# e#) =
+  MArray s -> Int -> Word8 -> ST s ()
+unsafeWrite ma@MArray{..} i@(I# i#) (W8# e#) =
 #if defined(ASSERTS)
-  checkBoundsM ma (i * 2) 2 >>
+  checkBoundsM ma i 1 >>
 #endif
-  (ST $ \s1# -> case writeWord16Array# maBA i# e# s1# of
+  (ST $ \s1# -> case writeWord8Array# maBA i# e# s1# of
     s2# -> (# s2#, () #))
 {-# INLINE unsafeWrite #-}
 
 -- | Convert an immutable array to a list.
-toList :: Array -> Int -> Int -> [Word16]
+toList :: Array -> Int -> Int -> [Word8]
 toList ary off len = loop 0
     where loop i | i < len   = unsafeIndex ary (off+i) : loop (i+1)
                  | otherwise = []
@@ -176,10 +176,10 @@ copyM dst@(MArray dst#) dstOff@(I# dstOff#) src@(MArray src#) srcOff@(I# srcOff#
 #if defined(ASSERTS)
     srcLen <- getSizeofMArray src
     dstLen <- getSizeofMArray dst
-    assert (srcOff + count <= srcLen `quot` 2) .
-      assert (dstOff + count <= dstLen `quot` 2) .
+    assert (srcOff + count <= srcLen) .
+      assert (dstOff + count <= dstLen) .
 #endif
-      ST $ \s1# -> case copyMutableByteArray# src# (2# *# srcOff#) dst# (2# *# dstOff#) (2# *# count#) s1# of
+      ST $ \s1# -> case copyMutableByteArray# src# srcOff# dst# dstOff# count# s1# of
         s2# -> (# s2#, () #)
 {-# INLINE copyM #-}
 
@@ -194,7 +194,7 @@ copyI :: MArray s               -- ^ Destination
 copyI (MArray dst#) dstOff@(I# dstOff#) (Array src#) (I# srcOff#) top@(I# top#)
     | dstOff >= top = return ()
     | otherwise = ST $ \s1# ->
-      case copyByteArray# src# (2# *# srcOff#) dst# (2# *# dstOff#) (2# *# (top# -# dstOff#)) s1# of
+      case copyByteArray# src# srcOff# dst# dstOff# (top# -# dstOff#) s1# of
         s2# -> (# s2#, () #)
 {-# INLINE copyI #-}
 
@@ -209,7 +209,7 @@ equal :: Array                  -- ^ First
 equal (Array src1#) (I# off1#) (Array src2#) (I# off2#) (I# count#) = i == 0
   where
 #if MIN_VERSION_base(4,11,0)
-    i = I# (compareByteArrays# src1# (2# *# off1#) src2# (2# *# off2#) (2# *# count#))
+    i = I# (compareByteArrays# src1# off1# src2# off2# count#)
 #else
     i = fromIntegral (inlinePerformIO (memcmp src1# off1# src2# off2# count#))
 
