@@ -79,8 +79,8 @@ unstreamChunks !chunkSize (Stream next s0 len0)
                     where unknownLength = 4
       where
         inner marr !len s !i
-            | i + 1 >= chunkSize = finish marr i s
-            | i + 1 >= len       = {-# SCC "unstreamChunks/resize" #-} do
+            | i + 3 >= chunkSize = finish marr i s
+            | i + 3 >= len       = {-# SCC "unstreamChunks/resize" #-} do
                 let newLen = min (len `shiftL` 1) chunkSize
                 marr' <- A.new newLen
                 A.copyM marr' 0 marr 0 len

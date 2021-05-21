@@ -41,7 +41,7 @@ import Data.Text.Internal.Encoding.Fusion.Common
 import Data.Text.Encoding.Error
 import Data.Text.Internal.Fusion (Step(..), Stream(..))
 import Data.Text.Internal.Fusion.Size
-import Data.Text.Internal.Unsafe.Char (unsafeChr, unsafeChr8, unsafeChr32)
+import Data.Text.Internal.Unsafe.Char (unsafeChr8, unsafeChr16, unsafeChr32)
 import Data.Text.Internal.Unsafe (unsafeWithForeignPtr)
 import Data.Word (Word8, Word16, Word32)
 import qualified Data.Text.Internal.Encoding.Utf8 as U8
@@ -112,7 +112,7 @@ streamUtf16LE onErr bs0 = Stream next (T bs0 S0 0) unknownSize
   where
     next (T bs@(Chunk ps _) S0 i)
       | i + 1 < len && U16.validate1 x1 =
-          Yield (unsafeChr x1)         (T bs S0 (i+2))
+          Yield (unsafeChr16 x1)         (T bs S0 (i+2))
       | i + 3 < len && U16.validate2 x1 x2 =
           Yield (U16.chr2 x1 x2)       (T bs S0 (i+4))
       where len = B.length ps
@@ -123,7 +123,7 @@ streamUtf16LE onErr bs0 = Stream next (T bs0 S0 0) unknownSize
     next st@(T bs s i) =
       case s of
         S2 w1 w2       | U16.validate1 (c w1 w2)           ->
-          Yield (unsafeChr (c w1 w2))   es
+          Yield (unsafeChr16 (c w1 w2))   es
         S4 w1 w2 w3 w4 | U16.validate2 (c w1 w2) (c w3 w4) ->
           Yield (U16.chr2 (c w1 w2) (c w3 w4)) es
         _ -> consume st
@@ -152,7 +152,7 @@ streamUtf16BE onErr bs0 = Stream next (T bs0 S0 0) unknownSize
   where
     next (T bs@(Chunk ps _) S0 i)
       | i + 1 < len && U16.validate1 x1 =
-          Yield (unsafeChr x1)         (T bs S0 (i+2))
+          Yield (unsafeChr16 x1)         (T bs S0 (i+2))
       | i + 3 < len && U16.validate2 x1 x2 =
           Yield (U16.chr2 x1 x2)       (T bs S0 (i+4))
       where len = B.length ps
@@ -163,7 +163,7 @@ streamUtf16BE onErr bs0 = Stream next (T bs0 S0 0) unknownSize
     next st@(T bs s i) =
       case s of
         S2 w1 w2       | U16.validate1 (c w1 w2)           ->
-          Yield (unsafeChr (c w1 w2))   es
+          Yield (unsafeChr16 (c w1 w2))   es
         S4 w1 w2 w3 w4 | U16.validate2 (c w1 w2) (c w3 w4) ->
           Yield (U16.chr2 (c w1 w2) (c w3 w4)) es
         _ -> consume st

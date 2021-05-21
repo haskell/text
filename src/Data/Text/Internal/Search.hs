@@ -32,7 +32,7 @@ module Data.Text.Internal.Search
     ) where
 
 import qualified Data.Text.Array as A
-import Data.Word (Word64, Word16)
+import Data.Word (Word64, Word8)
 import Data.Text.Internal (Text(..))
 import Data.Bits ((.|.), (.&.), unsafeShiftL)
 
@@ -67,8 +67,8 @@ indices _needle@(Text narr noff nlen) _haystack@(Text harr hoff hlen)
               skp' | c == z    = nlen - i - 2
                    | otherwise = skp
 
-    swizzle :: Word16 -> Word64
-    swizzle k = 1 `unsafeShiftL` (word16ToInt k .&. 0x3f)
+    swizzle :: Word8 -> Word64
+    swizzle k = 1 `unsafeShiftL` (word8ToInt k .&. 0x3f)
 
     scan !i
         | i > ldiff                  = []
@@ -90,5 +90,5 @@ indices _needle@(Text narr noff nlen) _haystack@(Text harr hoff hlen)
                       | otherwise     = loop (i+1)
 {-# INLINE indices #-}
 
-word16ToInt :: Word16 -> Int
-word16ToInt = fromIntegral
+word8ToInt :: Word8 -> Int
+word8ToInt = fromIntegral

@@ -80,10 +80,10 @@ mapAccumL_resize = do
   let f a _ = (a, '\65536')
       count = 5
       val   = T.mapAccumL f (0::Int) (T.replicate count "a")
-  assertEqual "mapAccumL should correctly fill buffers for two-word results"
+  assertEqual "mapAccumL should correctly fill buffers for four-byte results"
              (0, T.replicate count "\65536") val
-  assertEqual "mapAccumL should correctly size buffers for two-word results"
-             (count * 2) (T.lengthWord16 (snd val))
+  assertEqual "mapAccumL should correctly size buffers for four-byte results"
+             (count * 4) (T.lengthWord8 (snd val))
 
 -- See GitHub #197
 t197 :: IO ()

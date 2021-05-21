@@ -43,7 +43,7 @@ import Data.Text.Internal.Fusion (Step(..), Stream(..))
 import Data.Text.Internal.Fusion.Size
 import Data.Text.Encoding.Error
 import Data.Text.Internal.Encoding.Fusion.Common
-import Data.Text.Internal.Unsafe.Char (unsafeChr, unsafeChr8, unsafeChr32)
+import Data.Text.Internal.Unsafe.Char (unsafeChr8, unsafeChr16, unsafeChr32)
 import Data.Text.Internal.Unsafe (unsafeWithForeignPtr)
 import Data.Word (Word8, Word16, Word32)
 import Foreign.ForeignPtr (ForeignPtr)
@@ -99,7 +99,7 @@ streamUtf16LE onErr bs = Stream next 0 (maxSize (l `shiftR` 1))
       {-# INLINE next #-}
       next i
           | i >= l                         = Done
-          | i+1 < l && U16.validate1 x1    = Yield (unsafeChr x1) (i+2)
+          | i+1 < l && U16.validate1 x1    = Yield (unsafeChr16 x1) (i+2)
           | i+3 < l && U16.validate2 x1 x2 = Yield (U16.chr2 x1 x2) (i+4)
           | otherwise = decodeError "streamUtf16LE" "UTF-16LE" onErr Nothing (i+1)
           where
@@ -117,7 +117,7 @@ streamUtf16BE onErr bs = Stream next 0 (maxSize (l `shiftR` 1))
       {-# INLINE next #-}
       next i
           | i >= l                         = Done
-          | i+1 < l && U16.validate1 x1    = Yield (unsafeChr x1) (i+2)
+          | i+1 < l && U16.validate1 x1    = Yield (unsafeChr16 x1) (i+2)
           | i+3 < l && U16.validate2 x1 x2 = Yield (U16.chr2 x1 x2) (i+4)
           | otherwise = decodeError "streamUtf16BE" "UTF-16BE" onErr Nothing (i+1)
           where
