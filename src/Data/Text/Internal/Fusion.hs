@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, MagicHash #-}
+{-# LANGUAGE BangPatterns, CPP, MagicHash #-}
 
 -- |
 -- Module      : Data.Text.Internal.Fusion
@@ -65,10 +65,18 @@ import qualified Data.Text.Internal as I
 import qualified Data.Text.Internal.Encoding.Utf16 as U16
 import Data.Word (Word16)
 
+#if defined(ASSERTS)
+import GHC.Stack (HasCallStack)
+#endif
+
 default(Int)
 
 -- | /O(n)/ Convert a 'Text' into a 'Stream Char'.
-stream :: Text -> Stream Char
+stream ::
+#if defined(ASSERTS)
+  HasCallStack =>
+#endif
+  Text -> Stream Char
 stream (Text arr off len) = Stream next off (betweenSize (len `shiftR` 1) len)
     where
       !end = off+len
@@ -140,7 +148,11 @@ length = S.lengthI
 {-# INLINE[0] length #-}
 
 -- | /O(n)/ Reverse the characters of a string.
-reverse :: Stream Char -> Text
+reverse ::
+#if defined(ASSERTS)
+  HasCallStack =>
+#endif
+  Stream Char -> Text
 reverse (Stream next s len0)
     | isEmpty len0 = I.empty
     | otherwise    = I.text arr off' len'
@@ -220,7 +232,11 @@ countChar = S.countCharI
 -- | /O(n)/ Like a combination of 'map' and 'foldl''. Applies a
 -- function to each element of a 'Text', passing an accumulating
 -- parameter from left to right, and returns a final 'Text'.
-mapAccumL :: (a -> Char -> (a,Char)) -> a -> Stream Char -> (a, Text)
+mapAccumL ::
+#if defined(ASSERTS)
+  HasCallStack =>
+#endif
+  (a -> Char -> (a,Char)) -> a -> Stream Char -> (a, Text)
 mapAccumL f z0 (Stream next0 s0 len) = (nz, I.text na 0 nl)
   where
     (na,(nz,nl)) = A.run2 (A.new mlen >>= \arr -> outer arr mlen z0 s0 0)

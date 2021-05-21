@@ -205,6 +205,7 @@ import Prelude (Char, Bool(..), Int, Maybe(..), String,
 import Control.DeepSeq (NFData(rnf))
 #if defined(ASSERTS)
 import Control.Exception (assert)
+import GHC.Stack (HasCallStack)
 #endif
 import Data.Char (isSpace)
 import Data.Data (Data(gfoldl, toConstr, gunfold, dataTypeOf), constrIndex,
@@ -597,7 +598,11 @@ isSingleton = S.isSingleton . stream
 
 -- | /O(n)/ Returns the number of characters in a 'Text'.
 -- Subject to fusion.
-length :: Text -> Int
+length ::
+#if defined(ASSERTS)
+  HasCallStack =>
+#endif
+  Text -> Int
 length t = S.length (stream t)
 {-# INLINE [1] length #-}
 -- length needs to be phased after the compareN/length rules otherwise
@@ -697,7 +702,11 @@ intersperse c t = unstream (S.intersperse (safe c) (stream t))
 -- "reversed"
 --
 -- Subject to fusion (fuses with its argument).
-reverse :: Text -> Text
+reverse ::
+#if defined(ASSERTS)
+  HasCallStack =>
+#endif
+  Text -> Text
 reverse t = S.reverse (stream t)
 {-# INLINE reverse #-}
 
@@ -1737,7 +1746,11 @@ isSuffixOf a@(Text _aarr _aoff alen) b@(Text barr boff blen) =
 --
 -- In (unlikely) bad cases, this function's time complexity degrades
 -- towards /O(n*m)/.
-isInfixOf :: Text -> Text -> Bool
+isInfixOf ::
+#if defined(ASSERTS)
+  HasCallStack =>
+#endif
+  Text -> Text -> Bool
 isInfixOf needle haystack
     | null needle        = True
     | isSingleton needle = S.elem (unsafeHead needle) . S.stream $ haystack

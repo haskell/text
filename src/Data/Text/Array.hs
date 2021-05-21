@@ -43,6 +43,7 @@ module Data.Text.Array
 #if defined(ASSERTS)
 import Control.Exception (assert)
 import GHC.Base (sizeofByteArray#, sizeofMutableByteArray#)
+import GHC.Stack (HasCallStack)
 #endif
 import Control.Monad.ST.Unsafe (unsafeIOToST)
 import Data.Bits ((.&.), xor)
@@ -95,7 +96,11 @@ bytesInArray n = n `shiftL` 1
 
 -- | Unchecked read of an immutable array.  May return garbage or
 -- crash on an out-of-bounds access.
-unsafeIndex :: Array -> Int -> Word16
+unsafeIndex ::
+#if defined(ASSERTS)
+  HasCallStack =>
+#endif
+  Array -> Int -> Word16
 unsafeIndex a@Array{..} i@(I# i#) =
 #if defined(ASSERTS)
   let word16len = I# (sizeofByteArray# aBA) `quot` 2 in
@@ -108,7 +113,11 @@ unsafeIndex a@Array{..} i@(I# i#) =
 
 -- | Unchecked write of a mutable array.  May return garbage or crash
 -- on an out-of-bounds access.
-unsafeWrite :: MArray s -> Int -> Word16 -> ST s ()
+unsafeWrite ::
+#if defined(ASSERTS)
+  HasCallStack =>
+#endif
+  MArray s -> Int -> Word16 -> ST s ()
 unsafeWrite ma@MArray{..} i@(I# i#) (W16# e#) = ST $ \s1# ->
 #if defined(ASSERTS)
   let word16len = I# (sizeofMutableByteArray# maBA) `quot` 2 in

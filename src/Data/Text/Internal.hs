@@ -45,6 +45,7 @@ module Data.Text.Internal
 
 #if defined(ASSERTS)
 import Control.Exception (assert)
+import GHC.Stack (HasCallStack)
 #endif
 import Data.Bits
 import Data.Int (Int32, Int64)
@@ -60,7 +61,11 @@ data Text = Text
     deriving (Typeable)
 
 -- | Smart constructor.
-text_ :: A.Array -> Int -> Int -> Text
+text_ ::
+#if defined(ASSERTS)
+  HasCallStack =>
+#endif
+  A.Array -> Int -> Int -> Text
 text_ arr off len =
 #if defined(ASSERTS)
   let c    = A.unsafeIndex arr off
@@ -83,7 +88,11 @@ empty_ = Text A.empty 0 0
 
 -- | Construct a 'Text' without invisibly pinning its byte array in
 -- memory if its length has dwindled to zero.
-text :: A.Array -> Int -> Int -> Text
+text ::
+#if defined(ASSERTS)
+  HasCallStack =>
+#endif
+  A.Array -> Int -> Int -> Text
 text arr off len | len == 0  = empty
                  | otherwise = text_ arr off len
 {-# INLINE text #-}

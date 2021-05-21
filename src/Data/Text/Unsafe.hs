@@ -27,6 +27,7 @@ module Data.Text.Unsafe
 
 #if defined(ASSERTS)
 import Control.Exception (assert)
+import GHC.Stack (HasCallStack)
 #endif
 import Data.Text.Internal.Encoding.Utf16 (chr2)
 import Data.Text.Internal (Text(..))
@@ -63,7 +64,11 @@ data Iter = Iter {-# UNPACK #-} !Char {-# UNPACK #-} !Int
 -- | /O(1)/ Iterate (unsafely) one step forwards through a UTF-16
 -- array, returning the current character and the delta to add to give
 -- the next offset to iterate at.
-iter :: Text -> Int -> Iter
+iter ::
+#if defined(ASSERTS)
+  HasCallStack =>
+#endif
+  Text -> Int -> Iter
 iter (Text arr off _len) i
     | m < 0xD800 || m > 0xDBFF = Iter (unsafeChr m) 1
     | otherwise                = Iter (chr2 m n) 2

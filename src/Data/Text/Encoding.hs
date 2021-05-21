@@ -89,6 +89,9 @@ import qualified Data.Text.Internal.Encoding.Fusion as E
 import qualified Data.Text.Internal.Encoding.Utf16 as U16
 import qualified Data.Text.Internal.Fusion as F
 import Data.Text.Internal.ByteStringCompat
+#if defined(ASSERTS)
+import GHC.Stack (HasCallStack)
+#endif
 
 #include "text_cbits.h"
 
@@ -115,7 +118,11 @@ decodeASCII = decodeUtf8
 --
 -- 'decodeLatin1' is semantically equivalent to
 --  @Data.Text.pack . Data.ByteString.Char8.unpack@
-decodeLatin1 :: ByteString -> Text
+decodeLatin1 ::
+#if defined(ASSERTS)
+  HasCallStack =>
+#endif
+  ByteString -> Text
 decodeLatin1 bs = withBS bs aux where
   aux fp len = text a 0 len
    where
@@ -132,7 +139,11 @@ decodeLatin1 bs = withBS bs aux where
 -- (/since 0.11.3.0/), whereas code points beyond the BMP will throw an
 -- 'error' (/since 1.2.3.1/); For earlier versions of @text@ using
 -- those unsupported code points would result in undefined behavior.
-decodeUtf8With :: OnDecodeError -> ByteString -> Text
+decodeUtf8With ::
+#if defined(ASSERTS)
+  HasCallStack =>
+#endif
+  OnDecodeError -> ByteString -> Text
 decodeUtf8With onErr bs = withBS bs aux
  where
   aux fp len = runText $ \done -> do
@@ -274,14 +285,22 @@ newtype DecoderState = DecoderState Word32 deriving (Eq, Show, Num, Storable)
 -- data, use 'streamDecodeUtf8With'.
 --
 -- @since 1.0.0.0
-streamDecodeUtf8 :: ByteString -> Decoding
+streamDecodeUtf8 ::
+#if defined(ASSERTS)
+  HasCallStack =>
+#endif
+  ByteString -> Decoding
 streamDecodeUtf8 = streamDecodeUtf8With strictDecode
 
 -- | Decode, in a stream oriented way, a lazy 'ByteString' containing UTF-8
 -- encoded text.
 --
 -- @since 1.0.0.0
-streamDecodeUtf8With :: OnDecodeError -> ByteString -> Decoding
+streamDecodeUtf8With ::
+#if defined(ASSERTS)
+  HasCallStack =>
+#endif
+  OnDecodeError -> ByteString -> Decoding
 streamDecodeUtf8With onErr = decodeChunk B.empty 0 0
  where
   -- We create a slightly larger than necessary buffer to accommodate a
@@ -363,7 +382,11 @@ decodeUtf8 = decodeUtf8With strictDecode
 --
 -- If the input contains any invalid UTF-8 data, the relevant
 -- exception will be returned, otherwise the decoded text.
-decodeUtf8' :: ByteString -> Either UnicodeException Text
+decodeUtf8' ::
+#if defined(ASSERTS)
+  HasCallStack =>
+#endif
+  ByteString -> Either UnicodeException Text
 decodeUtf8' = unsafeDupablePerformIO . try . evaluate . decodeUtf8With strictDecode
 {-# INLINE decodeUtf8' #-}
 

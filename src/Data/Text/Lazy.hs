@@ -232,6 +232,10 @@ import qualified Language.Haskell.TH.Lib as TH
 import qualified Language.Haskell.TH.Syntax as TH
 import Text.Printf (PrintfArg, formatArg, formatString)
 
+#if defined(ASSERTS)
+import GHC.Stack (HasCallStack)
+#endif
+
 -- $fusion
 --
 -- Most of the functions in this module are subject to /fusion/,
@@ -404,13 +408,21 @@ textDataType = mkDataType "Data.Text.Lazy.Text" [packConstr]
 -- | /O(n)/ Convert a 'String' into a 'Text'.
 --
 -- Subject to fusion.  Performs replacement on invalid scalar values.
-pack :: String -> Text
+pack ::
+#if defined(ASSERTS)
+  HasCallStack =>
+#endif
+  String -> Text
 pack = unstream . S.streamList . L.map safe
 {-# INLINE [1] pack #-}
 
 -- | /O(n)/ Convert a 'Text' into a 'String'.
 -- Subject to fusion.
-unpack :: Text -> String
+unpack ::
+#if defined(ASSERTS)
+  HasCallStack =>
+#endif
+  Text -> String
 unpack t = S.unstreamList (stream t)
 {-# INLINE [1] unpack #-}
 
@@ -715,7 +727,11 @@ transpose ts = L.map (\ss -> Chunk (T.pack ss) Empty)
 -- TODO: make this fast
 
 -- | /O(n)/ 'reverse' @t@ returns the elements of @t@ in reverse order.
-reverse :: Text -> Text
+reverse ::
+#if defined(ASSERTS)
+  HasCallStack =>
+#endif
+  Text -> Text
 reverse = rev Empty
   where rev a Empty        = a
         rev a (Chunk t ts) = rev (Chunk (T.reverse t) a) ts

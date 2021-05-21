@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE BangPatterns, CPP #-}
 -- |
 -- Module      : Data.Text.Lazy.Fusion
 -- Copyright   : (c) 2009, 2010 Bryan O'Sullivan
@@ -37,11 +37,18 @@ import Data.Text.Internal.Unsafe.Char (unsafeWrite)
 import Data.Text.Internal.Unsafe.Shift (shiftL)
 import Data.Text.Unsafe (Iter(..), iter)
 import Data.Int (Int64)
+#if defined(ASSERTS)
+import GHC.Stack (HasCallStack)
+#endif
 
 default(Int64)
 
 -- | /O(n)/ Convert a 'Text' into a 'Stream Char'.
-stream :: Text -> Stream Char
+stream ::
+#if defined(ASSERTS)
+  HasCallStack =>
+#endif
+  Text -> Stream Char
 stream text = Stream next (text :*: 0) unknownSize
   where
     next (Empty :*: _) = Done
@@ -53,7 +60,11 @@ stream text = Stream next (text :*: 0) unknownSize
 
 -- | /O(n)/ Convert a 'Stream Char' into a 'Text', using the given
 -- chunk size.
-unstreamChunks :: Int -> Stream Char -> Text
+unstreamChunks ::
+#if defined(ASSERTS)
+  HasCallStack =>
+#endif
+  Int -> Stream Char -> Text
 unstreamChunks !chunkSize (Stream next s0 len0)
   | isEmpty len0 = Empty
   | otherwise    = outer s0
@@ -88,7 +99,11 @@ unstreamChunks !chunkSize (Stream next s0 len0)
 
 -- | /O(n)/ Convert a 'Stream Char' into a 'Text', using
 -- 'defaultChunkSize'.
-unstream :: Stream Char -> Text
+unstream ::
+#if defined(ASSERTS)
+  HasCallStack =>
+#endif
+  Stream Char -> Text
 unstream = unstreamChunks defaultChunkSize
 {-# INLINE [0] unstream #-}
 
