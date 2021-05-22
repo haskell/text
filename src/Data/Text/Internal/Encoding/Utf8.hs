@@ -35,7 +35,7 @@ module Data.Text.Internal.Encoding.Utf8
     , validate4
     ) where
 
-import Data.Bits ((.&.), shiftR)
+import Data.Bits (Bits(..))
 import Data.Char (ord)
 import GHC.Exts
 import GHC.Word (Word8(..))
@@ -54,13 +54,15 @@ between :: Word8                -- ^ byte to check
 between x y z = x >= y && x <= z
 {-# INLINE between #-}
 
--- TODO make branchless by looking into Word64 by clz (ord c)
+-- This is a branchless version of
+-- utf8Length c
+--   | ord c < 0x80    = 1
+--   | ord c < 0x800   = 2
+--   | ord c < 0x10000 = 3
+--   | otherwise       = 4
 utf8Length :: Char -> Int
-utf8Length c
-  | ord c < 0x80    = 1
-  | ord c < 0x800   = 2
-  | ord c < 0x10000 = 3
-  | otherwise       = 4
+utf8Length (C# c) = I# ((1# +# geChar# c (chr# 0x80#)) +# (geChar# c (chr# 0x800#) +# geChar# c (chr# 0x10000#)))
+{-# INLINE utf8Length #-}
 
 utf8LengthByLeader :: Word8 -> Int
 utf8LengthByLeader w
