@@ -203,6 +203,7 @@ import Prelude (Char, Bool(..), Maybe(..), String,
                 error, flip, fmap, fromIntegral, not, otherwise, quot)
 import qualified Prelude as P
 import Control.DeepSeq (NFData(..))
+import Data.Bits (finiteBitSize)
 import Data.Int (Int64)
 import qualified Data.List as L
 import Data.Char (isSpace)
@@ -972,10 +973,15 @@ take i t0         = take' i t0
     take' :: Int64 -> Text -> Text
     take' 0 _            = Empty
     take' _ Empty        = Empty
-    take' n (Chunk t ts)
-        | n < len   = Chunk (T.take (int64ToInt n) t) Empty
-        | otherwise = Chunk t (take' (n - len) ts)
-        where len = intToInt64 (T.length t)
+    take' n (Chunk t@(T.Text arr off _) ts)
+        | finiteBitSize (0 :: P.Int) == 64, m <- T.measureOff (int64ToInt n) t =
+          if m >= 0
+          then fromStrict (T.Text arr off m)
+          else Chunk t (take' (n + intToInt64 m) ts)
+
+        | n < l     = Chunk (T.take (int64ToInt n) t) Empty
+        | otherwise = Chunk t (take' (n - l) ts)
+        where l = intToInt64 (T.length t)
 {-# INLINE [1] take #-}
 
 -- | /O(n)/ 'takeEnd' @n@ @t@ returns the suffix remaining after
@@ -1009,10 +1015,15 @@ drop i t0
     drop' :: Int64 -> Text -> Text
     drop' 0 ts           = ts
     drop' _ Empty        = Empty
-    drop' n (Chunk t ts)
-        | n < len   = Chunk (T.drop (int64ToInt n) t) ts
-        | otherwise = drop' (n - len) ts
-        where len   = intToInt64 (T.length t)
+    drop' n (Chunk t@(T.Text arr off len) ts)
+        | finiteBitSize (0 :: P.Int) == 64, m <- T.measureOff (int64ToInt n) t =
+          if m >= 0
+          then chunk (T.Text arr (off + m) (len - m)) ts
+          else drop' (n + intToInt64 m) ts
+
+        | n < l     = Chunk (T.drop (int64ToInt n) t) ts
+        | otherwise = drop' (n - l) ts
+        where l   = intToInt64 (T.length t)
 {-# INLINE [1] drop #-}
 
 -- | /O(n)/ 'dropEnd' @n@ @t@ returns the prefix remaining after
