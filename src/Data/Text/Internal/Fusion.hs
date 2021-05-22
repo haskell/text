@@ -157,8 +157,7 @@ unstream (Stream next0 s0 len) = runText $ \done -> do
         {-# NOINLINE realloc #-}
         realloc !si !di = do
             let newlen = (maxi + 1) * 2
-            arr' <- A.new newlen
-            A.copyM arr' 0 arr 0 di
+            arr' <- A.resizeM arr newlen
             outer arr' (newlen - 1) si di
 
   outer arr0 (mlen - 1) s0 0
@@ -299,8 +298,7 @@ mapAccumL f z0 (Stream next0 s0 len) = (nz, I.text na 0 nl)
               Yield x s'
                 | j >= top  -> {-# SCC "mapAccumL/resize" #-} do
                                let top' = (top + 1) `shiftL` 1
-                               arr' <- A.new top'
-                               A.copyM arr' 0 arr 0 top
+                               arr' <- A.resizeM arr top'
                                outer arr' top' z s i
                 | otherwise -> do d <- unsafeWrite arr i c
                                   loop z' s' (i+d)
