@@ -1,6 +1,7 @@
 {-# LANGUAGE BangPatterns, CPP, MagicHash, Rank2Types, UnboxedTuples, TypeFamilies #-}
 {-# LANGUAGE TemplateHaskellQuotes #-}
 {-# LANGUAGE Trustworthy #-}
+{-# LANGUAGE UnliftedFFITypes #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
@@ -196,13 +197,15 @@ module Data.Text
     -- * Low level operations
     , copy
     , unpackCString#
+
+    , measureOff
     ) where
 
 import Prelude (Char, Bool(..), Int, Maybe(..), String,
                 Eq(..), Ord(..), Ordering(..), (++),
                 Read(..),
                 (&&), (||), (+), (-), (.), ($), ($!), (>>),
-                not, return, otherwise, quot)
+                not, return, otherwise, quot, IO)
 import Control.DeepSeq (NFData(rnf))
 #if defined(ASSERTS)
 import Control.Exception (assert)
@@ -230,7 +233,7 @@ import Data.Text.Internal (Text(..), empty, firstf, mul, safe, text)
 import Data.Text.Show (singleton, unpack, unpackCString#)
 import qualified Prelude as P
 import Data.Text.Unsafe (Iter(..), iter, iter_, lengthWord8, reverseIter,
-                         reverseIter_, unsafeHead, unsafeTail)
+                         reverseIter_, unsafeHead, unsafeTail, unsafeDupablePerformIO)
 import Data.Text.Internal.Search (indices)
 #if defined(__HADDOCK__)
 import Data.ByteString (ByteString)
@@ -238,11 +241,13 @@ import qualified Data.Text.Lazy as L
 import Data.Int (Int64)
 #endif
 import Data.Word (Word8)
-import GHC.Base (eqInt, neInt, gtInt, geInt, ltInt, leInt)
+import Foreign.C.Types
+import GHC.Base (eqInt, neInt, gtInt, geInt, ltInt, leInt, ByteArray#)
 import qualified GHC.Exts as Exts
 import qualified Language.Haskell.TH.Lib as TH
 import qualified Language.Haskell.TH.Syntax as TH
 import Text.Printf (PrintfArg, formatArg, formatString)
+import System.Posix.Types (CSsize(..))
 
 -- $setup
 -- >>> import Data.Text
@@ -538,7 +543,7 @@ length ::
   HasCallStack =>
 #endif
   Text -> Int
-length t = S.length (stream t)
+length = P.negate . measureOff P.maxBound
 {-# INLINE [1] length #-}
 -- length needs to be phased after the compareN/length rules otherwise
 -- it may inline before the rules have an opportunity to fire.
@@ -1069,15 +1074,25 @@ take :: Int -> Text -> Text
 take n t@(Text arr off len)
     | n <= 0    = empty
     | n >= len  = t
-    | otherwise = text arr off (iterN n t)
+    | otherwise = let m = measureOff n t in if m >= 0 then text arr off m else t
 {-# INLINE [1] take #-}
 
-iterN :: Int -> Text -> Int
-iterN n t@(Text _arr _off len) = loop 0 0
-  where loop !i !cnt
-            | i >= len || cnt >= n = i
-            | otherwise            = loop (i+d) (cnt+1)
-          where d = iter_ t i
+-- | /O(n)/ If @t@ is long enough to contain @n@ characters, 'measureOff' @n@ @t@
+-- returns a non-negative number, measuring their size in 'Word8'. Otherwise,
+-- if @t@ is shorter, return a non-positive number, which is a negated total count
+-- of 'Char' available in @t@. If @t@ is empty or @n = 0@, return 0.
+--
+-- This function is used to implement 'take', 'drop', 'splitAt' and 'length'
+-- and is useful on its own in streaming and parsing libraries.
+measureOff :: Int -> Text -> Int
+measureOff !n (Text (A.ByteArray arr) off len) = if len == 0 then 0 else
+  cSsizeToInt $ unsafeDupablePerformIO $
+    c_measure_off arr (intToCSize off) (intToCSize len) (intToCSize n)
+
+-- | The input buffer (arr :: ByteArray#, off :: CSize, len :: CSize)
+-- must specify a valid UTF-8 sequence, this condition is not checked.
+foreign import ccall unsafe "_hs_text_measure_off" c_measure_off
+    :: ByteArray# -> CSize -> CSize -> CSize -> IO CSsize
 
 -- | /O(n)/ 'takeEnd' @n@ @t@ returns the suffix remaining after
 -- taking @n@ characters from the end of @t@.
@@ -1110,8 +1125,8 @@ drop :: Int -> Text -> Text
 drop n t@(Text arr off len)
     | n <= 0    = t
     | n >= len  = empty
-    | otherwise = text arr (off+i) (len-i)
-  where i = iterN n t
+    | otherwise = if m >= 0 then text arr (off+m) (len-m) else mempty
+  where m = measureOff n t
 {-# INLINE [1] drop #-}
 
 -- | /O(n)/ 'dropEnd' @n@ @t@ returns the prefix remaining after
@@ -1219,8 +1234,8 @@ splitAt :: Int -> Text -> (Text, Text)
 splitAt n t@(Text arr off len)
     | n <= 0    = (empty, t)
     | n >= len  = (t, empty)
-    | otherwise = let k = iterN n t
-                  in (text arr off k, text arr (off+k) (len-k))
+    | otherwise = let m = measureOff n t in
+    if m >= 0 then (text arr off m, text arr (off+m) (len-m)) else (t, mempty)
 
 -- | /O(n)/ 'span', applied to a predicate @p@ and text @t@, returns
 -- a pair whose first element is the longest prefix (possibly empty)
@@ -1786,6 +1801,11 @@ copy (Text arr off len) = Text (A.run go) 0 len
       A.copyI len marr 0 arr off
       return marr
 
+intToCSize :: Int -> CSize
+intToCSize = P.fromIntegral
+
+cSsizeToInt :: CSsize -> Int
+cSsizeToInt = P.fromIntegral
 
 -------------------------------------------------
 -- NOTE: the named chunk below used by doctest;
