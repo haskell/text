@@ -181,8 +181,6 @@ test-suite tests
   hs-source-dirs: tests
   main-is:        Tests.hs
   other-modules:
-    Tests.Inspection.Lazy
-    Tests.Inspection.Strict
     Tests.Lift
     Tests.Properties
     Tests.Properties.Basics
@@ -198,6 +196,15 @@ test-suite tests
     Tests.Regressions
     Tests.SlowFunctions
     Tests.Utils
+
+  -- Fusion tests fail in developer mode (because asserts break inlining)
+  -- and take ages to build.
+  if flag(developer)
+    cpp-options: -DASSERTS
+  else
+    other-modules:
+      Tests.Inspection.Lazy
+      Tests.Inspection.Strict
 
   build-depends:
     QuickCheck >= 2.14.1 && < 2.15,
