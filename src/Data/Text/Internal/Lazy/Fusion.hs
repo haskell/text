@@ -26,6 +26,7 @@ module Data.Text.Internal.Lazy.Fusion
     ) where
 
 import Prelude hiding (length)
+import Data.Bits (shiftL)
 import qualified Data.Text.Internal.Fusion.Common as S
 import Control.Monad.ST (runST)
 import Data.Text.Internal.Fusion.Types
@@ -34,7 +35,6 @@ import Data.Text.Internal.Lazy
 import qualified Data.Text.Internal as I
 import qualified Data.Text.Array as A
 import Data.Text.Internal.Unsafe.Char (unsafeWrite)
-import Data.Text.Internal.Unsafe.Shift (shiftL)
 import Data.Text.Unsafe (Iter(..), iter)
 import Data.Int (Int64)
 #if defined(ASSERTS)

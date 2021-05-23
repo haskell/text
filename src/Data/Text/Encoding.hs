@@ -62,7 +62,7 @@ import Control.Monad.ST.Unsafe (unsafeIOToST, unsafeSTToIO)
 
 import Control.Exception (evaluate, try, throwIO, ErrorCall(ErrorCall))
 import Control.Monad.ST (runST)
-import Data.Bits ((.&.))
+import Data.Bits ((.&.), shiftR)
 import Data.ByteString as B
 import qualified Data.ByteString.Internal as B
 import Data.Foldable (traverse_)
@@ -71,7 +71,6 @@ import Data.Text.Internal (Text(..), safe, text)
 import Data.Text.Internal.Functions
 import Data.Text.Internal.Private (runText)
 import Data.Text.Internal.Unsafe.Char (ord, unsafeWrite)
-import Data.Text.Internal.Unsafe.Shift (shiftR)
 import Data.Text.Show ()
 import Data.Text.Unsafe (unsafeDupablePerformIO)
 import Data.Word (Word8, Word16, Word32)

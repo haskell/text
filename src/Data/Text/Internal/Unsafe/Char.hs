@@ -26,8 +26,7 @@ module Data.Text.Internal.Unsafe.Char
     ) where
 
 import Control.Monad.ST (ST)
-import Data.Bits ((.&.))
-import Data.Text.Internal.Unsafe.Shift (shiftR)
+import Data.Bits ((.&.), shiftR)
 import GHC.Exts (Char(..), Int(..), chr#, ord#, word2Int#)
 import GHC.Word (Word8(..), Word16(..), Word32(..))
 import qualified Data.Text.Array as A

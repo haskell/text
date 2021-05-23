@@ -38,8 +38,8 @@ module Data.Text.Internal.Lazy
     , chunkOverhead
     ) where
 
+import Data.Bits (shiftL)
 import Data.Text ()
-import Data.Text.Internal.Unsafe.Shift (shiftL)
 import Data.Typeable (Typeable)
 import Foreign.Storable (sizeOf)
 import qualified Data.Text.Internal as T

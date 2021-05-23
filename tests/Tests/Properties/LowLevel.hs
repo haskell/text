@@ -18,9 +18,7 @@ import Test.Tasty.QuickCheck (testProperty)
 import Test.QuickCheck hiding ((.&.))
 import Tests.QuickCheckUtils
 import Tests.Utils
-import qualified Data.Bits as Bits (shiftL, shiftR)
 import qualified Data.Text as T
-import qualified Data.Text.Internal.Unsafe.Shift as U
 import qualified Data.Text.IO as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.IO as TL
@@ -46,21 +44,6 @@ t_mul64 a b = mulRef a b === eval mul64 a b
 
 t_mul :: Int -> Int -> Property
 t_mul a b = mulRef a b === eval mul a b
-
--- Bit shifts.
-shiftL w = forAll (choose (0,width-1)) $ \k -> Bits.shiftL w k == U.shiftL w k
-    where width = round (log (fromIntegral m) / log 2 :: Double)
-          (m,_) = (maxBound, m == w)
-shiftR w = forAll (choose (0,width-1)) $ \k -> Bits.shiftR w k == U.shiftR w k
-    where width = round (log (fromIntegral m) / log 2 :: Double)
-          (m,_) = (maxBound, m == w)
-
-shiftL_Int    = shiftL :: Int -> Property
-shiftL_Word16 = shiftL :: Word16 -> Property
-shiftL_Word32 = shiftL :: Word32 -> Property
-shiftR_Int    = shiftR :: Int -> Property
-shiftR_Word16 = shiftR :: Word16 -> Property
-shiftR_Word32 = shiftR :: Word32 -> Property
 
 -- Misc.
 
@@ -96,15 +79,6 @@ testLowLevel =
       testProperty "t_mul" t_mul,
       testProperty "t_mul32" t_mul32,
       testProperty "t_mul64" t_mul64
-    ],
-
-    testGroup "shifts" [
-      testProperty "shiftL_Int" shiftL_Int,
-      testProperty "shiftL_Word16" shiftL_Word16,
-      testProperty "shiftL_Word32" shiftL_Word32,
-      testProperty "shiftR_Int" shiftR_Int,
-      testProperty "shiftR_Word16" shiftR_Word16,
-      testProperty "shiftR_Word32" shiftR_Word32
     ],
 
     testGroup "misc" [

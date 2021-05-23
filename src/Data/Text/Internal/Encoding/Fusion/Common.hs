@@ -29,11 +29,10 @@ module Data.Text.Internal.Encoding.Fusion.Common
     , restreamUtf32BE
     ) where
 
-import Data.Bits ((.&.))
+import Data.Bits ((.&.), shiftR)
 import Data.Text.Internal.Fusion (Step(..), Stream(..))
 import Data.Text.Internal.Fusion.Types (RS(..))
 import Data.Text.Internal.Unsafe.Char (ord)
-import Data.Text.Internal.Unsafe.Shift (shiftR)
 import Data.Word (Word8)
 
 restreamUtf16BE :: Stream Char -> Stream Word8
