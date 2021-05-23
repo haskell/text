@@ -455,8 +455,8 @@ append a@(Text arr1 off1 len1) b@(Text arr2 off2 len2)
       x :: ST s (A.MArray s)
       x = do
         arr <- A.new len
-        A.copyI arr 0 arr1 off1 len1
-        A.copyI arr len1 arr2 off2 len
+        A.copyI len1 arr 0 arr1 off1
+        A.copyI len2 arr len1 arr2 off2
         return arr
 {-# NOINLINE append #-}
 
@@ -689,10 +689,10 @@ replace needle@(Text _      _      neeLen)
       let loop (i:is) o d = do
             let d0 = d + i - o
                 d1 = d0 + repLen
-            A.copyI marr d  hayArr (hayOff+o) d0
-            A.copyI marr d0 repArr repOff d1
+            A.copyI (i - o) marr d  hayArr (hayOff+o)
+            A.copyI repLen  marr d0 repArr repOff
             loop is (i + neeLen) d1
-          loop []     o d = A.copyI marr d hayArr (hayOff+o) len
+          loop []     o d = A.copyI (len - d) marr d hayArr (hayOff+o)
       loop ixs 0 0
       return marr
 
@@ -904,8 +904,7 @@ concat ts = case ts' of
     go :: ST s (A.MArray s)
     go = do
       arr <- A.new len
-      let step i (Text a o l) =
-            let !j = i + l in A.copyI arr i a o j >> return j
+      let step i (Text a o l) = A.copyI l arr i a o >> return (i + l)
       foldM step 0 ts' >> return arr
 
 -- | /O(n)/ Map a function over a 'Text' that results in a 'Text', and
@@ -1017,7 +1016,7 @@ replicate n t@(Text a o l)
     x :: ST s (A.MArray s)
     x = do
       arr <- A.new len
-      A.copyI arr 0 a o l
+      A.copyI l arr 0 a o
       let loop !l1 =
             let rest = len - l1 in
             if rest <= l1 then A.copyM arr l1 arr 0 rest >> return arr
@@ -1760,7 +1759,7 @@ copy (Text arr off len) = Text (A.run go) 0 len
     go :: ST s (A.MArray s)
     go = do
       marr <- A.new len
-      A.copyI marr 0 arr off len
+      A.copyI len marr 0 arr off
       return marr
 
 
