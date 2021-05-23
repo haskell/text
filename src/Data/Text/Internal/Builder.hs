@@ -186,6 +186,7 @@ fromString str = Builder $ \k (Buffer p0 o0 u0 l0) ->
     let loop !marr !o !u !l [] = k (Buffer marr o u l)
         loop marr o u l s@(c:cs)
             | l <= 3 = do
+                A.shrinkM marr (o + u)
                 arr <- A.unsafeFreeze marr
                 let !t = Text arr o u
                 marr' <- A.new chunkSize

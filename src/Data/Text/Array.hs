@@ -28,6 +28,7 @@ module Data.Text.Array
     , MArray(..)
     -- * Functions
     , resizeM
+    , shrinkM
     , copyM
     , copyI
     , empty
@@ -154,6 +155,23 @@ resizeM (MutableByteArray ma) i@(I# i#) = ST $ \s1# ->
   case resizeMutableByteArray# ma i# s1# of
     (# s2#, newArr #) -> (# s2#, MutableByteArray newArr #)
 {-# INLINE resizeM #-}
+
+shrinkM ::
+#if defined(ASSERTS)
+  HasCallStack =>
+#endif
+  MArray s -> Int -> ST s ()
+shrinkM (MutableByteArray marr) i@(I# newSize) = do
+#if defined(ASSERTS)
+  oldSize <- getSizeofMArray (MutableByteArray marr)
+  if I# newSize > oldSize
+    then error $ "shrinkM: shrink cannot grow " ++ show oldSize ++ " to " ++ show (I# newSize)
+    else return ()
+#endif
+  ST $ \s1# ->
+    case shrinkMutableByteArray# marr newSize s1# of
+      s2# -> (# s2#, () #)
+{-# INLINE shrinkM #-}
 
 -- | Copy some elements of a mutable array.
 copyM :: MArray s               -- ^ Destination

@@ -93,6 +93,7 @@ unstreamChunks !chunkSize (Stream next s0 len0)
                   Yield x s'  -> do d <- unsafeWrite marr i x
                                     inner marr len s' (i+d)
         finish marr len s' = do
+          A.shrinkM marr len
           arr <- A.unsafeFreeze marr
           return (I.Text arr 0 len `Chunk` outer s')
 {-# INLINE [0] unstreamChunks #-}

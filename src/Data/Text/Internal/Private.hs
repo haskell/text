@@ -40,6 +40,7 @@ runText ::
 #endif
   (forall s. (A.MArray s -> Int -> ST s Text) -> ST s Text) -> Text
 runText act = runST (act $ \ !marr !len -> do
+                             A.shrinkM marr len
                              arr <- A.unsafeFreeze marr
                              return $! text arr 0 len)
 {-# INLINE runText #-}
