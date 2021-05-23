@@ -34,8 +34,7 @@ module Data.Text.Internal.Search
 import qualified Data.Text.Array as A
 import Data.Word (Word64, Word16)
 import Data.Text.Internal (Text(..))
-import Data.Bits ((.|.), (.&.))
-import Data.Text.Internal.Unsafe.Shift (shiftL)
+import Data.Bits ((.|.), (.&.), unsafeShiftL)
 
 data T = {-# UNPACK #-} !Word64 :* {-# UNPACK #-} !Int
 
@@ -69,7 +68,7 @@ indices _needle@(Text narr noff nlen) _haystack@(Text harr hoff hlen)
                    | otherwise = skp
 
     swizzle :: Word16 -> Word64
-    swizzle k = 1 `shiftL` (word16ToInt k .&. 0x3f)
+    swizzle k = 1 `unsafeShiftL` (word16ToInt k .&. 0x3f)
 
     scan !i
         | i > ldiff                  = []

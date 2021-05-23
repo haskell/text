@@ -46,9 +46,8 @@ import GHC.Base (sizeofByteArray#, sizeofMutableByteArray#)
 import GHC.Stack (HasCallStack)
 #endif
 import Control.Monad.ST.Unsafe (unsafeIOToST)
-import Data.Bits ((.&.), xor)
+import Data.Bits ((.&.), xor, shiftL, shiftR)
 import Data.Text.Internal.Unsafe (inlinePerformIO)
-import Data.Text.Internal.Unsafe.Shift (shiftL, shiftR)
 import Foreign.C.Types (CInt(CInt), CSize(CSize))
 import GHC.Base (ByteArray#, MutableByteArray#, Int(..),
                  indexWord16Array#, newByteArray#,

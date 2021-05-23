@@ -22,6 +22,7 @@ module Data.Text.Internal.Lazy.Search
       indices
     ) where
 
+import Data.Bits (unsafeShiftL)
 import qualified Data.Text.Array as A
 import Data.Int (Int64)
 import Data.Word (Word16, Word64)
@@ -29,7 +30,6 @@ import qualified Data.Text.Internal as T
 import Data.Text.Internal.Fusion.Types (PairS(..))
 import Data.Text.Internal.Lazy (Text(..), foldlChunks)
 import Data.Bits ((.|.), (.&.))
-import Data.Text.Internal.Unsafe.Shift (shiftL)
 
 -- | /O(n+m)/ Find the offsets of all non-overlapping indices of
 -- @needle@ within @haystack@.
@@ -76,7 +76,7 @@ indices needle@(Chunk n ns) _haystack@(Chunk k ks)
     (mask :: Word64) :*: skip = buildTable n ns 0 0 0 (nlen-2)
 
     swizzle :: Word16 -> Word64
-    swizzle w = 1 `shiftL` (word16ToInt w .&. 0x3f)
+    swizzle w = 1 `unsafeShiftL` (word16ToInt w .&. 0x3f)
 
     buildTable (T.Text xarr xoff xlen) xs = go
       where

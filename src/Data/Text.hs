@@ -207,6 +207,7 @@ import Control.DeepSeq (NFData(rnf))
 import Control.Exception (assert)
 import GHC.Stack (HasCallStack)
 #endif
+import Data.Bits (shiftL)
 import Data.Char (isSpace)
 import Data.Data (Data(gfoldl, toConstr, gunfold, dataTypeOf), constrIndex,
                   Constr, mkConstr, DataType, mkDataType, Fixity(Prefix))
@@ -232,7 +233,6 @@ import Data.Text.Internal.Unsafe.Char (unsafeChr)
 import qualified Data.Text.Internal.Functions as F
 import qualified Data.Text.Internal.Encoding.Utf16 as U16
 import Data.Text.Internal.Search (indices)
-import Data.Text.Internal.Unsafe.Shift (UnsafeShift(..))
 #if defined(__HADDOCK__)
 import Data.ByteString (ByteString)
 import qualified Data.Text.Lazy as L
