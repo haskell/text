@@ -42,7 +42,7 @@ module Data.Text.Array
 
 #if defined(ASSERTS)
 import Control.Exception (assert)
-import GHC.Base (sizeofByteArray#, sizeofMutableByteArray#)
+import GHC.Base (sizeofByteArray#, getSizeofMutableByteArray#)
 import GHC.Stack (HasCallStack)
 #endif
 import Control.Monad.ST.Unsafe (unsafeIOToST)
@@ -110,6 +110,22 @@ unsafeIndex a@Array{..} i@(I# i#) =
   case indexWord16Array# aBA i# of r# -> (W16# r#)
 {-# INLINE unsafeIndex #-}
 
+#if defined(ASSERTS)
+-- sizeofMutableByteArray# is deprecated, because it is unsafe in the presence of
+-- shrinkMutableByteArray# and resizeMutableByteArray#.
+getSizeofMArray :: MArray s -> ST s Int
+getSizeofMArray ma@MArray{..} = ST $ \s0# ->
+  case getSizeofMutableByteArray# maBA s0# of
+    (# s1#, word8len# #) -> (# s1#, I# word8len# #)
+
+checkBoundsM :: HasCallStack => MArray s -> Int -> Int -> ST s ()
+checkBoundsM ma i elSize = do
+  len <- getSizeofMArray ma
+  if i < 0 || i + elSize > len
+    then error ("bounds error, offset " ++ show i ++ ", length " ++ show len)
+    else return ()
+#endif
+
 -- | Unchecked write of a mutable array.  May return garbage or crash
 -- on an out-of-bounds access.
 unsafeWrite ::
@@ -117,13 +133,12 @@ unsafeWrite ::
   HasCallStack =>
 #endif
   MArray s -> Int -> Word16 -> ST s ()
-unsafeWrite ma@MArray{..} i@(I# i#) (W16# e#) = ST $ \s1# ->
+unsafeWrite ma@MArray{..} i@(I# i#) (W16# e#) =
 #if defined(ASSERTS)
-  let word16len = I# (sizeofMutableByteArray# maBA) `quot` 2 in
-  if i < 0 || i >= word16len then error ("Data.Text.Array.unsafeWrite: bounds error, offset " ++ show i ++ ", length " ++ show word16len) else
+  checkBoundsM ma (i * 2) 2 >>
 #endif
-  case writeWord16Array# maBA i# e# s1# of
-    s2# -> (# s2#, () #)
+  (ST $ \s1# -> case writeWord16Array# maBA i# e# s1# of
+    s2# -> (# s2#, () #))
 {-# INLINE unsafeWrite #-}
 
 -- | Convert an immutable array to a list.
@@ -159,14 +174,16 @@ copyM :: MArray s               -- ^ Destination
       -> ST s ()
 copyM dest didx src sidx count
     | count <= 0 = return ()
-    | otherwise =
+    | otherwise = do
 #if defined(ASSERTS)
-    assert (sidx + count <= I# (sizeofMutableByteArray# (maBA src))  `quot` 2) .
-    assert (didx + count <= I# (sizeofMutableByteArray# (maBA dest)) `quot` 2) .
+    srcLen  <- getSizeofMArray src
+    destLen <- getSizeofMArray dest
+    assert (sidx + count <= srcLen `quot` 2) .
+      assert (didx + count <= destLen `quot` 2) .
 #endif
-    unsafeIOToST $ memcpyM (maBA dest) (intToCSize didx)
-                           (maBA src) (intToCSize sidx)
-                           (intToCSize count)
+      unsafeIOToST $ memcpyM (maBA dest) (intToCSize didx)
+                             (maBA src) (intToCSize sidx)
+                             (intToCSize count)
 {-# INLINE copyM #-}
 
 -- | Copy some elements of an immutable array.
