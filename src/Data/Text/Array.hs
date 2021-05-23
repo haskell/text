@@ -42,11 +42,8 @@ module Data.Text.Array
     ) where
 
 #if defined(ASSERTS)
--- TODO employ resizeMutableByteArray# instead of cropping Text
-import Control.Exception (assert)
 import GHC.Stack (HasCallStack)
 #endif
-import Data.Bits ((.&.), xor, shiftR)
 #if !MIN_VERSION_base(4,11,0)
 import Data.Text.Internal.Unsafe (inlinePerformIO)
 import Foreign.C.Types (CInt(..))
@@ -64,17 +61,14 @@ data MArray s = MutableByteArray (MutableByteArray# s)
 
 -- | Create an uninitialized mutable array.
 new :: forall s. Int -> ST s (MArray s)
-new n
-  | n < 0 || n .&. highBit /= 0 = array_size_error
+new (I# len#)
+#if defined(ASSERTS)
+  | I# len# < 0 = error "Data.Text.Array.new: size overflow"
+#endif
   | otherwise = ST $ \s1# ->
-       case newByteArray# len# s1# of
-         (# s2#, marr# #) -> (# s2#, MutableByteArray marr# #)
-  where !(I# len#) = bytesInArray n
-        highBit    = maxBound `xor` (maxBound `shiftR` 1)
+    case newByteArray# len# s1# of
+      (# s2#, marr# #) -> (# s2#, MutableByteArray marr# #)
 {-# INLINE new #-}
-
-array_size_error :: a
-array_size_error = error "Data.Text.Array.new: size overflow"
 
 -- | Freeze a mutable array. Do not mutate the 'MArray' afterwards!
 unsafeFreeze :: MArray s -> ST s Array
@@ -82,12 +76,6 @@ unsafeFreeze (MutableByteArray marr) = ST $ \s1# ->
     case unsafeFreezeByteArray# marr s1# of
         (# s2#, ba# #) -> (# s2#, ByteArray ba# #)
 {-# INLINE unsafeFreeze #-}
-
--- | Indicate how many bytes would be used for an array of the given
--- size.
-bytesInArray :: Int -> Int
-bytesInArray n = n
-{-# INLINE bytesInArray #-}
 
 -- | Unchecked read of an immutable array.  May return garbage or
 -- crash on an out-of-bounds access.
@@ -175,16 +163,23 @@ copyM :: MArray s               -- ^ Destination
       -> Int                    -- ^ Count
       -> ST s ()
 copyM dst@(MutableByteArray dst#) dstOff@(I# dstOff#) src@(MutableByteArray src#) srcOff@(I# srcOff#) count@(I# count#)
-    | I# count# <= 0 = return ()
+#if defined(ASSERTS)
+  | count < 0 = error $
+    "copyM: count must be >= 0, but got " ++ show count
+#endif
     | otherwise = do
 #if defined(ASSERTS)
     srcLen <- getSizeofMArray src
     dstLen <- getSizeofMArray dst
-    assert (srcOff + count <= srcLen) .
-      assert (dstOff + count <= dstLen) .
+    if srcOff + count > srcLen
+      then error "copyM: source is too short"
+      else return ()
+    if dstOff + count > dstLen
+      then error "copyM: destination is too short"
+      else return ()
 #endif
-      ST $ \s1# -> case copyMutableByteArray# src# srcOff# dst# dstOff# count# s1# of
-        s2# -> (# s2#, () #)
+    ST $ \s1# -> case copyMutableByteArray# src# srcOff# dst# dstOff# count# s1# of
+      s2# -> (# s2#, () #)
 {-# INLINE copyM #-}
 
 -- | Copy some elements of an immutable array.
@@ -196,10 +191,13 @@ copyI :: MArray s               -- ^ Destination
                                 -- copy (i.e. /not/ length)
       -> ST s ()
 copyI (MutableByteArray dst#) dstOff@(I# dstOff#) (ByteArray src#) (I# srcOff#) top@(I# top#)
-    | dstOff >= top = return ()
-    | otherwise = ST $ \s1# ->
-      case copyByteArray# src# srcOff# dst# dstOff# (top# -# dstOff#) s1# of
-        s2# -> (# s2#, () #)
+#if defined(ASSERTS)
+  | top < dstOff = error $
+    "copyI: top must be >= dstOff, but " ++ show top ++ " < " ++ show dstOff
+#endif
+  | otherwise = ST $ \s1# ->
+    case copyByteArray# src# srcOff# dst# dstOff# (top# -# dstOff#) s1# of
+      s2# -> (# s2#, () #)
 {-# INLINE copyI #-}
 
 -- | Compare portions of two arrays for equality.  No bounds checking
