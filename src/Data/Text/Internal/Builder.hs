@@ -168,7 +168,7 @@ copyLimit = 128
 fromText :: S.Text -> Builder
 fromText t@(Text arr off l)
     | S.null t       = empty
-    | l <= copyLimit = writeN l $ \marr o -> A.copyI marr o arr off (l+o)
+    | l <= copyLimit = writeN l $ \marr o -> A.copyI l marr o arr off
     | otherwise      = flush `append` mapBuilder (t :)
 {-# INLINE [1] fromText #-}
 

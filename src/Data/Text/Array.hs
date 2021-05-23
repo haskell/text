@@ -183,20 +183,19 @@ copyM dst@(MutableByteArray dst#) dstOff@(I# dstOff#) src@(MutableByteArray src#
 {-# INLINE copyM #-}
 
 -- | Copy some elements of an immutable array.
-copyI :: MArray s               -- ^ Destination
+copyI :: Int                    -- ^ Count
+      -> MArray s               -- ^ Destination
       -> Int                    -- ^ Destination offset
       -> Array                  -- ^ Source
       -> Int                    -- ^ Source offset
-      -> Int                    -- ^ First offset in destination /not/ to
-                                -- copy (i.e. /not/ length)
       -> ST s ()
-copyI (MutableByteArray dst#) dstOff@(I# dstOff#) (ByteArray src#) (I# srcOff#) top@(I# top#)
+copyI count@(I# count#) (MutableByteArray dst#) dstOff@(I# dstOff#) (ByteArray src#) (I# srcOff#)
 #if defined(ASSERTS)
-  | top < dstOff = error $
-    "copyI: top must be >= dstOff, but " ++ show top ++ " < " ++ show dstOff
+  | count < 0 = error $
+    "copyI: count must be >= 0, but got " ++ show count
 #endif
   | otherwise = ST $ \s1# ->
-    case copyByteArray# src# srcOff# dst# dstOff# (top# -# dstOff#) s1# of
+    case copyByteArray# src# srcOff# dst# dstOff# count# s1# of
       s2# -> (# s2#, () #)
 {-# INLINE copyI #-}
 
