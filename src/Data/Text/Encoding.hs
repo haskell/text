@@ -327,8 +327,10 @@ streamDecodeUtf8With onErr = decodeChunk B.empty 0 0
                       n <- peek destOffPtr
                       codepoint <- peek codepointPtr
                       chunkText <- unsafeSTToIO $ do
+                          let l = cSizeToInt n
+                          A.shrinkM (A.MutableByteArray dest) l
                           arr <- A.unsafeFreeze (A.MutableByteArray dest)
-                          return $! text arr 0 (cSizeToInt n)
+                          return $! text arr 0 l
                       let left = lastPtr `minusPtr` ptr
                           !undecoded = case state of
                             UTF8_ACCEPT -> B.empty
