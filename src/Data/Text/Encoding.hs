@@ -35,6 +35,7 @@ module Data.Text.Encoding
 
     -- ** Controllable error handling
     , decodeUtf8With
+    , decodeUtf8Lenient
     , decodeUtf16LEWith
     , decodeUtf16BEWith
     , decodeUtf32LEWith
@@ -66,7 +67,7 @@ import Data.Bits ((.&.), shiftR)
 import Data.ByteString as B
 import qualified Data.ByteString.Internal as B
 import Data.Foldable (traverse_)
-import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode)
+import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode, lenientDecode)
 import Data.Text.Internal (Text(..), safe, text)
 import Data.Text.Internal.Functions
 import Data.Text.Internal.Private (runText)
@@ -388,6 +389,13 @@ decodeUtf8' ::
   ByteString -> Either UnicodeException Text
 decodeUtf8' = unsafeDupablePerformIO . try . evaluate . decodeUtf8With strictDecode
 {-# INLINE decodeUtf8' #-}
+
+-- | Decode a 'ByteString' containing UTF-8 encoded text.
+--
+-- Any invalid input bytes will be replaced with the Unicode replacement
+-- character U+FFFD.
+decodeUtf8Lenient :: ByteString -> Text
+decodeUtf8Lenient = decodeUtf8With lenientDecode
 
 -- | Encode text to a ByteString 'B.Builder' using UTF-8 encoding.
 --
