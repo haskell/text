@@ -162,15 +162,16 @@ tl_find p         = L.find p      `eqP` TL.find p
 t_partition p     = L.partition p `eqP` (unpack2 . T.partition p)
 tl_partition p    = L.partition p `eqP` (unpack2 . TL.partition p)
 
-sf_index p s      = forAll (choose (-l,l*2))
-                    ((L.filter p s L.!!) `eq` S.index (S.filter p $ packS s))
+sf_index p s i    = ((L.filter p s L.!!) `eq` S.index (S.filter p $ packS s)) j
     where l = L.length s
-t_index s         = forAll (choose (-l,l*2)) ((s L.!!) `eq` T.index (packS s))
+          j = if l == 0 then 0 else i `mod` (3 * l) - l
+t_index s i       = ((s L.!!) `eq` T.index (packS s)) j
     where l = L.length s
+          j = if l == 0 then 0 else i `mod` (3 * l) - l
 
-tl_index s        = forAll (choose (-l,l*2))
-                    ((s L.!!) `eq` (TL.index (packS s) . fromIntegral))
+tl_index s i      = ((s L.!!) `eq` (TL.index (packS s) . fromIntegral)) j
     where l = L.length s
+          j = if l == 0 then 0 else i `mod` (3 * l) - l
 
 t_findIndex p     = L.findIndex p `eqP` T.findIndex p
 t_count (NotEmpty t)  = (subtract 1 . L.length . T.splitOn t) `eq` T.count t

@@ -50,19 +50,27 @@ s_takeWhile p     = L.takeWhile p `eqP` (unpackS . S.takeWhile p)
 s_takeWhile_s p   = L.takeWhile p `eqP` (unpackS . S.unstream . S.takeWhile p)
 sf_takeWhile q p  = (L.takeWhile p . L.filter q) `eqP`
                     (unpackS . S.takeWhile p . S.filter q)
-noMatch = do
-  c <- arbitraryUnicodeChar
-  d <- suchThat arbitraryUnicodeChar (/= c)
-  return (c,d)
+
+data NoMatch = NoMatch Char Char
+  deriving (Eq, Show)
+
+instance Arbitrary NoMatch where
+  arbitrary = do
+    c <- arbitraryUnicodeChar
+    d <- suchThat arbitraryUnicodeChar (/= c)
+    return $ NoMatch c d
+  shrink (NoMatch c d) = fmap (NoMatch c)   (filter (/= c) (shrink d))
+                      ++ fmap (`NoMatch` d) (filter (/= d) (shrink c))
+
 t_takeWhile p     = L.takeWhile p `eqP` (unpackS . T.takeWhile p)
 tl_takeWhile p    = L.takeWhile p `eqP` (unpackS . TL.takeWhile p)
 t_takeWhileEnd p  = (L.reverse . L.takeWhile p . L.reverse) `eqP`
                     (unpackS . T.takeWhileEnd p)
-t_takeWhileEnd_null t = forAll noMatch $ \(c,d) -> T.null $
+t_takeWhileEnd_null t (NoMatch c d) = T.null $
                     T.takeWhileEnd (==d) (T.snoc t c)
 tl_takeWhileEnd p = (L.reverse . L.takeWhile p . L.reverse) `eqP`
                     (unpackS . TL.takeWhileEnd p)
-tl_takeWhileEnd_null t = forAll noMatch $ \(c,d) -> TL.null $
+tl_takeWhileEnd_null t (NoMatch c d) = TL.null $
                     TL.takeWhileEnd (==d) (TL.snoc t c)
 s_dropWhile p     = L.dropWhile p `eqP` (unpackS . S.dropWhile p)
 s_dropWhile_s p   = L.dropWhile p `eqP` (unpackS . S.unstream . S.dropWhile p)
