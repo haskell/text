@@ -102,32 +102,25 @@ instance Arbitrary InvalidUtf8 where
     ++ map (\a' -> InvalidUtf8 a' b c) (shrink a)
 
 t_utf8_err :: InvalidUtf8 -> Maybe DecodeErr -> Property
-t_utf8_err bad mde =
-  MkProperty $
-    case mde of
-      -- generate an invalid character
-      Nothing -> do
-        c <- choose ('\x10000', maxBound)
-        let onErr _ _ = Just c
-        unProperty . monadicIO $ do
-        l <- run $ let len = T.length (E.decodeUtf8With onErr (toByteString bad))
-                   in (len `seq` return (Right len)) `Exception.catch`
-                      (\(e::Exception.SomeException) -> return (Left e))
-        assert $ case l of
-          Left err ->
-            "non-BMP replacement characters not supported" `T.isInfixOf` T.pack (show err)
-          Right _  -> False
-
-      -- generate a valid onErr
-      Just de -> do
-        onErr <- genDecodeErr de
-        unProperty . monadicIO $ do
-        l <- run $ let len = T.length (E.decodeUtf8With onErr (toByteString bad))
-                   in (len `seq` return (Right len)) `Exception.catch`
-                      (\(e::UnicodeException) -> return (Left e))
-        assert $ case l of
-          Left err -> length (show err) >= 0
-          Right _  -> de /= Strict
+-- generate an invalid character
+t_utf8_err bad Nothing = forAll (choose ('\x10000', maxBound)) $ \c -> ioProperty $ do
+  let onErr _ _ = Just c
+      decoded = E.decodeUtf8With onErr (toByteString bad)
+      len = T.length decoded
+  l <- Exception.try (Exception.evaluate len)
+  pure $ case l of
+    Left (err :: Exception.SomeException) -> counterexample (show err) $
+      "non-BMP replacement characters not supported" `T.isInfixOf` T.pack (show err)
+    Right _  -> counterexample (show (decoded, l)) False
+-- generate a valid onErr
+t_utf8_err bad (Just de) = forAll (genDecodeErr de) $ \onErr -> ioProperty $ do
+  let decoded = E.decodeUtf8With onErr (toByteString bad)
+      len = T.length (E.decodeUtf8With onErr (toByteString bad))
+  l <- Exception.try (Exception.evaluate len)
+  pure $ case l of
+    Left (err :: Exception.SomeException) -> counterexample (show err) $
+      length (show err) >= 0
+    Right _  -> counterexample (show (decoded, l)) $ de /= Strict
 
 t_utf8_err' :: B.ByteString -> Property
 t_utf8_err' bs = monadicIO . assert $ case E.decodeUtf8' bs of
