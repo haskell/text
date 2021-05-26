@@ -117,27 +117,24 @@ tl_groupBy p      = L.groupBy p   `eqP` (map unpackS . TL.groupBy p)
 t_inits           = L.inits       `eqP` (map unpackS . T.inits)
 tl_inits          = L.inits       `eqP` (map unpackS . TL.inits)
 t_tails           = L.tails       `eqP` (map unpackS . T.tails)
-tl_tails          = unsquare $
-                    L.tails       `eqP` (map unpackS . TL.tails)
-t_findAppendId = unsquare $ \(NotEmpty s) ts ->
+tl_tails          = L.tails       `eqPSqrt` (map unpackS . TL.tails)
+t_findAppendId = \(Sqrt (NotEmpty s)) ts ->
     let t = T.intercalate s ts
     in all (==t) $ map (uncurry T.append) (T.breakOnAll s t)
-tl_findAppendId = unsquare $ \(NotEmpty s) ts ->
+tl_findAppendId = \(Sqrt (NotEmpty s)) ts ->
     let t = TL.intercalate s ts
     in all (==t) $ map (uncurry TL.append) (TL.breakOnAll s t)
-t_findContains = unsquare $ \(NotEmpty s) ->
+t_findContains = \(Sqrt (NotEmpty s)) ->
     all (T.isPrefixOf s . snd) . T.breakOnAll s . T.intercalate s
-tl_findContains = unsquare $ \(NotEmpty s) -> all (TL.isPrefixOf s . snd) .
-                               TL.breakOnAll s . TL.intercalate s
+tl_findContains = \(Sqrt (NotEmpty s)) -> all (TL.isPrefixOf s . snd) .
+    TL.breakOnAll s . TL.intercalate s
 sl_filterCount c  = (L.genericLength . L.filter (==c)) `eqP` SL.countChar c
 t_findCount s     = (L.length . T.breakOnAll s) `eq` T.count s
 tl_findCount s    = (L.genericLength . TL.breakOnAll s) `eq` TL.count s
 
-t_splitOn_split s  = unsquare $
-                     (T.splitOn s `eq` Slow.splitOn s) . T.intercalate s
-tl_splitOn_split s = unsquare $
-                     ((TL.splitOn (TL.fromStrict s) . TL.fromStrict) `eq`
-                      (map TL.fromStrict . T.splitOn s)) . T.intercalate s
+t_splitOn_split s  = (T.splitOn s `eq` Slow.splitOn s) . T.intercalate s . unSqrt
+tl_splitOn_split s = ((TL.splitOn (TL.fromStrict s) . TL.fromStrict) `eq`
+                      (map TL.fromStrict . T.splitOn s)) . T.intercalate s . unSqrt
 t_splitOn_i (NotEmpty t)  = id `eq` (T.intercalate t . T.splitOn t)
 tl_splitOn_i (NotEmpty t) = id `eq` (TL.intercalate t . TL.splitOn t)
 
@@ -179,14 +176,10 @@ t_lines'          = lines'        `eqP` (map unpackS . T.lines')
 t_words           = L.words       `eqP` (map unpackS . T.words)
 
 tl_words          = L.words       `eqP` (map unpackS . TL.words)
-t_unlines         = unsquare $
-                    L.unlines `eq` (unpackS . T.unlines . map packS)
-tl_unlines        = unsquare $
-                    L.unlines `eq` (unpackS . TL.unlines . map packS)
-t_unwords         = unsquare $
-                    L.unwords `eq` (unpackS . T.unwords . map packS)
-tl_unwords        = unsquare $
-                    L.unwords `eq` (unpackS . TL.unwords . map packS)
+t_unlines         = (L.unlines . unSqrt) `eq` (unpackS . T.unlines . map packS . unSqrt)
+tl_unlines        = (L.unlines . unSqrt) `eq` (unpackS . TL.unlines . map packS . unSqrt)
+t_unwords         = (L.unwords . unSqrt) `eq` (unpackS . T.unwords . map packS . unSqrt)
+tl_unwords        = (L.unwords . unSqrt) `eq` (unpackS . TL.unwords . map packS . unSqrt)
 
 s_isPrefixOf s    = L.isPrefixOf s `eqP`
                     (S.isPrefixOf (S.stream $ packS s) . S.stream)

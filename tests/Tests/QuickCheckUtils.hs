@@ -7,12 +7,11 @@
 module Tests.QuickCheckUtils
     (
       genUnicode
-    , unsquare
-    , smallArbitrary
 
     , BigBounded(..)
     , BigInt(..)
     , NotEmpty(..)
+    , Sqrt(..)
 
     , Small(..)
     , small
@@ -29,6 +28,7 @@ module Tests.QuickCheckUtils
     , unpack2
     , eq
     , eqP
+    , eqPSqrt
 
     , Encoding(..)
 
@@ -91,21 +91,23 @@ instance Arbitrary BL.ByteString where
       ]
     shrink xs = BL.fromChunks <$> shrink (BL.toChunks xs)
 
--- For tests that have O(n^2) running times or input sizes, resize
+-- | For tests that have O(n^2) running times or input sizes, resize
 -- their inputs to the square root of the originals.
-unsquare :: (Arbitrary a, Show a, Testable b) => (a -> b) -> Property
-unsquare = forAll smallArbitrary
+newtype Sqrt a = Sqrt { unSqrt :: a }
+    deriving (Eq, Show)
 
-smallArbitrary :: (Arbitrary a, Show a) => Gen a
-smallArbitrary = sized $ \n -> resize (smallish n) arbitrary
-  where smallish = round . (sqrt :: Double -> Double) . fromIntegral . abs
+instance Arbitrary a => Arbitrary (Sqrt a) where
+    arbitrary = fmap Sqrt $ sized $ \n -> resize (smallish n) arbitrary
+        where
+            smallish = round . (sqrt :: Double -> Double) . fromIntegral . abs
+    shrink = map Sqrt . shrink . unSqrt
 
 instance Arbitrary T.Text where
     arbitrary = T.pack `fmap` string
     shrink = map T.pack . shrink . T.unpack
 
 instance Arbitrary TL.Text where
-    arbitrary = (TL.fromChunks . map notEmpty) `fmap` smallArbitrary
+    arbitrary = (TL.fromChunks . map notEmpty . unSqrt) `fmap` arbitrary
     shrink = map TL.pack . shrink . TL.unpack
 
 newtype BigInt = Big Integer
@@ -267,6 +269,10 @@ eqP f g s w  = eql "orig" (f s) (g t) &&
           eql d a b
             | a =^= b   = True
             | otherwise = trace (d ++ ": " ++ show a ++ " /= " ++ show b) False
+
+eqPSqrt :: (Eq a, Show a, Stringy s) =>
+       (String -> a) -> (s -> a) -> Sqrt String -> Word8 -> Bool
+eqPSqrt f g s = eqP f g (unSqrt s)
 
 instance Arbitrary FPFormat where
     arbitrary = elements [Exponent, Fixed, Generic]
