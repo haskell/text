@@ -9,7 +9,6 @@ import Data.Char (isSpace)
 import Test.QuickCheck
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.QuickCheck (testProperty)
-import Test.QuickCheck.Unicode (char)
 import Tests.QuickCheckUtils
 import Text.Show.Functions ()
 import qualified Data.List as L
@@ -52,8 +51,8 @@ s_takeWhile_s p   = L.takeWhile p `eqP` (unpackS . S.unstream . S.takeWhile p)
 sf_takeWhile q p  = (L.takeWhile p . L.filter q) `eqP`
                     (unpackS . S.takeWhile p . S.filter q)
 noMatch = do
-  c <- char
-  d <- suchThat char (/= c)
+  c <- arbitraryUnicodeChar
+  d <- suchThat arbitraryUnicodeChar (/= c)
   return (c,d)
 t_takeWhile p     = L.takeWhile p `eqP` (unpackS . T.takeWhile p)
 tl_takeWhile p    = L.takeWhile p `eqP` (unpackS . TL.takeWhile p)

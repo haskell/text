@@ -5,10 +5,7 @@
 {-# LANGUAGE CPP, FlexibleInstances, TypeSynonymInstances #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 module Tests.QuickCheckUtils
-    (
-      genUnicode
-
-    , BigBounded(..)
+    ( BigBounded(..)
     , BigInt(..)
     , NotEmpty(..)
     , Sqrt(..)
@@ -38,7 +35,6 @@ module Tests.QuickCheckUtils
 import Control.Arrow (first, (***))
 import Control.DeepSeq (NFData (..), deepseq)
 import Control.Exception (bracket)
-import Data.String (IsString, fromString)
 import Data.Text.Foreign (I16)
 import Data.Text.Lazy.Builder.RealFloat (FPFormat(..))
 import Data.Word (Word8, Word16)
@@ -46,7 +42,6 @@ import Debug.Trace (trace)
 import System.Random (Random(..), RandomGen)
 import Test.QuickCheck hiding (Fixed(..), Small (..), (.&.))
 import Test.QuickCheck.Monadic (assert, monadicIO, run)
-import Test.QuickCheck.Unicode (string)
 import Tests.Utils
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
@@ -58,9 +53,6 @@ import qualified Data.Text.Internal.Lazy as TL
 import qualified Data.Text.Internal.Lazy.Fusion as TLF
 import qualified Data.Text.Lazy as TL
 import qualified System.IO as IO
-
-genUnicode :: IsString a => Gen a
-genUnicode = fromString <$> string
 
 genWord8 :: Gen Word8
 genWord8 = chooseAny
@@ -103,7 +95,7 @@ instance Arbitrary a => Arbitrary (Sqrt a) where
     shrink = map Sqrt . shrink . unSqrt
 
 instance Arbitrary T.Text where
-    arbitrary = T.pack `fmap` string
+    arbitrary = (T.pack . getUnicodeString) `fmap` arbitrary
     shrink = map T.pack . shrink . T.unpack
 
 instance Arbitrary TL.Text where
