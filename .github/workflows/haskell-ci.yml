@@ -109,7 +109,7 @@ jobs:
         run: |
           $CABAL v2-update -v
       - name: cache (tools)
-        uses: actions/cache@v2.1.5
+        uses: actions/cache@v2.1.6
         with:
           key: ${{ runner.os }}-${{ matrix.compiler }}-tools-8139d618
           path: ~/.haskell-ci-tools
@@ -163,7 +163,7 @@ jobs:
           $CABAL v2-build $ARG_COMPILER $ARG_TESTS $ARG_BENCH --dry-run all
           cabal-plan
       - name: cache
-        uses: actions/cache@v2.1.5
+        uses: actions/cache@v2.1.6
         with:
           key: ${{ runner.os }}-${{ matrix.compiler }}-${{ github.sha }}
           path: ~/.cabal/store
