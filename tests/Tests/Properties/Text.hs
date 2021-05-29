@@ -44,29 +44,22 @@ s_map_s f         = map f  `eqP` (unpackS . S.unstream . S.map f)
 sf_map p f        = (map f . L.filter p)  `eqP` (unpackS . S.map f . S.filter p)
 t_map f           = map f  `eqP` (unpackS . T.map f)
 tl_map f          = map f  `eqP` (unpackS . TL.map f)
-s_intercalate c   = unsquare $
-                    L.intercalate c `eq`
-                    (unpackS . S.intercalate (packS c) . map packS)
-t_intercalate c   = unsquare $
-                    L.intercalate c `eq`
-                    (unpackS . T.intercalate (packS c) . map packS)
-tl_intercalate c  = unsquare $
-                    L.intercalate c `eq`
-                    (unpackS . TL.intercalate (TL.pack c) . map TL.pack)
+s_intercalate c   = (L.intercalate c . unSqrt) `eq`
+                    (unpackS . S.intercalate (packS c) . map packS . unSqrt)
+t_intercalate c   = (L.intercalate c . unSqrt) `eq`
+                    (unpackS . T.intercalate (packS c) . map packS . unSqrt)
+tl_intercalate c  = (L.intercalate c . unSqrt) `eq`
+                    (unpackS . TL.intercalate (TL.pack c) . map TL.pack . unSqrt)
 s_intersperse c   = L.intersperse c `eqP`
                     (unpackS . S.intersperse c)
 s_intersperse_s c = L.intersperse c `eqP`
                     (unpackS . S.unstream . S.intersperse c)
 sf_intersperse p c= (L.intersperse c . L.filter p) `eqP`
                    (unpackS . S.intersperse c . S.filter p)
-t_intersperse c   = unsquare $
-                    L.intersperse c `eqP` (unpackS . T.intersperse c)
-tl_intersperse c  = unsquare $
-                    L.intersperse c `eqP` (unpackS . TL.intersperse c)
-t_transpose       = unsquare $
-                    L.transpose `eq` (map unpackS . T.transpose . map packS)
-tl_transpose      = unsquare $
-                    L.transpose `eq` (map unpackS . TL.transpose . map TL.pack)
+t_intersperse c   = L.intersperse c `eqPSqrt` (unpackS . T.intersperse c)
+tl_intersperse c  = L.intersperse c `eqPSqrt` (unpackS . TL.intersperse c)
+t_transpose       = (L.transpose . unSqrt) `eq` (map unpackS . T.transpose . map packS . unSqrt)
+tl_transpose      = (L.transpose . unSqrt) `eq` (map unpackS . TL.transpose . map TL.pack . unSqrt)
 t_reverse         = L.reverse `eqP` (unpackS . T.reverse)
 tl_reverse        = L.reverse `eqP` (unpackS . TL.reverse)
 t_reverse_short n = L.reverse `eqP` (unpackS . S.reverse . shorten n . S.stream)
@@ -169,15 +162,16 @@ tl_find p         = L.find p      `eqP` TL.find p
 t_partition p     = L.partition p `eqP` (unpack2 . T.partition p)
 tl_partition p    = L.partition p `eqP` (unpack2 . TL.partition p)
 
-sf_index p s      = forAll (choose (-l,l*2))
-                    ((L.filter p s L.!!) `eq` S.index (S.filter p $ packS s))
+sf_index p s i    = ((L.filter p s L.!!) `eq` S.index (S.filter p $ packS s)) j
     where l = L.length s
-t_index s         = forAll (choose (-l,l*2)) ((s L.!!) `eq` T.index (packS s))
+          j = if l == 0 then 0 else i `mod` (3 * l) - l
+t_index s i       = ((s L.!!) `eq` T.index (packS s)) j
     where l = L.length s
+          j = if l == 0 then 0 else i `mod` (3 * l) - l
 
-tl_index s        = forAll (choose (-l,l*2))
-                    ((s L.!!) `eq` (TL.index (packS s) . fromIntegral))
+tl_index s i      = ((s L.!!) `eq` (TL.index (packS s) . fromIntegral)) j
     where l = L.length s
+          j = if l == 0 then 0 else i `mod` (3 * l) - l
 
 t_findIndex p     = L.findIndex p `eqP` T.findIndex p
 t_count (NotEmpty t)  = (subtract 1 . L.length . T.splitOn t) `eq` T.count t
@@ -194,7 +188,7 @@ t_indices  (NotEmpty s) = Slow.indices s `eq` T.indices s
 tl_indices (NotEmpty s) = lazyIndices s `eq` S.indices s
     where lazyIndices ss t = map fromIntegral $ Slow.indices (conc ss) (conc t)
           conc = T.concat . TL.toChunks
-t_indices_occurs = unsquare $ \(NotEmpty t) ts ->
+t_indices_occurs = \(Sqrt (NotEmpty t)) ts ->
     let s = T.intercalate t ts
     in Slow.indices t s === T.indices t s
 

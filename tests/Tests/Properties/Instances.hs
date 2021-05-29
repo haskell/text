@@ -37,10 +37,8 @@ t_Show            = show     `eq` (show . T.pack)
 tl_Show           = show     `eq` (show . TL.pack)
 t_mappend s       = mappend s`eqP` (unpackS . mappend (T.pack s))
 tl_mappend s      = mappend s`eqP` (unpackS . mappend (TL.pack s))
-t_mconcat         = unsquare $
-                    mconcat `eq` (unpackS . mconcat . L.map T.pack)
-tl_mconcat        = unsquare $
-                    mconcat `eq` (unpackS . mconcat . L.map TL.pack)
+t_mconcat         = (mconcat . unSqrt) `eq` (unpackS . mconcat . L.map T.pack . unSqrt)
+tl_mconcat        = (mconcat . unSqrt) `eq` (unpackS . mconcat . L.map TL.pack . unSqrt)
 t_mempty          = mempty === (unpackS (mempty :: T.Text))
 tl_mempty         = mempty === (unpackS (mempty :: TL.Text))
 t_IsString        = fromString  `eqP` (T.unpack . fromString)

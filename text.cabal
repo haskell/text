@@ -212,7 +212,6 @@ test-suite tests
     bytestring,
     deepseq,
     directory,
-    quickcheck-unicode >= 1.0.1.0,
     random,
     tasty,
     tasty-hunit,

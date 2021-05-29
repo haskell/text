@@ -9,7 +9,6 @@ import Data.Char (isSpace)
 import Test.QuickCheck
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.QuickCheck (testProperty)
-import Test.QuickCheck.Unicode (char)
 import Tests.QuickCheckUtils
 import Text.Show.Functions ()
 import qualified Data.List as L
@@ -51,19 +50,27 @@ s_takeWhile p     = L.takeWhile p `eqP` (unpackS . S.takeWhile p)
 s_takeWhile_s p   = L.takeWhile p `eqP` (unpackS . S.unstream . S.takeWhile p)
 sf_takeWhile q p  = (L.takeWhile p . L.filter q) `eqP`
                     (unpackS . S.takeWhile p . S.filter q)
-noMatch = do
-  c <- char
-  d <- suchThat char (/= c)
-  return (c,d)
+
+data NoMatch = NoMatch Char Char
+  deriving (Eq, Show)
+
+instance Arbitrary NoMatch where
+  arbitrary = do
+    c <- arbitraryUnicodeChar
+    d <- suchThat arbitraryUnicodeChar (/= c)
+    return $ NoMatch c d
+  shrink (NoMatch c d) = fmap (NoMatch c)   (filter (/= c) (shrink d))
+                      ++ fmap (`NoMatch` d) (filter (/= d) (shrink c))
+
 t_takeWhile p     = L.takeWhile p `eqP` (unpackS . T.takeWhile p)
 tl_takeWhile p    = L.takeWhile p `eqP` (unpackS . TL.takeWhile p)
 t_takeWhileEnd p  = (L.reverse . L.takeWhile p . L.reverse) `eqP`
                     (unpackS . T.takeWhileEnd p)
-t_takeWhileEnd_null t = forAll noMatch $ \(c,d) -> T.null $
+t_takeWhileEnd_null t (NoMatch c d) = T.null $
                     T.takeWhileEnd (==d) (T.snoc t c)
 tl_takeWhileEnd p = (L.reverse . L.takeWhile p . L.reverse) `eqP`
                     (unpackS . TL.takeWhileEnd p)
-tl_takeWhileEnd_null t = forAll noMatch $ \(c,d) -> TL.null $
+tl_takeWhileEnd_null t (NoMatch c d) = TL.null $
                     TL.takeWhileEnd (==d) (TL.snoc t c)
 s_dropWhile p     = L.dropWhile p `eqP` (unpackS . S.dropWhile p)
 s_dropWhile_s p   = L.dropWhile p `eqP` (unpackS . S.unstream . S.dropWhile p)
@@ -117,27 +124,24 @@ tl_groupBy p      = L.groupBy p   `eqP` (map unpackS . TL.groupBy p)
 t_inits           = L.inits       `eqP` (map unpackS . T.inits)
 tl_inits          = L.inits       `eqP` (map unpackS . TL.inits)
 t_tails           = L.tails       `eqP` (map unpackS . T.tails)
-tl_tails          = unsquare $
-                    L.tails       `eqP` (map unpackS . TL.tails)
-t_findAppendId = unsquare $ \(NotEmpty s) ts ->
+tl_tails          = L.tails       `eqPSqrt` (map unpackS . TL.tails)
+t_findAppendId = \(Sqrt (NotEmpty s)) ts ->
     let t = T.intercalate s ts
     in all (==t) $ map (uncurry T.append) (T.breakOnAll s t)
-tl_findAppendId = unsquare $ \(NotEmpty s) ts ->
+tl_findAppendId = \(Sqrt (NotEmpty s)) ts ->
     let t = TL.intercalate s ts
     in all (==t) $ map (uncurry TL.append) (TL.breakOnAll s t)
-t_findContains = unsquare $ \(NotEmpty s) ->
+t_findContains = \(Sqrt (NotEmpty s)) ->
     all (T.isPrefixOf s . snd) . T.breakOnAll s . T.intercalate s
-tl_findContains = unsquare $ \(NotEmpty s) -> all (TL.isPrefixOf s . snd) .
-                               TL.breakOnAll s . TL.intercalate s
+tl_findContains = \(Sqrt (NotEmpty s)) -> all (TL.isPrefixOf s . snd) .
+    TL.breakOnAll s . TL.intercalate s
 sl_filterCount c  = (L.genericLength . L.filter (==c)) `eqP` SL.countChar c
 t_findCount s     = (L.length . T.breakOnAll s) `eq` T.count s
 tl_findCount s    = (L.genericLength . TL.breakOnAll s) `eq` TL.count s
 
-t_splitOn_split s  = unsquare $
-                     (T.splitOn s `eq` Slow.splitOn s) . T.intercalate s
-tl_splitOn_split s = unsquare $
-                     ((TL.splitOn (TL.fromStrict s) . TL.fromStrict) `eq`
-                      (map TL.fromStrict . T.splitOn s)) . T.intercalate s
+t_splitOn_split s  = (T.splitOn s `eq` Slow.splitOn s) . T.intercalate s . unSqrt
+tl_splitOn_split s = ((TL.splitOn (TL.fromStrict s) . TL.fromStrict) `eq`
+                      (map TL.fromStrict . T.splitOn s)) . T.intercalate s . unSqrt
 t_splitOn_i (NotEmpty t)  = id `eq` (T.intercalate t . T.splitOn t)
 tl_splitOn_i (NotEmpty t) = id `eq` (TL.intercalate t . TL.splitOn t)
 
@@ -179,14 +183,10 @@ t_lines'          = lines'        `eqP` (map unpackS . T.lines')
 t_words           = L.words       `eqP` (map unpackS . T.words)
 
 tl_words          = L.words       `eqP` (map unpackS . TL.words)
-t_unlines         = unsquare $
-                    L.unlines `eq` (unpackS . T.unlines . map packS)
-tl_unlines        = unsquare $
-                    L.unlines `eq` (unpackS . TL.unlines . map packS)
-t_unwords         = unsquare $
-                    L.unwords `eq` (unpackS . T.unwords . map packS)
-tl_unwords        = unsquare $
-                    L.unwords `eq` (unpackS . TL.unwords . map packS)
+t_unlines         = (L.unlines . unSqrt) `eq` (unpackS . T.unlines . map packS . unSqrt)
+tl_unlines        = (L.unlines . unSqrt) `eq` (unpackS . TL.unlines . map packS . unSqrt)
+t_unwords         = (L.unwords . unSqrt) `eq` (unpackS . T.unwords . map packS . unSqrt)
+tl_unwords        = (L.unwords . unSqrt) `eq` (unpackS . TL.unwords . map packS . unSqrt)
 
 s_isPrefixOf s    = L.isPrefixOf s `eqP`
                     (S.isPrefixOf (S.stream $ packS s) . S.stream)

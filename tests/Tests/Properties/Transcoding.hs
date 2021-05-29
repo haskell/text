@@ -42,22 +42,21 @@ t_latin1 t   = E.decodeLatin1 (encodeL1 a) === a
     where a  = T.map (\c -> chr (ord c `mod` 256)) t
 tl_latin1 t  = EL.decodeLatin1 (encodeLazyL1 a) === a
     where a  = TL.map (\c -> chr (ord c `mod` 256)) t
-t_utf8       = forAll genUnicode $ (E.decodeUtf8 . E.encodeUtf8) `eq` id
-t_utf8'      = forAll genUnicode $ (E.decodeUtf8' . E.encodeUtf8) `eq` (id . Right)
-tl_utf8      = forAll genUnicode $ (EL.decodeUtf8 . EL.encodeUtf8) `eq` id
-tl_utf8'     = forAll genUnicode $ (EL.decodeUtf8' . EL.encodeUtf8) `eq` (id . Right)
-t_utf16LE    = forAll genUnicode $ (E.decodeUtf16LE . E.encodeUtf16LE) `eq` id
-tl_utf16LE   = forAll genUnicode $ (EL.decodeUtf16LE . EL.encodeUtf16LE) `eq` id
-t_utf16BE    = forAll genUnicode $ (E.decodeUtf16BE . E.encodeUtf16BE) `eq` id
-tl_utf16BE   = forAll genUnicode $ (EL.decodeUtf16BE . EL.encodeUtf16BE) `eq` id
-t_utf32LE    = forAll genUnicode $ (E.decodeUtf32LE . E.encodeUtf32LE) `eq` id
-tl_utf32LE   = forAll genUnicode $ (EL.decodeUtf32LE . EL.encodeUtf32LE) `eq` id
-t_utf32BE    = forAll genUnicode $ (E.decodeUtf32BE . E.encodeUtf32BE) `eq` id
-tl_utf32BE   = forAll genUnicode $ (EL.decodeUtf32BE . EL.encodeUtf32BE) `eq` id
+t_utf8       = (E.decodeUtf8 . E.encodeUtf8) `eq` id
+t_utf8'      = (E.decodeUtf8' . E.encodeUtf8) `eq` (id . Right)
+tl_utf8      = (EL.decodeUtf8 . EL.encodeUtf8) `eq` id
+tl_utf8'     = (EL.decodeUtf8' . EL.encodeUtf8) `eq` (id . Right)
+t_utf16LE    = (E.decodeUtf16LE . E.encodeUtf16LE) `eq` id
+tl_utf16LE   = (EL.decodeUtf16LE . EL.encodeUtf16LE) `eq` id
+t_utf16BE    = (E.decodeUtf16BE . E.encodeUtf16BE) `eq` id
+tl_utf16BE   = (EL.decodeUtf16BE . EL.encodeUtf16BE) `eq` id
+t_utf32LE    = (E.decodeUtf32LE . E.encodeUtf32LE) `eq` id
+tl_utf32LE   = (EL.decodeUtf32LE . EL.encodeUtf32LE) `eq` id
+t_utf32BE    = (E.decodeUtf32BE . E.encodeUtf32BE) `eq` id
+tl_utf32BE   = (EL.decodeUtf32BE . EL.encodeUtf32BE) `eq` id
 
-t_utf8_incr = forAll genUnicode $ \s (Positive n) -> (recode n `eq` id) s
-    where recode n = T.concat . map fst . feedChunksOf n E.streamDecodeUtf8 .
-                     E.encodeUtf8
+t_utf8_incr (Positive n) =
+  (T.concat . map fst . feedChunksOf n E.streamDecodeUtf8 . E.encodeUtf8) `eq` id
 
 feedChunksOf :: Int -> (B.ByteString -> E.Decoding) -> B.ByteString
              -> [(T.Text, B.ByteString)]
@@ -67,50 +66,61 @@ feedChunksOf n f bs
                      E.Some t b f' = f x
                  in (t,b) : feedChunksOf n f' y
 
-t_utf8_undecoded = forAll genUnicode $ \t ->
+t_utf8_undecoded t =
   let b = E.encodeUtf8 t
       ls = concatMap (leftover . E.encodeUtf8 . T.singleton) . T.unpack $ t
       leftover = (++ [B.empty]) . init . tail . B.inits
   in (map snd . feedChunksOf 1 E.streamDecodeUtf8) b === ls
 
-data Badness = Solo | Leading | Trailing
-             deriving (Eq, Show)
+data InvalidUtf8 = InvalidUtf8
+  { iu8Prefix  :: T.Text
+  , iu8Invalid :: B.ByteString
+  , iu8Suffix  :: T.Text
+  } deriving (Eq)
 
-instance Arbitrary Badness where
-    arbitrary = elements [Solo, Leading, Trailing]
+instance Show InvalidUtf8 where
+  show i = "InvalidUtf8 {prefix = "  ++ show (iu8Prefix i)
+                   ++ ", invalid = " ++ show (iu8Invalid i)
+                   ++ ", suffix = "  ++ show (iu8Suffix i)
+                   ++ ", asBS = "    ++ show (toByteString i)
+                   ++ ", length = "  ++ show (B.length (toByteString i))
+                   ++ "}"
 
-t_utf8_err :: Badness -> Maybe DecodeErr -> Property
-t_utf8_err bad mde = do
-  let gen = case bad of
-        Solo     -> genInvalidUTF8
-        Leading  -> B.append <$> genInvalidUTF8 <*> genUTF8
-        Trailing -> B.append <$> genUTF8 <*> genInvalidUTF8
-      genUTF8 = E.encodeUtf8 <$> genUnicode
-  forAll gen $ \bs -> MkProperty $
-    case mde of
-      -- generate an invalid character
-      Nothing -> do
-        c <- choose ('\x10000', maxBound)
-        let onErr _ _ = Just c
-        unProperty . monadicIO $ do
-        l <- run $ let len = T.length (E.decodeUtf8With onErr bs)
-                   in (len `seq` return (Right len)) `Exception.catch`
-                      (\(e::Exception.SomeException) -> return (Left e))
-        assert $ case l of
-          Left err ->
-            "non-BMP replacement characters not supported" `T.isInfixOf` T.pack (show err)
-          Right _  -> False
+toByteString :: InvalidUtf8 -> B.ByteString
+toByteString (InvalidUtf8 a b c) =
+  E.encodeUtf8 a `B.append` b `B.append` E.encodeUtf8 c
 
-      -- generate a valid onErr
-      Just de -> do
-        onErr <- genDecodeErr de
-        unProperty . monadicIO $ do
-        l <- run $ let len = T.length (E.decodeUtf8With onErr bs)
-                   in (len `seq` return (Right len)) `Exception.catch`
-                      (\(e::UnicodeException) -> return (Left e))
-        assert $ case l of
-          Left err -> length (show err) >= 0
-          Right _  -> de /= Strict
+instance Arbitrary InvalidUtf8 where
+  arbitrary = oneof
+    [ InvalidUtf8 <$> pure mempty <*> genInvalidUTF8 <*> pure mempty
+    , InvalidUtf8 <$> pure mempty <*> genInvalidUTF8 <*> arbitrary
+    , InvalidUtf8 <$> arbitrary <*> genInvalidUTF8 <*> pure mempty
+    , InvalidUtf8 <$> arbitrary <*> genInvalidUTF8 <*> arbitrary
+    ]
+  shrink (InvalidUtf8 a b c)
+    =  map (\c' -> InvalidUtf8 a b c') (shrink c)
+    ++ map (\a' -> InvalidUtf8 a' b c) (shrink a)
+
+t_utf8_err :: InvalidUtf8 -> Maybe DecodeErr -> Property
+-- generate an invalid character
+t_utf8_err bad Nothing = forAll (choose ('\x10000', maxBound)) $ \c -> ioProperty $ do
+  let onErr _ _ = Just c
+      decoded = E.decodeUtf8With onErr (toByteString bad)
+      len = T.length decoded
+  l <- Exception.try (Exception.evaluate len)
+  pure $ case l of
+    Left (err :: Exception.SomeException) -> counterexample (show err) $
+      "non-BMP replacement characters not supported" `T.isInfixOf` T.pack (show err)
+    Right _  -> counterexample (show (decoded, l)) False
+-- generate a valid onErr
+t_utf8_err bad (Just de) = forAll (genDecodeErr de) $ \onErr -> ioProperty $ do
+  let decoded = E.decodeUtf8With onErr (toByteString bad)
+      len = T.length (E.decodeUtf8With onErr (toByteString bad))
+  l <- Exception.try (Exception.evaluate len)
+  pure $ case l of
+    Left (err :: Exception.SomeException) -> counterexample (show err) $
+      length (show err) >= 0
+    Right _  -> counterexample (show (decoded, l)) $ de /= Strict
 
 t_utf8_err' :: B.ByteString -> Property
 t_utf8_err' bs = monadicIO . assert $ case E.decodeUtf8' bs of

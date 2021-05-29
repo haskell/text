@@ -42,32 +42,23 @@ sf_foldr p f z    = (L.foldr f z . L.filter p) `eqP` (S.foldr f z . S.filter p)
     where _types  = f :: Char -> Char -> Char
 t_foldr f z       = L.foldr f z  `eqP` T.foldr f z
     where _types  = f :: Char -> Char -> Char
-tl_foldr f z      = unsquare $
-                    L.foldr f z  `eqP` TL.foldr f z
+tl_foldr f z      = L.foldr f z  `eqPSqrt` TL.foldr f z
     where _types  = f :: Char -> Char -> Char
-sf_foldr1 p f     = unsquare $
-                    (L.foldr1 f . L.filter p) `eqP` (S.foldr1 f . S.filter p)
+sf_foldr1 p f     = (L.foldr1 f . L.filter p) `eqPSqrt` (S.foldr1 f . S.filter p)
 t_foldr1 f        = L.foldr1 f   `eqP` T.foldr1 f
-tl_foldr1 f       = unsquare $
-                    L.foldr1 f   `eqP` TL.foldr1 f
+tl_foldr1 f       = L.foldr1 f   `eqPSqrt` TL.foldr1 f
 
 -- Special folds
 
-s_concat_s        = unsquare $
-                    L.concat `eq` (unpackS . S.unstream . S.concat . map packS)
-sf_concat p       = unsquare $
-                    (L.concat . map (L.filter p)) `eq`
-                    (unpackS . S.concat . map (S.filter p . packS))
-t_concat          = unsquare $
-                    L.concat `eq` (unpackS . T.concat . map packS)
-tl_concat         = unsquare $
-                    L.concat `eq` (unpackS . TL.concat . map TL.pack)
-sf_concatMap p f  = unsquare $ (L.concatMap f . L.filter p) `eqP`
-                               (unpackS . S.concatMap (packS . f) . S.filter p)
-t_concatMap f     = unsquare $
-                    L.concatMap f `eqP` (unpackS . T.concatMap (packS . f))
-tl_concatMap f    = unsquare $
-                    L.concatMap f `eqP` (unpackS . TL.concatMap (TL.pack . f))
+s_concat_s        = (L.concat . unSqrt) `eq` (unpackS . S.unstream . S.concat . map packS . unSqrt)
+sf_concat p       = (L.concat . map (L.filter p) . unSqrt) `eq`
+                    (unpackS . S.concat . map (S.filter p . packS) . unSqrt)
+t_concat          = (L.concat . unSqrt) `eq` (unpackS . T.concat . map packS . unSqrt)
+tl_concat         = (L.concat . unSqrt) `eq` (unpackS . TL.concat . map TL.pack . unSqrt)
+sf_concatMap p f  = (L.concatMap f . L.filter p) `eqPSqrt`
+                    (unpackS . S.concatMap (packS . f) . S.filter p)
+t_concatMap f     = L.concatMap f `eqPSqrt` (unpackS . T.concatMap (packS . f))
+tl_concatMap f    = L.concatMap f `eqPSqrt` (unpackS . TL.concatMap (TL.pack . f))
 sf_any q p        = (L.any p . L.filter q) `eqP` (S.any p . S.filter q)
 t_any p           = L.any p       `eqP` T.any p
 tl_any p          = L.any p       `eqP` TL.any p
