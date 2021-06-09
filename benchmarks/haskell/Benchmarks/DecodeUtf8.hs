@@ -21,14 +21,9 @@ module Benchmarks.DecodeUtf8
     , benchmarkASCII
     ) where
 
-import Foreign.C.Types
-import Data.ByteString.Internal (ByteString(..))
 import Data.ByteString.Lazy.Internal (ByteString(..))
-import Foreign.Ptr (Ptr, plusPtr)
-import Foreign.ForeignPtr (withForeignPtr)
-import Data.Word (Word8)
 import qualified Test.Tasty.Bench as C
-import Test.Tasty.Bench (Benchmark, bgroup, nf, whnfIO)
+import Test.Tasty.Bench (Benchmark, bgroup, nf)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Text as T
@@ -56,7 +51,6 @@ benchmark kind ~(bs, lbs) =
     in bgroup "DecodeUtf8"
         [ bench "Strict" $ nf T.decodeUtf8 bs
         , bench "Stream" $ nf decodeStream lbs
-        , bench "IConv" $ whnfIO $ iconv bs
         , bench "StrictLength" $ nf (T.length . T.decodeUtf8) bs
         , bench "StrictInitLength" $ nf (T.length . T.init . T.decodeUtf8) bs
         , bench "Lazy" $ nf TL.decodeUtf8 lbs
@@ -74,9 +68,3 @@ benchmarkASCII ~(bs, lbs) =
         , C.bench "lazy decodeLatin1" $ nf TL.decodeLatin1 lbs
         , C.bench "lazy decodeASCII" $ nf TL.decodeASCII lbs
         ]
-
-iconv :: B.ByteString -> IO CInt
-iconv (PS fp off len) = withForeignPtr fp $ \ptr ->
-                        time_iconv (ptr `plusPtr` off) (fromIntegral len)
-
-foreign import ccall unsafe time_iconv :: Ptr Word8 -> CSize -> IO CInt
