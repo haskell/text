@@ -39,25 +39,31 @@ main = do
     defaultMain
         [ Builder.benchmark
         , Concat.benchmark
-        , env (DecodeUtf8.initEnv (tf "libya-chinese.html")) (DecodeUtf8.benchmark "html")
-        , env (DecodeUtf8.initEnv (tf "yiwiki.xml")) (DecodeUtf8.benchmark "xml")
-        , env (DecodeUtf8.initEnv (tf "ascii.txt")) (DecodeUtf8.benchmark "ascii")
-        , env (DecodeUtf8.initEnv (tf "russian.txt")) (DecodeUtf8.benchmark  "russian")
-        , env (DecodeUtf8.initEnv (tf "japanese.txt")) (DecodeUtf8.benchmark "japanese")
-        , env (DecodeUtf8.initEnv (tf "ascii.txt")) (DecodeUtf8.benchmarkASCII)
-        , EncodeUtf8.benchmark "non-ASCII" "επανάληψη 竺法蘭共譯"
-        , EncodeUtf8.benchmark "ASCII" "lorem ipsum"
+        , bgroup "DecodeUtf8"
+            [ env (DecodeUtf8.initEnv (tf "libya-chinese.html")) (DecodeUtf8.benchmark "html")
+            , env (DecodeUtf8.initEnv (tf "yiwiki.xml")) (DecodeUtf8.benchmark "xml")
+            , env (DecodeUtf8.initEnv (tf "ascii.txt")) (DecodeUtf8.benchmark "ascii")
+            , env (DecodeUtf8.initEnv (tf "russian.txt")) (DecodeUtf8.benchmark  "russian")
+            , env (DecodeUtf8.initEnv (tf "japanese.txt")) (DecodeUtf8.benchmark "japanese")
+            , env (DecodeUtf8.initEnv (tf "ascii.txt")) (DecodeUtf8.benchmarkASCII)
+            ]
+        , bgroup "EncodeUtf8"
+            [ EncodeUtf8.benchmark "non-ASCII" "επανάληψη 竺法蘭共譯"
+            , EncodeUtf8.benchmark "ASCII" "lorem ipsum"
+            ]
         , env (Equality.initEnv (tf "japanese.txt")) Equality.benchmark
         , FileRead.benchmark (tf "russian.txt")
         , FoldLines.benchmark (tf "russian.txt")
         , env Mul.initEnv Mul.benchmark
         , Multilang.benchmark
-        , env (Pure.initEnv (tf "tiny.txt")) (Pure.benchmark "tiny")
-        , env (Pure.initEnv (tf "ascii-small.txt")) (Pure.benchmark "ascii-small")
-        , env (Pure.initEnv (tf "ascii.txt")) (Pure.benchmark "ascii")
-        , env (Pure.initEnv (tf "english.txt")) (Pure.benchmark "english")
-        , env (Pure.initEnv (tf "russian-small.txt")) (Pure.benchmark "russian")
-        , env (Pure.initEnv (tf "japanese.txt")) (Pure.benchmark "japanese")
+        , bgroup "Pure"
+            [ env (Pure.initEnv (tf "tiny.txt")) (Pure.benchmark "tiny")
+            , env (Pure.initEnv (tf "ascii-small.txt")) (Pure.benchmark "ascii-small")
+            , env (Pure.initEnv (tf "ascii.txt")) (Pure.benchmark "ascii")
+            , env (Pure.initEnv (tf "english.txt")) (Pure.benchmark "english")
+            , env (Pure.initEnv (tf "russian-small.txt")) (Pure.benchmark "russian")
+            , env (Pure.initEnv (tf "japanese.txt")) (Pure.benchmark "japanese")
+            ]
         , env (ReadNumbers.initEnv (tf "numbers.txt")) ReadNumbers.benchmark
         , env (Replace.initEnv (tf "russian.txt")) (Replace.benchmark "принимая" "своем")
         , env (Search.initEnv (tf "russian.txt")) (Search.benchmark "принимая")

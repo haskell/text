@@ -22,8 +22,7 @@ module Benchmarks.DecodeUtf8
     ) where
 
 import Data.ByteString.Lazy.Internal (ByteString(..))
-import qualified Test.Tasty.Bench as C
-import Test.Tasty.Bench (Benchmark, bgroup, nf)
+import Test.Tasty.Bench
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Text as T
@@ -41,14 +40,13 @@ initEnv fp = do
 
 benchmark :: String -> Env -> Benchmark
 benchmark kind ~(bs, lbs) =
-    let bench name = C.bench (name ++ "+" ++ kind)
-        decodeStream (Chunk b0 bs0) = case T.streamDecodeUtf8 b0 of
+    let decodeStream (Chunk b0 bs0) = case T.streamDecodeUtf8 b0 of
                                         T.Some t0 _ f0 -> t0 : go f0 bs0
           where go f (Chunk b bs1) = case f b of
                                        T.Some t1 _ f1 -> t1 : go f1 bs1
                 go _ _ = []
         decodeStream _ = []
-    in bgroup "DecodeUtf8"
+    in bgroup kind
         [ bench "Strict" $ nf T.decodeUtf8 bs
         , bench "Stream" $ nf decodeStream lbs
         , bench "StrictLength" $ nf (T.length . T.decodeUtf8) bs
@@ -60,11 +58,11 @@ benchmark kind ~(bs, lbs) =
 
 benchmarkASCII :: Env -> Benchmark
 benchmarkASCII ~(bs, lbs) =
-    bgroup "DecodeASCII"
-        [ C.bench "strict decodeUtf8" $ nf T.decodeUtf8 bs
-        , C.bench "strict decodeLatin1" $ nf T.decodeLatin1 bs
-        , C.bench "strict decodeASCII" $ nf T.decodeASCII bs
-        , C.bench "lazy decodeUtf8" $ nf TL.decodeUtf8 lbs
-        , C.bench "lazy decodeLatin1" $ nf TL.decodeLatin1 lbs
-        , C.bench "lazy decodeASCII" $ nf TL.decodeASCII lbs
+    bgroup "ascii"
+        [ bench "strict decodeUtf8" $ nf T.decodeUtf8 bs
+        , bench "strict decodeLatin1" $ nf T.decodeLatin1 bs
+        , bench "strict decodeASCII" $ nf T.decodeASCII bs
+        , bench "lazy decodeUtf8" $ nf TL.decodeUtf8 lbs
+        , bench "lazy decodeLatin1" $ nf TL.decodeLatin1 lbs
+        , bench "lazy decodeASCII" $ nf TL.decodeASCII lbs
         ]

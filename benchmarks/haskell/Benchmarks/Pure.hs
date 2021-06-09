@@ -74,7 +74,7 @@ initEnv fp = do
 
 benchmark :: String -> Env -> Benchmark
 benchmark kind ~Env{..} =
-    bgroup "Pure"
+    bgroup kind
         [ bgroup "append"
             [ benchT   $ nf (T.append tb) ta
             , benchTL  $ nf (TL.append tlb) tla
@@ -279,17 +279,17 @@ benchmark kind ~Env{..} =
                 ]
               ]
         , bgroup "Builder"
-            [ bench ("mappend char+" ++ kind) $
+            [ bench "mappend char" $
                 nf (TL.length . TB.toLazyText . mappendNChar 'a') 10000
-            , bench ("mappend 8 char+" ++ kind) $
+            , bench "mappend 8 char" $
                 nf (TL.length . TB.toLazyText . mappend8Char) 'a'
-            , bench ("mappend text+" ++ kind) $
+            , bench "mappend text" $
                 nf (TL.length . TB.toLazyText . mappendNText short) 10000
             ]
         ]
   where
-    benchT   = bench ("Text+" ++ kind)
-    benchTL  = bench ("LazyText+" ++ kind)
+    benchT   = bench "Text"
+    benchTL  = bench "LazyText"
 
     c  = 'й'
     p0 = (== c)

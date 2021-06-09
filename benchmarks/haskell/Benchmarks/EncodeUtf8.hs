@@ -20,9 +20,9 @@ import qualified Data.Text.Lazy.Encoding as TL
 
 benchmark :: String -> String -> Benchmark
 benchmark name string =
-    bgroup "EncodeUtf8"
-        [ bench ("Text (" ++ name ++ ")")     $ whnf (B.length . T.encodeUtf8)   text
-        , bench ("LazyText (" ++ name ++ ")") $ whnf (BL.length . TL.encodeUtf8) lazyText
+    bgroup name
+        [ bench "Text"     $ whnf (B.length . T.encodeUtf8)   text
+        , bench "LazyText" $ whnf (BL.length . TL.encodeUtf8) lazyText
         ]
   where
     -- The string in different formats
