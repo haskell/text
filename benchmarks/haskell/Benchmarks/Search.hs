@@ -10,43 +10,27 @@ module Benchmarks.Search
     ) where
 
 import Test.Tasty.Bench (Benchmark, bench, bgroup, whnf)
-import qualified Data.ByteString as B
-import qualified Data.ByteString.Lazy as BL
-import qualified Data.ByteString.Lazy.Search as BL
-import qualified Data.ByteString.Search as B
 import qualified Data.Text as T
-import qualified Data.Text.Encoding as T
 import qualified Data.Text.IO as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.IO as TL
 
-type Env = (B.ByteString, BL.ByteString, T.Text, TL.Text)
+type Env = (T.Text, TL.Text)
 
 initEnv :: FilePath -> IO Env
 initEnv fp = do
-    b  <- B.readFile fp
-    bl <- BL.readFile fp
     t  <- T.readFile fp
     tl <- TL.readFile fp
-    return (b, bl, t, tl)
+    return (t, tl)
 
 benchmark :: T.Text -> Env -> Benchmark
-benchmark needleT ~(b, bl, t, tl) =
+benchmark needleT ~(t, tl) =
     bgroup "FileIndices"
-        [ bench "ByteString"     $ whnf (byteString needleB)     b
-        , bench "LazyByteString" $ whnf (lazyByteString needleB) bl
-        , bench "Text"           $ whnf (text needleT)           t
+        [ bench "Text"           $ whnf (text needleT)           t
         , bench "LazyText"       $ whnf (lazyText needleTL)      tl
         ]
   where
-    needleB = T.encodeUtf8 needleT
     needleTL = TL.fromChunks [needleT]
-
-byteString :: B.ByteString -> B.ByteString -> Int
-byteString needle = length . B.indices needle
-
-lazyByteString :: B.ByteString -> BL.ByteString -> Int
-lazyByteString needle = length . BL.indices needle
 
 text :: T.Text -> T.Text -> Int
 text = T.count

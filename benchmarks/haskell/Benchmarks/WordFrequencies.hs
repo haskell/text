@@ -14,29 +14,23 @@ module Benchmarks.WordFrequencies
     ) where
 
 import Test.Tasty.Bench (Benchmark, bench, bgroup, whnf)
-import Data.Char (toLower)
 import Data.List (foldl')
 import Data.Map (Map)
-import qualified Data.ByteString.Char8 as B
 import qualified Data.Map as M
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 
-type Env = (String, B.ByteString, T.Text)
+type Env = T.Text
 
 initEnv :: FilePath -> IO Env
 initEnv fp = do
-    s <- readFile fp
-    b <- B.readFile fp
     t <- T.readFile fp
-    return (s, b, t)
+    return t
 
 benchmark :: Env -> Benchmark
-benchmark ~(s, b, t) =
+benchmark ~t =
     bgroup "WordFrequencies"
-        [ bench "String"     $ whnf (frequencies . words . map toLower)     s
-        , bench "ByteString" $ whnf (frequencies . B.words . B.map toLower) b
-        , bench "Text"       $ whnf (frequencies . T.words . T.toLower)     t
+        [ bench "Text"       $ whnf (frequencies . T.words . T.toLower)     t
         ]
 
 frequencies :: Ord a => [a] -> Map a Int
