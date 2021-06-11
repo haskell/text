@@ -197,15 +197,6 @@ test-suite tests
     Tests.SlowFunctions
     Tests.Utils
 
-  -- Fusion tests fail in developer mode (because asserts break inlining)
-  -- and take ages to build.
-  if flag(developer)
-    cpp-options: -DASSERTS
-  else
-    other-modules:
-      Tests.Inspection.Lazy
-      Tests.Inspection.Strict
-
   build-depends:
     QuickCheck >= 2.14.1 && < 2.15,
     base <5,
@@ -215,7 +206,6 @@ test-suite tests
     random,
     tasty,
     tasty-hunit,
-    tasty-inspection-testing,
     tasty-quickcheck,
     template-haskell,
     text
