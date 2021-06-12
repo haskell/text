@@ -1,9 +1,7 @@
 name: win-mac-ci
 on:
-  push:
-    branches:
-      - master
-  pull_request: {}
+  - push
+  - pull_request
 
 defaults:
   run:
@@ -43,4 +41,3 @@ jobs:
       run: cabal sdist
     - name: Build bench
       run: cabal bench --benchmark-option=-l
-      if: contains(matrix.os, 'macOS')
