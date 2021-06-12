@@ -1,7 +1,3 @@
-benchmarks: >=7.6
+ghcup-jobs: >=8.0
 doctest: <9.0
-doctest-options: -fobject-code -DINTEGER_GMP
-branches: master
-
-installed: +all -text -parsec
-install-dependencies: False
+doctest-options: -fobject-code
