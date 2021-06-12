@@ -16,14 +16,8 @@
 
 #include "text_cbits.h"
 
-void _hs_text_memcpy(void *dest, size_t doff, const void *src, size_t soff,
-		     size_t n)
-{
-  memcpy(dest + (doff<<1), src + (soff<<1), n<<1);
-}
-
 int _hs_text_memcmp(const void *a, size_t aoff, const void *b, size_t boff,
-		    size_t n)
+                   size_t n)
 {
   return memcmp(a + (aoff<<1), b + (boff<<1), n<<1);
 }
@@ -196,7 +190,7 @@ _hs_text_decode_utf8_int(uint16_t *const dest, size_t *destoff,
         _mm_storeu_si128((__m128i *)d, eight_utf16_chars);
         d += 8;
       }
-#else  
+#else
       while (s < srcend - 4) {
         codepoint = *((uint32_t *) s);
         if ((codepoint & 0x80808080) != 0)
