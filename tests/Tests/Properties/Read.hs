@@ -41,14 +41,14 @@ isFloaty c = c `elem` ("+-.0123456789eE" :: String)
 
 t_read_rational p tol (n::Double) s =
     case p (T.pack (show n) `T.append` t) of
-      Left _err     -> False
-      Right (n',t') -> t == t' && abs (n-n') <= tol
+      Left err      -> counterexample err $ property False
+      Right (n',t') -> t === t' .&&. property (abs (n-n') <= tol)
     where t = T.dropWhile isFloaty s
 
 tl_read_rational p tol (n::Double) s =
     case p (TL.pack (show n) `TL.append` t) of
-      Left _err     -> False
-      Right (n',t') -> t == t' && abs (n-n') <= tol
+      Left err      -> counterexample err $ property False
+      Right (n',t') -> t === t' .&&. property (abs (n-n') <= tol)
     where t = TL.dropWhile isFloaty s
 
 t_double = t_read_rational T.double 1e-13
