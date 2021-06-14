@@ -13,7 +13,6 @@ import Data.Text.Encoding.Error (UnicodeException)
 import Data.Text.Internal.Encoding.Utf8 (ord2, ord3, ord4)
 import Test.QuickCheck hiding ((.&.))
 import Test.QuickCheck.Property (Property(..))
-import Test.QuickCheck.Monadic
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.QuickCheck (testProperty)
 import Tests.QuickCheckUtils
@@ -122,10 +121,10 @@ t_utf8_err bad (Just de) = forAll (genDecodeErr de) $ \onErr -> ioProperty $ do
       length (show err) >= 0
     Right _  -> counterexample (show (decoded, l)) $ de /= Strict
 
-t_utf8_err' :: B.ByteString -> Property
-t_utf8_err' bs = monadicIO . assert $ case E.decodeUtf8' bs of
-                                        Left err -> length (show err) >= 0
-                                        Right t  -> T.length t >= 0
+t_utf8_err' :: B.ByteString -> Bool
+t_utf8_err' bs = case E.decodeUtf8' bs of
+  Left err -> length (show err) >= 0
+  Right t  -> T.length t >= 0
 
 genInvalidUTF8 :: Gen B.ByteString
 genInvalidUTF8 = B.pack <$> oneof [

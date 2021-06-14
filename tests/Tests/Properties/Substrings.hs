@@ -127,10 +127,10 @@ t_tails           = L.tails       `eqP` (map unpackS . T.tails)
 tl_tails          = L.tails       `eqPSqrt` (map unpackS . TL.tails)
 t_findAppendId = \(Sqrt (NotEmpty s)) ts ->
     let t = T.intercalate s ts
-    in all (==t) $ map (uncurry T.append) (T.breakOnAll s t)
+    in conjoin $ map (=== t) $ map (uncurry T.append) (T.breakOnAll s t)
 tl_findAppendId = \(Sqrt (NotEmpty s)) ts ->
     let t = TL.intercalate s ts
-    in all (==t) $ map (uncurry TL.append) (TL.breakOnAll s t)
+    in conjoin $ map (=== t) $ map (uncurry TL.append) (TL.breakOnAll s t)
 t_findContains = \(Sqrt (NotEmpty s)) ->
     all (T.isPrefixOf s . snd) . T.breakOnAll s . T.intercalate s
 tl_findContains = \(Sqrt (NotEmpty s)) -> all (TL.isPrefixOf s . snd) .
@@ -158,11 +158,11 @@ split p xs = loop xs
                  | otherwise = l : loop (tail s')
               where (l, s') = break p s
 
-t_chunksOf_same_lengths k = all ((==k) . T.length) . ini . T.chunksOf k
+t_chunksOf_same_lengths k = conjoin . map ((===k) . T.length) . ini . T.chunksOf k
   where ini [] = []
         ini xs = init xs
 
-t_chunksOf_length k t = len == T.length t || (k <= 0 && len == 0)
+t_chunksOf_length k t = len === T.length t .||. property (k <= 0 && len == 0)
   where len = L.sum . L.map T.length $ T.chunksOf k t
 
 tl_chunksOf k = T.chunksOf k `eq` (map (T.concat . TL.toChunks) .
@@ -214,14 +214,14 @@ commonPrefixes a0@(_:_) b0@(_:_) = Just (go a0 b0 [])
 commonPrefixes _ _ = Nothing
 
 t_commonPrefixes a b (NonEmpty p)
-    = commonPrefixes pa pb ==
+    = commonPrefixes pa pb ===
       repack `fmap` T.commonPrefixes (packS pa) (packS pb)
   where repack (x,y,z) = (unpackS x,unpackS y,unpackS z)
         pa = p ++ a
         pb = p ++ b
 
 tl_commonPrefixes a b (NonEmpty p)
-    = commonPrefixes pa pb ==
+    = commonPrefixes pa pb ===
       repack `fmap` TL.commonPrefixes (packS pa) (packS pb)
   where repack (x,y,z) = (unpackS x,unpackS y,unpackS z)
         pa = p ++ a

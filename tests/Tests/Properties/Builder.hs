@@ -29,7 +29,7 @@ tb_fromText = L.concat `eq` (unpackS . TB.toLazyText . mconcat .
                                    map (TB.fromText . packS))
 
 tb_associative s1 s2 s3 =
-    TB.toLazyText (b1 `mappend` (b2 `mappend` b3)) ==
+    TB.toLazyText (b1 `mappend` (b2 `mappend` b3)) ===
     TB.toLazyText ((b1 `mappend` b2) `mappend` b3)
   where b1 = TB.fromText (packS s1)
         b2 = TB.fromText (packS s2)
@@ -37,7 +37,7 @@ tb_associative s1 s2 s3 =
 
 -- Numeric builder stuff.
 
-tb_decimal :: (Integral a, Show a) => a -> Bool
+tb_decimal :: (Integral a, Show a) => a -> Property
 tb_decimal = (TB.toLazyText . TB.decimal) `eq` (TL.pack . show)
 
 tb_decimal_integer (a::Integer) = tb_decimal a
@@ -58,7 +58,7 @@ tb_decimal_big_int64 (BigBounded (a::Int64)) = tb_decimal a
 tb_decimal_big_word (BigBounded (a::Word)) = tb_decimal a
 tb_decimal_big_word64 (BigBounded (a::Word64)) = tb_decimal a
 
-tb_hex :: (Integral a, Show a) => a -> Bool
+tb_hex :: (Integral a, Show a) => a -> Property
 tb_hex = (TB.toLazyText . TB.hexadecimal) `eq` (TL.pack . flip showHex "")
 
 tb_hexadecimal_integer (a::Integer) = tb_hex a
@@ -73,7 +73,7 @@ tb_hexadecimal_word16 (a::Word16) = tb_hex a
 tb_hexadecimal_word32 (a::Word32) = tb_hex a
 tb_hexadecimal_word64 (a::Word64) = tb_hex a
 
-tb_realfloat :: (RealFloat a, Show a) => a -> Bool
+tb_realfloat :: (RealFloat a, Show a) => a -> Property
 tb_realfloat = (TB.toLazyText . TB.realFloat) `eq` (TL.pack . show)
 
 tb_realfloat_float (a::Float) = tb_realfloat a

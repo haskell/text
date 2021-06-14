@@ -38,10 +38,8 @@ import Control.Exception (bracket)
 import Data.Text.Foreign (I16)
 import Data.Text.Lazy.Builder.RealFloat (FPFormat(..))
 import Data.Word (Word8, Word16)
-import Debug.Trace (trace)
 import System.Random (Random(..), RandomGen)
 import Test.QuickCheck hiding (Fixed(..), Small (..), (.&.))
-import Test.QuickCheck.Monadic (assert, monadicIO, run)
 import Tests.Utils
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
@@ -240,16 +238,16 @@ unpack2 :: (Stringy s) => (s,s) -> (String,String)
 unpack2 = unpackS *** unpackS
 
 -- Do two functions give the same answer?
-eq :: (Eq a, Show a) => (t -> a) -> (t -> a) -> t -> Bool
+eq :: (Eq a, Show a) => (t -> a) -> (t -> a) -> t -> Property
 eq a b s  = a s =^= b s
 
 -- What about with the RHS packed?
 eqP :: (Eq a, Show a, Stringy s) =>
-       (String -> a) -> (s -> a) -> String -> Word8 -> Bool
-eqP f g s w  = eql "orig" (f s) (g t) &&
-               eql "mini" (f s) (g mini) &&
-               eql "head" (f sa) (g ta) &&
-               eql "tail" (f sb) (g tb)
+       (String -> a) -> (s -> a) -> String -> Word8 -> Property
+eqP f g s w  = counterexample "orig" (f s =^= g t) .&&.
+               counterexample "mini" (f s =^= g mini) .&&.
+               counterexample "head" (f sa =^= g ta) .&&.
+               counterexample "tail" (f sb =^= g tb)
     where t             = packS s
           mini          = packSChunkSize 10 s
           (sa,sb)       = splitAt m s
@@ -258,12 +256,9 @@ eqP f g s w  = eql "orig" (f s) (g t) &&
           m | l == 0    = n
             | otherwise = n `mod` l
           n             = fromIntegral w
-          eql d a b
-            | a =^= b   = True
-            | otherwise = trace (d ++ ": " ++ show a ++ " /= " ++ show b) False
 
 eqPSqrt :: (Eq a, Show a, Stringy s) =>
-       (String -> a) -> (s -> a) -> Sqrt String -> Word8 -> Bool
+       (String -> a) -> (s -> a) -> Sqrt String -> Word8 -> Property
 eqPSqrt f g s = eqP f g (unSqrt s)
 
 instance Arbitrary FPFormat where
@@ -332,7 +327,7 @@ instance Arbitrary IO.BufferMode where
 -- * Encoding.
 -- * Newline translation mode.
 -- * Buffering.
-write_read :: (NFData a, Eq a)
+write_read :: (NFData a, Eq a, Show a)
            => ([b] -> a)
            -> ((Char -> Bool) -> a -> b)
            -> (IO.Handle -> a -> IO ())
@@ -342,18 +337,20 @@ write_read :: (NFData a, Eq a)
            -> IO.BufferMode
            -> [a]
            -> Property
-write_read unline filt writer reader (E _ _) nl buf ts =
-    monadicIO $ assert . (==t) =<< run act
-  where t = unline . map (filt (not . (`elem` "\r\n"))) $ ts
-        act = withTempFile $ \path h -> do
-                -- hSetEncoding h enc
-                IO.hSetNewlineMode h nl
-                IO.hSetBuffering h buf
-                () <- writer h t
-                IO.hClose h
-                bracket (IO.openFile path IO.ReadMode) IO.hClose $ \h' -> do
-                  -- hSetEncoding h' enc
-                  IO.hSetNewlineMode h' nl
-                  IO.hSetBuffering h' buf
-                  r <- reader h'
-                  r `deepseq` return r
+write_read unline filt writer reader (E _ _) nl buf ts = ioProperty $
+    (===t) <$> act
+  where
+    t = unline . map (filt (not . (`elem` "\r\n"))) $ ts
+
+    act = withTempFile $ \path h -> do
+            -- hSetEncoding h enc
+            IO.hSetNewlineMode h nl
+            IO.hSetBuffering h buf
+            () <- writer h t
+            IO.hClose h
+            bracket (IO.openFile path IO.ReadMode) IO.hClose $ \h' -> do
+              -- hSetEncoding h' enc
+              IO.hSetNewlineMode h' nl
+              IO.hSetBuffering h' buf
+              r <- reader h'
+              r `deepseq` return r

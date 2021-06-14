@@ -10,24 +10,23 @@ module Tests.Utils
 
 import Control.Exception (SomeException, bracket, bracket_, evaluate, try)
 import Control.Monad (when)
-import Debug.Trace (trace)
 import GHC.IO.Handle.Internals (withHandle)
 import System.Directory (removeFile)
 import System.IO (Handle, hClose, hFlush, hIsOpen, hIsWritable, openTempFile)
-import System.IO.Unsafe (unsafePerformIO)
+import Test.QuickCheck (Property, ioProperty, property, (===), counterexample)
 
 -- Ensure that two potentially bottom values (in the sense of crashing
 -- for some inputs, not looping infinitely) either both crash, or both
 -- give comparable results for some input.
-(=^=) :: (Eq a, Show a) => a -> a -> Bool
-i =^= j = unsafePerformIO $ do
+(=^=) :: (Eq a, Show a) => a -> a -> Property
+i =^= j = ioProperty $ do
   x <- try (evaluate i)
   y <- try (evaluate j)
-  case (x,y) of
+  return $ case (x, y) of
     (Left (_ :: SomeException), Left (_ :: SomeException))
-                       -> return True
-    (Right a, Right b) -> return (a == b)
-    e                  -> trace ("*** Divergence: " ++ show e) return False
+                       -> property True
+    (Right a, Right b) -> a === b
+    e                  -> counterexample ("Divergence: " ++ show e) $ property False
 infix 4 =^=
 {-# NOINLINE (=^=) #-}
 
