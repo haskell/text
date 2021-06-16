@@ -43,6 +43,9 @@ module Data.Text
     -- * Definition of character
     -- $character_definition
 
+    -- * Fusion
+    -- $fusion
+
     -- * Types
       Text
 
@@ -307,6 +310,14 @@ import Text.Printf (PrintfArg, formatArg, formatString)
 -- invalid scalar values, instead of dropping them, as a security
 -- measure. For details, see
 -- <http://unicode.org/reports/tr36/#Deletion_of_Noncharacters Unicode Technical Report 36, §3.5 >.)
+
+-- $fusion
+--
+-- Starting from @text-1.3@ fusion is no longer implicit,
+-- and pipelines of transormations usually allocate intermediate 'Text' values.
+-- Users, who observe significant changes to performances,
+-- are encouraged to use fusion framework explicitly, employing
+-- "Data.Text.Internal.Fusion" and "Data.Text.Internal.Fusion.Common".
 
 instance Eq Text where
     Text arrA offA lenA == Text arrB offB lenB
