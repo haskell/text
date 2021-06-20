@@ -226,6 +226,7 @@ benchmark text-benchmarks
                   bytestring >= 0.10.4,
                   containers,
                   deepseq,
+                  directory,
                   filepath,
                   tasty-bench >= 0.2,
                   text,

@@ -1,13 +1,17 @@
--- | Main module to run the micro benchmarks
---
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedStrings #-}
+
 module Main
     ( main
     ) where
 
 import Test.Tasty.Bench (defaultMain, bgroup, env)
 import System.FilePath ((</>))
-import System.IO (IOMode (WriteMode), openFile, hSetEncoding, utf8)
+import System.IO
+
+#ifdef mingw32_HOST_OS
+import System.Directory (removeFile)
+#endif
 
 import qualified Benchmarks.Builder as Builder
 import qualified Benchmarks.Concat as Concat
@@ -32,10 +36,29 @@ import qualified Benchmarks.Programs.Sort as Programs.Sort
 import qualified Benchmarks.Programs.StripTags as Programs.StripTags
 import qualified Benchmarks.Programs.Throughput as Programs.Throughput
 
+mkSink :: IO (FilePath, Handle)
+mkSink = do
+#ifdef mingw32_HOST_OS
+    (sinkFn, sink) <- openTempFile "." "dev.null"
+#else
+    let sinkFn = "/dev/null"
+    sink <- openFile sinkFn  WriteMode
+#endif
+    hSetEncoding sink utf8
+    pure (sinkFn, sink)
+
+rmSink :: FilePath -> IO ()
+#ifdef mingw32_HOST_OS
+rmSink = removeFile
+#else
+rmSink _ = pure ()
+#endif
+
 main :: IO ()
 main = do
-    sink <- openFile "/dev/null" WriteMode
-    hSetEncoding sink utf8
+    let tf = ("benchmarks/text-test-data" </>)
+    -- Cannot use envWithCleanup, because there is no instance NFData Handle
+    (sinkFn, sink) <- mkSink
     defaultMain
         [ Builder.benchmark
         , Concat.benchmark
@@ -78,6 +101,4 @@ main = do
             , Programs.Throughput.benchmark (tf "russian.txt") sink
             ]
         ]
-    where
-    -- Location of a test file
-    tf = ("benchmarks/text-test-data" </>)
+    rmSink sinkFn
