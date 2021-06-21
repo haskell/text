@@ -59,7 +59,6 @@ import qualified Data.ByteString.Builder.Extra as B (safeStrategy, toLazyByteStr
 import qualified Data.ByteString.Builder.Prim as BP
 import qualified Data.ByteString.Lazy as B
 import qualified Data.ByteString.Lazy.Internal as B
-import qualified Data.ByteString.Unsafe as B
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text.Internal.Lazy.Encoding.Fusion as E
@@ -120,10 +119,6 @@ decodeUtf8With _ _ = empty
 decodeUtf8 :: B.ByteString -> Text
 decodeUtf8 = decodeUtf8With strictDecode
 {-# INLINE[0] decodeUtf8 #-}
-
--- This rule seems to cause performance loss.
-{- RULES "LAZY STREAM stream/decodeUtf8' fusion" [1]
-   forall bs. F.stream (decodeUtf8' bs) = E.streamUtf8 strictDecode bs #-}
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text..
 --

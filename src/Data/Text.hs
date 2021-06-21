@@ -313,28 +313,11 @@ import Text.Printf (PrintfArg, formatArg, formatString)
 
 -- $fusion
 --
--- Most of the functions in this module are subject to /fusion/,
--- meaning that a pipeline of such functions will usually allocate at
--- most one 'Text' value.
---
--- As an example, consider the following pipeline:
---
--- > import Data.Text as T
--- > import Data.Text.Encoding as E
--- > import Data.ByteString (ByteString)
--- >
--- > countChars :: ByteString -> Int
--- > countChars = T.length . T.toUpper . E.decodeUtf8
---
--- From the type signatures involved, this looks like it should
--- allocate one 'Data.ByteString.ByteString' value, and two 'Text'
--- values. However, when a module is compiled with optimisation
--- enabled under GHC, the two intermediate 'Text' values will be
--- optimised away, and the function will be compiled down to a single
--- loop over the source 'Data.ByteString.ByteString'.
---
--- Functions that can be fused by the compiler are documented with the
--- phrase \"Subject to fusion\".
+-- Starting from @text-1.3@ fusion is no longer implicit,
+-- and pipelines of transormations usually allocate intermediate 'Text' values.
+-- Users, who observe significant changes to performances,
+-- are encouraged to use fusion framework explicitly, employing
+-- "Data.Text.Internal.Fusion" and "Data.Text.Internal.Fusion.Common".
 
 instance Eq Text where
     Text arrA offA lenA == Text arrB offB lenB
@@ -439,8 +422,8 @@ compareText ta@(Text _arrA _offA lenA) tb@(Text _arrB _offB lenB)
 -- -----------------------------------------------------------------------------
 -- * Conversion to/from 'Text'
 
--- | /O(n)/ Convert a 'String' into a 'Text'.  Subject to
--- fusion.  Performs replacement on invalid scalar values.
+-- | /O(n)/ Convert a 'String' into a 'Text'.
+-- Performs replacement on invalid scalar values.
 pack :: String -> Text
 pack = unstream . S.map safe . S.streamList
 {-# INLINE [1] pack #-}
@@ -450,7 +433,7 @@ pack = unstream . S.map safe . S.streamList
 
 -- | /O(n)/ Adds a character to the front of a 'Text'.  This function
 -- is more costly than its 'List' counterpart because it requires
--- copying a new array.  Subject to fusion.  Performs replacement on
+-- copying a new array.  Performs replacement on
 -- invalid scalar values.
 cons :: Char -> Text -> Text
 cons c t = unstream (S.cons (safe c) (stream t))
@@ -459,14 +442,14 @@ cons c t = unstream (S.cons (safe c) (stream t))
 infixr 5 `cons`
 
 -- | /O(n)/ Adds a character to the end of a 'Text'.  This copies the
--- entire array in the process, unless fused.  Subject to fusion.
+-- entire array in the process.
 -- Performs replacement on invalid scalar values.
 snoc :: Text -> Char -> Text
 snoc t c = unstream (S.snoc (stream t) (safe c))
 {-# INLINE snoc #-}
 
 -- | /O(n)/ Appends one 'Text' to the other by copying both of them
--- into a new 'Text'.  Subject to fusion.
+-- into a new 'Text'.
 append :: Text -> Text -> Text
 append a@(Text arr1 off1 len1) b@(Text arr2 off2 len2)
     | len1 == 0 = b
@@ -483,21 +466,14 @@ append a@(Text arr1 off1 len1) b@(Text arr2 off2 len2)
         return arr
 {-# NOINLINE append #-}
 
-{-# RULES
-"TEXT append -> fused" [~1] forall t1 t2.
-    append t1 t2 = unstream (S.append (stream t1) (stream t2))
-"TEXT append -> unfused" [1] forall t1 t2.
-    unstream (S.append (stream t1) (stream t2)) = append t1 t2
- #-}
-
 -- | /O(1)/ Returns the first character of a 'Text', which must be
--- non-empty.  Subject to fusion.
+-- non-empty.
 head :: Text -> Char
 head t = S.head (stream t)
 {-# INLINE head #-}
 
 -- | /O(1)/ Returns the first character and rest of a 'Text', or
--- 'Nothing' if empty. Subject to fusion.
+-- 'Nothing' if empty.
 uncons :: Text -> Maybe (Char, Text)
 uncons t@(Text arr off len)
     | len <= 0  = Nothing
@@ -510,7 +486,7 @@ second :: (b -> c) -> (a,b) -> (a,c)
 second f (a, b) = (a, f b)
 
 -- | /O(1)/ Returns the last character of a 'Text', which must be
--- non-empty.  Subject to fusion.
+-- non-empty.
 last :: Text -> Char
 last (Text arr off len)
     | len <= 0                 = emptyError "last"
@@ -520,15 +496,8 @@ last (Text arr off len)
           n0 = A.unsafeIndex arr (off+len-2)
 {-# INLINE [1] last #-}
 
-{-# RULES
-"TEXT last -> fused" [~1] forall t.
-    last t = S.last (stream t)
-"TEXT last -> unfused" [1] forall t.
-    S.last (stream t) = last t
-  #-}
-
 -- | /O(1)/ Returns all characters after the head of a 'Text', which
--- must be non-empty.  Subject to fusion.
+-- must be non-empty.
 tail :: Text -> Text
 tail t@(Text arr off len)
     | len <= 0  = emptyError "tail"
@@ -536,15 +505,8 @@ tail t@(Text arr off len)
     where d = iter_ t 0
 {-# INLINE [1] tail #-}
 
-{-# RULES
-"TEXT tail -> fused" [~1] forall t.
-    tail t = unstream (S.tail (stream t))
-"TEXT tail -> unfused" [1] forall t.
-    unstream (S.tail (stream t)) = tail t
- #-}
-
 -- | /O(1)/ Returns all but the last character of a 'Text', which must
--- be non-empty.  Subject to fusion.
+-- be non-empty.
 init :: Text -> Text
 init (Text arr off len) | len <= 0                   = emptyError "init"
                         | n >= 0xDC00 && n <= 0xDFFF = text arr off (len-2)
@@ -552,13 +514,6 @@ init (Text arr off len) | len <= 0                   = emptyError "init"
     where
       n = A.unsafeIndex arr (off+len-1)
 {-# INLINE [1] init #-}
-
-{-# RULES
-"TEXT init -> fused" [~1] forall t.
-    init t = unstream (S.init (stream t))
-"TEXT init -> unfused" [1] forall t.
-    unstream (S.init (stream t)) = init t
- #-}
 
 -- | /O(1)/ Returns all but the last character and the last character of a
 -- 'Text', or 'Nothing' if empty.
@@ -573,8 +528,7 @@ unsnoc (Text arr off len)
           n0 = A.unsafeIndex arr (off+len-2)
 {-# INLINE [1] unsnoc #-}
 
--- | /O(1)/ Tests whether a 'Text' is empty or not.  Subject to
--- fusion.
+-- | /O(1)/ Tests whether a 'Text' is empty or not.
 null :: Text -> Bool
 null (Text _arr _off len) =
 #if defined(ASSERTS)
@@ -583,21 +537,12 @@ null (Text _arr _off len) =
     len <= 0
 {-# INLINE [1] null #-}
 
-{-# RULES
-"TEXT null -> fused" [~1] forall t.
-    null t = S.null (stream t)
-"TEXT null -> unfused" [1] forall t.
-    S.null (stream t) = null t
- #-}
-
 -- | /O(1)/ Tests whether a 'Text' contains exactly one character.
--- Subject to fusion.
 isSingleton :: Text -> Bool
 isSingleton = S.isSingleton . stream
 {-# INLINE isSingleton #-}
 
 -- | /O(n)/ Returns the number of characters in a 'Text'.
--- Subject to fusion.
 length ::
 #if defined(ASSERTS)
   HasCallStack =>
@@ -609,7 +554,6 @@ length t = S.length (stream t)
 -- it may inline before the rules have an opportunity to fire.
 
 -- | /O(n)/ Compare the count of characters in a 'Text' to a number.
--- Subject to fusion.
 --
 -- This function gives the same answer as comparing against the result
 -- of 'length', but can short circuit if the count of characters is
@@ -664,7 +608,7 @@ compareLength t n = S.compareLengthI (stream t) n
 -- >>> T.map (\c -> if c == '.' then '!' else c) message
 -- "I am not angry! Not at all!"
 --
--- Subject to fusion.  Performs replacement on invalid scalar values.
+-- Performs replacement on invalid scalar values.
 map :: (Char -> Char) -> Text -> Text
 map f t = unstream (S.map (safe . f) (stream t))
 {-# INLINE [1] map #-}
@@ -689,7 +633,7 @@ intercalate t = concat . (F.intersperse t)
 -- >>> T.intersperse '.' "SHIELD"
 -- "S.H.I.E.L.D"
 --
--- Subject to fusion.  Performs replacement on invalid scalar values.
+-- Performs replacement on invalid scalar values.
 intersperse     :: Char -> Text -> Text
 intersperse c t = unstream (S.intersperse (safe c) (stream t))
 {-# INLINE intersperse #-}
@@ -700,8 +644,6 @@ intersperse c t = unstream (S.intersperse (safe c) (stream t))
 --
 -- >>> T.reverse "desrever"
 -- "reversed"
---
--- Subject to fusion (fuses with its argument).
 reverse ::
 #if defined(ASSERTS)
   HasCallStack =>
@@ -786,7 +728,7 @@ replace needle@(Text _      _      neeLen)
 -- sensitivity should use appropriate versions of the
 -- <http://hackage.haskell.org/package/text-icu-0.6.3.7/docs/Data-Text-ICU.html#g:4 case mapping functions from the text-icu package >.
 
--- | /O(n)/ Convert a string to folded case.  Subject to fusion.
+-- | /O(n)/ Convert a string to folded case.
 --
 -- This function is mainly useful for performing caseless (also known
 -- as case insensitive) string comparisons.
@@ -807,7 +749,7 @@ toCaseFold t = unstream (S.toCaseFold (stream t))
 {-# INLINE toCaseFold #-}
 
 -- | /O(n)/ Convert a string to lower case, using simple case
--- conversion.  Subject to fusion.
+-- conversion.
 --
 -- The result string may be longer than the input string.  For
 -- instance, \"&#x130;\" (Latin capital letter I with dot above,
@@ -818,7 +760,7 @@ toLower t = unstream (S.toLower (stream t))
 {-# INLINE toLower #-}
 
 -- | /O(n)/ Convert a string to upper case, using simple case
--- conversion.  Subject to fusion.
+-- conversion.
 --
 -- The result string may be longer than the input string.  For
 -- instance, the German \"&#xdf;\" (eszett, U+00DF) maps to the
@@ -828,7 +770,7 @@ toUpper t = unstream (S.toUpper (stream t))
 {-# INLINE toUpper #-}
 
 -- | /O(n)/ Convert a string to title case, using simple case
--- conversion. Subject to fusion.
+-- conversion.
 --
 -- The first letter of the input is converted to title case, as is
 -- every subsequent letter that immediately follows a non-letter.
@@ -852,7 +794,7 @@ toTitle t = unstream (S.toTitle (stream t))
 {-# INLINE toTitle #-}
 
 -- | /O(n)/ Left-justify a string to the given length, using the
--- specified fill character on the right. Subject to fusion.
+-- specified fill character on the right.
 -- Performs replacement on invalid scalar values.
 --
 -- Examples:
@@ -868,13 +810,6 @@ justifyLeft k c t
     | otherwise = t `append` replicateChar (k-len) c
   where len = length t
 {-# INLINE [1] justifyLeft #-}
-
-{-# RULES
-"TEXT justifyLeft -> fused" [~1] forall k c t.
-    justifyLeft k c t = unstream (S.justifyLeftI k c (stream t))
-"TEXT justifyLeft -> unfused" [1] forall k c t.
-    unstream (S.justifyLeftI k c (stream t)) = justifyLeft k c t
-  #-}
 
 -- | /O(n)/ Right-justify a string to the given length, using the
 -- specified fill character on the left.  Performs replacement on
@@ -933,23 +868,22 @@ transpose ts = P.map pack (L.transpose (P.map unpack ts))
 -- | /O(n)/ 'foldl', applied to a binary operator, a starting value
 -- (typically the left-identity of the operator), and a 'Text',
 -- reduces the 'Text' using the binary operator, from left to right.
--- Subject to fusion.
 foldl :: (a -> Char -> a) -> a -> Text -> a
 foldl f z t = S.foldl f z (stream t)
 {-# INLINE foldl #-}
 
--- | /O(n)/ A strict version of 'foldl'.  Subject to fusion.
+-- | /O(n)/ A strict version of 'foldl'.
 foldl' :: (a -> Char -> a) -> a -> Text -> a
 foldl' f z t = S.foldl' f z (stream t)
 {-# INLINE foldl' #-}
 
 -- | /O(n)/ A variant of 'foldl' that has no starting value argument,
--- and thus must be applied to a non-empty 'Text'.  Subject to fusion.
+-- and thus must be applied to a non-empty 'Text'.
 foldl1 :: (Char -> Char -> Char) -> Text -> Char
 foldl1 f t = S.foldl1 f (stream t)
 {-# INLINE foldl1 #-}
 
--- | /O(n)/ A strict version of 'foldl1'.  Subject to fusion.
+-- | /O(n)/ A strict version of 'foldl1'.
 foldl1' :: (Char -> Char -> Char) -> Text -> Char
 foldl1' f t = S.foldl1' f (stream t)
 {-# INLINE foldl1' #-}
@@ -957,14 +891,12 @@ foldl1' f t = S.foldl1' f (stream t)
 -- | /O(n)/ 'foldr', applied to a binary operator, a starting value
 -- (typically the right-identity of the operator), and a 'Text',
 -- reduces the 'Text' using the binary operator, from right to left.
--- Subject to fusion.
 foldr :: (Char -> a -> a) -> a -> Text -> a
 foldr f z t = S.foldr f z (stream t)
 {-# INLINE foldr #-}
 
 -- | /O(n)/ A variant of 'foldr' that has no starting value argument,
--- and thus must be applied to a non-empty 'Text'.  Subject to
--- fusion.
+-- and thus must be applied to a non-empty 'Text'.
 foldr1 :: (Char -> Char -> Char) -> Text -> Char
 foldr1 f t = S.foldr1 f (stream t)
 {-# INLINE foldr1 #-}
@@ -995,25 +927,25 @@ concatMap f = concat . foldr ((:) . f) []
 {-# INLINE concatMap #-}
 
 -- | /O(n)/ 'any' @p@ @t@ determines whether any character in the
--- 'Text' @t@ satisfies the predicate @p@. Subject to fusion.
+-- 'Text' @t@ satisfies the predicate @p@.
 any :: (Char -> Bool) -> Text -> Bool
 any p t = S.any p (stream t)
 {-# INLINE any #-}
 
 -- | /O(n)/ 'all' @p@ @t@ determines whether all characters in the
--- 'Text' @t@ satisfy the predicate @p@. Subject to fusion.
+-- 'Text' @t@ satisfy the predicate @p@.
 all :: (Char -> Bool) -> Text -> Bool
 all p t = S.all p (stream t)
 {-# INLINE all #-}
 
 -- | /O(n)/ 'maximum' returns the maximum value from a 'Text', which
--- must be non-empty. Subject to fusion.
+-- must be non-empty.
 maximum :: Text -> Char
 maximum t = S.maximum (stream t)
 {-# INLINE maximum #-}
 
 -- | /O(n)/ 'minimum' returns the minimum value from a 'Text', which
--- must be non-empty. Subject to fusion.
+-- must be non-empty.
 minimum :: Text -> Char
 minimum t = S.minimum (stream t)
 {-# INLINE minimum #-}
@@ -1022,7 +954,7 @@ minimum t = S.minimum (stream t)
 -- * Building 'Text's
 
 -- | /O(n)/ 'scanl' is similar to 'foldl', but returns a list of
--- successive reduced values from the left. Subject to fusion.
+-- successive reduced values from the left.
 -- Performs replacement on invalid scalar values.
 --
 -- > scanl f z [x1, x2, ...] == [z, z `f` x1, (z `f` x1) `f` x2, ...]
@@ -1111,7 +1043,7 @@ replicate n t@(Text a o l)
   #-}
 
 -- | /O(n)/ 'replicateChar' @n@ @c@ is a 'Text' of length @n@ with @c@ the
--- value of every element. Subject to fusion.
+-- value of every element.
 replicateChar :: Int -> Char -> Text
 replicateChar n c = unstream (S.replicateCharI n (safe c))
 {-# INLINE replicateChar #-}
@@ -1121,8 +1053,8 @@ replicateChar n c = unstream (S.replicateCharI n (safe c))
 -- 'Text' from a seed value. The function takes the element and
 -- returns 'Nothing' if it is done producing the 'Text', otherwise
 -- 'Just' @(a,b)@.  In this case, @a@ is the next 'Char' in the
--- string, and @b@ is the seed value for further production. Subject
--- to fusion.  Performs replacement on invalid scalar values.
+-- string, and @b@ is the seed value for further production.
+-- Performs replacement on invalid scalar values.
 unfoldr     :: (a -> Maybe (Char,a)) -> a -> Text
 unfoldr f s = unstream (S.unfoldr (firstf safe . f) s)
 {-# INLINE unfoldr #-}
@@ -1131,8 +1063,8 @@ unfoldr f s = unstream (S.unfoldr (firstf safe . f) s)
 -- value. However, the length of the result should be limited by the
 -- first argument to 'unfoldrN'. This function is more efficient than
 -- 'unfoldr' when the maximum length of the result is known and
--- correct, otherwise its performance is similar to 'unfoldr'. Subject
--- to fusion.  Performs replacement on invalid scalar values.
+-- correct, otherwise its performance is similar to 'unfoldr'.
+-- Performs replacement on invalid scalar values.
 unfoldrN     :: Int -> (a -> Maybe (Char,a)) -> a -> Text
 unfoldrN n f s = unstream (S.unfoldrN n (firstf safe . f) s)
 {-# INLINE unfoldrN #-}
@@ -1142,7 +1074,7 @@ unfoldrN n f s = unstream (S.unfoldrN n (firstf safe . f) s)
 
 -- | /O(n)/ 'take' @n@, applied to a 'Text', returns the prefix of the
 -- 'Text' of length @n@, or the 'Text' itself if @n@ is greater than
--- the length of the Text. Subject to fusion.
+-- the length of the Text.
 take :: Int -> Text -> Text
 take n t@(Text arr off len)
     | n <= 0    = empty
@@ -1156,13 +1088,6 @@ iterN n t@(Text _arr _off len) = loop 0 0
             | i >= len || cnt >= n = i
             | otherwise            = loop (i+d) (cnt+1)
           where d = iter_ t i
-
-{-# RULES
-"TEXT take -> fused" [~1] forall n t.
-    take n t = unstream (S.take n (stream t))
-"TEXT take -> unfused" [1] forall n t.
-    unstream (S.take n (stream t)) = take n t
-  #-}
 
 -- | /O(n)/ 'takeEnd' @n@ @t@ returns the suffix remaining after
 -- taking @n@ characters from the end of @t@.
@@ -1190,7 +1115,7 @@ iterNEnd n t@(Text _arr _off len) = loop (len-1) n
 
 -- | /O(n)/ 'drop' @n@, applied to a 'Text', returns the suffix of the
 -- 'Text' after the first @n@ characters, or the empty 'Text' if @n@
--- is greater than the length of the 'Text'. Subject to fusion.
+-- is greater than the length of the 'Text'.
 drop :: Int -> Text -> Text
 drop n t@(Text arr off len)
     | n <= 0    = t
@@ -1198,15 +1123,6 @@ drop n t@(Text arr off len)
     | otherwise = text arr (off+i) (len-i)
   where i = iterN n t
 {-# INLINE [1] drop #-}
-
-{-# RULES
-"TEXT drop -> fused" [~1] forall n t.
-    drop n t = unstream (S.drop n (stream t))
-"TEXT drop -> unfused" [1] forall n t.
-    unstream (S.drop n (stream t)) = drop n t
-"TEXT take . drop -> unfused" [1] forall len off t.
-    unstream (S.take len (S.drop off (stream t))) = take len (drop off t)
-  #-}
 
 -- | /O(n)/ 'dropEnd' @n@ @t@ returns the prefix remaining after
 -- dropping @n@ characters from the end of @t@.
@@ -1225,7 +1141,7 @@ dropEnd n t@(Text arr off len)
 
 -- | /O(n)/ 'takeWhile', applied to a predicate @p@ and a 'Text',
 -- returns the longest prefix (possibly empty) of elements that
--- satisfy @p@.  Subject to fusion.
+-- satisfy @p@.
 takeWhile :: (Char -> Bool) -> Text -> Text
 takeWhile p t@(Text arr off len) = loop 0
   where loop !i | i >= len    = t
@@ -1233,13 +1149,6 @@ takeWhile p t@(Text arr off len) = loop 0
                 | otherwise   = text arr off i
             where Iter c d    = iter t i
 {-# INLINE [1] takeWhile #-}
-
-{-# RULES
-"TEXT takeWhile -> fused" [~1] forall p t.
-    takeWhile p t = unstream (S.takeWhile p (stream t))
-"TEXT takeWhile -> unfused" [1] forall p t.
-    unstream (S.takeWhile p (stream t)) = takeWhile p t
-  #-}
 
 -- | /O(n)/ 'takeWhileEnd', applied to a predicate @p@ and a 'Text',
 -- returns the longest suffix (possibly empty) of elements that
@@ -1259,7 +1168,7 @@ takeWhileEnd p t@(Text arr off len) = loop (len-1) len
 {-# INLINE [1] takeWhileEnd #-}
 
 -- | /O(n)/ 'dropWhile' @p@ @t@ returns the suffix remaining after
--- 'takeWhile' @p@ @t@. Subject to fusion.
+-- 'takeWhile' @p@ @t@.
 dropWhile :: (Char -> Bool) -> Text -> Text
 dropWhile p t@(Text arr off len) = loop 0 0
   where loop !i !l | l >= len  = empty
@@ -1267,13 +1176,6 @@ dropWhile p t@(Text arr off len) = loop 0 0
                    | otherwise = Text arr (off+i) (len-l)
             where Iter c d     = iter t i
 {-# INLINE [1] dropWhile #-}
-
-{-# RULES
-"TEXT dropWhile -> fused" [~1] forall p t.
-    dropWhile p t = unstream (S.dropWhile p (stream t))
-"TEXT dropWhile -> unfused" [1] forall p t.
-    unstream (S.dropWhile p (stream t)) = dropWhile p t
-  #-}
 
 -- | /O(n)/ 'dropWhileEnd' @p@ @t@ returns the prefix remaining after
 -- dropping characters that satisfy the predicate @p@ from the end of
@@ -1293,7 +1195,7 @@ dropWhileEnd p t@(Text arr off len) = loop (len-1) len
 
 -- | /O(n)/ 'dropAround' @p@ @t@ returns the substring remaining after
 -- dropping characters that satisfy the predicate @p@ from both the
--- beginning and end of @t@.  Subject to fusion.
+-- beginning and end of @t@.
 dropAround :: (Char -> Bool) -> Text -> Text
 dropAround p = dropWhile p . dropWhileEnd p
 {-# INLINE [1] dropAround #-}
@@ -1487,7 +1389,7 @@ elem c t = S.any (== c) (stream t)
 
 -- | /O(n)/ The 'find' function takes a predicate and a 'Text', and
 -- returns the first element matching the predicate, or 'Nothing' if
--- there is no such element. Subject to fusion.
+-- there is no such element.
 find :: (Char -> Bool) -> Text -> Maybe Char
 find p t = S.findBy p (stream t)
 {-# INLINE find #-}
@@ -1603,14 +1505,14 @@ breakOnAll pat src@(Text arr off slen)
 -- searching for the index of @\"::\"@ and taking the substrings
 -- before and after that index, you would instead use @breakOnAll \"::\"@.
 
--- | /O(n)/ 'Text' index (subscript) operator, starting from 0. Subject to fusion.
+-- | /O(n)/ 'Text' index (subscript) operator, starting from 0.
 index :: Text -> Int -> Char
 index t n = S.index (stream t) n
 {-# INLINE index #-}
 
 -- | /O(n)/ The 'findIndex' function takes a predicate and a 'Text'
 -- and returns the index of the first element in the 'Text' satisfying
--- the predicate. Subject to fusion.
+-- the predicate.
 findIndex :: (Char -> Bool) -> Text -> Maybe Int
 findIndex p t = S.findIndex p (stream t)
 {-# INLINE findIndex #-}
@@ -1634,7 +1536,7 @@ count pat src
   #-}
 
 -- | /O(n)/ The 'countChar' function returns the number of times the
--- query element appears in the given 'Text'. Subject to fusion.
+-- query element appears in the given 'Text'.
 countChar :: Char -> Text -> Int
 countChar c t = S.countChar c (stream t)
 {-# INLINE countChar #-}
@@ -1719,16 +1621,11 @@ unwords = intercalate (singleton ' ')
 {-# INLINE unwords #-}
 
 -- | /O(n)/ The 'isPrefixOf' function takes two 'Text's and returns
--- 'True' iff the first is a prefix of the second.  Subject to fusion.
+-- 'True' iff the first is a prefix of the second.
 isPrefixOf :: Text -> Text -> Bool
 isPrefixOf a@(Text _ _ alen) b@(Text _ _ blen) =
     alen <= blen && S.isPrefixOf (stream a) (stream b)
 {-# INLINE [1] isPrefixOf #-}
-
-{-# RULES
-"TEXT isPrefixOf -> fused" [~1] forall s t.
-    isPrefixOf s t = S.isPrefixOf (stream s) (stream t)
-  #-}
 
 -- | /O(n)/ The 'isSuffixOf' function takes two 'Text's and returns
 -- 'True' iff the first is a suffix of the second.
@@ -1756,11 +1653,6 @@ isInfixOf needle haystack
     | isSingleton needle = S.elem (unsafeHead needle) . S.stream $ haystack
     | otherwise          = not . L.null . indices needle $ haystack
 {-# INLINE [1] isInfixOf #-}
-
-{-# RULES
-"TEXT isInfixOf/singleton -> S.elem/S.stream" [~1] forall n h.
-    isInfixOf (singleton n) h = S.elem n (S.stream h)
-  #-}
 
 -------------------------------------------------------------------------------
 -- * View patterns

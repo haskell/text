@@ -375,8 +375,6 @@ streamDecodeUtf8With onErr = decodeChunk B.empty 0 0
 decodeUtf8 :: ByteString -> Text
 decodeUtf8 = decodeUtf8With strictDecode
 {-# INLINE[0] decodeUtf8 #-}
-{-# RULES "STREAM stream/decodeUtf8 fusion" [1]
-    forall bs. F.stream (decodeUtf8 bs) = E.streamUtf8 strictDecode bs #-}
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text.
 --

@@ -217,7 +217,6 @@ append (Stream next0 s01 len1) (Stream next1 s02 len2) =
 {-# INLINE [0] append #-}
 
 -- | /O(1)/ Returns the first character of a Text, which must be non-empty.
--- Subject to array fusion.
 head :: Stream Char -> Char
 head (Stream next s0 _len) = loop_head s0
     where
@@ -232,7 +231,7 @@ head_empty = streamError "head" "Empty stream"
 {-# NOINLINE head_empty #-}
 
 -- | /O(1)/ Returns the first character and remainder of a 'Stream
--- Char', or 'Nothing' if empty.  Subject to array fusion.
+-- Char', or 'Nothing' if empty.
 uncons :: Stream Char -> Maybe (Char, Stream Char)
 uncons (Stream next s0 len) = loop_uncons s0
     where
@@ -311,7 +310,6 @@ lengthI (Stream next s0 _len) = loop_length 0 s0
 {-# INLINE[0] lengthI #-}
 
 -- | /O(n)/ Compares the count of characters in a string to a number.
--- Subject to fusion.
 --
 -- This function gives the same answer as comparing against the result
 -- of 'lengthI', but can short circuit if the count of characters is
@@ -566,7 +564,6 @@ foldr f z (Stream next s0 _len) = loop_foldr s0
 
 -- | foldr1 is a variant of 'foldr' that has no starting value argument,
 -- and thus must be applied to non-empty streams.
--- Subject to array fusion.
 foldr1 :: (Char -> Char -> Char) -> Stream Char -> Char
 foldr1 f (Stream next s0 _len) = loop0_foldr1 s0
   where
@@ -588,7 +585,7 @@ intercalate s = concat . (L.intersperse s)
 -- ----------------------------------------------------------------------------
 -- ** Special folds
 
--- | /O(n)/ Concatenate a list of streams. Subject to array fusion.
+-- | /O(n)/ Concatenate a list of streams.
 concat :: [Stream Char] -> Stream Char
 concat = L.foldr append empty
 {-# INLINE [0] concat #-}

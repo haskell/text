@@ -1,3 +1,7 @@
+### 1.3
+
+* Disable implicit fusion rules
+
 ### 1.2.4.2
 
 * Support GHC-9.2
