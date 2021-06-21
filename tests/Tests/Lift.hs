@@ -16,7 +16,13 @@ tests = testGroup "TH lifting Text"
   [ testCase "strict" $ assertEqual "strict"
       $(lift ("foo" :: S.Text))
       ("foo" :: S.Text)
+  , testCase "strict0" $ assertEqual "strict0"
+      $(lift ("f\0o\1o\2" :: S.Text))
+      ("f\0o\1o\2" :: S.Text)
   , testCase "lazy" $ assertEqual "lazy"
       $(lift ("foo" :: L.Text))
       ("foo" :: L.Text)
+  , testCase "lazy0" $ assertEqual "lazy0"
+      $(lift ("f\0o\1o\2" :: L.Text))
+      ("f\0o\1o\2" :: L.Text)
   ]
