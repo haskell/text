@@ -208,7 +208,7 @@ import Control.DeepSeq (NFData(rnf))
 import Control.Exception (assert)
 import GHC.Stack (HasCallStack)
 #endif
-import Data.Bits (shiftL)
+import Data.Bits (shiftL, (.&.))
 import Data.Char (isSpace)
 import Data.Data (Data(gfoldl, toConstr, gunfold, dataTypeOf), constrIndex,
                   Constr, mkConstr, DataType, mkDataType, Fixity(Prefix))
@@ -220,6 +220,7 @@ import Data.Binary (Binary(get, put))
 import Data.Monoid (Monoid(..))
 import Data.Semigroup (Semigroup(..))
 import Data.String (IsString(..))
+import Data.Text.Internal.Encoding.Utf8 (chr3, utf8LengthByLeader)
 import qualified Data.Text.Internal.Fusion as S
 import qualified Data.Text.Internal.Fusion.Common as S
 import Data.Text.Encoding (decodeUtf8', encodeUtf8)
@@ -236,6 +237,7 @@ import Data.ByteString (ByteString)
 import qualified Data.Text.Lazy as L
 import Data.Int (Int64)
 #endif
+import Data.Word (Word8)
 import GHC.Base (eqInt, neInt, gtInt, geInt, ltInt, leInt)
 import qualified GHC.Exts as Exts
 import qualified Language.Haskell.TH.Lib as TH
@@ -1551,20 +1553,42 @@ zipWith f t1 t2 = unstream (S.zipWith g (stream t1) (stream t2))
 -- | /O(n)/ Breaks a 'Text' up into a list of words, delimited by 'Char's
 -- representing white space.
 words :: Text -> [Text]
-words t@(Text arr off len) = loop 0 0
+words (Text arr off len) = loop 0 0
   where
     loop !start !n
         | n >= len = if start == n
                      then []
-                     else [Text arr (start+off) (n-start)]
-        -- Spaces in UTF-8 can take from 1 byte for 0x09 and up to 3 bytes for 0x3000.
-        | isSpace c =
+                     else [Text arr (start + off) (n - start)]
+        -- Spaces in UTF-8 take either 1 byte for 0x09..0x0D + 0x20
+        | isAsciiSpace w0 =
             if start == n
-            then loop (n+d) (n+d)
-            else Text arr (start+off) (n-start) : loop (n+d) (n+d)
-        | otherwise = loop start (n+d)
-        where Iter c d = iter t n
+            then loop (n + 1) (n + 1)
+            else Text arr (start + off) (n - start) : loop (n + 1) (n + 1)
+        | w0 < 0x80 = loop start (n + 1)
+        -- or 2 bytes for 0xA0
+        | w0 == 0xC2, w1 == 0xA0 =
+            if start == n
+            then loop (n + 2) (n + 2)
+            else Text arr (start + off) (n - start) : loop (n + 2) (n + 2)
+        | w0 < 0xE0 = loop start (n + 2)
+        -- or 3 bytes for 0x1680 + 0x2000..0x200A + 0x2028..0x2029 + 0x202F + 0x205F + 0x3000
+        |  w0 == 0xE1 && w1 == 0x9A && w2 == 0x80
+        || w0 == 0xE2 && (w1 == 0x80 && isSpace (chr3 w0 w1 w2) || w1 == 0x81 && w2 == 0x9F)
+        || w0 == 0xE3 && w1 == 0x80 && w2 == 0x80 =
+            if start == n
+            then loop (n + 3) (n + 3)
+            else Text arr (start + off) (n - start) : loop (n + 3) (n + 3)
+        | otherwise = loop start (n + utf8LengthByLeader w0)
+        where
+            w0 = A.unsafeIndex arr (off + n)
+            w1 = A.unsafeIndex arr (off + n + 1)
+            w2 = A.unsafeIndex arr (off + n + 2)
 {-# INLINE words #-}
+
+-- Adapted from Data.ByteString.Internal.isSpaceWord8
+isAsciiSpace :: Word8 -> Bool
+isAsciiSpace w = w .&. 0x50 == 0 && w < 0x80 && (w == 0x20 || w - 0x09 < 5)
+{-# INLINE isAsciiSpace #-}
 
 -- | /O(n)/ Breaks a 'Text' up into a list of 'Text's at
 -- newline 'Char's. The resulting strings do not contain newlines.
