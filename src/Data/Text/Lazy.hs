@@ -540,6 +540,21 @@ length = foldlChunks go 0
         go l t = l + intToInt64 (T.length t)
 {-# INLINE [1] length #-}
 
+{-# RULES
+"TEXT length/map -> length" forall f t.
+    length (map f t) = length t
+"TEXT length/zipWith -> length" forall f t1 t2.
+    length (zipWith f t1 t2) = min (length t1) (length t2)
+"TEXT length/replicate -> n" forall n t.
+    length (replicate n t) = max 0 n P.* length t
+"TEXT length/cons -> length+1" forall c t.
+    length (cons c t) = 1 + length t
+"TEXT length/intersperse -> 2*length-1" forall c t.
+    length (intersperse c t) = max 0 (2 P.* length t - 1)
+"TEXT length/intercalate -> n*length" forall s ts.
+    length (intercalate s ts) = let lenS = length s in max 0 (P.sum (P.map (\t -> length t + lenS) ts) - lenS)
+  #-}
+
 -- | /O(n)/ Compare the count of characters in a 'Text' to a number.
 --
 -- This function gives the same answer as comparing against the result
@@ -560,19 +575,24 @@ map :: (Char -> Char) -> Text -> Text
 map f t = unstream (S.map (safe . f) (stream t))
 {-# INLINE [1] map #-}
 
+{-# RULES
+"TEXT map/map -> map" forall f g t.
+    map f (map g t) = map (f . safe . g) t
+#-}
+
 -- | /O(n)/ The 'intercalate' function takes a 'Text' and a list of
 -- 'Text's and concatenates the list after interspersing the first
 -- argument between each element of the list.
 intercalate :: Text -> [Text] -> Text
 intercalate t = concat . L.intersperse t
-{-# INLINE intercalate #-}
+{-# INLINE [1] intercalate #-}
 
 -- | /O(n)/ The 'intersperse' function takes a character and places it
 -- between the characters of a 'Text'. Performs
 -- replacement on invalid scalar values.
 intersperse :: Char -> Text -> Text
 intersperse c t = unstream (S.intersperse (safe c) (stream t))
-{-# INLINE intersperse #-}
+{-# INLINE [1] intersperse #-}
 
 -- | /O(n)/ Left-justify a string to the given length, using the
 -- specified fill character on the right. Performs
@@ -1547,7 +1567,12 @@ stripSuffix p t = reverse `fmap` stripPrefix (reverse p) (reverse t)
 -- predicate.
 filter :: (Char -> Bool) -> Text -> Text
 filter p t = unstream (S.filter p (stream t))
-{-# INLINE filter #-}
+{-# INLINE [1] filter #-}
+
+{-# RULES
+"TEXT filter/filter -> filter" forall p q t.
+    filter p (filter q t) = filter (\c -> p c && q c) t
+#-}
 
 -- | /O(n)/ The 'find' function takes a predicate and a 'Text', and
 -- returns the first element in matching the predicate, or 'Nothing'
