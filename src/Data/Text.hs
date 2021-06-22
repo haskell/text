@@ -437,8 +437,8 @@ pack = unstream . S.map safe . S.streamList
 -- copying a new array.  Performs replacement on
 -- invalid scalar values.
 cons :: Char -> Text -> Text
-cons c t = unstream (S.cons (safe c) (stream t))
-{-# INLINE cons #-}
+cons c = unstream . S.cons (safe c) . stream
+{-# INLINE [1] cons #-}
 
 infixr 5 `cons`
 
@@ -548,6 +548,27 @@ length = P.negate . measureOff P.maxBound
 -- length needs to be phased after the compareN/length rules otherwise
 -- it may inline before the rules have an opportunity to fire.
 
+{-# RULES
+"TEXT length/filter -> S.length/S.filter" forall p t.
+    length (filter p t) = S.length (S.filter p (stream t))
+"TEXT length/unstream -> S.length" forall t.
+    length (unstream t) = S.length t
+"TEXT length/pack -> P.length" forall t.
+    length (pack t) = P.length t
+"TEXT length/map -> length" forall f t.
+    length (map f t) = length t
+"TEXT length/zipWith -> length" forall f t1 t2.
+    length (zipWith f t1 t2) = min (length t1) (length t2)
+"TEXT length/replicate -> n" forall n t.
+    length (replicate n t) = mul (max 0 n) (length t)
+"TEXT length/cons -> length+1" forall c t.
+    length (cons c t) = 1 + length t
+"TEXT length/intersperse -> 2*length-1" forall c t.
+    length (intersperse c t) = max 0 (mul 2 (length t) - 1)
+"TEXT length/intercalate -> n*length" forall s ts.
+    length (intercalate s ts) = let lenS = length s in max 0 (P.sum (P.map (\t -> length t + lenS) ts) - lenS)
+  #-}
+
 -- | /O(n)/ Compare the count of characters in a 'Text' to a number.
 --
 -- This function gives the same answer as comparing against the result
@@ -608,6 +629,11 @@ map :: (Char -> Char) -> Text -> Text
 map f t = unstream (S.map (safe . f) (stream t))
 {-# INLINE [1] map #-}
 
+{-# RULES
+"TEXT map/map -> map" forall f g t.
+    map f (map g t) = map (f . safe . g) t
+#-}
+
 -- | /O(n)/ The 'intercalate' function takes a 'Text' and a list of
 -- 'Text's and concatenates the list after interspersing the first
 -- argument between each element of the list.
@@ -618,7 +644,7 @@ map f t = unstream (S.map (safe . f) (stream t))
 -- "WeNI!seekNI!theNI!HolyNI!Grail"
 intercalate :: Text -> [Text] -> Text
 intercalate t = concat . L.intersperse t
-{-# INLINE intercalate #-}
+{-# INLINE [1] intercalate #-}
 
 -- | /O(n)/ The 'intersperse' function takes a character and places it
 -- between the characters of a 'Text'.
@@ -631,7 +657,7 @@ intercalate t = concat . L.intersperse t
 -- Performs replacement on invalid scalar values.
 intersperse     :: Char -> Text -> Text
 intersperse c t = unstream (S.intersperse (safe c) (stream t))
-{-# INLINE intersperse #-}
+{-# INLINE [1] intersperse #-}
 
 -- | /O(n)/ Reverse the characters of a string.
 --
@@ -1412,8 +1438,13 @@ partition p t = (filter p t, filter (not . p) t)
 -- returns a 'Text' containing those characters that satisfy the
 -- predicate.
 filter :: (Char -> Bool) -> Text -> Text
-filter p t = unstream (S.filter p (stream t))
-{-# INLINE filter #-}
+filter p = unstream . S.filter p . stream
+{-# INLINE [1] filter #-}
+
+{-# RULES
+"TEXT filter/filter -> filter" forall p q t.
+    filter p (filter q t) = filter (\c -> p c && q c) t
+#-}
 
 -- | /O(n+m)/ Find the first instance of @needle@ (which must be
 -- non-'null') in @haystack@.  The first element of the returned tuple
@@ -1563,7 +1594,7 @@ zip a b = S.unstreamList $ S.zipWith (,) (stream a) (stream b)
 zipWith :: (Char -> Char -> Char) -> Text -> Text -> Text
 zipWith f t1 t2 = unstream (S.zipWith g (stream t1) (stream t2))
     where g a b = safe (f a b)
-{-# INLINE zipWith #-}
+{-# INLINE [1] zipWith #-}
 
 -- | /O(n)/ Breaks a 'Text' up into a list of words, delimited by 'Char's
 -- representing white space.
