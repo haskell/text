@@ -39,6 +39,7 @@ module Data.Text.Array
     , unsafeFreeze
     , unsafeIndex
     , new
+    , newPinned
     , unsafeWrite
     ) where
 
@@ -70,6 +71,17 @@ new (I# len#)
     case newByteArray# len# s1# of
       (# s2#, marr# #) -> (# s2#, MutableByteArray marr# #)
 {-# INLINE new #-}
+
+-- | Create an uninitialized mutable pinned array.
+newPinned :: forall s. Int -> ST s (MArray s)
+newPinned (I# len#)
+#if defined(ASSERTS)
+  | I# len# < 0 = error "Data.Text.Array.newPinned: size overflow"
+#endif
+  | otherwise = ST $ \s1# ->
+    case newPinnedByteArray# len# s1# of
+      (# s2#, marr# #) -> (# s2#, MutableByteArray marr# #)
+{-# INLINE newPinned #-}
 
 -- | Freeze a mutable array. Do not mutate the 'MArray' afterwards!
 unsafeFreeze :: MArray s -> ST s Array
