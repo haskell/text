@@ -216,7 +216,8 @@ import Data.Char (isSpace)
 import Data.Data (Data(gfoldl, toConstr, gunfold, dataTypeOf), constrIndex,
                   Constr, mkConstr, DataType, mkDataType, Fixity(Prefix))
 import Control.Monad (foldM)
-import Control.Monad.ST (ST)
+import Control.Monad.ST (ST, runST)
+import Control.Monad.ST.Unsafe (unsafeIOToST)
 import qualified Data.Text.Array as A
 import qualified Data.List as L
 import Data.Binary (Binary(get, put))
@@ -670,8 +671,17 @@ reverse ::
   HasCallStack =>
 #endif
   Text -> Text
-reverse t = S.reverse (stream t)
+reverse (Text (A.ByteArray ba) off len) = runST $ do
+    marr@(A.MutableByteArray mba) <- A.new len
+    unsafeIOToST $ c_reverse mba ba (intToCSize off) (intToCSize len)
+    brr <- A.unsafeFreeze marr
+    return $ Text brr 0 len
 {-# INLINE reverse #-}
+
+-- | The input buffer (src :: ByteArray#, off :: CSize, len :: CSize)
+-- must specify a valid UTF-8 sequence, this condition is not checked.
+foreign import ccall unsafe "_hs_text_reverse" c_reverse
+    :: Exts.MutableByteArray# s -> ByteArray# -> CSize -> CSize -> IO ()
 
 -- | /O(m+n)/ Replace every non-overlapping occurrence of @needle@ in
 -- @haystack@ with @replacement@.
