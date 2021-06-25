@@ -40,7 +40,9 @@ module Data.Text.Array
     , unsafeIndex
     , new
     , newPinned
+    , newFilled
     , unsafeWrite
+    , tile
     ) where
 
 #if defined(ASSERTS)
@@ -83,6 +85,22 @@ newPinned (I# len#)
       (# s2#, marr# #) -> (# s2#, MutableByteArray marr# #)
 {-# INLINE newPinned #-}
 
+newFilled :: Int -> Int -> ST s (MArray s)
+newFilled (I# len#) (I# c#) = ST $ \s1# ->
+  case newByteArray# len# s1# of
+    (# s2#, marr# #) -> case setByteArray# marr# 0# len# c# s2# of
+      s3# -> (# s3#, MutableByteArray marr# #)
+{-# INLINE newFilled #-}
+
+tile :: MArray s -> Int -> ST s ()
+tile marr tileLen = do
+  totalLen <- getSizeofMArray marr
+  let go l
+        | 2 * l > totalLen = copyM marr l marr 0 (totalLen - l)
+        | otherwise = copyM marr l marr 0 l >> go (2 * l)
+  go tileLen
+{-# INLINE tile #-}
+
 -- | Freeze a mutable array. Do not mutate the 'MArray' afterwards!
 unsafeFreeze :: MArray s -> ST s Array
 unsafeFreeze (MutableByteArray marr) = ST $ \s1# ->
@@ -107,7 +125,6 @@ unsafeIndex (ByteArray arr) i@(I# i#) =
   case indexWord8Array# arr i# of r# -> (W8# r#)
 {-# INLINE unsafeIndex #-}
 
-#if defined(ASSERTS)
 -- sizeofMutableByteArray# is deprecated, because it is unsafe in the presence of
 -- shrinkMutableByteArray# and resizeMutableByteArray#.
 getSizeofMArray :: MArray s -> ST s Int
@@ -115,6 +132,7 @@ getSizeofMArray (MutableByteArray marr) = ST $ \s0# ->
   case getSizeofMutableByteArray# marr s0# of
     (# s1#, word8len# #) -> (# s1#, I# word8len# #)
 
+#if defined(ASSERTS)
 checkBoundsM :: HasCallStack => MArray s -> Int -> Int -> ST s ()
 checkBoundsM ma i elSize = do
   len <- getSizeofMArray ma

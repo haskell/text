@@ -211,8 +211,8 @@ import Control.DeepSeq (NFData(rnf))
 import Control.Exception (assert)
 import GHC.Stack (HasCallStack)
 #endif
-import Data.Bits (shiftL, (.&.))
-import Data.Char (isSpace)
+import Data.Bits ((.&.))
+import Data.Char (isSpace, isAscii, ord)
 import Data.Data (Data(gfoldl, toConstr, gunfold, dataTypeOf), constrIndex,
                   Constr, mkConstr, DataType, mkDataType, Fixity(Prefix))
 import Control.Monad (foldM)
@@ -224,13 +224,14 @@ import Data.Binary (Binary(get, put))
 import Data.Monoid (Monoid(..))
 import Data.Semigroup (Semigroup(..))
 import Data.String (IsString(..))
-import Data.Text.Internal.Encoding.Utf8 (chr3, utf8LengthByLeader)
+import Data.Text.Internal.Encoding.Utf8 (chr3, utf8Length, utf8LengthByLeader)
 import qualified Data.Text.Internal.Fusion as S
 import qualified Data.Text.Internal.Fusion.Common as S
 import Data.Text.Encoding (decodeUtf8', encodeUtf8)
 import Data.Text.Internal.Fusion (stream, reverseStream, unstream)
 import Data.Text.Internal.Private (span_)
 import Data.Text.Internal (Text(..), empty, firstf, mul, safe, text)
+import Data.Text.Internal.Unsafe.Char (unsafeWrite)
 import Data.Text.Show (singleton, unpack, unpackCString#)
 import qualified Prelude as P
 import Data.Text.Unsafe (Iter(..), iter, iter_, lengthWord8, reverseIter,
@@ -1053,20 +1054,14 @@ replicate n t@(Text a o l)
     | n <= 0 || l <= 0       = empty
     | n == 1                 = t
     | isSingleton t          = replicateChar n (unsafeHead t)
-    | otherwise              = Text (A.run x) 0 len
-  where
-    len = l `mul` n -- TODO: detect overflows
-    x :: ST s (A.MArray s)
-    x = do
-      arr <- A.new len
-      A.copyI l arr 0 a o
-      let loop !l1 =
-            let rest = len - l1 in
-            if rest <= l1 then A.copyM arr l1 arr 0 rest >> return arr
-            else A.copyM arr l1 arr 0 l1 >> loop (l1 `shiftL` 1)
-      loop l
+    | otherwise              = runST $ do
+        let totalLen = n `mul` l
+        marr <- A.new totalLen
+        A.copyI l marr 0 a o
+        A.tile marr l
+        arr  <- A.unsafeFreeze marr
+        return $ Text arr 0 totalLen
 {-# INLINE [1] replicate #-}
-
 
 {-# RULES
 "TEXT replicate/singleton -> replicateChar" [~1] forall n c.
@@ -1076,7 +1071,22 @@ replicate n t@(Text a o l)
 -- | /O(n)/ 'replicateChar' @n@ @c@ is a 'Text' of length @n@ with @c@ the
 -- value of every element.
 replicateChar :: Int -> Char -> Text
-replicateChar n c = unstream (S.replicateCharI n (safe c))
+replicateChar !len !c'
+  | len <= 0  = empty
+  | isAscii c = runST $ do
+    marr <- A.newFilled len (ord c)
+    arr  <- A.unsafeFreeze marr
+    return $ Text arr 0 len
+  | otherwise = runST $ do
+    let cLen = utf8Length c
+        totalLen = cLen P.* len
+    marr <- A.new totalLen
+    _ <- unsafeWrite marr 0 c
+    A.tile marr cLen
+    arr  <- A.unsafeFreeze marr
+    return $ Text arr 0 totalLen
+  where
+    c = safe c'
 {-# INLINE replicateChar #-}
 
 -- | /O(n)/, where @n@ is the length of the result. The 'unfoldr'
