@@ -66,6 +66,7 @@ flag developer
 library
   c-sources:    cbits/cbits.c
                 cbits/measure_off.c
+                cbits/reverse.c
                 cbits/utils.c
   include-dirs: include
   hs-source-dirs: src
