@@ -19,7 +19,16 @@ module Data.Text.Internal.Unsafe
     (
       inlineInterleaveST
     , inlinePerformIO
+    , unsafeWithForeignPtr
     ) where
+
+import Foreign.Ptr (Ptr)
+import Foreign.ForeignPtr (ForeignPtr)
+#if MIN_VERSION_base(4,15,0)
+import qualified GHC.ForeignPtr (unsafeWithForeignPtr)
+#else
+import qualified Foreign.ForeignPtr (withForeignPtr)
+#endif
 
 import GHC.ST (ST(..))
 import GHC.IO (IO(IO))
@@ -47,3 +56,10 @@ inlineInterleaveST :: ST s a -> ST s a
 inlineInterleaveST (ST m) = ST $ \ s ->
     let r = case m s of (# _, res #) -> res in (# s, r #)
 {-# INLINE inlineInterleaveST #-}
+
+unsafeWithForeignPtr :: ForeignPtr a -> (Ptr a -> IO b) -> IO b
+#if MIN_VERSION_base(4,15,0)
+unsafeWithForeignPtr = GHC.ForeignPtr.unsafeWithForeignPtr
+#else
+unsafeWithForeignPtr = Foreign.ForeignPtr.withForeignPtr
+#endif
