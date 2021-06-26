@@ -69,8 +69,8 @@ import qualified Data.ByteString.Internal as B
 import Data.Foldable (traverse_)
 import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode, lenientDecode)
 import Data.Text.Internal (Text(..), safe, text)
-import Data.Text.Internal.Functions
 import Data.Text.Internal.Private (runText)
+import Data.Text.Internal.Unsafe (unsafeWithForeignPtr)
 import Data.Text.Internal.Unsafe.Char (ord, unsafeWrite)
 import Data.Text.Show ()
 import Data.Text.Unsafe (unsafeDupablePerformIO)

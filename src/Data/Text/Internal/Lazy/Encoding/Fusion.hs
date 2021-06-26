@@ -42,7 +42,7 @@ import Data.Text.Encoding.Error
 import Data.Text.Internal.Fusion (Step(..), Stream(..))
 import Data.Text.Internal.Fusion.Size
 import Data.Text.Internal.Unsafe.Char (unsafeChr, unsafeChr8, unsafeChr32)
-import Data.Text.Internal.Functions (unsafeWithForeignPtr)
+import Data.Text.Internal.Unsafe (unsafeWithForeignPtr)
 import Data.Word (Word8, Word16, Word32)
 import qualified Data.Text.Internal.Encoding.Utf8 as U8
 import qualified Data.Text.Internal.Encoding.Utf16 as U16

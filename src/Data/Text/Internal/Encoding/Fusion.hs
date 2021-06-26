@@ -44,7 +44,7 @@ import Data.Text.Internal.Fusion.Size
 import Data.Text.Encoding.Error
 import Data.Text.Internal.Encoding.Fusion.Common
 import Data.Text.Internal.Unsafe.Char (unsafeChr, unsafeChr8, unsafeChr32)
-import Data.Text.Internal.Functions (unsafeWithForeignPtr)
+import Data.Text.Internal.Unsafe (unsafeWithForeignPtr)
 import Data.Word (Word8, Word16, Word32)
 import Foreign.ForeignPtr (ForeignPtr)
 import Foreign.Storable (pokeByteOff)
