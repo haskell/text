@@ -230,7 +230,6 @@ import qualified Prelude as P
 import Data.Text.Unsafe (Iter(..), iter, iter_, lengthWord16, reverseIter,
                          reverseIter_, unsafeHead, unsafeTail)
 import Data.Text.Internal.Unsafe.Char (unsafeChr)
-import qualified Data.Text.Internal.Functions as F
 import qualified Data.Text.Internal.Encoding.Utf16 as U16
 import Data.Text.Internal.Search (indices)
 #if defined(__HADDOCK__)
@@ -622,7 +621,7 @@ map f t = unstream (S.map (safe . f) (stream t))
 -- >>> T.intercalate "NI!" ["We", "seek", "the", "Holy", "Grail"]
 -- "WeNI!seekNI!theNI!HolyNI!Grail"
 intercalate :: Text -> [Text] -> Text
-intercalate t = concat . (F.intersperse t)
+intercalate t = concat . L.intersperse t
 {-# INLINE intercalate #-}
 
 -- | /O(n)/ The 'intersperse' function takes a character and places it

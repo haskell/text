@@ -17,7 +17,6 @@
 
 module Data.Text.Internal.Functions
     (
-      intersperse,
       unsafeWithForeignPtr
     ) where
 
@@ -28,16 +27,6 @@ import qualified GHC.ForeignPtr (unsafeWithForeignPtr)
 #else
 import qualified Foreign.ForeignPtr (withForeignPtr)
 #endif
-
--- | A lazier version of Data.List.intersperse.  The other version
--- causes space leaks!
-intersperse :: a -> [a] -> [a]
-intersperse _   []     = []
-intersperse sep (x:xs) = x : go xs
-  where
-    go []     = []
-    go (y:ys) = sep : y: go ys
-{-# INLINE intersperse #-}
 
 unsafeWithForeignPtr :: ForeignPtr a -> (Ptr a -> IO b) -> IO b
 #if MIN_VERSION_base(4,15,0)
