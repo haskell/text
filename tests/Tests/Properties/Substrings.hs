@@ -170,19 +170,14 @@ tl_chunksOf k = T.chunksOf k `eq` (map (T.concat . TL.toChunks) .
 
 t_lines           = L.lines       `eqP` (map unpackS . T.lines)
 tl_lines          = L.lines       `eqP` (map unpackS . TL.lines)
-{-
-t_lines'          = lines'        `eqP` (map unpackS . T.lines')
-    where lines' "" =  []
-          lines' s =  let (l, s') = break eol s
-                      in  l : case s' of
-                                []      -> []
-                                ('\r':'\n':s'') -> lines' s''
-                                (_:s'') -> lines' s''
-          eol c = c == '\r' || c == '\n'
--}
-t_words           = L.words       `eqP` (map unpackS . T.words)
+t_lines_spacy     = (L.lines      `eqP` (map unpackS . T.lines))  . getSpacyString
+tl_lines_spacy    = (L.lines      `eqP` (map unpackS . TL.lines)) . getSpacyString
 
+t_words           = L.words       `eqP` (map unpackS . T.words)
 tl_words          = L.words       `eqP` (map unpackS . TL.words)
+t_words_spacy     = (L.words      `eqP` (map unpackS . T.words))  . getSpacyString
+tl_words_spacy    = (L.words      `eqP` (map unpackS . TL.words)) . getSpacyString
+
 t_unlines         = (L.unlines . unSqrt) `eq` (unpackS . T.unlines . map packS . unSqrt)
 tl_unlines        = (L.unlines . unSqrt) `eq` (unpackS . TL.unlines . map packS . unSqrt)
 t_unwords         = (L.unwords . unSqrt) `eq` (unpackS . T.unwords . map packS . unSqrt)
@@ -317,9 +312,12 @@ testSubstrings =
     testGroup "lines and words" [
       testProperty "t_lines" t_lines,
       testProperty "tl_lines" tl_lines,
-    --testProperty "t_lines'" t_lines',
+      testProperty "t_lines_spacy" t_lines_spacy,
+      testProperty "tl_lines_spacy" tl_lines_spacy,
       testProperty "t_words" t_words,
       testProperty "tl_words" tl_words,
+      testProperty "t_words_spacy" t_words_spacy,
+      testProperty "tl_words_spacy" tl_words_spacy,
       testProperty "t_unlines" t_unlines,
       testProperty "tl_unlines" tl_unlines,
       testProperty "t_unwords" t_unwords,

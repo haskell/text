@@ -9,6 +9,7 @@ module Tests.QuickCheckUtils
     , BigInt(..)
     , NotEmpty(..)
     , Sqrt(..)
+    , SpacyString(..)
 
     , Small(..)
     , small
@@ -35,6 +36,7 @@ module Tests.QuickCheckUtils
 import Control.Arrow (first, (***))
 import Control.DeepSeq (NFData (..), deepseq)
 import Control.Exception (bracket)
+import Data.Char (isSpace)
 import Data.Text.Foreign (I16)
 import Data.Text.Lazy.Builder.RealFloat (FPFormat(..))
 import Data.Word (Word8, Word16)
@@ -354,3 +356,17 @@ write_read unline filt writer reader (E _ _) nl buf ts = ioProperty $
               IO.hSetBuffering h' buf
               r <- reader h'
               r `deepseq` return r
+
+-- Generate various Unicode space characters with high probability
+arbitrarySpacyChar :: Gen Char
+arbitrarySpacyChar = oneof
+  [ arbitraryUnicodeChar
+  , elements $ filter isSpace [minBound..maxBound]
+  ]
+
+newtype SpacyString = SpacyString { getSpacyString :: String }
+  deriving (Eq, Ord, Show, Read)
+
+instance Arbitrary SpacyString where
+  arbitrary = SpacyString `fmap` listOf arbitrarySpacyChar
+  shrink (SpacyString xs) = SpacyString `fmap` shrink xs
