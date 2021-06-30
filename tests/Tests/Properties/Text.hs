@@ -38,18 +38,27 @@ tl_unstreamChunks x = f 11 x === f 1000 x
 tl_chunk_unchunk    = (TL.fromChunks . TL.toChunks) `eq` id
 tl_from_to_strict   = (TL.fromStrict . TL.toStrict) `eq` id
 
-
 s_map f           = map f  `eqP` (unpackS . S.map f)
 s_map_s f         = map f  `eqP` (unpackS . S.unstream . S.map f)
 sf_map p f        = (map f . L.filter p)  `eqP` (unpackS . S.map f . S.filter p)
+
 t_map f           = map f  `eqP` (unpackS . T.map f)
 tl_map f          = map f  `eqP` (unpackS . TL.map f)
+t_map_map f g     = (map f . map g) `eqP` (unpackS . T.map f . T.map g)
+tl_map_map f g    = (map f . map g)  `eqP` (unpackS . TL.map f . TL.map g)
+t_length_map f    = (L.length . map f)  `eqP` (T.length . T.map f)
+tl_length_map f   = (L.genericLength . map f)  `eqP` (TL.length . TL.map f)
+
 s_intercalate c   = (L.intercalate c . unSqrt) `eq`
                     (unpackS . S.intercalate (packS c) . map packS . unSqrt)
 t_intercalate c   = (L.intercalate c . unSqrt) `eq`
                     (unpackS . T.intercalate (packS c) . map packS . unSqrt)
 tl_intercalate c  = (L.intercalate c . unSqrt) `eq`
                     (unpackS . TL.intercalate (TL.pack c) . map TL.pack . unSqrt)
+t_length_intercalate c  = (L.length . L.intercalate c . unSqrt) `eq`
+                    (T.length . T.intercalate (packS c) . map packS . unSqrt)
+tl_length_intercalate c = (L.genericLength . L.intercalate c . unSqrt) `eq`
+                    (TL.length . TL.intercalate (TL.pack c) . map TL.pack . unSqrt)
 s_intersperse c   = L.intersperse c `eqP`
                     (unpackS . S.intersperse c)
 s_intersperse_s c = L.intersperse c `eqP`
@@ -58,6 +67,8 @@ sf_intersperse p c= (L.intersperse c . L.filter p) `eqP`
                    (unpackS . S.intersperse c . S.filter p)
 t_intersperse c   = L.intersperse c `eqPSqrt` (unpackS . T.intersperse c)
 tl_intersperse c  = L.intersperse c `eqPSqrt` (unpackS . TL.intersperse c)
+t_length_intersperse c  = (L.length . L.intersperse c) `eqPSqrt` (T.length . T.intersperse c)
+tl_length_intersperse c = (L.genericLength . L.intersperse c) `eqPSqrt` (TL.length . TL.intersperse c)
 t_transpose       = (L.transpose . unSqrt) `eq` (map unpackS . T.transpose . map packS . unSqrt)
 tl_transpose      = (L.transpose . unSqrt) `eq` (map unpackS . TL.transpose . map TL.pack . unSqrt)
 t_reverse         = L.reverse `eqP` (unpackS . T.reverse)
@@ -154,8 +165,14 @@ tl_elem c         = L.elem c `eqP` TL.elem c
 sf_elem p c       = (L.elem c . L.filter p) `eqP` (S.elem c . S.filter p)
 sf_filter q p     = (L.filter p . L.filter q) `eqP`
                     (unpackS . S.filter p . S.filter q)
-t_filter p        = L.filter p    `eqP` (unpackS . T.filter p)
-tl_filter p       = L.filter p    `eqP` (unpackS . TL.filter p)
+
+t_filter p           = L.filter p    `eqP` (unpackS . T.filter p)
+tl_filter p          = L.filter p    `eqP` (unpackS . TL.filter p)
+t_filter_filter p q  = (L.filter p . L.filter q) `eqP` (unpackS . T.filter p . T.filter q)
+tl_filter_filter p q = (L.filter p . L.filter q) `eqP` (unpackS . TL.filter p . TL.filter q)
+t_length_filter p    = (L.length . L.filter p) `eqP` (T.length . T.filter p)
+tl_length_filter p   = (L.genericLength . L.filter p) `eqP` (TL.length . TL.filter p)
+
 sf_findBy q p     = (L.find p . L.filter q) `eqP` (S.findBy p . S.filter q)
 t_find p          = L.find p      `eqP` T.find p
 tl_find p         = L.find p      `eqP` TL.find p
@@ -183,6 +200,8 @@ sf_zipWith p c s  = (L.zipWith c (L.filter p s) . L.filter p) `eqP`
                     (unpackS . S.zipWith c (S.filter p $ packS s) . S.filter p)
 t_zipWith c s     = L.zipWith c s `eqP` (unpackS . T.zipWith c (packS s))
 tl_zipWith c s    = L.zipWith c s `eqP` (unpackS . TL.zipWith c (packS s))
+t_length_zipWith c s  = (L.length . L.zipWith c s) `eqP` (T.length . T.zipWith c (packS s))
+tl_length_zipWith c s = (L.genericLength . L.zipWith c s) `eqP` (TL.length . TL.zipWith c (packS s))
 
 t_indices  (NotEmpty s) = Slow.indices s `eq` T.indices s
 tl_indices (NotEmpty s) = lazyIndices s `eq` S.indices s
@@ -220,16 +239,26 @@ testText =
       testProperty "s_map" s_map,
       testProperty "s_map_s" s_map_s,
       testProperty "sf_map" sf_map,
+
       testProperty "t_map" t_map,
       testProperty "tl_map" tl_map,
+      testProperty "t_map_map" t_map_map,
+      testProperty "tl_map_map" tl_map_map,
+      testProperty "t_length_map" t_length_map,
+      testProperty "tl_length_map" tl_length_map,
+
       testProperty "s_intercalate" s_intercalate,
       testProperty "t_intercalate" t_intercalate,
       testProperty "tl_intercalate" tl_intercalate,
+      testProperty "t_length_intercalate" t_length_intercalate,
+      testProperty "tl_length_intercalate" tl_length_intercalate,
       testProperty "s_intersperse" s_intersperse,
       testProperty "s_intersperse_s" s_intersperse_s,
       testProperty "sf_intersperse" sf_intersperse,
       testProperty "t_intersperse" t_intersperse,
       testProperty "tl_intersperse" tl_intersperse,
+      testProperty "t_length_intersperse" t_length_intersperse,
+      testProperty "tl_length_intersperse" tl_length_intersperse,
       testProperty "t_transpose" t_transpose,
       testProperty "tl_transpose" tl_transpose,
       testProperty "t_reverse" t_reverse,
@@ -273,6 +302,10 @@ testText =
       testProperty "sf_filter" sf_filter,
       testProperty "t_filter" t_filter,
       testProperty "tl_filter" tl_filter,
+      testProperty "t_filter_filter" t_filter_filter,
+      testProperty "tl_filter_filter" tl_filter_filter,
+      testProperty "t_length_filter" t_length_filter,
+      testProperty "tl_length_filter" tl_length_filter,
       testProperty "sf_findBy" sf_findBy,
       testProperty "t_find" t_find,
       testProperty "tl_find" tl_find,
@@ -297,6 +330,8 @@ testText =
       testProperty "tl_zip" tl_zip,
       testProperty "sf_zipWith" sf_zipWith,
       testProperty "t_zipWith" t_zipWith,
-      testProperty "tl_zipWith" tl_zipWith
+      testProperty "tl_zipWith" tl_zipWith,
+      testProperty "t_length_zipWith" t_length_zipWith,
+      testProperty "tl_length_zipWith" tl_length_zipWith
     ]
   ]

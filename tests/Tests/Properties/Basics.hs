@@ -22,9 +22,15 @@ s_cons_s x        = (x:)     `eqP` (unpackS . S.unstream . S.cons x)
 sf_cons p x       = ((x:) . L.filter p) `eqP` (unpackS . S.cons x . S.filter p)
 t_cons x          = (x:)     `eqP` (unpackS . T.cons x)
 tl_cons x         = (x:)     `eqP` (unpackS . TL.cons x)
-s_snoc x          = (++ [x]) `eqP` (unpackS . (flip S.snoc) x)
-t_snoc x          = (++ [x]) `eqP` (unpackS . (flip T.snoc) x)
-tl_snoc x         = (++ [x]) `eqP` (unpackS . (flip TL.snoc) x)
+t_length_cons x   = (L.length . (x:)) `eqP` (T.length . T.cons x)
+tl_length_cons x  = (L.genericLength . (x:)) `eqP` (TL.length . TL.cons x)
+
+s_snoc x          = (++ [x]) `eqP` (unpackS . flip S.snoc x)
+t_snoc x          = (++ [x]) `eqP` (unpackS . flip T.snoc x)
+tl_snoc x         = (++ [x]) `eqP` (unpackS . flip TL.snoc x)
+t_length_snoc x   = (L.length . (++ [x])) `eqP` (T.length . flip T.snoc x)
+tl_length_snoc x  = (L.genericLength . (++ [x])) `eqP` (TL.length . flip TL.snoc x)
+
 s_append s        = (s++)    `eqP` (unpackS . S.append (S.streamList s))
 s_append_s s      = (s++)    `eqP`
                     (unpackS . S.unstream . S.append (S.streamList s))
@@ -90,9 +96,13 @@ testBasics =
     testProperty "sf_cons" sf_cons,
     testProperty "t_cons" t_cons,
     testProperty "tl_cons" tl_cons,
+    testProperty "t_length_cons" t_length_cons,
+    testProperty "tl_length_cons" tl_length_cons,
     testProperty "s_snoc" s_snoc,
     testProperty "t_snoc" t_snoc,
     testProperty "tl_snoc" tl_snoc,
+    testProperty "t_length_snoc" t_length_snoc,
+    testProperty "tl_length_snoc" tl_length_snoc,
     testProperty "s_append" s_append,
     testProperty "s_append_s" s_append_s,
     testProperty "sf_append" sf_append,

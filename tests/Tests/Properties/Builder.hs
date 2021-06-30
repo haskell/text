@@ -23,10 +23,11 @@ import qualified Data.Text.Lazy.Builder.RealFloat as TB
 
 -- Builder.
 
-tb_singleton = id `eqP`
-               (unpackS . TB.toLazyText . mconcat . map TB.singleton)
-tb_fromText = L.concat `eq` (unpackS . TB.toLazyText . mconcat .
-                                   map (TB.fromText . packS))
+tb_singleton   = id `eqP` (unpackS . TB.toLazyText . mconcat . map TB.singleton)
+tb_fromString  = id `eq` (TL.unpack . TB.toLazyText . TB.fromString)
+tb_fromText    = id `eqP` (unpackS . TB.toLazyText . TB.fromText)
+tb_fromStrings = L.concat `eq` (TL.unpack . TB.toLazyText . mconcat . map TB.fromString)
+tb_fromTexts   = L.concat `eq` (unpackS . TB.toLazyText . mconcat . map (TB.fromText . packS))
 
 tb_associative s1 s2 s3 =
     TB.toLazyText (b1 `mappend` (b2 `mappend` b3)) ===
@@ -103,8 +104,11 @@ tb_formatRealFloat_double (a::Double) = tb_formatRealFloat a
 testBuilder :: TestTree
 testBuilder =
   testGroup "builder" [
-    testProperty "tb_fromText" tb_fromText,
     testProperty "tb_singleton" tb_singleton,
+    testProperty "tb_fromString" tb_fromString,
+    testProperty "tb_fromText" tb_fromText,
+    testProperty "tb_fromStrings" tb_fromStrings,
+    testProperty "tb_fromTexts" tb_fromTexts,
     testProperty "tb_associative" tb_associative,
     testGroup "decimal" [
       testProperty "tb_decimal_int" tb_decimal_int,
