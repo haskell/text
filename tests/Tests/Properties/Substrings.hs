@@ -1,6 +1,6 @@
 -- | Tests for substring functions (@take@, @split@, @isInfixOf@, etc.)
 
-{-# OPTIONS_GHC -fno-enable-rewrite-rules -fno-warn-missing-signatures #-}
+{-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Tests.Properties.Substrings
     ( testSubstrings
     ) where

@@ -1,6 +1,6 @@
 -- | QuickCheck properties for the text library.
 
-{-# OPTIONS_GHC -fno-enable-rewrite-rules -fno-warn-missing-signatures #-}
+{-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Tests.Properties
     (
       tests

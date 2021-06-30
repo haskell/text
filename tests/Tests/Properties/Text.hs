@@ -1,7 +1,7 @@
 -- | Tests for operations that don't fit in the other @Test.Properties.*@ modules.
 
 {-# LANGUAGE BangPatterns #-}
-{-# OPTIONS_GHC -fno-enable-rewrite-rules -fno-warn-missing-signatures #-}
+{-# OPTIONS_GHC  -fno-warn-missing-signatures #-}
 module Tests.Properties.Text
     ( testText
     ) where

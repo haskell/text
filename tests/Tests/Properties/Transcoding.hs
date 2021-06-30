@@ -1,7 +1,7 @@
 -- | Tests for encoding and decoding
 
 {-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
-{-# OPTIONS_GHC -fno-enable-rewrite-rules -fno-warn-missing-signatures -fno-warn-unused-imports -fno-warn-deprecations #-}
+{-# OPTIONS_GHC -fno-warn-missing-signatures -fno-warn-unused-imports -fno-warn-deprecations #-}
 module Tests.Properties.Transcoding
     ( testTranscoding
     ) where

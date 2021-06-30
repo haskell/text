@@ -1,7 +1,7 @@
 -- | Test instances
 
 {-# LANGUAGE CPP #-}
-{-# OPTIONS_GHC -fno-enable-rewrite-rules -fno-warn-missing-signatures #-}
+{-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Tests.Properties.Instances
     ( testInstances
     ) where

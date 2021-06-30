@@ -1,6 +1,6 @@
 -- | Test folds, scans, and unfolds
 
-{-# OPTIONS_GHC -fno-enable-rewrite-rules -fno-warn-missing-signatures #-}
+{-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Tests.Properties.Folds
     ( testFolds
     ) where

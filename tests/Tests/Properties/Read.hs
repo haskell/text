@@ -1,7 +1,7 @@
 -- | Tests for readers
 
 {-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
-{-# OPTIONS_GHC -fno-enable-rewrite-rules -fno-warn-missing-signatures #-}
+{-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Tests.Properties.Read
     ( testRead
     ) where
