@@ -2,7 +2,7 @@
 
 {-# LANGUAGE ScopedTypeVariables #-}
 
-{-# OPTIONS_GHC -fno-enable-rewrite-rules -fno-warn-missing-signatures -fno-warn-unused-imports #-}
+{-# OPTIONS_GHC -fno-warn-missing-signatures -fno-warn-unused-imports #-}
 module Tests.Properties.LowLevel (testLowLevel) where
 
 import Control.Applicative ((<$>), pure)
