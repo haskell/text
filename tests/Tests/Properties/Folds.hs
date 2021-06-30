@@ -8,7 +8,7 @@ module Tests.Properties.Folds
 import Control.Arrow (second)
 import Data.Word (Word8, Word16)
 import Test.Tasty (TestTree, testGroup)
-import Test.Tasty.QuickCheck (testProperty)
+import Test.Tasty.QuickCheck (testProperty, Small(..), (===))
 import Tests.QuickCheckUtils
 import Text.Show.Functions ()
 import qualified Data.List as L
@@ -96,20 +96,27 @@ tl_mapAccumR f z  = L.mapAccumR f z `eqP` (second unpackS . TL.mapAccumR f z)
 
 -- Unfolds
 
-tl_repeat n       = (L.take m . L.repeat) `eq`
-                    (unpackS . TL.take (fromIntegral m) . TL.repeat)
-    where m = fromIntegral (n :: Word8)
+tl_repeat (Small n) = L.replicate n `eq` (unpackS . TL.take (fromIntegral n) . TL.repeat)
 
-any_replicate n l = concat (L.replicate n l)
+s_replicate (Small n) = (L.concat . L.replicate n) `eq` (unpackS . S.replicateI (fromIntegral n) . packS)
 
-s_replicate n     = any_replicate m `eq`
-                    (unpackS . S.replicateI (fromIntegral m) . packS)
-    where m = fromIntegral (n :: Word8)
-t_replicate n     = any_replicate m `eq` (unpackS . T.replicate m . packS)
-    where m = fromIntegral (n :: Word8)
-tl_replicate n    = any_replicate m `eq`
-                    (unpackS . TL.replicate (fromIntegral m) . packS)
-    where m = fromIntegral (n :: Word8)
+t_replicate_char (Small n) c =
+    L.replicate n c === T.unpack (T.replicate n (T.singleton c))
+tl_replicate_char (Small n) c =
+    L.replicate n c === TL.unpack (TL.replicate (fromIntegral n) (TL.singleton c))
+t_length_replicate_char (Small n) c =
+    L.length (L.replicate n c) === T.length (T.replicate n (T.singleton c))
+tl_length_replicate_char (Small n) c =
+    L.genericLength (L.replicate n c) === TL.length (TL.replicate (fromIntegral n) (TL.singleton c))
+
+t_replicate (Small n) =
+    (L.concat . L.replicate n) `eqPSqrt` (unpackS . T.replicate n)
+tl_replicate (Small n) =
+    (L.concat . L.replicate n) `eqPSqrt` (unpackS . TL.replicate (fromIntegral n))
+t_length_replicate (Small n) =
+    (L.length . L.concat . L.replicate n) `eqPSqrt` (T.length . T.replicate n)
+tl_length_replicate (Small n) =
+    (L.genericLength . L.concat . L.replicate n) `eqPSqrt` (TL.length . TL.replicate (fromIntegral n))
 
 tl_cycle n        = (L.take m . L.cycle) `eq`
                     (unpackS . TL.take (fromIntegral m) . TL.cycle . packS)
@@ -202,15 +209,25 @@ testFolds =
     ],
 
     testGroup "unfolds" [
-      testProperty "tl_repeat" tl_repeat,
-      testProperty "s_replicate" s_replicate,
-      testProperty "t_replicate" t_replicate,
-      testProperty "tl_replicate" tl_replicate,
       testProperty "tl_cycle" tl_cycle,
       testProperty "tl_iterate" tl_iterate,
       testProperty "t_unfoldr" t_unfoldr,
       testProperty "tl_unfoldr" tl_unfoldr,
       testProperty "t_unfoldrN" t_unfoldrN,
       testProperty "tl_unfoldrN" tl_unfoldrN
+    ],
+
+    testGroup "replicate" [
+      testProperty "tl_repeat" tl_repeat,
+      testProperty "s_replicate" s_replicate,
+      testProperty "t_replicate_char" t_replicate_char,
+      testProperty "tl_replicate_char" tl_replicate_char,
+      testProperty "t_length_replicate_char" t_length_replicate_char,
+      testProperty "tl_length_replicate_char" tl_length_replicate_char,
+      testProperty "t_replicate" t_replicate,
+      testProperty "tl_replicate" tl_replicate,
+      testProperty "t_length_replicate" t_length_replicate,
+      testProperty "tl_length_replicate" tl_length_replicate
     ]
+
   ]
