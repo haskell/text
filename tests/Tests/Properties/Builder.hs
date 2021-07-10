@@ -14,7 +14,6 @@ import Test.QuickCheck
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.QuickCheck (testProperty)
 import Tests.QuickCheckUtils
-import Text.Show.Functions ()
 import qualified Data.List as L
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Builder as TB
