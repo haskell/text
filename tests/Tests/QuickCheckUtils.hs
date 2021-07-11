@@ -28,8 +28,6 @@ module Tests.QuickCheckUtils
     , eqP
     , eqPSqrt
 
-    , Encoding(..)
-
     , write_read
     ) where
 
@@ -287,18 +285,6 @@ instance Arbitrary (Precision Double) where
     arbitrary = arbitraryPrecision 22
     shrink    = map Precision . shrink . precision undefined
 
--- Work around lack of Show instance for TextEncoding.
-data Encoding = E String IO.TextEncoding
-
-instance Show Encoding where show (E n _) = "utf" ++ n
-
-instance Arbitrary Encoding where
-    arbitrary = oneof . map return $
-      [ E "8" IO.utf8, E "8_bom" IO.utf8_bom, E "16" IO.utf16
-      , E "16le" IO.utf16le, E "16be" IO.utf16be, E "32" IO.utf32
-      , E "32le" IO.utf32le, E "32be" IO.utf32be
-      ]
-
 instance Arbitrary IO.Newline where
     arbitrary = oneof [return IO.LF, return IO.CRLF]
 
@@ -321,7 +307,6 @@ instance Arbitrary IO.BufferMode where
 -- * The lines themselves, scrubbed to contain neither CR nor LF.  (By
 --   working with a list of lines, we ensure that the data will
 --   sometimes contain line endings.)
--- * Encoding.
 -- * Newline translation mode.
 -- * Buffering.
 write_read :: (NFData a, Eq a, Show a)
@@ -329,25 +314,22 @@ write_read :: (NFData a, Eq a, Show a)
            -> ((Char -> Bool) -> a -> b)
            -> (IO.Handle -> a -> IO ())
            -> (IO.Handle -> IO a)
-           -> Encoding
            -> IO.NewlineMode
            -> IO.BufferMode
            -> [a]
            -> Property
-write_read _ _ _ _ _ (IO.NewlineMode IO.LF IO.CRLF) _ _ = discard
-write_read unline filt writer reader (E _ _) nl buf ts = ioProperty $
+write_read _ _ _ _ (IO.NewlineMode IO.LF IO.CRLF) _ _ = discard
+write_read unline filt writer reader nl buf ts = ioProperty $
     (===t) <$> act
   where
     t = unline . map (filt (not . (`elem` "\r\n"))) $ ts
 
     act = withTempFile $ \path h -> do
-            -- hSetEncoding h enc
             IO.hSetNewlineMode h nl
             IO.hSetBuffering h buf
             () <- writer h t
             IO.hClose h
             bracket (IO.openFile path IO.ReadMode) IO.hClose $ \h' -> do
-              -- hSetEncoding h' enc
               IO.hSetNewlineMode h' nl
               IO.hSetBuffering h' buf
               r <- reader h'
