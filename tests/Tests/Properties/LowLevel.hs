@@ -65,10 +65,10 @@ t_copy t = T.copy t === t
 t_write_read = write_read T.unlines T.filter T.hPutStr T.hGetContents
 tl_write_read = write_read TL.unlines TL.filter TL.hPutStr TL.hGetContents
 
-t_write_read_line e m b t = write_read head T.filter T.hPutStrLn
-                            T.hGetLine e m b [t]
-tl_write_read_line e m b t = write_read head TL.filter TL.hPutStrLn
-                             TL.hGetLine e m b [t]
+t_write_read_line m b t = write_read head T.filter T.hPutStrLn
+                            T.hGetLine m b [t]
+tl_write_read_line m b t = write_read head TL.filter TL.hPutStrLn
+                             TL.hGetLine m b [t]
 
 
 testLowLevel :: TestTree
