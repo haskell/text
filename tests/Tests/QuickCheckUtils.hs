@@ -299,16 +299,11 @@ instance Arbitrary Encoding where
       , E "32le" IO.utf32le, E "32be" IO.utf32be
       ]
 
-windowsNewlineMode :: IO.NewlineMode
-windowsNewlineMode = IO.NewlineMode
-    { IO.inputNL = IO.CRLF, IO.outputNL = IO.CRLF
-    }
+instance Arbitrary IO.Newline where
+    arbitrary = oneof [return IO.LF, return IO.CRLF]
 
 instance Arbitrary IO.NewlineMode where
-    arbitrary = oneof . map return $
-      [ IO.noNewlineTranslation, IO.universalNewlineMode, IO.nativeNewlineMode
-      , windowsNewlineMode
-      ]
+    arbitrary = IO.NewlineMode <$> arbitrary <*> arbitrary
 
 instance Arbitrary IO.BufferMode where
     arbitrary = oneof [ return IO.NoBuffering,
@@ -339,6 +334,7 @@ write_read :: (NFData a, Eq a, Show a)
            -> IO.BufferMode
            -> [a]
            -> Property
+write_read _ _ _ _ _ (IO.NewlineMode IO.LF IO.CRLF) _ _ = discard
 write_read unline filt writer reader (E _ _) nl buf ts = ioProperty $
     (===t) <$> act
   where
