@@ -21,8 +21,7 @@ import qualified Data.Text.Lazy as TL
 import qualified Tests.SlowFunctions as Slow
 
 s_take n          = L.take n      `eqP` (unpackS . S.take n)
-s_take_s m        = L.take n      `eqP` (unpackS . S.unstream . S.take n)
-  where n = small m
+s_take_s (Small n) = L.take n      `eqP` (unpackS . S.unstream . S.take n)
 sf_take (applyFun -> p) n
                   = (L.take n . L.filter p) `eqP`
                     (unpackS . S.take n . S.filter p)
@@ -33,8 +32,7 @@ tl_take n         = L.take n      `eqP` (unpackS . TL.take (fromIntegral n))
 tl_takeEnd n      = (L.reverse . L.take (fromIntegral n) . L.reverse) `eqP`
                     (unpackS . TL.takeEnd n)
 s_drop n          = L.drop n      `eqP` (unpackS . S.drop n)
-s_drop_s m        = L.drop n      `eqP` (unpackS . S.unstream . S.drop n)
-  where n = small m
+s_drop_s (Small n) = L.drop n      `eqP` (unpackS . S.unstream . S.drop n)
 sf_drop (applyFun -> p) n
                   = (L.drop n . L.filter p) `eqP` (unpackS . S.drop n . S.filter p)
 t_drop n          = L.drop n      `eqP` (unpackS . T.drop n)
@@ -43,11 +41,9 @@ t_dropEnd n       = (L.reverse . L.drop n . L.reverse) `eqP`
 tl_drop n         = L.drop n      `eqP` (unpackS . TL.drop (fromIntegral n))
 tl_dropEnd n      = (L.reverse . L.drop n . L.reverse) `eqP`
                     (unpackS . TL.dropEnd (fromIntegral n))
-s_take_drop m     = (L.take n . L.drop n) `eqP` (unpackS . S.take n . S.drop n)
-  where n = small m
-s_take_drop_s m   = (L.take n . L.drop n) `eqP`
+s_take_drop (Small n) = (L.take n . L.drop n) `eqP` (unpackS . S.take n . S.drop n)
+s_take_drop_s (Small n) = (L.take n . L.drop n) `eqP`
                     (unpackS . S.unstream . S.take n . S.drop n)
-  where n = small m
 s_takeWhile (applyFun -> p)
                   = L.takeWhile p `eqP` (unpackS . S.takeWhile p)
 s_takeWhile_s (applyFun -> p)

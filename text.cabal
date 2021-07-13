@@ -202,7 +202,6 @@ test-suite tests
     bytestring,
     deepseq,
     directory,
-    random,
     tasty,
     tasty-hunit,
     tasty-quickcheck,
