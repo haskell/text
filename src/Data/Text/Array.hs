@@ -43,6 +43,7 @@ module Data.Text.Array
     , newFilled
     , unsafeWrite
     , tile
+    , getSizeofMArray
     ) where
 
 #if defined(ASSERTS)
