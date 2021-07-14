@@ -7,7 +7,7 @@ module Tests.Properties.Transcoding
     ) where
 
 import Control.Applicative ((<$>), (<*>))
-import Data.Bits ((.&.))
+import Data.Bits ((.&.), shiftR)
 import Data.Char (chr, ord)
 import Data.Text.Encoding.Error (UnicodeException)
 import Data.Text.Internal.Encoding.Utf8 (ord2, ord3, ord4)
@@ -141,21 +141,21 @@ genInvalidUTF8 = B.pack <$> oneof [
     -- short 4-byte sequence
   , (:) <$> choose (0xF0, 0xF4) <*> upTo 2 contByte
     -- overlong encoding
-  , do k <- choose (0,0xFFFF)
-       let c = chr k
+  , do k <- choose (0 :: Int, 0xFFFF)
        case k of
-         _ | k < 0x80   -> oneof [ let (w,x)     = ord2 c in return [w,x]
-                                 , let (w,x,y)   = ord3 c in return [w,x,y]
-                                 , let (w,x,y,z) = ord4 c in return [w,x,y,z] ]
-           | k < 0x7FF  -> oneof [ let (w,x,y)   = ord3 c in return [w,x,y]
-                                 , let (w,x,y,z) = ord4 c in return [w,x,y,z] ]
-           | otherwise  ->         let (w,x,y,z) = ord4 c in return [w,x,y,z]
+         _ | k < 0x80   -> elements [ord2_ k, ord3_ k, ord4_ k]
+           | k < 0x7FF  -> elements [ord3_ k, ord4_ k]
+           | otherwise  -> return (ord4_ k)
   ]
   where
     contByte = (0x80 +) <$> choose (0, 0x3f)
     upTo n gen = do
       k <- choose (0,n)
       vectorOf k gen
+    -- Data.Text.Internal.Encoding.Utf8.ord{2,3,4} withous sanity checks
+    ord2_ n = map fromIntegral [(n `shiftR` 6) + 0xC0, (n .&. 0x3F) + 0x80]
+    ord3_ n = map fromIntegral [(n `shiftR` 12) + 0xE0, ((n `shiftR` 6) .&. 0x3F) + 0x80, (n .&. 0x3F) + 0x80]
+    ord4_ n = map fromIntegral [(n `shiftR` 18) + 0xF0, ((n `shiftR` 12) .&. 0x3F) + 0x80, ((n `shiftR` 6) .&. 0x3F) + 0x80, (n .&. 0x3F) + 0x80]
 
 decodeLL :: BL.ByteString -> TL.Text
 decodeLL = EL.decodeUtf8With E.lenientDecode
