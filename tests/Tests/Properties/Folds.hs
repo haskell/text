@@ -102,12 +102,20 @@ tl_scanr (applyFun2 -> f) z      = L.scanr f z   `eqP` (unpackS . TL.scanr f z)
 t_scanr1 (applyFun2 -> f)        = L.scanr1 f    `eqP` (unpackS . T.scanr1 f)
 tl_scanr1 (applyFun2 -> f)       = L.scanr1 f    `eqP` (unpackS . TL.scanr1 f)
 
+t_mapAccumL_char c t =
+    snd (T.mapAccumL (const (const (0 :: Int, c))) 0 t) === T.replicate (T.length t) (T.singleton c)
 t_mapAccumL (applyFun2 -> f) z   = L.mapAccumL f z `eqP` (second unpackS . T.mapAccumL f z)
     where _types  = f :: Int -> Char -> (Int,Char)
+tl_mapAccumL_char c t =
+    snd (TL.mapAccumL (const (const (0 :: Int, c))) 0 t) === TL.replicate (TL.length t) (TL.singleton c)
 tl_mapAccumL (applyFun2 -> f) z  = L.mapAccumL f z `eqP` (second unpackS . TL.mapAccumL f z)
     where _types  = f :: Int -> Char -> (Int,Char)
+t_mapAccumR_char c t =
+    snd (T.mapAccumR (const (const (0 :: Int, c))) 0 t) === T.replicate (T.length t) (T.singleton c)
 t_mapAccumR (applyFun2 -> f) z   = L.mapAccumR f z `eqP` (second unpackS . T.mapAccumR f z)
     where _types  = f :: Int -> Char -> (Int,Char)
+tl_mapAccumR_char c t =
+    snd (TL.mapAccumR (const (const (0 :: Int, c))) 0 t) === TL.replicate (TL.length t) (TL.singleton c)
 tl_mapAccumR (applyFun2 -> f) z  = L.mapAccumR f z `eqP` (second unpackS . TL.mapAccumR f z)
     where _types  = f :: Int -> Char -> (Int,Char)
 
@@ -220,9 +228,13 @@ testFolds =
     ],
 
     testGroup "mapAccum" [
+      testProperty "t_mapAccumL_char" t_mapAccumL_char,
       testProperty "t_mapAccumL" t_mapAccumL,
+      testProperty "tl_mapAccumL_char" tl_mapAccumL_char,
       testProperty "tl_mapAccumL" tl_mapAccumL,
+      testProperty "t_mapAccumR_char" t_mapAccumR_char,
       testProperty "t_mapAccumR" t_mapAccumR,
+      testProperty "tl_mapAccumR_char" tl_mapAccumR_char,
       testProperty "tl_mapAccumR" tl_mapAccumR
     ],
 
