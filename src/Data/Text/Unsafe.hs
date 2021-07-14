@@ -15,8 +15,10 @@ module Data.Text.Unsafe
     , unsafeDupablePerformIO
     , Iter(..)
     , iter
+    , iterArray
     , iter_
     , reverseIter
+    , reverseIterArray
     , reverseIter_
     , unsafeHead
     , unsafeTail
@@ -74,19 +76,22 @@ iter ::
   HasCallStack =>
 #endif
   Text -> Int -> Iter
-iter (Text arr off _len) i = Iter chr l
+iter (Text arr off _len) i = iterArray arr (off + i)
+{-# INLINE iter #-}
+
+iterArray :: A.Array -> Int -> Iter
+iterArray arr j = Iter chr l
   where m0 = A.unsafeIndex arr j
         m1 = A.unsafeIndex arr (j+1)
         m2 = A.unsafeIndex arr (j+2)
         m3 = A.unsafeIndex arr (j+3)
-        j = off + i
         l = utf8LengthByLeader m0
         chr = case l of
             1 -> unsafeChr8 m0
             2 -> chr2 m0 m1
             3 -> chr3 m0 m1 m2
             _ -> chr4 m0 m1 m2 m3
-{-# INLINE iter #-}
+{-# INLINE iterArray #-}
 
 -- | /O(1)/ Iterate one step through a UTF-8 array, returning the
 -- delta to add to give the next offset to iterate at.
@@ -98,8 +103,12 @@ iter_ (Text arr off _len) i = utf8LengthByLeader m
 -- | /O(1)/ Iterate one step backwards through a UTF-8 array,
 -- returning the current character and the delta to add (i.e. a
 -- negative number) to give the next offset to iterate at.
-reverseIter :: Text -> Int ->  Iter
-reverseIter (Text arr off _len) i
+reverseIter :: Text -> Int -> Iter
+reverseIter (Text arr off _len) i = reverseIterArray arr (off + i)
+{-# INLINE reverseIter #-}
+
+reverseIterArray :: A.Array -> Int -> Iter
+reverseIterArray arr j
     | m0 <  0x80 = Iter (unsafeChr8 m0) (-1)
     | m1 >= 0xC0 = Iter (chr2 m1 m0) (-2)
     | m2 >= 0xC0 = Iter (chr3 m2 m1 m0) (-3)
@@ -108,8 +117,7 @@ reverseIter (Text arr off _len) i
         m1 = A.unsafeIndex arr (j-1)
         m2 = A.unsafeIndex arr (j-2)
         m3 = A.unsafeIndex arr (j-3)
-        j = off + i
-{-# INLINE reverseIter #-}
+{-# INLINE reverseIterArray #-}
 
 -- | /O(1)/ Iterate one step backwards through a UTF-8 array,
 -- returning the delta to add (i.e. a negative number) to give the
