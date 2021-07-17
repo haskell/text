@@ -225,14 +225,14 @@ import Data.Binary (Binary(get, put))
 import Data.Monoid (Monoid(..))
 import Data.Semigroup (Semigroup(..))
 import Data.String (IsString(..))
-import Data.Text.Internal.Encoding.Utf8 (chr3, utf8Length, utf8LengthByLeader)
+import Data.Text.Internal.Encoding.Utf8 (utf8Length, utf8LengthByLeader, chr2, chr3, chr4)
 import qualified Data.Text.Internal.Fusion as S
 import qualified Data.Text.Internal.Fusion.Common as S
 import Data.Text.Encoding (decodeUtf8', encodeUtf8)
 import Data.Text.Internal.Fusion (stream, reverseStream, unstream)
 import Data.Text.Internal.Private (span_)
 import Data.Text.Internal (Text(..), empty, firstf, mul, safe, text)
-import Data.Text.Internal.Unsafe.Char (unsafeWrite)
+import Data.Text.Internal.Unsafe.Char (unsafeWrite, unsafeChr8)
 import Data.Text.Show (singleton, unpack, unpackCString#)
 import qualified Prelude as P
 import Data.Text.Unsafe (Iter(..), iter, iter_, lengthWord8, reverseIter,
@@ -1502,7 +1502,67 @@ partition p t = (filter p t, filter (not . p) t)
 -- returns a 'Text' containing those characters that satisfy the
 -- predicate.
 filter :: (Char -> Bool) -> Text -> Text
-filter p = unstream . S.filter p . stream
+filter p = go
+  where
+    go (Text src o l) = runST $ do
+      -- It's tempting to allocate l elements at once and avoid resizing.
+      -- However, this can be unacceptable in scenarios where a huge array
+      -- is filtered with a rare predicate, resulting in a much shorter buffer.
+      let !dstLen = min l 64
+      dst <- A.new dstLen
+      outer dst dstLen o 0
+      where
+        outer :: forall s. A.MArray s -> Int -> Int -> Int -> ST s Text
+        outer !dst !dstLen = inner
+          where
+            inner !srcOff !dstOff
+              | srcOff >= o + l = do
+                A.shrinkM dst dstOff
+                arr <- A.unsafeFreeze dst
+                return (Text arr 0 dstOff)
+              | dstOff + 4 > dstLen = do
+                -- Double size of the buffer, unless it becomes longer than
+                -- source string. Ensure to extend it by least 4 bytes.
+                let !dstLen' = dstLen + max 4 (min (l + o - srcOff) dstLen)
+                dst' <- A.resizeM dst dstLen'
+                outer dst' dstLen' srcOff dstOff
+              -- In case of success, filter writes exactly the same character
+              -- it just read (this is not a case for map, for example).
+              -- We leverage this fact below: no need to decode Char back into UTF8,
+              -- just copy bytes from input.
+              | otherwise = do
+                let m0 = A.unsafeIndex src srcOff
+                    m1 = A.unsafeIndex src (srcOff + 1)
+                    m2 = A.unsafeIndex src (srcOff + 2)
+                    m3 = A.unsafeIndex src (srcOff + 3)
+                    !d = utf8LengthByLeader m0
+                case d of
+                  1 -> do
+                    let !c = unsafeChr8 m0
+                    if not (p c) then inner (srcOff + 1) dstOff else do
+                      A.unsafeWrite dst dstOff m0
+                      inner (srcOff + 1) (dstOff + 1)
+                  2 -> do
+                    let !c = chr2 m0 m1
+                    if not (p c) then inner (srcOff + 2) dstOff else do
+                      A.unsafeWrite dst dstOff m0
+                      A.unsafeWrite dst (dstOff + 1) m1
+                      inner (srcOff + 2) (dstOff + 2)
+                  3 -> do
+                    let !c = chr3 m0 m1 m2
+                    if not (p c) then inner (srcOff + 3) dstOff else do
+                      A.unsafeWrite dst dstOff m0
+                      A.unsafeWrite dst (dstOff + 1) m1
+                      A.unsafeWrite dst (dstOff + 2) m2
+                      inner (srcOff + 3) (dstOff + 3)
+                  _ -> do
+                    let !c = chr4 m0 m1 m2 m3
+                    if not (p c) then inner (srcOff + 4) dstOff else do
+                      A.unsafeWrite dst dstOff m0
+                      A.unsafeWrite dst (dstOff + 1) m1
+                      A.unsafeWrite dst (dstOff + 2) m2
+                      A.unsafeWrite dst (dstOff + 3) m3
+                      inner (srcOff + 4) (dstOff + 4)
 {-# INLINE [1] filter #-}
 
 {-# RULES

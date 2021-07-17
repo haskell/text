@@ -1566,7 +1566,7 @@ stripSuffix p t = reverse `fmap` stripPrefix (reverse p) (reverse t)
 -- returns a 'Text' containing those characters that satisfy the
 -- predicate.
 filter :: (Char -> Bool) -> Text -> Text
-filter p t = unstream (S.filter p (stream t))
+filter p = foldrChunks (chunk . T.filter p) Empty
 {-# INLINE [1] filter #-}
 
 {-# RULES
