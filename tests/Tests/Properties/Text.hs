@@ -128,6 +128,20 @@ t_toTitle_1stNotLower = and . notLow . T.toTitle . T.filter stable . T.filter (n
           -- https://en.wikipedia.org/wiki/Georgian_Extended
           isGeorgian c = c >= '\4256' && c < '\4352'
 
+ascii_toLower (ASCIIString xs) = map C.toLower xs === T.unpack (T.toLower (T.pack xs))
+ascii_toUpper (ASCIIString xs) = map C.toUpper xs === T.unpack (T.toUpper (T.pack xs))
+ascii_toCaseFold (ASCIIString xs) = map C.toLower xs === T.unpack (T.toCaseFold (T.pack xs))
+
+ascii_toTitle (ASCIIString xs) = referenceToTitle False xs === T.unpack (T.toTitle (T.pack xs))
+  where
+    referenceToTitle _ [] = []
+    referenceToTitle False (y : ys)
+      | C.isLetter y = C.toUpper y : referenceToTitle True ys
+      | otherwise = y : referenceToTitle False ys
+    referenceToTitle True (y : ys)
+      | C.isLetter y = C.toLower y : referenceToTitle True ys
+      | otherwise = y : referenceToTitle (not (C.isSpace y)) ys
+
 justifyLeft k c xs  = xs ++ L.replicate (k - length xs) c
 justifyRight m n xs = L.replicate (m - length xs) n ++ xs
 center k c xs
@@ -289,7 +303,11 @@ testText =
         testProperty "t_toUpper_upper" t_toUpper_upper,
         testProperty "tl_toUpper_upper" tl_toUpper_upper,
         testProperty "t_toTitle_title" t_toTitle_title,
-        testProperty "t_toTitle_1stNotLower" t_toTitle_1stNotLower
+        testProperty "t_toTitle_1stNotLower" t_toTitle_1stNotLower,
+        testProperty "ascii_toLower" ascii_toLower,
+        testProperty "ascii_toUpper" ascii_toUpper,
+        testProperty "ascii_toTitle" ascii_toTitle,
+        testProperty "ascii_toCaseFold" ascii_toCaseFold
       ],
 
       testGroup "justification" [
