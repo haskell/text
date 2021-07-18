@@ -29,10 +29,11 @@ module Data.Text.Internal.Fusion.Types
     ) where
 
 import Data.Text.Internal.Fusion.Size
+import Data.Int (Int64)
 import Data.Word (Word8)
 
 -- | Specialised tuple for case conversion.
-data CC s = CC !s {-# UNPACK #-} !Char {-# UNPACK #-} !Char
+data CC s = CC !s {-# UNPACK #-} !Int64
 
 -- | Restreaming state.
 data RS s
