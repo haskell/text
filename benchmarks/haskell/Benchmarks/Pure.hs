@@ -14,8 +14,8 @@ module Benchmarks.Pure
 
 import Control.DeepSeq (NFData (..))
 import Control.Exception (evaluate)
+import Data.Char (chr, ord)
 import Test.Tasty.Bench (Benchmark, bgroup, bench, nf)
-import GHC.Base (Char (..), Int (..), chr#, ord#, (+#))
 import GHC.Generics (Generic)
 import GHC.Int (Int64)
 import qualified Data.ByteString.Char8 as BS
@@ -297,10 +297,14 @@ benchmark kind ~Env{..} =
     lw  = "право"
     tsw  = T.pack lw
     tlw  = TL.fromChunks [tsw]
-    f (C# c#) = C# (chr# (ord# c# +# 1#))
-    g (I# i#) (C# c#) = (I# (i# +# 1#), C# (chr# (ord# c# +# i#)))
     len l _ = l + (1::Int)
     short = T.pack "short"
+
+    -- Valid 'Char' are in range [0..0x10FFFF], otherwise 'chr' throws an 'error'.
+    -- 'Data.Text.Internal.safe' does not validate this, it assumes that inputs
+    -- has been already sanitized to belong to the range.
+    f !ch = chr (min 0x10FFFF (ord ch + 1))
+    g !i !ch = (i + 1, chr (min 0x10FFFF (ord ch + i)))
 
 data B where
     B :: NFData a => a -> B
