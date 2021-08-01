@@ -1,4 +1,4 @@
-cabal-version:  >= 1.10
+cabal-version:  2.2
 name:           text
 version:        1.2.5.0
 
@@ -38,7 +38,7 @@ description:
     based on the well-respected and liberally
     licensed [ICU library](http://site.icu-project.org/).
 
-license:        BSD2
+license:        BSD-2-Clause
 license-file:   LICENSE
 author:         Bryan O'Sullivan <bos@serpentine.com>
 maintainer:     Haskell Text Team <andrew.lelechenko@gmail.com>, Core Libraries Committee
@@ -54,6 +54,7 @@ extra-source-files:
     README.markdown
     changelog.md
     scripts/*.hs
+    include/*.h
     tests/literal-rule-test.sh
     tests/LiteralRuleTest.hs
 
@@ -67,7 +68,22 @@ library
                 cbits/measure_off.c
                 cbits/reverse.c
                 cbits/utils.c
+  cxx-sources:  cbits/simdutf.cpp
+                cbits/validate_utf8.cpp
+  include-dirs: include
   hs-source-dirs: src
+  cxx-options: -std=c++17
+
+  if os(windows)
+    if arch(x86_64)
+      extra-libraries: stdc++-6 gcc_s_seh-1
+    else
+      extra-libraries: stdc++-6 gcc_s_dw2-1
+  else
+    if os(darwin)
+      extra-libraries: c++
+    else
+      extra-libraries: stdc++
 
   exposed-modules:
     Data.Text
