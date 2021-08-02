@@ -1684,10 +1684,10 @@ findIndex p t = S.findIndex p (stream t)
 -- In (unlikely) bad cases, this function's time complexity degrades
 -- towards /O(n*m)/.
 count :: Text -> Text -> Int
-count pat src
+count pat
     | null pat        = emptyError "count"
-    | isSingleton pat = countChar (unsafeHead pat) src
-    | otherwise       = L.length (indices pat src)
+    | isSingleton pat = countChar (unsafeHead pat)
+    | otherwise       = L.length . indices pat
 {-# INLINE [1] count #-}
 
 {-# RULES

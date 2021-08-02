@@ -1,4 +1,6 @@
 {-# LANGUAGE BangPatterns, ScopedTypeVariables #-}
+{-# LANGUAGE MagicHash #-}
+{-# LANGUAGE UnliftedFFITypes #-}
 
 -- |
 -- Module      : Data.Text.Internal.Search
@@ -35,6 +37,10 @@ import qualified Data.Text.Array as A
 import Data.Word (Word64, Word8)
 import Data.Text.Internal (Text(..))
 import Data.Bits ((.|.), (.&.), unsafeShiftL)
+import Data.Text.Unsafe (unsafeDupablePerformIO)
+import Foreign.C.Types
+import GHC.Exts (ByteArray#)
+import System.Posix.Types (CSsize(..))
 
 data T = {-# UNPACK #-} !Word64 :* {-# UNPACK #-} !Int
 
@@ -48,47 +54,60 @@ data T = {-# UNPACK #-} !Word64 :* {-# UNPACK #-} !Int
 indices :: Text                -- ^ Substring to search for (@needle@)
         -> Text                -- ^ Text to search in (@haystack@)
         -> [Int]
-indices _needle@(Text narr noff nlen) _haystack@(Text harr hoff hlen)
-    | nlen == 1              = scanOne (nindex 0)
-    | nlen <= 0 || ldiff < 0 = []
-    | otherwise              = scan 0
+indices (Text narr noff nlen)
+  | nlen == 1 = scanOne (A.unsafeIndex narr noff)
+  | nlen <= 0 = const []
+  | otherwise = scan
   where
-    ldiff    = hlen - nlen
     nlast    = nlen - 1
-    z        = nindex nlast
+    !z       = nindex nlast
     nindex k = A.unsafeIndex narr (noff+k)
-    hindex k = A.unsafeIndex harr (hoff+k)
-    hindex' k | k == hlen  = 0
-              | otherwise = A.unsafeIndex harr (hoff+k)
     buildTable !i !msk !skp
         | i >= nlast           = (msk .|. swizzle z) :* skp
         | otherwise            = buildTable (i+1) (msk .|. swizzle c) skp'
-        where c                = nindex i
+        where !c               = nindex i
               skp' | c == z    = nlen - i - 2
                    | otherwise = skp
+    !(mask :* skip) = buildTable 0 0 (nlen-2)
 
     swizzle :: Word8 -> Word64
-    swizzle k = 1 `unsafeShiftL` (word8ToInt k .&. 0x3f)
+    swizzle !k = 1 `unsafeShiftL` (word8ToInt k .&. 0x3f)
 
-    scan !i
-        | i > ldiff                  = []
-        | c == z && candidateMatch 0 = i : scan (i + nlen)
-        | otherwise                  = scan (i + delta)
-        where c = hindex (i + nlast)
-              candidateMatch !j
-                    | j >= nlast               = True
-                    | hindex (i+j) /= nindex j = False
-                    | otherwise                = candidateMatch (j+1)
-              delta | nextInPattern = nlen + 1
-                    | c == z        = skip + 1
-                    | otherwise     = 1
-                where nextInPattern = mask .&. swizzle (hindex' (i+nlen)) == 0
-              !(mask :* skip)       = buildTable 0 0 (nlen-2)
-    scanOne c = loop 0
-        where loop !i | i >= hlen     = []
-                      | hindex i == c = i : loop (i+1)
-                      | otherwise     = loop (i+1)
+    scan (Text harr@(A.ByteArray harr#) hoff hlen) = loop (hoff + nlen) where
+      loop !i
+        | i > hlen + hoff
+        = []
+        | A.unsafeIndex harr (i - 1) == z
+        = if A.equal narr noff harr (i - nlen) nlen
+          then i - nlen : loop (i + nlen)
+          else            loop (i + skip + 1)
+        | i == hlen + hoff
+        = []
+        | mask .&. swizzle (A.unsafeIndex harr i) == 0
+        = loop (i + nlen + 1)
+        | otherwise
+        = case unsafeDupablePerformIO $ memchr harr# (intToCSize i) (intToCSize (hlen + hoff - i)) z of
+          -1 -> []
+          x  -> loop (i + cSsizeToInt x + 1)
 {-# INLINE indices #-}
+
+scanOne :: Word8 -> Text -> [Int]
+scanOne c (Text harr hoff hlen) = loop 0
+  where
+    loop !i
+      | i >= hlen                        = []
+      | A.unsafeIndex harr (hoff+i) == c = i : loop (i+1)
+      | otherwise                        = loop (i+1)
+{-# INLINE scanOne #-}
 
 word8ToInt :: Word8 -> Int
 word8ToInt = fromIntegral
+
+intToCSize :: Int -> CSize
+intToCSize = fromIntegral
+
+cSsizeToInt :: CSsize -> Int
+cSsizeToInt = fromIntegral
+
+foreign import ccall unsafe "_hs_text_memchr" memchr
+    :: ByteArray# -> CSize -> CSize -> Word8 -> IO CSsize
