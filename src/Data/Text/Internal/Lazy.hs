@@ -36,12 +36,15 @@ module Data.Text.Internal.Lazy
     , defaultChunkSize
     , smallChunkSize
     , chunkOverhead
+
+    , equal
     ) where
 
 import Data.Bits (shiftL)
 import Data.Text ()
 import Data.Typeable (Typeable)
 import Foreign.Storable (sizeOf)
+import qualified Data.Text.Array as A
 import qualified Data.Text.Internal as T
 
 data Text = Empty
@@ -117,3 +120,16 @@ smallChunkSize = 128 - chunkOverhead
 chunkOverhead :: Int
 chunkOverhead = sizeOf (undefined :: Int) `shiftL` 1
 {-# INLINE chunkOverhead #-}
+
+equal :: Text -> Text -> Bool
+equal Empty Empty = True
+equal Empty _     = False
+equal _ Empty     = False
+equal (Chunk (T.Text arrA offA lenA) as) (Chunk (T.Text arrB offB lenB) bs) =
+    case compare lenA lenB of
+      LT -> A.equal arrA offA arrB offB lenA &&
+            as `equal` Chunk (T.Text arrB (offB + lenA) (lenB - lenA)) bs
+      EQ -> A.equal arrA offA arrB offB lenA &&
+            as `equal` bs
+      GT -> A.equal arrA offA arrB offB lenB &&
+            Chunk (T.Text arrA (offA + lenB) (lenA - lenB)) as `equal` bs
