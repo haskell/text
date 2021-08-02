@@ -214,6 +214,7 @@ import Data.Monoid (Monoid(..))
 import Data.Semigroup (Semigroup(..))
 import Data.String (IsString(..))
 import qualified Data.Text as T
+import qualified Data.Text.Array as A
 import qualified Data.Text.Internal as T
 import qualified Data.Text.Internal.Fusion.Common as S
 import qualified Data.Text.Unsafe as T
@@ -278,15 +279,14 @@ equal :: Text -> Text -> Bool
 equal Empty Empty = True
 equal Empty _     = False
 equal _ Empty     = False
-equal (Chunk a as) (Chunk b bs) =
+equal (Chunk (T.Text arrA offA lenA) as) (Chunk (T.Text arrB offB lenB) bs) =
     case compare lenA lenB of
-      LT -> a == (T.takeWord8 lenA b) &&
-            as `equal` Chunk (T.dropWord8 lenA b) bs
-      EQ -> a == b && as `equal` bs
-      GT -> T.takeWord8 lenB a == b &&
-            Chunk (T.dropWord8 lenB a) as `equal` bs
-  where lenA = T.lengthWord8 a
-        lenB = T.lengthWord8 b
+      LT -> A.equal arrA offA arrB offB lenA &&
+            as `equal` Chunk (T.Text arrB (offB + lenA) (lenB - lenA)) bs
+      EQ -> A.equal arrA offA arrB offB lenA &&
+            as `equal` bs
+      GT -> A.equal arrA offA arrB offB lenB &&
+            Chunk (T.Text arrA (offA + lenB) (lenA - lenB)) as `equal` bs
 
 instance Eq Text where
     (==) = equal
