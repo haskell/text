@@ -2,6 +2,7 @@
 {-# LANGUAGE BangPatterns, MagicHash, CPP, TypeFamilies #-}
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE TemplateHaskellQuotes #-}
+{-# LANGUAGE LambdaCase #-}
 
 -- |
 -- Module      : Data.Text.Lazy
@@ -199,7 +200,7 @@ module Data.Text.Lazy
 
 import Prelude (Char, Bool(..), Maybe(..), String,
                 Eq(..), Ord(..), Ordering(..), Read(..), Show(..),
-                (&&), (||), (+), (-), (.), ($), (++),
+                (&&), (+), (-), (.), ($), (++),
                 error, flip, fmap, fromIntegral, not, otherwise, quot)
 import qualified Prelude as P
 import Control.DeepSeq (NFData(..))
@@ -221,7 +222,7 @@ import qualified Data.Text.Internal.Lazy.Fusion as S
 import Data.Text.Internal.Fusion.Types (PairS(..))
 import Data.Text.Internal.Lazy.Fusion (stream, unstream)
 import Data.Text.Internal.Lazy (Text(..), chunk, empty, foldlChunks,
-                                foldrChunks, smallChunkSize, equal)
+                                foldrChunks, smallChunkSize, defaultChunkSize, equal)
 import Data.Text.Internal (firstf, safe, text)
 import Data.Text.Lazy.Encoding (decodeUtf8', encodeUtf8)
 import Data.Text.Internal.Lazy.Search (indices)
@@ -591,7 +592,7 @@ intersperse c t = unstream (S.intersperse (safe c) (stream t))
 justifyLeft :: Int64 -> Char -> Text -> Text
 justifyLeft k c t
     | len >= k  = t
-    | otherwise = t `append` replicateChar (k-len) c
+    | otherwise = t `append` replicateChunk (k-len) (T.singleton c)
   where len = length t
 {-# INLINE [1] justifyLeft #-}
 
@@ -606,7 +607,7 @@ justifyLeft k c t
 justifyRight :: Int64 -> Char -> Text -> Text
 justifyRight k c t
     | len >= k  = t
-    | otherwise = replicateChar (k-len) c `append` t
+    | otherwise = replicateChunk (k-len) (T.singleton c) `append` t
   where len = length t
 {-# INLINE justifyRight #-}
 
@@ -620,7 +621,7 @@ justifyRight k c t
 center :: Int64 -> Char -> Text -> Text
 center k c t
     | len >= k  = t
-    | otherwise = replicateChar l c `append` t `append` replicateChar r c
+    | otherwise = replicateChunk l (T.singleton c) `append` t `append` replicateChunk r (T.singleton c)
   where len = length t
         d   = k - len
         r   = d `quot` 2
@@ -910,13 +911,27 @@ repeat c = let t = Chunk (T.replicate smallChunkSize (T.singleton c)) t
 -- | /O(n*m)/ 'replicate' @n@ @t@ is a 'Text' consisting of the input
 -- @t@ repeated @n@ times.
 replicate :: Int64 -> Text -> Text
-replicate n t
-    | null t || n <= 0 = empty
-    | isSingleton t    = replicateChar n (head t)
-    | otherwise        = concat (rep 0)
-    where rep !i | i >= n    = []
-                 | otherwise = t : rep (i+1)
+replicate n
+  | n <= 0 = P.const Empty
+  | otherwise = \case
+    Empty -> Empty
+    Chunk t Empty -> replicateChunk n t
+    t -> concat (rep n)
+      where
+        rep 0 = []
+        rep i = t : rep (i - 1)
 {-# INLINE [1] replicate #-}
+
+replicateChunk :: Int64 -> T.Text -> Text
+replicateChunk !n !t@(T.Text _ _ len)
+  | n <= 0 = Empty
+  | otherwise = Chunk headChunk $ P.foldr Chunk Empty (L.genericReplicate q normalChunk)
+  where
+    perChunk = defaultChunkSize `quot` len
+    normalChunk = T.replicate perChunk t
+    (q, r) = n `P.quotRem` intToInt64 perChunk
+    headChunk = T.replicate (int64ToInt r) t
+{-# INLINE replicateChunk #-}
 
 -- | 'cycle' ties a finite, non-empty 'Text' into a circular one, or
 -- equivalently, the infinite repetition of the original 'Text'.
@@ -936,17 +951,6 @@ cycle t     = let t' = foldrChunks Chunk t' t
 iterate :: (Char -> Char) -> Char -> Text
 iterate f c = let t c' = Chunk (T.singleton c') (t (f c'))
                in t c
-
--- | /O(n)/ 'replicateChar' @n@ @c@ is a 'Text' of length @n@ with @c@ the
--- value of every element.
-replicateChar :: Int64 -> Char -> Text
-replicateChar n c = unstream (S.replicateCharI n (safe c))
-{-# INLINE replicateChar #-}
-
-{-# RULES
-"LAZY TEXT replicate/singleton -> replicateChar" [~1] forall n c.
-    replicate n (singleton c) = replicateChar n c
-  #-}
 
 -- | /O(n)/, where @n@ is the length of the result. The 'unfoldr'
 -- function is analogous to the List 'L.unfoldr'. 'unfoldr' builds a
