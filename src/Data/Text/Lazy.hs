@@ -215,6 +215,7 @@ import Data.Monoid (Monoid(..))
 import Data.Semigroup (Semigroup(..))
 import Data.String (IsString(..))
 import qualified Data.Text as T
+import qualified Data.Text.Array as A
 import qualified Data.Text.Internal as T
 import qualified Data.Text.Internal.Fusion.Common as S
 import qualified Data.Text.Unsafe as T
@@ -286,18 +287,14 @@ compareText :: Text -> Text -> Ordering
 compareText Empty Empty = EQ
 compareText Empty _     = LT
 compareText _     Empty = GT
-compareText (Chunk a0 as) (Chunk b0 bs) = outer a0 b0
- where
-  outer ta@(T.Text arrA offA lenA) tb@(T.Text arrB offB lenB) = go 0 0
-   where
-    go !i !j
-      | i >= lenA = compareText as (chunk (T.Text arrB (offB+j) (lenB-j)) bs)
-      | j >= lenB = compareText (chunk (T.Text arrA (offA+i) (lenA-i)) as) bs
-      | a < b     = LT
-      | a > b     = GT
-      | otherwise = go (i+di) (j+dj)
-      where T.Iter a di = T.iter ta i
-            T.Iter b dj = T.iter tb j
+compareText (Chunk (T.Text arrA offA lenA) as) (Chunk (T.Text arrB offB lenB) bs) =
+  A.compare arrA offA arrB offB (min lenA lenB) <> case lenA `compare` lenB of
+    LT -> compareText as (Chunk (T.Text arrB (offB + lenA) (lenB - lenA)) bs)
+    EQ -> compareText as bs
+    GT -> compareText (Chunk (T.Text arrA (offA + lenB) (lenA - lenB)) as) bs
+-- This is not a mistake: on contrary to UTF-16 (https://github.com/haskell/text/pull/208),
+-- lexicographic ordering of UTF-8 encoded strings matches lexicographic ordering
+-- of underlying bytearrays, no decoding is needed.
 
 instance Show Text where
     showsPrec p ps r = showsPrec p (unpack ps) r

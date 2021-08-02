@@ -33,6 +33,7 @@ module Data.Text.Array
     , copyI
     , empty
     , equal
+    , compare
     , run
     , run2
     , toList
@@ -56,7 +57,8 @@ import Foreign.C.Types (CInt(..))
 import GHC.Exts hiding (toList)
 import GHC.ST (ST(..), runST)
 import GHC.Word (Word8(..))
-import Prelude hiding (length, read)
+import qualified Prelude
+import Prelude hiding (length, read, compare)
 
 -- | Immutable array type.
 data Array = ByteArray ByteArray#
@@ -250,13 +252,23 @@ copyI count@(I# count#) (MutableByteArray dst#) dstOff@(I# dstOff#) (ByteArray s
 
 -- | Compare portions of two arrays for equality.  No bounds checking
 -- is performed.
-equal :: Array                  -- ^ First
+equal :: Array -> Int -> Array -> Int -> Int -> Bool
+equal src1 off1 src2 off2 count = compareInternal src1 off1 src2 off2 count == 0
+{-# INLINE equal #-}
+
+-- | Compare portions of two arrays. No bounds checking is performed.
+compare :: Array -> Int -> Array -> Int -> Int -> Ordering
+compare src1 off1 src2 off2 count = compareInternal src1 off1 src2 off2 count `Prelude.compare` 0
+{-# INLINE compare #-}
+
+compareInternal
+      :: Array                  -- ^ First
       -> Int                    -- ^ Offset into first
       -> Array                  -- ^ Second
       -> Int                    -- ^ Offset into second
       -> Int                    -- ^ Count
-      -> Bool
-equal (ByteArray src1#) (I# off1#) (ByteArray src2#) (I# off2#) (I# count#) = i == 0
+      -> Int
+compareInternal (ByteArray src1#) (I# off1#) (ByteArray src2#) (I# off2#) (I# count#) = i
   where
 #if MIN_VERSION_base(4,11,0)
     i = I# (compareByteArrays# src1# off1# src2# off2# count#)
@@ -266,4 +278,4 @@ equal (ByteArray src1#) (I# off1#) (ByteArray src2#) (I# off2#) (I# count#) = i 
 foreign import ccall unsafe "_hs_text_memcmp" memcmp
     :: ByteArray# -> Int# -> ByteArray# -> Int# -> Int# -> IO CInt
 #endif
-{-# INLINE equal #-}
+{-# INLINE compareInternal #-}

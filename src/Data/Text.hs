@@ -411,17 +411,11 @@ textDataType = mkDataType "Data.Text.Text" [packConstr]
 
 -- | /O(n)/ Compare two 'Text' values lexicographically.
 compareText :: Text -> Text -> Ordering
-compareText ta@(Text _arrA _offA lenA) tb@(Text _arrB _offB lenB)
-    | lenA == 0 && lenB == 0 = EQ
-    | otherwise              = go 0 0
-  where
-    go !i !j
-        | i >= lenA || j >= lenB = compare lenA lenB
-        | a < b                  = LT
-        | a > b                  = GT
-        | otherwise              = go (i+di) (j+dj)
-      where Iter a di = iter ta i
-            Iter b dj = iter tb j
+compareText (Text arrA offA lenA) (Text arrB offB lenB) =
+    A.compare arrA offA arrB offB (min lenA lenB) <> compare lenA lenB
+-- This is not a mistake: on contrary to UTF-16 (https://github.com/haskell/text/pull/208),
+-- lexicographic ordering of UTF-8 encoded strings matches lexicographic ordering
+-- of underlying bytearrays, no decoding is needed.
 
 -- -----------------------------------------------------------------------------
 -- * Conversion to/from 'Text'
