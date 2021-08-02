@@ -214,7 +214,6 @@ import Data.Monoid (Monoid(..))
 import Data.Semigroup (Semigroup(..))
 import Data.String (IsString(..))
 import qualified Data.Text as T
-import qualified Data.Text.Array as A
 import qualified Data.Text.Internal as T
 import qualified Data.Text.Internal.Fusion.Common as S
 import qualified Data.Text.Unsafe as T
@@ -222,7 +221,7 @@ import qualified Data.Text.Internal.Lazy.Fusion as S
 import Data.Text.Internal.Fusion.Types (PairS(..))
 import Data.Text.Internal.Lazy.Fusion (stream, unstream)
 import Data.Text.Internal.Lazy (Text(..), chunk, empty, foldlChunks,
-                                foldrChunks, smallChunkSize)
+                                foldrChunks, smallChunkSize, equal)
 import Data.Text.Internal (firstf, safe, text)
 import Data.Text.Lazy.Encoding (decodeUtf8', encodeUtf8)
 import Data.Text.Internal.Lazy.Search (indices)
@@ -274,19 +273,6 @@ import GHC.Stack (HasCallStack)
 -- >>> import Data.Text
 -- >>> import qualified Data.Text as T
 -- >>> :seti -XOverloadedStrings
-
-equal :: Text -> Text -> Bool
-equal Empty Empty = True
-equal Empty _     = False
-equal _ Empty     = False
-equal (Chunk (T.Text arrA offA lenA) as) (Chunk (T.Text arrB offB lenB) bs) =
-    case compare lenA lenB of
-      LT -> A.equal arrA offA arrB offB lenA &&
-            as `equal` Chunk (T.Text arrB (offB + lenA) (lenB - lenA)) bs
-      EQ -> A.equal arrA offA arrB offB lenA &&
-            as `equal` bs
-      GT -> A.equal arrA offA arrB offB lenB &&
-            Chunk (T.Text arrA (offA + lenB) (lenA - lenB)) as `equal` bs
 
 instance Eq Text where
     (==) = equal
