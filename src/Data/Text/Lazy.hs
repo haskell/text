@@ -1599,9 +1599,9 @@ index t n = S.index (stream t) n
 -- In (unlikely) bad cases, this function's time complexity degrades
 -- towards /O(n*m)/.
 count :: Text -> Text -> Int64
-count pat src
+count pat
     | null pat        = emptyError "count"
-    | otherwise       = go 0 (indices pat src)
+    | otherwise       = go 0  . indices pat
   where go !n []     = n
         go !n (_:xs) = go (n+1) xs
 {-# INLINE [1] count #-}
