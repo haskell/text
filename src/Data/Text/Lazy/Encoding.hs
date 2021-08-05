@@ -59,7 +59,6 @@ import qualified Data.ByteString.Builder.Extra as B (safeStrategy, toLazyByteStr
 import qualified Data.ByteString.Builder.Prim as BP
 import qualified Data.ByteString.Lazy as B
 import qualified Data.ByteString.Lazy.Internal as B
-import qualified Data.ByteString.Unsafe as B
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text.Internal.Lazy.Encoding.Fusion as E
