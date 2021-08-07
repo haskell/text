@@ -48,6 +48,7 @@ import Data.Bits ((.&.), xor, shiftL, shiftR)
 #if !MIN_VERSION_base(4,11,0)
 import Data.Text.Internal.Unsafe (inlinePerformIO)
 #endif
+import Foreign.C.Types (CInt(..))
 import GHC.Exts hiding (toList)
 import GHC.ST (ST(..), runST)
 import GHC.Word (Word16(..))
@@ -210,9 +211,9 @@ equal (Array src1#) (I# off1#) (Array src2#) (I# off2#) (I# count#) = i == 0
 #if MIN_VERSION_base(4,11,0)
     i = I# (compareByteArrays# src1# (2# *# off1#) src2# (2# *# off2#) (2# *# count#))
 #else
-    i = inlinePerformIO (memcmp src1# off1# src2# off2# count#)
+    i = fromIntegral (inlinePerformIO (memcmp src1# off1# src2# off2# count#))
 
 foreign import ccall unsafe "_hs_text_memcmp" memcmp
-    :: ByteArray# -> Int# -> ByteArray# -> Int# -> Int# -> IO Int
+    :: ByteArray# -> Int# -> ByteArray# -> Int# -> Int# -> IO CInt
 #endif
 {-# INLINE equal #-}
