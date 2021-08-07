@@ -1,5 +1,7 @@
 {-# LANGUAGE OverloadedStrings, CPP #-}
-{-# LANGUAGE Safe #-}
+{-# LANGUAGE Trustworthy #-}
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE UnboxedTuples #-}
 
 -- |
 -- Module      : Data.Text.Lazy.Read
@@ -21,11 +23,15 @@ module Data.Text.Lazy.Read
     ) where
 
 import Control.Monad (liftM)
-import Data.Char (isDigit, isHexDigit)
+import Data.Char (ord)
 import Data.Int (Int8, Int16, Int32, Int64)
 import Data.Ratio ((%))
 import Data.Text.Internal.Read
+import Data.Text.Array as A
 import Data.Text.Lazy as T
+import Data.Text.Internal.Lazy as T (Text(..))
+import qualified Data.Text.Internal as T (Text(..))
+import qualified Data.Text.Internal.Private as T (spanAscii_)
 import Data.Word (Word, Word8, Word16, Word32, Word64)
 
 -- | Read some text.  If the read succeeds, return its value and the
@@ -59,7 +65,7 @@ decimal :: Integral a => Reader a
 decimal txt
     | T.null h  = Left "input does not start with a digit"
     | otherwise = Right (T.foldl' go 0 h, t)
-  where (h,t)  = T.span isDigit txt
+  where (# h, t #)  = spanAscii_ (\w -> w - ord8 '0' < 10) txt
         go n d = (n * 10 + fromIntegral (digitToInt d))
 
 -- | Read a hexadecimal integer, consisting of an optional leading
@@ -97,7 +103,7 @@ hex :: Integral a => Reader a
 hex txt
     | T.null h  = Left "input does not start with a hexadecimal digit"
     | otherwise = Right (T.foldl' go 0 h, t)
-  where (h,t)  = T.span isHexDigit txt
+  where (# h, t #)  = spanAscii_ (\w -> w - ord8 '0' < 10 || w - ord8 'A' < 6 || w - ord8 'a' < 6) txt
         go n d = (n * 16 + fromIntegral (hexDigitToInt d))
 
 -- | Read an optional leading sign character (@\'-\'@ or @\'+\'@) and
@@ -156,26 +162,30 @@ signa :: Num a => Parser a -> Parser a
 {-# SPECIALIZE signa :: Parser Int64 -> Parser Int64 #-}
 {-# SPECIALIZE signa :: Parser Integer -> Parser Integer #-}
 signa p = do
-  sign <- perhaps '+' $ char (\c -> c == '-' || c == '+')
-  if sign == '+' then p else negate `liftM` p
+  sign <- perhaps (ord8 '+') $ charAscii (\c -> c == ord8 '-' || c == ord8 '+')
+  if sign == ord8 '+' then p else negate `liftM` p
 
-char :: (Char -> Bool) -> Parser Char
-char p = P $ \t -> case T.uncons t of
-                     Just (c,t') | p c -> Right (c,t')
-                     _                 -> Left "character does not match"
+charAscii :: (Word8 -> Bool) -> Parser Word8
+charAscii p = P $ \case
+  Empty -> Left "character does not match"
+  -- len is > 0, unless the internal invariant of Text is violated
+  Chunk (T.Text arr off len) ts -> let c = A.unsafeIndex arr off in
+    if p c
+    then Right (c, if len <= 1 then ts else Chunk (T.Text arr (off + 1) (len - 1)) ts)
+    else Left "character does not match"
 
 floaty :: Fractional a => (Integer -> Integer -> Integer -> a) -> Reader a
 {-# INLINE floaty #-}
 floaty f = runP $ do
-  sign <- perhaps '+' $ char (\c -> c == '-' || c == '+')
+  sign <- perhaps (ord8 '+') $ charAscii (\c -> c == ord8 '-' || c == ord8 '+')
   real <- P decimal
   T fraction fracDigits <- perhaps (T 0 0) $ do
-    _ <- char (=='.')
-    digits <- P $ \t -> Right (int64ToInt . T.length $ T.takeWhile isDigit t, t)
+    _ <- charAscii (== ord8 '.')
+    digits <- P $ \t -> Right (let (# hd, _ #) = spanAscii_ (\w -> w - ord8 '0' < 10) t in int64ToInt (T.length hd), t)
     n <- P decimal
     return $ T n digits
-  let e c = c == 'e' || c == 'E'
-  power <- perhaps 0 (char e >> signa (P decimal) :: Parser Int)
+  let e c = c == ord8 'e' || c == ord8 'E'
+  power <- perhaps 0 (charAscii e >> signa (P decimal) :: Parser Int)
   let n = if fracDigits == 0
           then if power == 0
                then fromInteger real
@@ -183,9 +193,23 @@ floaty f = runP $ do
           else if power == 0
                then f real fraction (10 ^ fracDigits)
                else f real fraction (10 ^ fracDigits) * (10 ^^ power)
-  return $! if sign == '+'
+  return $! if sign == ord8 '+'
             then n
             else -n
 
 int64ToInt :: Int64 -> Int
 int64ToInt = fromIntegral
+
+ord8 :: Char -> Word8
+ord8 = fromIntegral . ord
+
+-- | For the sake of performance this function does not check
+-- that a char is in ASCII range; it is a responsibility of @p@.
+spanAscii_ :: (Word8 -> Bool) -> Text -> (# Text, Text #)
+spanAscii_ p = loop
+  where
+    loop Empty = (# Empty, Empty #)
+    loop (Chunk t ts) = let (# t', t''@(T.Text _ _ len) #) = T.spanAscii_ p t in
+      if len == 0
+      then let (# ts', ts'' #) = loop ts in (# Chunk t ts', ts'' #)
+      else (# Chunk t' Empty, Chunk t'' ts #)
