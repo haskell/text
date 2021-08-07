@@ -61,9 +61,20 @@ perhaps def m = P $ \t -> case runP m t of
 
 hexDigitToInt :: Char -> Int
 hexDigitToInt c
-    | c >= '0' && c <= '9' = ord c - ord '0'
-    | c >= 'a' && c <= 'f' = ord c - (ord 'a' - 10)
-    | otherwise            = ord c - (ord 'A' - 10)
+    | to0 < 10  = wordToInt to0
+    | toa < 6   = wordToInt toa + 10
+    | otherwise = wordToInt toA + 10
+    where
+        ordW = intToWord (ord c)
+        to0 = ordW - intToWord (ord '0')
+        toa = ordW - intToWord (ord 'a')
+        toA = ordW - intToWord (ord 'A')
 
 digitToInt :: Char -> Int
 digitToInt c = ord c - ord '0'
+
+intToWord :: Int -> Word
+intToWord = fromIntegral
+
+wordToInt :: Word -> Int
+wordToInt = fromIntegral
