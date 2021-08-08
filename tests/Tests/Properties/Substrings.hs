@@ -28,9 +28,15 @@ sf_take (applyFun -> p) n
 t_take n          = L.take n      `eqP` (unpackS . T.take n)
 t_takeEnd n       = (L.reverse . L.take n . L.reverse) `eqP`
                     (unpackS . T.takeEnd n)
-tl_take n         = L.take n      `eqP` (unpackS . TL.take (fromIntegral n))
-tl_takeEnd n      = (L.reverse . L.take (fromIntegral n) . L.reverse) `eqP`
+tl_take n         = L.genericTake n      `eqP` (unpackS . TL.take n)
+tl_take_maxBound m = let n = fromIntegral (m :: Int) + fromIntegral (maxBound :: Int) in
+                    L.genericTake n      `eqP` (unpackS . TL.take n)
+tl_takeEnd n      = (L.reverse . L.genericTake n . L.reverse) `eqP`
                     (unpackS . TL.takeEnd n)
+tl_takeEnd_maxBound m = let n = fromIntegral (m :: Int) + fromIntegral (maxBound :: Int) in
+                    (L.reverse . L.genericTake n . L.reverse) `eqP`
+                    (unpackS . TL.takeEnd n)
+
 s_drop n          = L.drop n      `eqP` (unpackS . S.drop n)
 s_drop_s (Small n) = L.drop n      `eqP` (unpackS . S.unstream . S.drop n)
 sf_drop (applyFun -> p) n
@@ -38,9 +44,13 @@ sf_drop (applyFun -> p) n
 t_drop n          = L.drop n      `eqP` (unpackS . T.drop n)
 t_dropEnd n       = (L.reverse . L.drop n . L.reverse) `eqP`
                     (unpackS . T.dropEnd n)
-tl_drop n         = L.drop n      `eqP` (unpackS . TL.drop (fromIntegral n))
-tl_dropEnd n      = (L.reverse . L.drop n . L.reverse) `eqP`
-                    (unpackS . TL.dropEnd (fromIntegral n))
+tl_drop n         = L.genericDrop n `eqP` (unpackS . TL.drop n)
+tl_drop_maxBound m = let n = fromIntegral (m :: Int) + fromIntegral (maxBound :: Int) in                  L.genericDrop n `eqP` (unpackS . TL.drop n)
+tl_dropEnd n      = (L.reverse . L.genericDrop n . L.reverse) `eqP`
+                    (unpackS . TL.dropEnd n)
+tl_dropEnd_maxBound m = let n = fromIntegral (m :: Int) + fromIntegral (maxBound :: Int) in                  (L.reverse . L.genericDrop n . L.reverse) `eqP`
+                    (unpackS . TL.dropEnd n)
+
 s_take_drop (Small n) = (L.take n . L.drop n) `eqP` (unpackS . S.take n . S.drop n)
 s_take_drop_s (Small n) = (L.take n . L.drop n) `eqP`
                     (unpackS . S.unstream . S.take n . S.drop n)
@@ -105,8 +115,12 @@ t_stripEnd        = T.dropWhileEnd isSpace `eq` T.stripEnd
 tl_stripEnd       = TL.dropWhileEnd isSpace `eq` TL.stripEnd
 t_strip           = T.dropAround isSpace `eq` T.strip
 tl_strip          = TL.dropAround isSpace `eq` TL.strip
+
 t_splitAt n       = L.splitAt n   `eqP` (unpack2 . T.splitAt n)
-tl_splitAt n      = L.splitAt n   `eqP` (unpack2 . TL.splitAt (fromIntegral n))
+tl_splitAt n      = L.genericSplitAt n `eqP` (unpack2 . TL.splitAt n)
+tl_splitAt_maxBound m = let n = fromIntegral (m :: Int) + fromIntegral (maxBound :: Int) in
+                    L.genericSplitAt n `eqP` (unpack2 . TL.splitAt n)
+
 t_span (applyFun -> p)  = L.span p `eqP` (unpack2 . T.span p)
 tl_span (applyFun -> p) = L.span p `eqP` (unpack2 . TL.span p)
 
@@ -250,14 +264,18 @@ testSubstrings =
       testProperty "t_take" t_take,
       testProperty "t_takeEnd" t_takeEnd,
       testProperty "tl_take" tl_take,
+      testProperty "tl_take_maxBound" tl_take_maxBound,
       testProperty "tl_takeEnd" tl_takeEnd,
+      testProperty "tl_takeEnd_maxBound" tl_takeEnd_maxBound,
       testProperty "s_drop" s_drop,
       testProperty "s_drop_s" s_drop_s,
       testProperty "sf_drop" sf_drop,
       testProperty "t_drop" t_drop,
       testProperty "t_dropEnd" t_dropEnd,
       testProperty "tl_drop" tl_drop,
+      testProperty "tl_drop_maxBound" tl_drop_maxBound,
       testProperty "tl_dropEnd" tl_dropEnd,
+      testProperty "tl_dropEnd_maxBound" tl_dropEnd_maxBound,
       testProperty "s_take_drop" s_take_drop,
       testProperty "s_take_drop_s" s_take_drop_s,
       testProperty "s_takeWhile" s_takeWhile,
@@ -286,6 +304,7 @@ testSubstrings =
       testProperty "tl_strip" tl_strip,
       testProperty "t_splitAt" t_splitAt,
       testProperty "tl_splitAt" tl_splitAt,
+      testProperty "tl_splitAt_maxBound" tl_splitAt_maxBound,
       testProperty "t_span" t_span,
       testProperty "tl_span" tl_span,
       testProperty "t_breakOn_id" t_breakOn_id,
