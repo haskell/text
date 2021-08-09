@@ -1,10 +1,21 @@
 ### 1.3
 
-* Disable implicit fusion rules
+* [Disable implicit fusion rules](https://github.com/haskell/text/pull/348)
+* [Add `Data.Text.Encoding.decodeUtf8Lenient`](https://github.com/haskell/text/pull/342)
+* [Remove `Data.Text.Internal.Unsafe.Shift`](https://github.com/haskell/text/pull/343)
+* [Remove `Data.Text.Internal.Functions`](https://github.com/haskell/text/pull/354)
+* [Bring type of `Data.Text.Unsafe.reverseIter` in line with `iter`](https://github.com/haskell/text/pull/355)
 
-### 1.2.4.2
+### 1.2.5.0
 
-* Support GHC-9.2
+* [Support sized primitives from GHC 9.2](https://github.com/haskell/text/pull/305)
+* [Allow `template-haskell-2.18.0.0`](https://github.com/haskell/text/pull/320)
+* [Add `elem :: Char -> Text -> Bool` to `Data.Text` and `Data.Text.Lazy`](https://github.com/haskell/text/pull/274)
+* [Replace surrogate code points in `Data.Text.Internal.Builder.{singleton,fromString}`](https://github.com/haskell/text/pull/281)
+* [Use `unsafeWithForeignPtr` when available](https://github.com/haskell/text/pull/325)
+* [Use vectorized CPU instructions for decoding and encoding](https://github.com/haskell/text/pull/302)
+* [Regenerate case mapping in accordance to Unicode 13.0](https://github.com/haskell/text/pull/334)
+* [Fix UTF-8 decoding of lazy bytestrings](https://github.com/haskell/text/pull/333)
 
 ### 1.2.4.1
 
