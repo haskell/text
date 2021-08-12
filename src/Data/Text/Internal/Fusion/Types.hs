@@ -80,6 +80,8 @@ instance (Ord a) => Ord (Stream a) where
 -- undercount if, for instance, a transformed stream contains astral
 -- plane code points (those above 0x10000).
 
+-- | A co-recursive type yielding a single element at a time depending
+-- on the internal state it carries.
 data Stream a =
     forall s. Stream
     (s -> Step s a)             -- stepper function
