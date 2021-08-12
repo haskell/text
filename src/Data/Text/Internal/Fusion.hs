@@ -70,7 +70,13 @@ import GHC.Stack (HasCallStack)
 
 default(Int)
 
--- | /O(n)/ Convert a 'Text' into a 'Stream Char'.
+-- | /O(n)/ Convert 'Text' into a 'Stream' 'Char'.
+--
+-- __Properties__
+--
+-- @'unstream' . 'stream' = 'Data.Function.id'@
+--
+-- @'stream' . 'unstream' = 'Data.Function.id' @
 stream ::
 #if defined(ASSERTS)
   HasCallStack =>
@@ -88,8 +94,12 @@ stream (Text arr off len) = Stream next off (betweenSize (len `shiftR` 1) len)
             n2 = A.unsafeIndex arr (i + 1)
 {-# INLINE [0] stream #-}
 
--- | /O(n)/ Convert a 'Text' into a 'Stream Char', but iterate
--- backwards.
+-- | /O(n)/ Converts 'Text' into a 'Stream' 'Char', but iterates
+-- backwards through the text.
+--
+-- __Properties__
+--
+-- @'unstream' . 'reverseStream' = 'Data.Text.reverse' @
 reverseStream :: Text -> Stream Char
 reverseStream (Text arr off len) = Stream next (off+len-1) (betweenSize (len `shiftR` 1) len)
     where
@@ -103,7 +113,13 @@ reverseStream (Text arr off len) = Stream next (off+len-1) (betweenSize (len `sh
             n2 = A.unsafeIndex arr (i - 1)
 {-# INLINE [0] reverseStream #-}
 
--- | /O(n)/ Convert a 'Stream Char' into a 'Text'.
+-- | /O(n)/ Convert 'Stream' 'Char' into a 'Text'.
+--
+-- __Properties__
+--
+-- @'unstream' . 'stream' = 'Data.Function.id'@
+--
+-- @'stream' . 'unstream' = 'Data.Function.id' @
 unstream :: Stream Char -> Text
 unstream (Stream next0 s0 len) = runText $ \done -> do
   -- Before encoding each char we perform a buffer realloc check assuming
@@ -142,11 +158,20 @@ unstream (Stream next0 s0 len) = runText $ \done -> do
 -- ----------------------------------------------------------------------------
 -- * Basic stream functions
 
+-- | /O(n)/ Returns the number of characters in a 'Stream'.
+--
+-- __Properties__
+--
+-- @'length' . 'stream' = 'Data.Text.length' @
 length :: Stream Char -> Int
 length = S.lengthI
 {-# INLINE[0] length #-}
 
--- | /O(n)/ Reverse the characters of a string.
+-- | /O(n)/ Reverse the characters of a 'Stream' returning 'Text'.
+--
+-- __Properties__
+--
+-- @'reverse' . 'stream' = 'Data.Text.reverse' @
 reverse ::
 #if defined(ASSERTS)
   HasCallStack =>
@@ -187,6 +212,10 @@ reverse (Stream next s len0)
 
 -- | /O(n)/ Perform the equivalent of 'scanr' over a list, only with
 -- the input and result reversed.
+--
+-- __Properties__
+--
+-- @'reverse' . 'reverseScanr' f c . 'reverseStream' = 'Data.Text.scanr' f c @
 reverseScanr :: (Char -> Char -> Char) -> Char -> Stream Char -> Stream Char
 reverseScanr f z0 (Stream next0 s0 len) = Stream next (Scan1 z0 s0) (len+1) -- HINT maybe too low
   where
@@ -203,6 +232,10 @@ reverseScanr f z0 (Stream next0 s0 len) = Stream next (Scan1 z0 s0) (len+1) -- H
 -- value. However, the length of the result is limited by the
 -- first argument to 'unfoldrN'. This function is more efficient than
 -- 'unfoldr' when the length of the result is known.
+--
+-- __Properties__
+--
+-- @'unstream' ('unfoldrN' n f a) = 'Data.Text.unfoldrN' n f a @
 unfoldrN :: Int -> (a -> Maybe (Char,a)) -> a -> Stream Char
 unfoldrN n = S.unfoldrNI n
 {-# INLINE [0] unfoldrN #-}
@@ -211,6 +244,10 @@ unfoldrN n = S.unfoldrNI n
 -- ** Indexing streams
 
 -- | /O(n)/ stream index (subscript) operator, starting from 0.
+--
+-- __Properties__
+--
+-- @'index' ('stream' t) n  = 'Data.Text.index' t n @
 index :: Stream Char -> Int -> Char
 index = S.indexI
 {-# INLINE [0] index #-}
@@ -218,12 +255,20 @@ index = S.indexI
 -- | The 'findIndex' function takes a predicate and a stream and
 -- returns the index of the first element in the stream
 -- satisfying the predicate.
+--
+-- __Properties__
+--
+-- @'findIndex' p . 'stream'  = 'Data.Text.findIndex' p @
 findIndex :: (Char -> Bool) -> Stream Char -> Maybe Int
 findIndex = S.findIndexI
 {-# INLINE [0] findIndex #-}
 
 -- | /O(n)/ The 'count' function returns the number of times the query
 -- element appears in the given stream.
+--
+-- __Properties__
+--
+-- @'countChar' c . 'stream'  = 'Data.Text.countChar' c @
 countChar :: Char -> Stream Char -> Int
 countChar = S.countCharI
 {-# INLINE [0] countChar #-}
@@ -231,6 +276,10 @@ countChar = S.countCharI
 -- | /O(n)/ Like a combination of 'map' and 'foldl''. Applies a
 -- function to each element of a 'Text', passing an accumulating
 -- parameter from left to right, and returns a final 'Text'.
+--
+-- __Properties__
+--
+-- @'mapAccumL' g z0 . 'stream' = 'Data.Text.mapAccumL' g z0@
 mapAccumL ::
 #if defined(ASSERTS)
   HasCallStack =>

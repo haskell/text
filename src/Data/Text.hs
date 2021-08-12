@@ -951,16 +951,17 @@ minimum t = S.minimum (stream t)
 
 -- -----------------------------------------------------------------------------
 -- * Building 'Text's
-
 -- | /O(n)/ 'scanl' is similar to 'foldl', but returns a list of
 -- successive reduced values from the left.
 -- Performs replacement on invalid scalar values.
 --
 -- > scanl f z [x1, x2, ...] == [z, z `f` x1, (z `f` x1) `f` x2, ...]
 --
--- Note that
+-- __Properties__
 --
--- > last (scanl f z xs) == foldl f z xs.
+-- @'head' ('scanl' f z xs) = z@
+-- 
+-- @'last' ('scanl' f z xs) = 'foldl' f z xs@
 scanl :: (Char -> Char -> Char) -> Char -> Text -> Text
 scanl f z t = unstream (S.scanl g z (stream t))
     where g a b = safe (f a b)
