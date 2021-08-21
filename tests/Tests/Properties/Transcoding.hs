@@ -95,19 +95,8 @@ instance Arbitrary InvalidUtf8 where
     =  map (\c' -> InvalidUtf8 a b c') (shrink c)
     ++ map (\a' -> InvalidUtf8 a' b c) (shrink a)
 
-t_utf8_err :: InvalidUtf8 -> Maybe DecodeErr -> Property
--- generate an invalid character
-t_utf8_err bad Nothing = forAll (choose ('\x10000', maxBound)) $ \c -> ioProperty $ do
-  let onErr _ _ = Just c
-      decoded = E.decodeUtf8With onErr (toByteString bad)
-      len = T.length decoded
-  l <- Exception.try (Exception.evaluate len)
-  pure $ case l of
-    Left (err :: Exception.SomeException) -> counterexample (show err) $
-      "non-BMP replacement characters not supported" `T.isInfixOf` T.pack (show err)
-    Right _  -> counterexample (show (decoded, l)) False
--- generate a valid onErr
-t_utf8_err bad (Just de) = forAll (Blind <$> genDecodeErr de) $ \(Blind onErr) -> ioProperty $ do
+t_utf8_err :: InvalidUtf8 -> DecodeErr -> Property
+t_utf8_err bad de = forAll (Blind <$> genDecodeErr de) $ \(Blind onErr) -> ioProperty $ do
   let decoded = E.decodeUtf8With onErr (toByteString bad)
       len = T.length (E.decodeUtf8With onErr (toByteString bad))
   l <- Exception.try (Exception.evaluate len)

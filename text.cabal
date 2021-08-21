@@ -53,7 +53,6 @@ extra-source-files:
     -- scripts/SpecialCasing.txt
     README.markdown
     changelog.md
-    include/*.h
     scripts/*.hs
     tests/literal-rule-test.sh
     tests/LiteralRuleTest.hs
@@ -64,12 +63,10 @@ flag developer
   manual: True
 
 library
-  c-sources:    cbits/cbits.c
-                cbits/is_ascii.c
+  c-sources:    cbits/is_ascii.c
                 cbits/measure_off.c
                 cbits/reverse.c
                 cbits/utils.c
-  include-dirs: include
   hs-source-dirs: src
 
   exposed-modules:

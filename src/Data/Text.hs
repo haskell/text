@@ -231,7 +231,7 @@ import qualified Data.Text.Internal.Fusion.Common as S
 import Data.Text.Encoding (decodeUtf8', encodeUtf8)
 import Data.Text.Internal.Fusion (stream, reverseStream, unstream)
 import Data.Text.Internal.Private (span_)
-import Data.Text.Internal (Text(..), empty, firstf, mul, safe, text)
+import Data.Text.Internal (Text(..), empty, firstf, mul, safe, text, append)
 import Data.Text.Internal.Unsafe.Char (unsafeWrite, unsafeChr8)
 import Data.Text.Show (singleton, unpack, unpackCString#)
 import qualified Prelude as P
@@ -445,24 +445,6 @@ infixr 5 `cons`
 snoc :: Text -> Char -> Text
 snoc t c = unstream (S.snoc (stream t) (safe c))
 {-# INLINE snoc #-}
-
--- | /O(n)/ Appends one 'Text' to the other by copying both of them
--- into a new 'Text'.
-append :: Text -> Text -> Text
-append a@(Text arr1 off1 len1) b@(Text arr2 off2 len2)
-    | len1 == 0 = b
-    | len2 == 0 = a
-    | len > 0   = Text (A.run x) 0 len
-    | otherwise = overflowError "append"
-    where
-      len = len1+len2
-      x :: ST s (A.MArray s)
-      x = do
-        arr <- A.new len
-        A.copyI len1 arr 0 arr1 off1
-        A.copyI len2 arr len1 arr2 off2
-        return arr
-{-# NOINLINE append #-}
 
 -- | /O(1)/ Returns the first character of a 'Text', which must be
 -- non-empty.
