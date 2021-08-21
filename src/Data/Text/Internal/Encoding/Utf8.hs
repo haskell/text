@@ -33,6 +33,10 @@ module Data.Text.Internal.Encoding.Utf8
     , validate2
     , validate3
     , validate4
+    -- * Naive decoding
+    , DecoderResult(..)
+    , utf8DecodeStart
+    , utf8DecodeContinue
     ) where
 
 #if defined(ASSERTS)
@@ -40,7 +44,7 @@ import Control.Exception (assert)
 import GHC.Stack (HasCallStack)
 #endif
 import Data.Bits (Bits(..), FiniteBits(..))
-import Data.Char (ord)
+import Data.Char (ord, chr)
 import GHC.Exts
 import GHC.Word (Word8(..))
 
@@ -213,3 +217,66 @@ validate4 x1 x2 x3 x4 = validate4_1 || validate4_2 || validate4_3
 
 intToWord8 :: Int -> Word8
 intToWord8 = fromIntegral
+
+word8ToInt :: Word8 -> Int
+word8ToInt = fromIntegral
+
+-------------------------------------------------------------------------------
+-- Naive UTF8 decoder.
+-- See http://bjoern.hoehrmann.de/utf-8/decoder/dfa/ for the explanation of the state machine.
+
+newtype ByteClass = ByteClass Word8
+
+byteToClass :: Word8 -> ByteClass
+byteToClass n = ByteClass (W8# el#)
+  where
+    !(I# n#) = word8ToInt n
+    el# = indexWord8OffAddr# table# n#
+
+    table# :: Addr#
+    table# = "\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\SOH\SOH\SOH\SOH\SOH\SOH\SOH\SOH\SOH\SOH\SOH\SOH\SOH\SOH\SOH\SOH\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\b\b\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\n\ETX\ETX\ETX\ETX\ETX\ETX\ETX\ETX\ETX\ETX\ETX\ETX\EOT\ETX\ETX\v\ACK\ACK\ACK\ENQ\b\b\b\b\b\b\b\b\b\b\b"#
+
+newtype DecoderState = DecoderState Word8
+  deriving (Eq)
+
+utf8AcceptState :: DecoderState
+utf8AcceptState = DecoderState 0
+
+utf8RejectState :: DecoderState
+utf8RejectState = DecoderState 12
+
+updateState :: ByteClass -> DecoderState -> DecoderState
+updateState (ByteClass c) (DecoderState s) = DecoderState (W8# el#)
+  where
+    !(I# n#) = word8ToInt (c + s)
+    el# = indexWord8OffAddr# table# n#
+
+    table# :: Addr#
+    table# = "\NUL\f\CAN$<`T\f\f\f0H\f\f\f\f\f\f\f\f\f\f\f\f\f\NUL\f\f\f\f\f\NUL\f\NUL\f\f\f\CAN\f\f\f\f\f\CAN\f\CAN\f\f\f\f\f\f\f\f\f\CAN\f\f\f\f\f\CAN\f\f\f\f\f\f\f\CAN\f\f\f\f\f\f\f\f\f$\f$\f\f\f$\f\f\f\f\f$\f$\f\f\f$\f\f\f\f\f\f\f\f\f\f"#
+
+newtype CodePoint = CodePoint Int
+
+data DecoderResult
+  = Accept !Char
+  | Incomplete !DecoderState !CodePoint
+  | Reject
+
+utf8DecodeStart :: Word8 -> DecoderResult
+utf8DecodeStart w
+  | st == utf8AcceptState = Accept (chr (word8ToInt w))
+  | st == utf8RejectState = Reject
+  | otherwise             = Incomplete st (CodePoint cp)
+  where
+    cl@(ByteClass cl') = byteToClass w
+    st = updateState cl utf8AcceptState
+    cp = word8ToInt $ (0xff `shiftR` word8ToInt cl') .&. w
+
+utf8DecodeContinue :: Word8 -> DecoderState -> CodePoint -> DecoderResult
+utf8DecodeContinue w st (CodePoint cp)
+  | st' == utf8AcceptState = Accept (chr cp')
+  | st' == utf8RejectState = Reject
+  | otherwise              = Incomplete st' (CodePoint cp')
+  where
+    cl  = byteToClass w
+    st' = updateState cl st
+    cp' = (cp `shiftL` 6) .|. word8ToInt (w .&. 0x3f)

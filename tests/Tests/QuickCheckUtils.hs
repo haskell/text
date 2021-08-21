@@ -122,7 +122,7 @@ genDecodeErr Ignore  = return T.ignore
 genDecodeErr Strict  = return T.strictDecode
 genDecodeErr Replace = (\c _ _ -> c) <$> frequency
   [ (1, return Nothing)
-  , (50, Just <$> choose ('\x1', '\xffff'))
+  , (50, Just <$> arbitraryUnicodeChar)
   ]
 
 instance Arbitrary DecodeErr where

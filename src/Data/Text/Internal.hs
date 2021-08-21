@@ -33,6 +33,7 @@ module Data.Text.Internal
     -- * Code that must be here for accessibility
     , empty
     , empty_
+    , append
     -- * Utilities
     , firstf
     -- * Checked multiplication
@@ -47,6 +48,7 @@ module Data.Text.Internal
 import Control.Exception (assert)
 import GHC.Stack (HasCallStack)
 #endif
+import Control.Monad.ST (ST)
 import Data.Bits
 import Data.Int (Int32, Int64)
 import Data.Text.Internal.Unsafe.Char (ord)
@@ -88,6 +90,24 @@ empty = Text A.empty 0 0
 empty_ :: Text
 empty_ = Text A.empty 0 0
 {-# NOINLINE empty_ #-}
+
+-- | /O(n)/ Appends one 'Text' to the other by copying both of them
+-- into a new 'Text'.
+append :: Text -> Text -> Text
+append a@(Text arr1 off1 len1) b@(Text arr2 off2 len2)
+    | len1 == 0 = b
+    | len2 == 0 = a
+    | len > 0   = Text (A.run x) 0 len
+    | otherwise = error $ "Data.Text.append: size overflow"
+    where
+      len = len1+len2
+      x :: ST s (A.MArray s)
+      x = do
+        arr <- A.new len
+        A.copyI len1 arr 0 arr1 off1
+        A.copyI len2 arr len1 arr2 off2
+        return arr
+{-# NOINLINE append #-}
 
 -- | Construct a 'Text' without invisibly pinning its byte array in
 -- memory if its length has dwindled to zero.
