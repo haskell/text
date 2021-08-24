@@ -619,7 +619,28 @@ compareLength t n = S.compareLengthI (stream t) n
 --
 -- Performs replacement on invalid scalar values.
 map :: (Char -> Char) -> Text -> Text
-map f t = unstream (S.map (safe . f) (stream t))
+map f = go
+  where
+    go (Text src o l) = runST $ do
+      marr <- A.new (l + 4)
+      outer marr (l + 4) o 0
+      where
+        outer :: forall s. A.MArray s -> Int -> Int -> Int -> ST s Text
+        outer !dst !dstLen = inner
+          where
+            inner !srcOff !dstOff
+              | srcOff >= l + o = do
+                A.shrinkM dst dstOff
+                arr <- A.unsafeFreeze dst
+                return (Text arr 0 dstOff)
+              | dstOff + 4 > dstLen = do
+                let !dstLen' = dstLen + (l + o) - srcOff + 4
+                dst' <- A.resizeM dst dstLen'
+                outer dst' dstLen' srcOff dstOff
+              | otherwise = do
+                let !(Iter c d) = iterArray src srcOff
+                d' <- unsafeWrite dst dstOff (safe (f c))
+                inner (srcOff + d) (dstOff + d')
 {-# INLINE [1] map #-}
 
 {-# RULES
