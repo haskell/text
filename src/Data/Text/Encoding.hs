@@ -127,9 +127,9 @@ decodeLatin1 bs = withBS bs aux where
   aux fp len = text a 0 actualLen
    where
     (a, actualLen) = A.run2 (A.new (2 * len) >>= unsafeIOToST . go)
-    go dest = unsafeWithForeignPtr fp $ \src -> do
-      destLen <- c_decode_latin1 (A.maBA dest) src (src `plusPtr` len)
-      return (dest, destLen)
+    go (A.MutableByteArray dest) = unsafeWithForeignPtr fp $ \src -> do
+      destLen <- c_decode_latin1 dest src (src `plusPtr` len)
+      return (A.MutableByteArray dest, destLen)
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text.
 --
@@ -147,15 +147,15 @@ decodeUtf8With ::
 decodeUtf8With onErr bs = withBS bs aux
  where
   aux fp len = runText $ \done -> do
-    let go dest = unsafeWithForeignPtr fp $ \ptr ->
+    let go (A.MutableByteArray dest) = unsafeWithForeignPtr fp $ \ptr ->
           with (0::CSize) $ \destOffPtr -> do
             let end = ptr `plusPtr` len
                 loop curPtr = do
-                  curPtr' <- c_decode_utf8 (A.maBA dest) destOffPtr curPtr end
+                  curPtr' <- c_decode_utf8 dest destOffPtr curPtr end
                   if curPtr' == end
                     then do
                       n <- peek destOffPtr
-                      unsafeSTToIO (done dest (cSizeToInt n))
+                      unsafeSTToIO (done (A.MutableByteArray dest) (cSizeToInt n))
                     else do
                       x <- peek curPtr'
                       case onErr desc (Just x) of
@@ -167,7 +167,7 @@ decodeUtf8With onErr bs = withBS bs aux
                           | otherwise -> do
                               destOff <- peek destOffPtr
                               w <- unsafeSTToIO $
-                                   unsafeWrite dest (cSizeToInt destOff)
+                                   unsafeWrite (A.MutableByteArray dest) (cSizeToInt destOff)
                                                (safe c)
                               poke destOffPtr (destOff + intToCSize w)
                               loop $ curPtr' `plusPtr` 1
@@ -288,7 +288,7 @@ streamDecodeUtf8With onErr = decodeChunk B.empty 0 0
     aux fp len = runST $ (unsafeIOToST . decodeChunkToBuffer) =<< A.new (len+100)
        where
         decodeChunkToBuffer :: A.MArray s -> IO Decoding
-        decodeChunkToBuffer dest = unsafeWithForeignPtr fp $ \ptr ->
+        decodeChunkToBuffer (A.MutableByteArray dest) = unsafeWithForeignPtr fp $ \ptr ->
           with (0::CSize) $ \destOffPtr ->
           with codepoint0 $ \codepointPtr ->
           with state0 $ \statePtr ->
@@ -297,7 +297,7 @@ streamDecodeUtf8With onErr = decodeChunk B.empty 0 0
                 loop curPtr = do
                   prevState <- peek statePtr
                   poke curPtrPtr curPtr
-                  lastPtr <- c_decode_utf8_with_state (A.maBA dest) destOffPtr
+                  lastPtr <- c_decode_utf8_with_state dest destOffPtr
                              curPtrPtr end codepointPtr statePtr
                   state <- peek statePtr
                   case state of
@@ -309,7 +309,7 @@ streamDecodeUtf8With onErr = decodeChunk B.empty 0 0
                             Just c -> do
                               destOff <- peek destOffPtr
                               w <- unsafeSTToIO $
-                                   unsafeWrite dest (cSizeToInt destOff) (safe c)
+                                   unsafeWrite (A.MutableByteArray dest) (cSizeToInt destOff) (safe c)
                               poke destOffPtr (destOff + intToCSize w)
                       if ptr == lastPtr && prevState /= UTF8_ACCEPT then do
                         -- If we can't complete the sequence @undecoded0@ from
@@ -327,7 +327,7 @@ streamDecodeUtf8With onErr = decodeChunk B.empty 0 0
                       n <- peek destOffPtr
                       codepoint <- peek codepointPtr
                       chunkText <- unsafeSTToIO $ do
-                          arr <- A.unsafeFreeze dest
+                          arr <- A.unsafeFreeze (A.MutableByteArray dest)
                           return $! text arr 0 (cSizeToInt n)
                       let left = lastPtr `minusPtr` ptr
                           !undecoded = case state of
@@ -434,7 +434,7 @@ encodeUtf8BuilderEscaped be =
 
 -- | Encode text using UTF-8 encoding.
 encodeUtf8 :: Text -> ByteString
-encodeUtf8 (Text (A.Array arr) off len)
+encodeUtf8 (Text (A.ByteArray arr) off len)
   | len == 0  = B.empty
   | otherwise = B.take len $ B.drop off $ SBS.fromShort $ SBS.SBS arr
 
