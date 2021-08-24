@@ -556,7 +556,7 @@ compareLength t n = S.compareLengthI (stream t) n
 -- each element of @t@. Performs replacement on
 -- invalid scalar values.
 map :: (Char -> Char) -> Text -> Text
-map f t = unstream (S.map (safe . f) (stream t))
+map f = foldrChunks (Chunk . T.map f) Empty
 {-# INLINE [1] map #-}
 
 {-# RULES
