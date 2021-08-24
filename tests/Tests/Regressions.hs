@@ -1,5 +1,6 @@
 -- | Regression tests for specific bugs.
 --
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -127,15 +128,15 @@ t280_singleton =
 t301 :: IO ()
 t301 = do
     assertEqual "The length of the array remains the same despite slicing"
-                (I# (sizeofByteArray# (TA.aBA originalArr)))
-                (I# (sizeofByteArray# (TA.aBA newArr)))
+                (I# (sizeofByteArray# originalArr))
+                (I# (sizeofByteArray# newArr))
 
     assertEqual "The new array still contains the original value"
-                (T.Text newArr originalOff originalLen)
+                (T.Text (TA.ByteArray newArr) originalOff originalLen)
                 original
   where
-    original@(T.Text originalArr originalOff originalLen) = T.pack "1234567890"
-    T.Text newArr _off _len = T.take 1 $ T.drop 1 original
+    !original@(T.Text (TA.ByteArray originalArr) originalOff originalLen) = T.pack "1234567890"
+    !(T.Text (TA.ByteArray newArr) _off _len) = T.take 1 $ T.drop 1 original
 
 t330 :: IO ()
 t330 = do

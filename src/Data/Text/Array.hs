@@ -55,14 +55,10 @@ import GHC.Word (Word8(..))
 import Prelude hiding (length, read)
 
 -- | Immutable array type.
---
--- The 'Array' constructor is exposed since @text-1.1.1.3@
-data Array = Array { aBA :: ByteArray# }
+data Array = ByteArray ByteArray#
 
 -- | Mutable array type, for use in the ST monad.
---
--- The 'MArray' constructor is exposed since @text-1.1.1.3@
-data MArray s = MArray { maBA :: MutableByteArray# s }
+data MArray s = MutableByteArray (MutableByteArray# s)
 
 -- | Create an uninitialized mutable array.
 new :: forall s. Int -> ST s (MArray s)
@@ -70,7 +66,7 @@ new n
   | n < 0 || n .&. highBit /= 0 = array_size_error
   | otherwise = ST $ \s1# ->
        case newByteArray# len# s1# of
-         (# s2#, marr# #) -> (# s2#, MArray marr# #)
+         (# s2#, marr# #) -> (# s2#, MutableByteArray marr# #)
   where !(I# len#) = bytesInArray n
         highBit    = maxBound `xor` (maxBound `shiftR` 1)
 {-# INLINE new #-}
@@ -80,9 +76,9 @@ array_size_error = error "Data.Text.Array.new: size overflow"
 
 -- | Freeze a mutable array. Do not mutate the 'MArray' afterwards!
 unsafeFreeze :: MArray s -> ST s Array
-unsafeFreeze MArray{..} = ST $ \s1# ->
-    case unsafeFreezeByteArray# maBA s1# of
-        (# s2#, ba# #) -> (# s2#, Array ba# #)
+unsafeFreeze (MutableByteArray marr) = ST $ \s1# ->
+    case unsafeFreezeByteArray# marr s1# of
+        (# s2#, ba# #) -> (# s2#, ByteArray ba# #)
 {-# INLINE unsafeFreeze #-}
 
 -- | Indicate how many bytes would be used for an array of the given
@@ -98,22 +94,22 @@ unsafeIndex ::
   HasCallStack =>
 #endif
   Array -> Int -> Word8
-unsafeIndex a@Array{..} i@(I# i#) =
+unsafeIndex (ByteArray arr) i@(I# i#) =
 #if defined(ASSERTS)
-  let word8len = I# (sizeofByteArray# aBA) in
+  let word8len = I# (sizeofByteArray# arr) in
   if i < 0 || i >= word8len
   then error ("Data.Text.Array.unsafeIndex: bounds error, offset " ++ show i ++ ", length " ++ show word8len)
   else
 #endif
-  case indexWord8Array# aBA i# of r# -> (W8# r#)
+  case indexWord8Array# arr i# of r# -> (W8# r#)
 {-# INLINE unsafeIndex #-}
 
 #if defined(ASSERTS)
 -- sizeofMutableByteArray# is deprecated, because it is unsafe in the presence of
 -- shrinkMutableByteArray# and resizeMutableByteArray#.
 getSizeofMArray :: MArray s -> ST s Int
-getSizeofMArray ma@MArray{..} = ST $ \s0# ->
-  case getSizeofMutableByteArray# maBA s0# of
+getSizeofMArray (MutableByteArray marr) = ST $ \s0# ->
+  case getSizeofMutableByteArray# marr s0# of
     (# s1#, word8len# #) -> (# s1#, I# word8len# #)
 
 checkBoundsM :: HasCallStack => MArray s -> Int -> Int -> ST s ()
@@ -131,11 +127,11 @@ unsafeWrite ::
   HasCallStack =>
 #endif
   MArray s -> Int -> Word8 -> ST s ()
-unsafeWrite ma@MArray{..} i@(I# i#) (W8# e#) =
+unsafeWrite ma@(MutableByteArray marr) i@(I# i#) (W8# e#) =
 #if defined(ASSERTS)
   checkBoundsM ma i 1 >>
 #endif
-  (ST $ \s1# -> case writeWord8Array# maBA i# e# s1# of
+  (ST $ \s1# -> case writeWord8Array# marr i# e# s1# of
     s2# -> (# s2#, () #))
 {-# INLINE unsafeWrite #-}
 
@@ -170,7 +166,7 @@ copyM :: MArray s               -- ^ Destination
       -> Int                    -- ^ Source offset
       -> Int                    -- ^ Count
       -> ST s ()
-copyM dst@(MArray dst#) dstOff@(I# dstOff#) src@(MArray src#) srcOff@(I# srcOff#) count@(I# count#)
+copyM dst@(MutableByteArray dst#) dstOff@(I# dstOff#) src@(MutableByteArray src#) srcOff@(I# srcOff#) count@(I# count#)
     | I# count# <= 0 = return ()
     | otherwise = do
 #if defined(ASSERTS)
@@ -191,7 +187,7 @@ copyI :: MArray s               -- ^ Destination
       -> Int                    -- ^ First offset in destination /not/ to
                                 -- copy (i.e. /not/ length)
       -> ST s ()
-copyI (MArray dst#) dstOff@(I# dstOff#) (Array src#) (I# srcOff#) top@(I# top#)
+copyI (MutableByteArray dst#) dstOff@(I# dstOff#) (ByteArray src#) (I# srcOff#) top@(I# top#)
     | dstOff >= top = return ()
     | otherwise = ST $ \s1# ->
       case copyByteArray# src# srcOff# dst# dstOff# (top# -# dstOff#) s1# of
@@ -206,7 +202,7 @@ equal :: Array                  -- ^ First
       -> Int                    -- ^ Offset into second
       -> Int                    -- ^ Count
       -> Bool
-equal (Array src1#) (I# off1#) (Array src2#) (I# off2#) (I# count#) = i == 0
+equal (ByteArray src1#) (I# off1#) (ByteArray src2#) (I# off2#) (I# count#) = i == 0
   where
 #if MIN_VERSION_base(4,11,0)
     i = I# (compareByteArrays# src1# off1# src2# off2# count#)
