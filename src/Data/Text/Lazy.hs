@@ -794,12 +794,10 @@ foldr1 f t = S.foldr1 f (stream t)
 
 -- | /O(n)/ Concatenate a list of 'Text's.
 concat :: [Text] -> Text
-concat = to
-  where
-    go Empty        css = to css
-    go (Chunk c cs) css = Chunk c (go cs css)
-    to []               = Empty
-    to (cs:css)         = go cs css
+concat []                    = Empty
+concat (Empty : css)         = concat css
+concat (Chunk c Empty : css) = Chunk c (concat css)
+concat (Chunk c cs : css)    = Chunk c (concat (cs : css))
 {-# INLINE concat #-}
 
 -- | /O(n)/ Map a function over a 'Text' that results in a 'Text', and
