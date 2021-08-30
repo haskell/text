@@ -1411,13 +1411,32 @@ chunksOf k = go
                    | otherwise -> a : go b
 {-# INLINE chunksOf #-}
 
--- | /O(n)/ Breaks a 'Text' up into a list of 'Text's at
--- newline 'Char's. The resulting strings do not contain newlines.
+-- | /O(n)/ Breaks a 'Text' up into a list of 'Text's at newline characters
+-- @'\\n'@ (LF, line feed). The resulting strings do not contain newlines.
+--
+-- 'lines' __does not__ treat @'\\r'@ (CR, carriage return) as a newline character.
 lines :: Text -> [Text]
 lines Empty = []
-lines t = let (l,t') = break ((==) '\n') t
-          in l : if null t' then []
-                 else lines (tail t')
+lines (Chunk c cs)
+  | hasNlEnd c = P.map fromStrict (T.lines c) ++ lines cs
+  | otherwise = case T.lines c of
+    [] -> error "lines: unexpected empty chunk"
+    l : ls -> go l ls cs
+  where
+    go l [] Empty = [fromStrict l]
+    go l [] (Chunk x xs) = case T.lines x of
+      [] -> error "lines: unexpected empty chunk"
+      [xl]
+        | hasNlEnd x -> chunk l (fromStrict xl) : lines xs
+        | otherwise  -> go (l `T.append` xl) [] xs
+      xl : yl : yls -> chunk l (fromStrict xl) :
+        if hasNlEnd x
+        then P.map fromStrict (yl : yls) ++ lines xs
+        else go yl yls xs
+    go l (m : ms) xs = fromStrict l : go m ms xs
+
+hasNlEnd :: T.Text -> Bool
+hasNlEnd (T.Text arr off len) = A.unsafeIndex arr (off + len - 1) == 0x0A
 
 -- | /O(n)/ Breaks a 'Text' up into a list of words, delimited by 'Char's
 -- representing white space.
@@ -1428,7 +1447,7 @@ words = L.filter (not . null) . split isSpace
 -- | /O(n)/ Joins lines, after appending a terminating newline to
 -- each.
 unlines :: [Text] -> Text
-unlines = concat . L.map (`snoc` '\n')
+unlines = concat . L.foldr (\t acc -> t : singleton '\n' : acc) []
 {-# INLINE unlines #-}
 
 -- | /O(n)/ Joins words using single space characters.

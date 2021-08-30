@@ -1754,42 +1754,29 @@ isAsciiSpace :: Word8 -> Bool
 isAsciiSpace w = w .&. 0x50 == 0 && w < 0x80 && (w == 0x20 || w - 0x09 < 5)
 {-# INLINE isAsciiSpace #-}
 
--- | /O(n)/ Breaks a 'Text' up into a list of 'Text's at
--- newline 'Char's. The resulting strings do not contain newlines.
+-- | /O(n)/ Breaks a 'Text' up into a list of 'Text's at newline characters
+-- @'\\n'@ (LF, line feed). The resulting strings do not contain newlines.
+--
+-- 'lines' __does not__ treat @'\\r'@ (CR, carriage return) as a newline character.
 lines :: Text -> [Text]
-lines ps | null ps   = []
-         | otherwise = h : if null t
-                           then []
-                           else lines (unsafeTail t)
-    where (# h,t #) = span_ (/= '\n') ps
+lines (Text arr@(A.ByteArray arr#) off len) = go off
+  where
+    go !n
+      | n >= len + off = []
+      | delta < 0 = [Text arr n (len + off - n)]
+      | otherwise = Text arr n delta : go (n + delta + 1)
+      where
+        delta = cSsizeToInt $ unsafeDupablePerformIO $
+          memchr arr# (intToCSize n) (intToCSize (len + off - n)) 0x0A
 {-# INLINE lines #-}
 
-{-
--- | /O(n)/ Portably breaks a 'Text' up into a list of 'Text's at line
--- boundaries.
---
--- A line boundary is considered to be either a line feed, a carriage
--- return immediately followed by a line feed, or a carriage return.
--- This accounts for both Unix and Windows line ending conventions,
--- and for the old convention used on Mac OS 9 and earlier.
-lines' :: Text -> [Text]
-lines' ps | null ps   = []
-          | otherwise = h : case uncons t of
-                              Nothing -> []
-                              Just (c,t')
-                                  | c == '\n' -> lines t'
-                                  | c == '\r' -> case uncons t' of
-                                                   Just ('\n',t'') -> lines t''
-                                                   _               -> lines t'
-    where (h,t)    = span notEOL ps
-          notEOL c = c /= '\n' && c /= '\r'
-{-# INLINE lines' #-}
--}
+foreign import ccall unsafe "_hs_text_memchr" memchr
+    :: ByteArray# -> CSize -> CSize -> Word8 -> IO CSsize
 
 -- | /O(n)/ Joins lines, after appending a terminating newline to
 -- each.
 unlines :: [Text] -> Text
-unlines = concat . L.map (`snoc` '\n')
+unlines = concat . L.foldr (\t acc -> t : singleton '\n' : acc) []
 {-# INLINE unlines #-}
 
 -- | /O(n)/ Joins words using single space characters.
