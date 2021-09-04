@@ -222,6 +222,7 @@ import Control.Monad.ST.Unsafe (unsafeIOToST)
 import qualified Data.Text.Array as A
 import qualified Data.List as L
 import Data.Binary (Binary(get, put))
+import Data.Int (Int8)
 import Data.Monoid (Monoid(..))
 import Data.Semigroup (Semigroup(..))
 import Data.String (IsString(..))
@@ -1922,16 +1923,26 @@ stripPrefix p@(Text _arr _off plen) t@(Text arr off len)
 --
 -- >>> commonPrefixes "" "baz"
 -- Nothing
-commonPrefixes :: Text -> Text -> Maybe (Text,Text,Text)
-commonPrefixes t0@(Text arr0 off0 len0) t1@(Text arr1 off1 len1) = go 0 0
+commonPrefixes :: Text -> Text -> Maybe (Text, Text, Text)
+commonPrefixes !t0@(Text arr0 off0 len0) !t1@(Text arr1 off1 len1)
+  | len0 == 0 = Nothing
+  | len1 == 0 = Nothing
+  | otherwise = go 0 0
   where
-    go !i !j | i < len0 && j < len1 && a == b = go (i+d0) (j+d1)
-             | i > 0     = Just (Text arr0 off0 i,
-                                 text arr0 (off0+i) (len0-i),
-                                 text arr1 (off1+j) (len1-j))
-             | otherwise = Nothing
-      where Iter a d0 = iter t0 i
-            Iter b d1 = iter t1 j
+    go !i !j
+      | i == len0 = Just (t0, empty, text arr1 (off1 + i) (len1 - i))
+      | i == len1 = Just (t1, text arr0 (off0 + i) (len0 - i), empty)
+      | a == b = go (i + 1) k
+      | k > 0 = Just (Text arr0 off0 k,
+                      Text arr0 (off0 + k) (len0 - k),
+                      Text arr1 (off1 + k) (len1 - k))
+      | otherwise = Nothing
+      where
+        a = A.unsafeIndex arr0 (off0 + i)
+        b = A.unsafeIndex arr1 (off1 + i)
+        isLeader = word8ToInt8 a >= -64
+        k = if isLeader then i else j
+{-# INLINE commonPrefixes #-}
 
 -- | /O(n)/ Return the prefix of the second string if its suffix
 -- matches the entire first string.
@@ -2001,6 +2012,9 @@ intToCSize = P.fromIntegral
 
 cSsizeToInt :: CSsize -> Int
 cSsizeToInt = P.fromIntegral
+
+word8ToInt8 :: Word8 -> Int8
+word8ToInt8 = P.fromIntegral
 
 -------------------------------------------------
 -- NOTE: the named chunk below used by doctest;
