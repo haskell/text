@@ -80,6 +80,8 @@ new (I# len#)
 {-# INLINE new #-}
 
 -- | Create an uninitialized mutable pinned array.
+--
+-- @since 2.0
 newPinned :: forall s. Int -> ST s (MArray s)
 newPinned (I# len#)
 #if defined(ASSERTS)
@@ -90,6 +92,7 @@ newPinned (I# len#)
       (# s2#, marr# #) -> (# s2#, MutableByteArray marr# #)
 {-# INLINE newPinned #-}
 
+-- | @since 2.0
 newFilled :: Int -> Int -> ST s (MArray s)
 newFilled (I# len#) (I# c#) = ST $ \s1# ->
   case newByteArray# len# s1# of
@@ -97,6 +100,7 @@ newFilled (I# len#) (I# c#) = ST $ \s1# ->
       s3# -> (# s3#, MutableByteArray marr# #)
 {-# INLINE newFilled #-}
 
+-- | @since 2.0
 tile :: MArray s -> Int -> ST s ()
 tile marr tileLen = do
   totalLen <- getSizeofMArray marr
@@ -130,8 +134,10 @@ unsafeIndex (ByteArray arr) i@(I# i#) =
   case indexWord8Array# arr i# of r# -> (W8# r#)
 {-# INLINE unsafeIndex #-}
 
--- sizeofMutableByteArray# is deprecated, because it is unsafe in the presence of
--- shrinkMutableByteArray# and resizeMutableByteArray#.
+-- | 'sizeofMutableByteArray#' is deprecated, because it is unsafe in the presence of
+-- 'shrinkMutableByteArray#' and 'resizeMutableByteArray#'.
+--
+-- @since 2.0
 getSizeofMArray :: MArray s -> ST s Int
 getSizeofMArray (MutableByteArray marr) = ST $ \s0# ->
   case getSizeofMutableByteArray# marr s0# of
@@ -185,12 +191,14 @@ run2 k = runST (do
                  return (arr,b))
 {-# INLINE run2 #-}
 
+-- | @since 2.0
 resizeM :: MArray s -> Int -> ST s (MArray s)
 resizeM (MutableByteArray ma) i@(I# i#) = ST $ \s1# ->
   case resizeMutableByteArray# ma i# s1# of
     (# s2#, newArr #) -> (# s2#, MutableByteArray newArr #)
 {-# INLINE resizeM #-}
 
+-- | @since 2.0
 shrinkM ::
 #if defined(ASSERTS)
   HasCallStack =>
@@ -253,6 +261,8 @@ copyI count@(I# count#) (MutableByteArray dst#) dstOff@(I# dstOff#) (ByteArray s
 {-# INLINE copyI #-}
 
 -- | Copy from pointer.
+--
+-- @since 2.0
 copyFromPointer
   :: MArray s               -- ^ Destination
   -> Int                    -- ^ Destination offset
@@ -270,6 +280,8 @@ copyFromPointer (MutableByteArray dst#) dstOff@(I# dstOff#) (Ptr src#) count@(I#
 {-# INLINE copyFromPointer #-}
 
 -- | Copy to pointer.
+--
+-- @since 2.0
 copyToPointer
   :: Array                  -- ^ Source
   -> Int                    -- ^ Source offset
@@ -293,6 +305,8 @@ equal src1 off1 src2 off2 count = compareInternal src1 off1 src2 off2 count == 0
 {-# INLINE equal #-}
 
 -- | Compare portions of two arrays. No bounds checking is performed.
+--
+-- @since 2.0
 compare :: Array -> Int -> Array -> Int -> Int -> Ordering
 compare src1 off1 src2 off2 count = compareInternal src1 off1 src2 off2 count `Prelude.compare` 0
 {-# INLINE compare #-}

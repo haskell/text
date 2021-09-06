@@ -38,6 +38,8 @@ span_ p t@(Text arr off len) = (# hd,tl #)
 
 -- | For the sake of performance this function does not check
 -- that a char is in ASCII range; it is a responsibility of @p@.
+--
+-- @since 2.0
 spanAscii_ :: (Word8 -> Bool) -> Text -> (# Text, Text #)
 spanAscii_ p (Text arr off len) = (# hd, tl #)
   where hd = text arr off k

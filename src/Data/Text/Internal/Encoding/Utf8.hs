@@ -68,6 +68,8 @@ between x y z = x >= y && x <= z
 --   | ord c < 0x800   = 2
 --   | ord c < 0x10000 = 3
 --   | otherwise       = 4
+
+-- | @since 2.0
 utf8Length :: Char -> Int
 utf8Length (C# c) = I# ((1# +# geChar# c (chr# 0x80#)) +# (geChar# c (chr# 0x800#) +# geChar# c (chr# 0x10000#)))
 {-# INLINE utf8Length #-}
@@ -82,6 +84,8 @@ utf8Length (C# c) = I# ((1# +# geChar# c (chr# 0x80#)) +# (geChar# c (chr# 0x800
 -- c `xor` I# (c# <=# 0#) is a branchless equivalent of c `max` 1.
 -- It is crucial to write c# <=# 0# and not c# ==# 0#, otherwise
 -- GHC is tempted to "optimize" by introduction of branches.
+
+-- | @since 2.0
 utf8LengthByLeader :: Word8 -> Int
 utf8LengthByLeader w = c `xor` I# (c# <=# 0#)
   where
@@ -256,11 +260,13 @@ updateState (ByteClass c) (DecoderState s) = DecoderState (W8# el#)
 
 newtype CodePoint = CodePoint Int
 
+-- | @since 2.0
 data DecoderResult
   = Accept !Char
   | Incomplete !DecoderState !CodePoint
   | Reject
 
+-- | @since 2.0
 utf8DecodeStart :: Word8 -> DecoderResult
 utf8DecodeStart w
   | st == utf8AcceptState = Accept (chr (word8ToInt w))
@@ -271,6 +277,7 @@ utf8DecodeStart w
     st = updateState cl utf8AcceptState
     cp = word8ToInt $ (0xff `shiftR` word8ToInt cl') .&. w
 
+-- | @since 2.0
 utf8DecodeContinue :: Word8 -> DecoderState -> CodePoint -> DecoderResult
 utf8DecodeContinue w st (CodePoint cp)
   | st' == utf8AcceptState = Accept (chr cp')

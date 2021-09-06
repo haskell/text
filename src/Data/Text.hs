@@ -1225,6 +1225,8 @@ take n t@(Text arr off len)
 --
 -- This function is used to implement 'take', 'drop', 'splitAt' and 'length'
 -- and is useful on its own in streaming and parsing libraries.
+--
+-- @since 2.0
 measureOff :: Int -> Text -> Int
 measureOff !n (Text (A.ByteArray arr) off len) = if len == 0 then 0 else
   cSsizeToInt $ unsafeDupablePerformIO $

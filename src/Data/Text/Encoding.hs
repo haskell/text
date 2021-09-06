@@ -234,7 +234,7 @@ decodeUtf8With2 onErr bs1@(B.length -> len1) bs2@(B.length -> len2) = runST $ do
             , bs <- B.drop (srcOff - len1) (B.take guessUtf8Boundary bs2)
             , isValidBS bs = do
               withBS bs $ \fp _ -> unsafeIOToST $ unsafeWithForeignPtr fp $ \src ->
-                unsafeSTToIO $ A.copyP dst dstOff src (len1 + guessUtf8Boundary - srcOff)
+                unsafeSTToIO $ A.copyFromPointer dst dstOff src (len1 + guessUtf8Boundary - srcOff)
               inner (len1 + guessUtf8Boundary) (dstOff + (len1 + guessUtf8Boundary - srcOff))
 
             | dstOff + 4 > dstLen = do

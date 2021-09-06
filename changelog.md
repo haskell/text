@@ -1,5 +1,24 @@
-### 1.3
+### 2.0
 
+* [Switch internal representation of text from UTF-16 to UTF-8](https://github.com/haskell/text/pull/365):
+  * Functions in `Data.Text.Array` now operate over arrays of `Word8` instead of `Word16`.
+  * Rename constructors of `Array` and `MArray` to `ByteArray` and `MutableByteArray`.
+  * Rename functions and types in `Data.Text.Foreign` to reflect switch
+    from `Word16` to `Word8`.
+  * Rename slicing functions in `Data.Text.Unsafe` to reflect switch
+    from `Word16` to `Word8`.
+  * Rename `Data.Text.Internal.Unsafe.Char.unsafeChr` to `unsafeChr16`.
+  * Change semantics and order of arguments of `Data.Text.Array.copyI`:
+    pass length, not end offset.
+  * Extend `Data.Text.Internal.Encoding.Utf8` to provide more UTF-8 related routines.
+  * Extend interface of `Data.Text.Array` with more utility functions.
+  * Add `instance Show Data.Text.Unsafe.Iter`.
+  * Add `Data.Text.measureOff`.
+  * Extend `Data.Text.Unsafe` with `iterArray` and `reverseIterArray`.
+  * Export `Data.Text.Internal.Lazy.equal`.
+  * Export `Data.Text.Internal.append`.
+  * Add `Data.Text.Internal.Private.spanAscii_`.
+  * Replacement characters in `decodeUtf8With` are no longer limited to Basic Multilingual Plane.
 * [Disable implicit fusion rules](https://github.com/haskell/text/pull/348)
 * [Add `Data.Text.Encoding.decodeUtf8Lenient`](https://github.com/haskell/text/pull/342)
 * [Remove `Data.Text.Internal.Unsafe.Shift`](https://github.com/haskell/text/pull/343)
