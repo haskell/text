@@ -34,7 +34,7 @@ module Data.Text.Foreign
 #if defined(ASSERTS)
 import Control.Exception (assert)
 #endif
-import Control.Monad.ST.Unsafe (unsafeIOToST)
+import Control.Monad.ST.Unsafe (unsafeSTToIO)
 import Data.ByteString.Unsafe (unsafePackCStringLen, unsafeUseAsCStringLen)
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import Data.Text.Internal (Text(..), empty)
@@ -44,8 +44,7 @@ import Data.Word (Word8)
 import Foreign.C.String (CStringLen)
 import Foreign.ForeignPtr (ForeignPtr, mallocForeignPtrArray)
 import Foreign.Marshal.Alloc (allocaBytes)
-import Foreign.Ptr (Ptr, castPtr, plusPtr)
-import Foreign.Storable (peek, poke)
+import Foreign.Ptr (Ptr, castPtr)
 import qualified Data.Text.Array as A
 
 -- $interop
@@ -68,20 +67,11 @@ newtype I8 = I8 Int
 fromPtr :: Ptr Word8           -- ^ source array
         -> I8                  -- ^ length of source array (in 'Word8' units)
         -> IO Text
-fromPtr _   (I8 0)   = return empty
-fromPtr ptr (I8 len) =
-#if defined(ASSERTS)
-    assert (len > 0) $
-#endif
-    return $! Text arr 0 len
-  where
-    arr = A.run (A.new len >>= copy)
-    copy marr = loop ptr 0
-      where
-        loop !p !i | i == len = return marr
-                   | otherwise = do
-          A.unsafeWrite marr i =<< unsafeIOToST (peek p)
-          loop (p `plusPtr` 1) (i + 1)
+fromPtr ptr (I8 len) = unsafeSTToIO $ do
+  dst <- A.new len
+  A.copyFromPointer dst 0 ptr len
+  arr <- A.unsafeFreeze dst
+  return $! Text arr 0 len
 
 -- $lowlevel
 --
@@ -130,13 +120,7 @@ splitAtWord8 (I8 n) t@(Text arr off len)
 -- | /O(n)/ Copy a 'Text' to an array.  The array is assumed to be big
 -- enough to hold the contents of the entire 'Text'.
 unsafeCopyToPtr :: Text -> Ptr Word8 -> IO ()
-unsafeCopyToPtr (Text arr off len) ptr = loop ptr off
-  where
-    end = off + len
-    loop !p !i | i == end  = return ()
-               | otherwise = do
-      poke p (A.unsafeIndex arr i)
-      loop (p `plusPtr` 1) (i + 1)
+unsafeCopyToPtr (Text arr off len) ptr = unsafeSTToIO $ A.copyToPointer arr off ptr len
 
 -- | /O(n)/ Perform an action on a temporary, mutable copy of a
 -- 'Text'.  The copy is freed as soon as the action returns.
