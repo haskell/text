@@ -39,6 +39,7 @@ ord :: Char -> Int
 ord (C# c#) = I# (ord# c#)
 {-# INLINE ord #-}
 
+-- | @since 2.0
 unsafeChr16 :: Word16 -> Char
 unsafeChr16 (W16# w#) = C# (chr# (word2Int# (word16ToWord# w#)))
 {-# INLINE unsafeChr16 #-}

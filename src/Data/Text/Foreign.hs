@@ -59,6 +59,8 @@ import qualified Data.Text.Array as A
 -- the functions in the 'Data.Text.Encoding' module.
 
 -- | A type representing a number of UTF-8 code units.
+--
+-- @since 2.0
 newtype I8 = I8 Int
     deriving (Bounded, Enum, Eq, Integral, Num, Ord, Read, Real, Show)
 
@@ -86,6 +88,8 @@ fromPtr ptr (I8 len) = unsafeSTToIO $ do
 -- If @n@ would cause the 'Text' to end inside a code point, the
 -- end of the prefix will be advanced by several additional 'Word8' units
 -- to maintain its validity.
+--
+-- @since 2.0
 takeWord8 :: I8 -> Text -> Text
 takeWord8 = (fst .) . splitAtWord8
 
@@ -95,6 +99,8 @@ takeWord8 = (fst .) . splitAtWord8
 -- If @n@ would cause the 'Text' to begin inside a code point, the
 -- beginning of the suffix will be advanced by several additional 'Word8'
 -- unit to maintain its validity.
+--
+-- @since 2.0
 dropWord8 :: I8 -> Text -> Text
 dropWord8 = (snd .) . splitAtWord8
 

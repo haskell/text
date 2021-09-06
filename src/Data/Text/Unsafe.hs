@@ -79,6 +79,7 @@ iter ::
 iter (Text arr off _len) i = iterArray arr (off + i)
 {-# INLINE iter #-}
 
+-- | @since 2.0
 iterArray :: A.Array -> Int -> Iter
 iterArray arr j = Iter chr l
   where m0 = A.unsafeIndex arr j
@@ -107,6 +108,7 @@ reverseIter :: Text -> Int -> Iter
 reverseIter (Text arr off _len) i = reverseIterArray arr (off + i)
 {-# INLINE reverseIter #-}
 
+-- | @since 2.0
 reverseIterArray :: A.Array -> Int -> Iter
 reverseIterArray arr j
     | m0 <  0x80 = Iter (unsafeChr8 m0) (-1)
@@ -139,16 +141,22 @@ reverseIter_ (Text arr off _len) i
 -- | /O(1)/ Return the length of a 'Text' in units of 'Word8'.  This
 -- is useful for sizing a target array appropriately before using
 -- 'unsafeCopyToPtr'.
+--
+-- @since 2.0
 lengthWord8 :: Text -> Int
 lengthWord8 (Text _arr _off len) = len
 {-# INLINE lengthWord8 #-}
 
 -- | /O(1)/ Unchecked take of 'k' 'Word8's from the front of a 'Text'.
+--
+-- @since 2.0
 takeWord8 :: Int -> Text -> Text
 takeWord8 k (Text arr off _len) = Text arr off k
 {-# INLINE takeWord8 #-}
 
 -- | /O(1)/ Unchecked drop of 'k' 'Word8's from the front of a 'Text'.
+--
+-- @since 2.0
 dropWord8 :: Int -> Text -> Text
 dropWord8 k (Text arr off len) = Text arr (off+k) (len-k)
 {-# INLINE dropWord8 #-}
