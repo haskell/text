@@ -1,5 +1,8 @@
 {-# LANGUAGE BangPatterns,CPP #-}
 {-# LANGUAGE Trustworthy #-}
+
+{-# OPTIONS_GHC -fno-warn-deprecations #-}
+
 -- |
 -- Module      : Data.Text.Lazy.Encoding
 -- Copyright   : (c) 2009, 2010 Bryan O'Sullivan
@@ -80,7 +83,7 @@ import Data.Text.Unsafe (unsafeDupablePerformIO)
 -- | /Deprecated/.  Decode a 'ByteString' containing 7-bit ASCII
 -- encoded text.
 decodeASCII :: B.ByteString -> Text
-decodeASCII = decodeUtf8
+decodeASCII = foldr (chunk . TE.decodeASCII) empty . B.toChunks
 {-# DEPRECATED decodeASCII "Use decodeUtf8 instead" #-}
 
 -- | Decode a 'ByteString' containing Latin-1 (aka ISO-8859-1) encoded text.

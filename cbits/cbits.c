@@ -55,26 +55,6 @@ decode(uint32_t *state, uint32_t* codep, uint32_t byte) {
   return *state = utf8d[256 + *state + type];
 }
 
-size_t
-_hs_text_decode_latin1(uint8_t *dest, const uint8_t *src,
-                       const uint8_t *srcend)
-{
-  const uint8_t *dest0 = dest;
-  const uint8_t *p = src;
-
-  while (p != srcend){
-    uint8_t codepoint = *p++;
-    if(codepoint < 0x80){
-      *dest++ = (uint8_t)codepoint;
-    } else {
-      *dest++ = (uint8_t) (0xC0 + (codepoint >> 6));
-      *dest++ = (uint8_t) (0x80 + (codepoint & 0x3F));
-    }
-  }
-
-  return (dest - dest0);
-}
-
 /*
  * A best-effort decoder. Runs until it hits either end of input or
  * the start of an invalid byte sequence.
