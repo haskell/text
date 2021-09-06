@@ -64,21 +64,24 @@ import Control.Monad.ST.Unsafe (unsafeIOToST, unsafeSTToIO)
 
 import Control.Exception (evaluate, try, throwIO, ErrorCall(ErrorCall))
 import Control.Monad.ST (runST)
-import Data.ByteString as B
+import Data.Bits (shiftR, (.&.))
+import Data.ByteString (ByteString)
+import qualified Data.ByteString as B
 import qualified Data.ByteString.Internal as B
+import qualified Data.ByteString.Short.Internal as SBS
 import Data.Foldable (traverse_)
 import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode, lenientDecode)
-import Data.Text.Internal (Text(..), safe, text)
+import Data.Text.Internal (Text(..), safe, empty, text)
 import Data.Text.Internal.Private (runText)
 import Data.Text.Internal.Unsafe (unsafeWithForeignPtr)
 import Data.Text.Internal.Unsafe.Char (unsafeWrite)
 import Data.Text.Show ()
 import Data.Text.Unsafe (unsafeDupablePerformIO)
 import Data.Word (Word8, Word32)
-import Foreign.C.Types (CSize)
+import Foreign.C.Types (CSize(..))
 import Foreign.Marshal.Utils (with)
 import Foreign.Ptr (Ptr, minusPtr, nullPtr, plusPtr)
-import Foreign.Storable (Storable, peek, poke)
+import Foreign.Storable (Storable, peek, poke, peekByteOff)
 import GHC.Exts (MutableByteArray#, byteArrayContents#, unsafeCoerce#)
 import GHC.ForeignPtr (ForeignPtr(..), ForeignPtrContents(PlainPtr))
 import qualified Data.ByteString.Builder as B
@@ -112,7 +115,13 @@ import GHC.Stack (HasCallStack)
 -- | /Deprecated/.  Decode a 'ByteString' containing 7-bit ASCII
 -- encoded text.
 decodeASCII :: ByteString -> Text
-decodeASCII = decodeUtf8
+decodeASCII bs = withBS bs $ \fp len -> if len == 0 then empty else runST $ do
+  asciiPrefixLen <- fmap cSizeToInt $ unsafeIOToST $ unsafeWithForeignPtr fp $ \src ->
+    c_is_ascii src (src `plusPtr` len)
+  if asciiPrefixLen == len
+  then let !(SBS.SBS arr) = SBS.toShort bs in
+        return (Text (A.ByteArray arr) 0 len)
+  else error $ "decodeASCII: detected non-ASCII codepoint at " ++ show asciiPrefixLen
 {-# DEPRECATED decodeASCII "Use decodeUtf8 instead" #-}
 
 -- | Decode a 'ByteString' containing Latin-1 (aka ISO-8859-1) encoded text.
@@ -124,13 +133,29 @@ decodeLatin1 ::
   HasCallStack =>
 #endif
   ByteString -> Text
-decodeLatin1 bs = withBS bs aux where
-  aux fp len = text a 0 actualLen
-   where
-    (a, actualLen) = A.run2 (A.new (2 * len) >>= unsafeIOToST . go)
-    go (A.MutableByteArray dest) = unsafeWithForeignPtr fp $ \src -> do
-      destLen <- c_decode_latin1 dest src (src `plusPtr` len)
-      return (A.MutableByteArray dest, destLen)
+decodeLatin1 bs = withBS bs $ \fp len -> runST $ do
+  dst <- A.new (2 * len)
+  let inner srcOff dstOff = if srcOff >= len then return dstOff else do
+        asciiPrefixLen <- fmap cSizeToInt $ unsafeIOToST $ unsafeWithForeignPtr fp $ \src ->
+          c_is_ascii (src `plusPtr` srcOff) (src `plusPtr` len)
+        if asciiPrefixLen == 0
+        then do
+          byte <- unsafeIOToST $ unsafeWithForeignPtr fp $ \src -> peekByteOff src srcOff
+          A.unsafeWrite dst dstOff (0xC0 + (byte `shiftR` 6))
+          A.unsafeWrite dst (dstOff + 1) (0x80 + (byte .&. 0x3F))
+          inner (srcOff + 1) (dstOff + 2)
+        else do
+          unsafeIOToST $ unsafeWithForeignPtr fp $ \src ->
+            unsafeSTToIO $ A.copyFromPointer dst dstOff (src `plusPtr` srcOff) asciiPrefixLen
+          inner (srcOff + asciiPrefixLen) (dstOff + asciiPrefixLen)
+
+  actualLen <- inner 0 0
+  dst' <- A.resizeM dst actualLen
+  arr <- A.unsafeFreeze dst'
+  return $ Text arr 0 actualLen
+
+foreign import ccall unsafe "_hs_text_is_ascii" c_is_ascii
+    :: Ptr Word8 -> Ptr Word8 -> IO CSize
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text.
 --
@@ -538,6 +563,3 @@ foreign import ccall unsafe "_hs_text_decode_utf8_state" c_decode_utf8_with_stat
     :: MutableByteArray# s -> Ptr CSize
     -> Ptr (Ptr Word8) -> Ptr Word8
     -> Ptr CodePoint -> Ptr DecoderState -> IO (Ptr Word8)
-
-foreign import ccall unsafe "_hs_text_decode_latin1" c_decode_latin1
-    :: MutableByteArray# s -> Ptr Word8 -> Ptr Word8 -> IO Int

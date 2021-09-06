@@ -65,6 +65,7 @@ flag developer
 
 library
   c-sources:    cbits/cbits.c
+                cbits/is_ascii.c
                 cbits/measure_off.c
                 cbits/reverse.c
                 cbits/utils.c
