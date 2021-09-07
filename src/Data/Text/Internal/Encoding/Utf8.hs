@@ -68,6 +68,7 @@ between x y z = x >= y && x <= z
 --   | ord c < 0x800   = 2
 --   | ord c < 0x10000 = 3
 --   | otherwise       = 4
+-- Implementation suggested by Alex Mason.
 
 -- | @since 2.0
 utf8Length :: Char -> Int
