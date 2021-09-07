@@ -134,12 +134,11 @@ unsafeIndex (ByteArray arr) i@(I# i#) =
   case indexWord8Array# arr i# of r# -> (W8# r#)
 {-# INLINE unsafeIndex #-}
 
--- | 'sizeofMutableByteArray#' is deprecated, because it is unsafe in the presence of
--- 'shrinkMutableByteArray#' and 'resizeMutableByteArray#'.
---
--- @since 2.0
+-- | @since 2.0
 getSizeofMArray :: MArray s -> ST s Int
 getSizeofMArray (MutableByteArray marr) = ST $ \s0# ->
+  -- Cannot simply use (deprecated) 'sizeofMutableByteArray#', because it is
+  -- unsafe in the presence of 'shrinkMutableByteArray#' and 'resizeMutableByteArray#'.
   case getSizeofMutableByteArray# marr s0# of
     (# s1#, word8len# #) -> (# s1#, I# word8len# #)
 
