@@ -391,7 +391,37 @@ decodeUtf8Lenient = decodeUtf8With lenientDecode
 --
 -- @since 1.1.0.0
 encodeUtf8Builder :: Text -> B.Builder
-encodeUtf8Builder = encodeUtf8BuilderEscaped (BP.liftFixedToBounded BP.word8)
+encodeUtf8Builder =
+    -- manual eta-expansion to ensure inlining works as expected
+    \txt -> B.builder (step txt)
+  where
+    step txt@(Text arr off len) !k br@(B.BufferRange op ope)
+      -- Ensure that the common case is not recursive and therefore yields
+      -- better code.
+      | op' <= ope = do
+          unsafeSTToIO $ A.copyToPointer arr off op len
+          k (B.BufferRange op' ope)
+      | otherwise = textCopyStep txt k br
+      where
+        op' = op `plusPtr` len
+{-# INLINE encodeUtf8Builder #-}
+
+textCopyStep :: Text -> B.BuildStep a -> B.BuildStep a
+textCopyStep (Text arr off len) k =
+    go off (off + len)
+  where
+    go !ip !ipe (B.BufferRange op ope)
+      | inpRemaining <= outRemaining = do
+          unsafeSTToIO $ A.copyToPointer arr ip op inpRemaining
+          let !br = B.BufferRange (op `plusPtr` inpRemaining) ope
+          k br
+      | otherwise = do
+          unsafeSTToIO $ A.copyToPointer arr ip op outRemaining
+          let !ip' = ip + outRemaining
+          return $ B.bufferFull 1 ope (go ip' ipe)
+      where
+        outRemaining = ope `minusPtr` op
+        inpRemaining = ipe - ip
 
 -- | Encode text using UTF-8 encoding and escape the ASCII characters using
 -- a 'BP.BoundedPrim'.
