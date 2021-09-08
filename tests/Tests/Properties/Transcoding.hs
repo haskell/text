@@ -9,6 +9,7 @@ module Tests.Properties.Transcoding
 import Control.Applicative ((<$>), (<*>))
 import Data.Bits ((.&.), shiftR)
 import Data.Char (chr, ord)
+import Data.Text.Encoding (encodeUtf8Builder, encodeUtf8BuilderEscaped)
 import Data.Text.Encoding.Error (UnicodeException)
 import Data.Text.Internal.Encoding.Utf8 (ord2, ord3, ord4)
 import Test.QuickCheck hiding ((.&.))
@@ -19,6 +20,9 @@ import Tests.QuickCheckUtils
 import qualified Control.Exception as Exception
 import qualified Data.Bits as Bits (shiftL, shiftR)
 import qualified Data.ByteString as B
+import qualified Data.ByteString.Builder as B
+import qualified Data.ByteString.Builder.Extra as B
+import qualified Data.ByteString.Builder.Prim as BP
 import qualified Data.ByteString.Char8 as BC
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString.Lazy.Char8 as BLC
@@ -48,6 +52,26 @@ t_utf32LE    = (E.decodeUtf32LE . E.encodeUtf32LE) `eq` id
 tl_utf32LE   = (EL.decodeUtf32LE . EL.encodeUtf32LE) `eq` id
 t_utf32BE    = (E.decodeUtf32BE . E.encodeUtf32BE) `eq` id
 tl_utf32BE   = (EL.decodeUtf32BE . EL.encodeUtf32BE) `eq` id
+
+runBuilder :: B.Builder -> B.ByteString
+runBuilder =
+  -- Use smallish buffers to exercise bufferFull case as well
+  BL.toStrict . B.toLazyByteStringWith (B.safeStrategy 5 5) ""
+
+t_encodeUtf8Builder_ toBuilder = (runBuilder . toBuilder) `eq` E.encodeUtf8
+
+t_encodeUtf8Builder_nonZeroOffset_ toBuilder (Positive n) =
+  (runBuilder . toBuilder . T.drop n) `eq` (E.encodeUtf8 . T.drop n)
+
+t_encodeUtf8Builder = t_encodeUtf8Builder_ E.encodeUtf8Builder
+t_encodeUtf8Builder_nonZeroOffset = t_encodeUtf8Builder_nonZeroOffset_ E.encodeUtf8Builder
+
+t_encodeUtf8BuilderEscaped = t_encodeUtf8Builder_ (E.encodeUtf8BuilderEscaped (BP.liftFixedToBounded BP.word8))
+t_encodeUtf8BuilderEscaped_nonZeroOffset = t_encodeUtf8Builder_nonZeroOffset_ (E.encodeUtf8BuilderEscaped (BP.liftFixedToBounded BP.word8))
+
+t_encodeUtf8Builder_sanity t =
+  (runBuilder . E.encodeUtf8Builder) t ===
+    (runBuilder . E.encodeUtf8BuilderEscaped (BP.liftFixedToBounded BP.word8)) t
 
 t_utf8_incr (Positive n) =
   (T.concat . map fst . feedChunksOf n E.streamDecodeUtf8 . E.encodeUtf8) `eq` id
@@ -207,6 +231,13 @@ testTranscoding =
     testProperty "tl_utf32LE" tl_utf32LE,
     testProperty "t_utf32BE" t_utf32BE,
     testProperty "tl_utf32BE" tl_utf32BE,
+    testGroup "builder" [
+      testProperty "t_encodeUtf8Builder" t_encodeUtf8Builder,
+      testProperty "t_encodeUtf8Builder_nonZeroOffset" t_encodeUtf8Builder_nonZeroOffset,
+      testProperty "t_encodeUtf8BuilderEscaped" t_encodeUtf8BuilderEscaped,
+      testProperty "t_encodeUtf8BuilderEscaped_nonZeroOffset" t_encodeUtf8BuilderEscaped_nonZeroOffset,
+      testProperty "t_encodeUtf8Builder_sanity" t_encodeUtf8Builder_sanity
+    ],
     testGroup "errors" [
       testProperty "t_utf8_err" t_utf8_err,
       testProperty "t_utf8_err'" t_utf8_err'
