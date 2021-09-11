@@ -45,9 +45,17 @@ maintainer:     Haskell Text Team <andrew.lelechenko@gmail.com>, Core Libraries 
 copyright:      2009-2011 Bryan O'Sullivan, 2008-2009 Tom Harper, 2021 Andrew Lelechenko
 category:       Data, Text
 build-type:     Simple
-tested-with:    GHC==9.0.1,
-                GHC==8.10.4, GHC==8.8.4, GHC==8.6.5, GHC==8.4.4,
-                GHC==8.2.2, GHC==8.0.2
+tested-with:
+    GHC == 8.0.2
+    GHC == 8.2.2
+    GHC == 8.4.4
+    GHC == 8.6.5
+    GHC == 8.8.4
+    GHC == 8.10.7
+    GHC == 9.0.1
+    GHC == 9.2.0.20210821
+    -- this is GHC-9.2-rc1
+
 extra-source-files:
     -- scripts/CaseFolding.txt
     -- scripts/SpecialCasing.txt
