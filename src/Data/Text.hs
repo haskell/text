@@ -167,6 +167,7 @@ module Data.Text
     , isPrefixOf
     , isSuffixOf
     , isInfixOf
+    , isSubsequenceOf
 
     -- ** View patterns
     , stripPrefix
@@ -1880,6 +1881,22 @@ isInfixOf needle haystack
     | isSingleton needle = S.elem (unsafeHead needle) . S.stream $ haystack
     | otherwise          = not . L.null . indices needle $ haystack
 {-# INLINE [1] isInfixOf #-}
+
+-- | The 'isSubsequenceOf' function takes two 'Text's and returns
+-- 'True' iff the first is a subsequence of a second.
+-- (characters of the first argument appear in same sequential order in
+-- the second, to say if first argument that can be derived by deleting some
+-- or no elements from the second).
+isSubsequenceOf :: Text -> Text -> Bool
+isSubsequenceOf sf tf
+  | length sf > length tf = False
+  | otherwise = subseqOf sf tf
+ where
+  subseqOf s t
+    | null s = True
+    | null t = False
+    | unsafeHead s == unsafeHead t = subseqOf (unsafeTail s) (unsafeTail t)
+    | otherwise = subseqOf s $ unsafeTail t
 
 -------------------------------------------------------------------------------
 -- * View patterns
