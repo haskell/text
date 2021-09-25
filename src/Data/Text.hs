@@ -1883,20 +1883,20 @@ isInfixOf needle haystack
 {-# INLINE [1] isInfixOf #-}
 
 -- | The 'isSubsequenceOf' function takes two 'Text's and returns
--- 'True' iff the first is a subsequence of a second.
--- (characters of the first argument appear in same sequential order in
--- the second, to say if first argument that can be derived by deleting some
--- or no elements from the second).
+-- 'True' iff the second is a subsequence of the first.
+-- (characters of the second argument appear in same sequential order in
+-- the first, to say if second argument can be derived by deleting some
+-- or no elements from the first).
 isSubsequenceOf :: Text -> Text -> Bool
-isSubsequenceOf sf tf
+isSubsequenceOf tf sf
   | length sf > length tf = False
-  | otherwise = subseqOf sf tf
+  | otherwise = subseqOf tf sf
  where
-  subseqOf s t
+  subseqOf t s
     | null s = True
     | null t = False
-    | unsafeHead s == unsafeHead t = subseqOf (unsafeTail s) (unsafeTail t)
-    | otherwise = subseqOf s $ unsafeTail t
+    | unsafeHead s == unsafeHead t = subseqOf (unsafeTail t) (unsafeTail s)
+    | otherwise = subseqOf (unsafeTail t) s
 
 -------------------------------------------------------------------------------
 -- * View patterns
