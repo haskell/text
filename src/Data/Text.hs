@@ -1895,14 +1895,14 @@ isSubsequenceOf tf sf
  where
   subseqOf :: Text -> Text -> Bool
   subseqOf t s =
-    on f uncons s t
+    on f uncons t s
    where
     f :: Maybe (Char, Text) -> Maybe (Char, Text) -> Bool
-    f Nothing _ = True
-    f _ Nothing = False
-    f (Just (sc,ss)) (Just (tc,ts)) =
+    f _ Nothing = True
+    f Nothing _ = False
+    f (Just (tc,ts)) (Just (sc,ss)) =
       subseqOf ts $
-        if sc == tc
+        if tc == sc
           then s
           else ss
 
