@@ -254,6 +254,8 @@ import qualified Language.Haskell.TH.Lib as TH
 import qualified Language.Haskell.TH.Syntax as TH
 import Text.Printf (PrintfArg, formatArg, formatString)
 import System.Posix.Types (CSsize(..))
+import Data.Maybe (maybe)
+import Data.Bool (bool)
 
 -- $setup
 -- >>> import Data.Text
@@ -1892,11 +1894,23 @@ isSubsequenceOf tf sf
   | length sf > length tf = False
   | otherwise = subseqOf tf sf
  where
-  subseqOf t s
-    | null s = True
-    | null t = False
-    | unsafeHead s == unsafeHead t = subseqOf (unsafeTail t) (unsafeTail s)
-    | otherwise = subseqOf (unsafeTail t) s
+  subseqOf :: Text -> Text -> Bool
+  subseqOf t s =
+    maybe
+      True
+      (\ (sc,ss) ->
+        maybe
+          False
+          (\ (tc,ts) ->
+            subseqOf ts $
+              bool
+                s
+                ss
+                (sc /= tc)
+          )
+          (uncons t)
+      )
+      (uncons s)
 
 -------------------------------------------------------------------------------
 -- * View patterns
