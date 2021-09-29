@@ -1883,11 +1883,25 @@ isInfixOf needle haystack
     | otherwise          = not . L.null . indices needle $ haystack
 {-# INLINE [1] isInfixOf #-}
 
--- | The 'isSubsequenceOf' function takes two 'Text's and returns
--- 'True' iff the second is a subsequence of the first.
--- (characters of the second argument appear in same sequential order in
--- the first, to say if second argument can be derived by deleting some
--- or no elements from the first).
+-- 2021-09-29: NOTE:
+--  * after the implementation - determine & mention the big O
+-- | The 'isSubsequenceOf' function takes the main text and the subsequnce
+-- to find and returns 'True' iff the second argument is a subsequence
+-- of the first.
+--
+-- "Subsequence" used in the meaning of: characters of the second argument
+-- appear in same sequential order in the main data, to say second argument can
+-- be derived by deleting some (any) or no elements from the first.
+--
+-- Examples:
+--
+-- >>> isSubsequenceOf "1234567" "1356"
+-- True
+--
+-- >>> isSubsequenceOf "1234567" "21"
+-- False
+--
+-- `isSubsequenceOf` is the base case & implementation of fuzzy search.
 isSubsequenceOf :: Text -> Text -> Bool
 isSubsequenceOf tf sf
   | length sf > length tf = False
