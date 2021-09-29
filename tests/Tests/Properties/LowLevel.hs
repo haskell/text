@@ -9,10 +9,11 @@ import Control.Applicative ((<$>), pure)
 import Control.Exception as E (SomeException, catch, evaluate)
 import Data.Int (Int32, Int64)
 import Data.Text.Foreign
-import Data.Text.Internal (mul, mul32, mul64)
+import Data.Text.Internal (Text(..), mul, mul32, mul64, safe)
 import Data.Word (Word8, Word16, Word32)
 import System.IO.Unsafe (unsafePerformIO)
 import Test.Tasty (TestTree, testGroup)
+import Test.Tasty.HUnit (testCase, assertEqual)
 import Test.Tasty.QuickCheck (testProperty)
 import Test.QuickCheck hiding ((.&.))
 import Tests.QuickCheckUtils
@@ -53,6 +54,19 @@ t_use_from t = ioProperty $ (==t) <$> useAsPtr t fromPtr
 
 t_copy t = T.copy t === t
 
+t_literal_length1 = assertEqual xs (length xs) byteLen
+  where
+    xs = "\0\1\0\1\0"
+    Text _ _ byteLen = T.pack xs
+t_literal_length2 = assertEqual xs (length xs) byteLen
+  where
+    xs = "\1\2\3\4\5"
+    Text _ _ byteLen = T.pack xs
+t_literal_surrogates = assertEqual xs (T.pack xs) (T.pack ys)
+  where
+    ys = "\xd7ff \xd800 \xdbff \xdc00 \xdfff \xe000"
+    xs = map safe ys
+
 -- Input and output.
 
 -- t_put_get = write_read T.unlines T.filter put get
@@ -84,7 +98,10 @@ testLowLevel =
       testProperty "t_takeWord8" t_takeWord8,
       testProperty "t_take_drop_8" t_take_drop_8,
       testProperty "t_use_from" t_use_from,
-      testProperty "t_copy" t_copy
+      testProperty "t_copy" t_copy,
+      testCase "t_literal_length1" t_literal_length1,
+      testCase "t_literal_length2" t_literal_length2,
+      testCase "t_literal_surrogates" t_literal_surrogates
     ],
 
     testGroup "input-output" [
