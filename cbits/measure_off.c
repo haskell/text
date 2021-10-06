@@ -39,7 +39,7 @@ bool has_avx512_vl_bw() {
   negated count of lacking characters. Cf. _hs_text_measure_off below.
 */
 
-inline const ssize_t measure_off_naive(const uint8_t *src, const uint8_t *srcend, size_t cnt)
+static inline const ssize_t measure_off_naive(const uint8_t *src, const uint8_t *srcend, size_t cnt)
 {
   // Count leading bytes in 8 byte sequence
   while (src < srcend - 7){
@@ -70,7 +70,7 @@ inline const ssize_t measure_off_naive(const uint8_t *src, const uint8_t *srcend
 
 #ifdef __x86_64__
 __attribute__((target("avx512vl,avx512bw")))
-const ssize_t measure_off_avx(const uint8_t *src, const uint8_t *srcend, size_t cnt)
+static const ssize_t measure_off_avx(const uint8_t *src, const uint8_t *srcend, size_t cnt)
 {
   while (src < srcend - 63){
     __m512i w512 = _mm512_loadu_si512((__m512i *)src);
@@ -109,7 +109,7 @@ const ssize_t measure_off_avx(const uint8_t *src, const uint8_t *srcend, size_t 
 }
 #endif
 
-const ssize_t measure_off_sse(const uint8_t *src, const uint8_t *srcend, size_t cnt)
+static const ssize_t measure_off_sse(const uint8_t *src, const uint8_t *srcend, size_t cnt)
 {
 #ifdef __x86_64__
   while (src < srcend - 15){
