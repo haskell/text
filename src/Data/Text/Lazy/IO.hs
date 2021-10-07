@@ -10,16 +10,17 @@
 --
 -- Efficient locale-sensitive support for lazy text I\/O.
 --
--- Skip past the synopsis for some important notes on performance and
--- portability across different versions of GHC.
+-- The functions in this module obey the runtime system's locale,
+-- character set encoding, and line ending conversion settings.
+--
+-- If you know in advance that you will be working with data that has
+-- a specific encoding (e.g. UTF-8), and your application is highly
+-- performance sensitive, you may find that it is faster to perform
+-- I\/O with bytestrings and to encode and decode yourself than to use
+-- the functions in this module.
 
 module Data.Text.Lazy.IO
     (
-    -- * Performance
-    -- $performance
-
-    -- * Locale support
-    -- $locale
     -- * File-at-a-time operations
       readFile
     , writeFile
@@ -58,23 +59,18 @@ import System.IO (BufferMode(..), hGetBuffering, hSetBuffering)
 import System.IO.Error (isEOFError)
 import System.IO.Unsafe (unsafeInterleaveIO)
 
--- $performance
---
--- The functions in this module obey the runtime system's locale,
--- character set encoding, and line ending conversion settings.
---
--- If you know in advance that you will be working with data that has
--- a specific encoding (e.g. UTF-8), and your application is highly
--- performance sensitive, you may find that it is faster to perform
--- I\/O with bytestrings and to encode and decode yourself than to use
--- the functions in this module.
---
--- Whether this will hold depends on the version of GHC you are using,
--- the platform you are working on, the data you are working with, and
--- the encodings you are using, so be sure to test for yourself.
-
 -- | Read a file and return its contents as a string.  The file is
 -- read lazily, as with 'getContents'.
+--
+-- Beware that this function (similarly to 'Prelude.readFile') is locale-dependent.
+-- Unexpected system locale may cause your application to read corrupted data or
+-- throw runtime exceptions about "invalid argument (invalid byte sequence)"
+-- or "invalid argument (invalid character)". This is also slow, because GHC
+-- first converts an entire input to UTF-32, which is afterwards converted to UTF-8.
+--
+-- If your data is UTF-8,
+-- using 'Data.Text.Lazy.Encoding.decodeUtf8' '.' 'Data.ByteString.Lazy.readFile'
+-- is a much faster and safer alternative.
 readFile :: FilePath -> IO Text
 readFile name = openFile name ReadMode >>= hGetContents
 
@@ -161,33 +157,3 @@ putStr = hPutStr stdout
 -- | Write a string to 'stdout', followed by a newline.
 putStrLn :: Text -> IO ()
 putStrLn = hPutStrLn stdout
-
--- $locale
---
--- /Note/: The behaviour of functions in this module depends on the
--- version of GHC you are using.
---
--- Beginning with GHC 6.12, text I\/O is performed using the system or
--- handle's current locale and line ending conventions.
---
--- Under GHC 6.10 and earlier, the system I\/O libraries /do not
--- support/ locale-sensitive I\/O or line ending conversion.  On these
--- versions of GHC, functions in this library all use UTF-8.  What
--- does this mean in practice?
---
--- * All data that is read will be decoded as UTF-8.
---
--- * Before data is written, it is first encoded as UTF-8.
---
--- * On both reading and writing, the platform's native newline
---   conversion is performed.
---
--- If you must use a non-UTF-8 locale on an older version of GHC, you
--- will have to perform the transcoding yourself, e.g. as follows:
---
--- > import qualified Data.ByteString.Lazy as B
--- > import Data.Text.Lazy (Text)
--- > import Data.Text.Lazy.Encoding (encodeUtf16)
--- >
--- > putStr_Utf16LE :: Text -> IO ()
--- > putStr_Utf16LE t = B.putStr (encodeUtf16LE t)
