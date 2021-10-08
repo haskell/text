@@ -1,8 +1,16 @@
 -- | Test low-level operations
 
+{-# LANGUAGE CPP #-}
+{-# LANGUAGE MagicHash #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 {-# OPTIONS_GHC -fno-warn-missing-signatures -fno-warn-unused-imports #-}
+
+#ifdef MIN_VERSION_tasty_inspection_testing
+{-# LANGUAGE TemplateHaskell #-}
+{-# OPTIONS_GHC -O -dsuppress-all -dno-suppress-type-signatures -fplugin=Test.Tasty.Inspection.Plugin #-}
+#endif
+
 module Tests.Properties.LowLevel (testLowLevel) where
 
 import Control.Applicative ((<$>), pure)
@@ -23,6 +31,13 @@ import qualified Data.Text.IO as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.IO as TL
 import qualified System.IO as IO
+
+#ifdef MIN_VERSION_tasty_inspection_testing
+import Test.Tasty.Inspection (inspectObligations, hasNoTypes, doesNotUseAnyOf)
+import qualified Data.Text.Internal.Fusion as S
+import qualified Data.Text.Internal.Fusion.Common as S
+import qualified GHC.CString as GHC
+#endif
 
 mulRef :: (Integral a, Bounded a) => a -> a -> Maybe a
 mulRef a b
@@ -67,6 +82,11 @@ t_literal_surrogates = assertEqual xs (T.pack xs) (T.pack ys)
     ys = "\xd7ff \xd800 \xdbff \xdc00 \xdfff \xe000"
     xs = map safe ys
 
+#ifdef MIN_VERSION_tasty_inspection_testing
+t_literal_foo :: Text
+t_literal_foo = T.pack "foo"
+#endif
+
 -- Input and output.
 
 -- t_put_get = write_read T.unlines T.filter put get
@@ -102,6 +122,15 @@ testLowLevel =
       testCase "t_literal_length1" t_literal_length1,
       testCase "t_literal_length2" t_literal_length2,
       testCase "t_literal_surrogates" t_literal_surrogates
+#ifdef MIN_VERSION_tasty_inspection_testing
+      , $(inspectObligations
+        [ (`hasNoTypes` [''Char, ''[]])
+        , (`doesNotUseAnyOf` ['T.pack, 'S.unstream, 'T.map, 'safe, 'S.streamList])
+        , (`doesNotUseAnyOf` ['GHC.unpackCString#, 'GHC.unpackCStringUtf8#])
+        , (`doesNotUseAnyOf` ['T.unpackCString#, 'T.unpackCStringAscii#])
+        ]
+        't_literal_foo)
+#endif
     ],
 
     testGroup "input-output" [
