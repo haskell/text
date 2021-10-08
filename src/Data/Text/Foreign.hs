@@ -31,9 +31,6 @@ module Data.Text.Foreign
     , takeWord8
     ) where
 
-#if defined(ASSERTS)
-import Control.Exception (assert)
-#endif
 import Control.Monad.ST.Unsafe (unsafeSTToIO)
 import Data.ByteString.Unsafe (unsafePackCStringLen, unsafeUseAsCStringLen)
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
