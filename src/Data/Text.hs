@@ -198,6 +198,7 @@ module Data.Text
     -- * Low level operations
     , copy
     , unpackCString#
+    , unpackCStringAscii#
 
     , measureOff
     ) where
@@ -234,7 +235,7 @@ import Data.Text.Internal.Fusion (stream, reverseStream, unstream)
 import Data.Text.Internal.Private (span_)
 import Data.Text.Internal (Text(..), empty, firstf, mul, safe, text, append)
 import Data.Text.Internal.Unsafe.Char (unsafeWrite, unsafeChr8)
-import Data.Text.Show (singleton, unpack, unpackCString#)
+import Data.Text.Show (singleton, unpack, unpackCString#, unpackCStringAscii#)
 import qualified Prelude as P
 import Data.Text.Unsafe (Iter(..), iter, iter_, lengthWord8, reverseIter,
                          reverseIter_, unsafeHead, unsafeTail, unsafeDupablePerformIO, iterArray, reverseIterArray)
