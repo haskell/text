@@ -19,6 +19,7 @@ module Data.Text.Show
       singleton
     , unpack
     , unpackCString#
+    , unpackCStringAscii#
     ) where
 
 import Control.Monad.ST (ST, runST)
@@ -56,6 +57,7 @@ unpack = S.unstreamList . stream
 
 -- | /O(n)/ Convert a null-terminated
 -- <https://en.wikipedia.org/wiki/UTF-8#Modified_UTF-8 modified UTF-8>
+-- (but with a standard UTF-8 representation of characters from supplementary planes)
 -- string to a 'Text'. Counterpart to 'GHC.unpackCStringUtf8#'.
 -- No validation is performed, malformed input can lead to memory access violation.
 --
