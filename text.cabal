@@ -216,11 +216,17 @@ test-suite tests
     bytestring,
     deepseq,
     directory,
+    ghc-prim,
     tasty,
     tasty-hunit,
     tasty-quickcheck,
     template-haskell,
     text
+
+  -- Starting from 9.2 ghc library depends on parsec,
+  -- which causes circular dependency.
+  if impl(ghc < 9.2)
+    build-depends: tasty-inspection-testing
 
   default-language: Haskell2010
   default-extensions: NondecreasingIndentation
