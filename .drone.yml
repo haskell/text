@@ -8,5 +8,28 @@ steps:
     - export LC_ALL=C.UTF-8
     - apt-get update -y
     - apt-get install -y ghc cabal-install
+    - cabal --version
+    - cabal new-update
+    - cabal new-test
+---
+kind: pipeline
+name: i386
+platform: { os: linux, arch: amd64 }
+steps:
+- name: Test
+  image: i386/ubuntu
+  commands:
+    - export LC_ALL=C.UTF-8
+    - apt-get update -y
+    - apt-get install -y ghc cabal-install zlib1g-dev libgmp-dev build-essential curl
+    # Build and install a modern cabal, because 1.24
+    # does not support cxx-sources or cxx-options.
+    - cabal --version # 1.24
+    - cabal update
+    - cabal install cabal-install
+    - export PATH="$HOME/.cabal/bin:$PATH"
+    - hash -r
+    # Now with a modern cabal
+    - cabal --version # 3.0
     - cabal new-update
     - cabal new-test
