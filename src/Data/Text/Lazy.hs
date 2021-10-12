@@ -203,6 +203,7 @@ import Prelude (Char, Bool(..), Maybe(..), String,
                 (&&), (+), (-), (.), ($), (++),
                 error, flip, fmap, fromIntegral, not, otherwise, quot)
 import qualified Prelude as P
+import Control.Arrow (first)
 import Control.DeepSeq (NFData(..))
 import Data.Bits (finiteBitSize)
 import Data.Int (Int64)
@@ -211,6 +212,8 @@ import Data.Char (isSpace)
 import Data.Data (Data(gfoldl, toConstr, gunfold, dataTypeOf), constrIndex,
                   Constr, mkConstr, DataType, mkDataType, Fixity(Prefix))
 import Data.Binary (Binary(get, put))
+import Data.List.NonEmpty (NonEmpty(..))
+import qualified Data.List.NonEmpty as NE
 import Data.Monoid (Monoid(..))
 import Data.Semigroup (Semigroup(..))
 import Data.String (IsString(..))
@@ -1415,23 +1418,26 @@ chunksOf k = go
 -- 'lines' __does not__ treat @'\\r'@ (CR, carriage return) as a newline character.
 lines :: Text -> [Text]
 lines Empty = []
-lines (Chunk c cs)
-  | hasNlEnd c = P.map fromStrict (T.lines c) ++ lines cs
-  | otherwise = case T.lines c of
-    [] -> error "lines: unexpected empty chunk"
-    l : ls -> go l ls cs
+lines t = NE.toList $ go t
   where
-    go l [] Empty = [fromStrict l]
-    go l [] (Chunk x xs) = case T.lines x of
-      [] -> error "lines: unexpected empty chunk"
-      [xl]
-        | hasNlEnd x -> chunk l (fromStrict xl) : lines xs
-        | otherwise  -> go (l `T.append` xl) [] xs
-      xl : yl : yls -> chunk l (fromStrict xl) :
-        if hasNlEnd x
-        then P.map fromStrict (yl : yls) ++ lines xs
-        else go yl yls xs
-    go l (m : ms) xs = fromStrict l : go m ms xs
+    go :: Text -> NonEmpty Text
+    go Empty = Empty :| []
+    go (Chunk x xs)
+      -- x is non-empty, so T.lines x is non-empty as well
+      | hasNlEnd x = NE.fromList $ P.map fromStrict (T.lines x) ++ lines xs
+      | otherwise = case unsnocList (T.lines x) of
+      Nothing -> error "lines: unexpected empty chunk"
+      Just (ls, l) -> P.foldr (NE.cons . fromStrict) (prependToHead l (go xs)) ls
+
+prependToHead :: T.Text -> NonEmpty Text -> NonEmpty Text
+prependToHead l ~(x :| xs) = chunk l x :| xs -- Lazy pattern is crucial!
+
+unsnocList :: [a] -> Maybe ([a], a)
+unsnocList [] = Nothing
+unsnocList (x : xs) = Just $ go x xs
+  where
+    go y [] = ([], y)
+    go y (z : zs) = first (y :) (go z zs)
 
 hasNlEnd :: T.Text -> Bool
 hasNlEnd (T.Text arr off len) = A.unsafeIndex arr (off + len - 1) == 0x0A
