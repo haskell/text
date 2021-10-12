@@ -16,6 +16,7 @@ import qualified Data.List as L
 import qualified Data.Text as T
 import qualified Data.Text.Internal.Fusion as S
 import qualified Data.Text.Internal.Fusion.Common as S
+import qualified Data.Text.Internal.Lazy as TL (Text(..))
 import qualified Data.Text.Internal.Lazy.Fusion as SL
 import qualified Data.Text.Lazy as TL
 import qualified Tests.SlowFunctions as Slow
@@ -204,6 +205,10 @@ tl_lines          = L.lines       `eqP` (map unpackS . TL.lines)
 t_lines_spacy     = (L.lines      `eqP` (map unpackS . T.lines))  . getSpacyString
 tl_lines_spacy    = (L.lines      `eqP` (map unpackS . TL.lines)) . getSpacyString
 
+tl_lines_laziness = TL.head (head (TL.lines (TL.replicate 1000000000000000 (TL.singleton 'a')))) === 'a'
+
+tl_lines_specialCase = TL.lines (TL.Chunk (T.pack "foo") $ TL.Chunk (T.pack "bar\nbaz\n") $ TL.Empty) === [TL.pack "foobar", TL.pack "baz"]
+
 t_words           = L.words       `eqP` (map unpackS . T.words)
 tl_words          = L.words       `eqP` (map unpackS . TL.words)
 t_words_spacy     = (L.words      `eqP` (map unpackS . T.words))  . getSpacyString
@@ -351,6 +356,8 @@ testSubstrings =
       testProperty "tl_lines" tl_lines,
       testProperty "t_lines_spacy" t_lines_spacy,
       testProperty "tl_lines_spacy" tl_lines_spacy,
+      testProperty "tl_lines_laziness" tl_lines_laziness,
+      testProperty "tl_lines_specialCase" tl_lines_specialCase,
       testProperty "t_words" t_words,
       testProperty "tl_words" tl_words,
       testProperty "t_words_spacy" t_words_spacy,
