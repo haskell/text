@@ -62,7 +62,9 @@ extra-source-files:
     README.markdown
     changelog.md
     scripts/*.hs
-    include/*.h
+    simdutf/LICENSE-APACHE
+    simdutf/LICENSE-MIT
+    simdutf/simdutf.h
     tests/literal-rule-test.sh
     tests/LiteralRuleTest.hs
 
@@ -84,8 +86,8 @@ library
   hs-source-dirs: src
 
   if flag(simdutf)
-    include-dirs: include
-    cxx-sources: cbits/simdutf.cpp
+    include-dirs: simdutf
+    cxx-sources: simdutf/simdutf.cpp
                  cbits/validate_utf8.cpp
     cxx-options: -std=c++17
     cpp-options: -DSIMDUTF
