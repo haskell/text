@@ -78,7 +78,10 @@ import Data.Text.Internal.Unsafe.Char (unsafeWrite)
 import Data.Text.Show as T (singleton)
 import Data.Text.Unsafe (unsafeDupablePerformIO)
 import Data.Word (Word8)
-import Foreign.C.Types (CSize(..), CInt(..))
+import Foreign.C.Types (CSize(..))
+#ifdef SIMDUTF
+import Foreign.C.Types (CInt(..))
+#endif
 import Foreign.Ptr (Ptr, minusPtr, plusPtr)
 import Foreign.Storable (poke, peekByteOff)
 import GHC.Exts (byteArrayContents#, unsafeCoerce#)
@@ -154,9 +157,11 @@ decodeLatin1 bs = withBS bs $ \fp len -> runST $ do
 foreign import ccall unsafe "_hs_text_is_ascii" c_is_ascii
     :: Ptr Word8 -> Ptr Word8 -> IO CSize
 
+#ifdef SIMDUTF
 isValidBS :: ByteString -> Bool
 isValidBS bs = withBS bs $ \fp len -> unsafeDupablePerformIO $
   unsafeWithForeignPtr fp $ \ptr -> (/= 0) <$> c_is_valid_utf8 ptr (fromIntegral len)
+#endif
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text.
 --
@@ -168,9 +173,11 @@ decodeUtf8With ::
 #endif
   OnDecodeError -> ByteString -> Text
 decodeUtf8With onErr bs
+#ifdef SIMDUTF
   | isValidBS bs =
     let !(SBS.SBS arr) = SBS.toShort bs in
       (Text (A.ByteArray arr) 0 (B.length bs))
+#endif
   | B.null undecoded = txt
   | otherwise = txt `append` (case onErr desc (Just (B.head undecoded)) of
     Nothing -> txt'
@@ -197,6 +204,7 @@ decodeUtf8With2 onErr bs1@(B.length -> len1) bs2@(B.length -> len2) = runST $ do
       | i < len1  = B.index bs1 i
       | otherwise = B.index bs2 (i - len1)
 
+#ifdef SIMDUTF
     -- We need Data.ByteString.findIndexEnd, but it is unavailable before bytestring-0.10.12.0
     guessUtf8Boundary :: Int
     guessUtf8Boundary
@@ -211,6 +219,7 @@ decodeUtf8With2 onErr bs1@(B.length -> len1) bs2@(B.length -> len2) = runST $ do
         w1 = B.index bs2 (len2 - 2)
         w2 = B.index bs2 (len2 - 3)
         w3 = B.index bs2 (len2 - 4)
+#endif
 
     decodeFrom :: Int -> DecoderResult
     decodeFrom off = step (off + 1) (utf8DecodeStart (index off))
@@ -228,6 +237,7 @@ decodeUtf8With2 onErr bs1@(B.length -> len1) bs2@(B.length -> len2) = runST $ do
               arr <- A.unsafeFreeze dst
               return (Text arr 0 dstOff, mempty)
 
+#ifdef SIMDUTF
             | srcOff >= len1
             , srcOff < len1 + guessUtf8Boundary
             , dstOff + (len1 + guessUtf8Boundary - srcOff) <= dstLen
@@ -236,6 +246,7 @@ decodeUtf8With2 onErr bs1@(B.length -> len1) bs2@(B.length -> len2) = runST $ do
               withBS bs $ \fp _ -> unsafeIOToST $ unsafeWithForeignPtr fp $ \src ->
                 unsafeSTToIO $ A.copyFromPointer dst dstOff src (len1 + guessUtf8Boundary - srcOff)
               inner (len1 + guessUtf8Boundary) (dstOff + (len1 + guessUtf8Boundary - srcOff))
+#endif
 
             | dstOff + 4 > dstLen = do
               let dstLen' = dstLen + 4
@@ -572,5 +583,7 @@ encodeUtf32BE txt = E.unstream (E.restreamUtf32BE (F.stream txt))
 cSizeToInt :: CSize -> Int
 cSizeToInt = fromIntegral
 
+#ifdef SIMDUTF
 foreign import ccall unsafe "_hs_text_is_valid_utf8" c_is_valid_utf8
     :: Ptr Word8 -> CSize -> IO CInt
+#endif

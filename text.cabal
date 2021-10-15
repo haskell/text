@@ -71,27 +71,34 @@ flag developer
   default: False
   manual: True
 
+flag simdutf
+  description: use simdutf library
+  default: True
+  manual: True
+
 library
   c-sources:    cbits/is_ascii.c
                 cbits/measure_off.c
                 cbits/reverse.c
                 cbits/utils.c
-  cxx-sources:  cbits/simdutf.cpp
-                cbits/validate_utf8.cpp
-  include-dirs: include
   hs-source-dirs: src
-  cxx-options: -std=c++17
 
-  if os(windows)
-    if arch(x86_64)
-      extra-libraries: stdc++-6 gcc_s_seh-1
+  if flag(simdutf)
+    include-dirs: include
+    cxx-sources: cbits/simdutf.cpp
+                 cbits/validate_utf8.cpp
+    cxx-options: -std=c++17
+    cpp-options: -DSIMDUTF
+    if os(windows)
+      if arch(x86_64)
+        extra-libraries: stdc++-6 gcc_s_seh-1
+      else
+        extra-libraries: stdc++-6 gcc_s_dw2-1
     else
-      extra-libraries: stdc++-6 gcc_s_dw2-1
-  else
-    if os(darwin)
-      extra-libraries: c++
-    else
-      extra-libraries: stdc++
+      if os(darwin)
+        extra-libraries: c++
+      else
+        extra-libraries: stdc++
 
   exposed-modules:
     Data.Text
