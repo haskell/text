@@ -90,7 +90,7 @@ tb_formatRealFloat :: (RealFloat a, Show a) =>
 tb_formatRealFloat a fmt prec = cond ==>
     TB.formatRealFloat fmt p a ===
     TB.fromString (showFloat fmt p a "")
-  where p = precision a prec
+  where p = unPrecision prec
         cond = case (p,fmt) of
 #if MIN_VERSION_base(4,12,0)
                   (Just 0, TB.Generic) -> False -- skipping due to gh-231

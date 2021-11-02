@@ -4,6 +4,8 @@
 --
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
@@ -32,6 +34,7 @@ import Control.Arrow ((***))
 import Control.DeepSeq (NFData (..), deepseq)
 import Control.Exception (bracket)
 import Data.Char (isSpace)
+import Data.Coerce (coerce)
 import Data.Text.Foreign (I8)
 import Data.Text.Lazy.Builder.RealFloat (FPFormat(..))
 import Data.Word (Word8, Word16)
@@ -47,6 +50,9 @@ import qualified Data.Text.Internal.Lazy as TL
 import qualified Data.Text.Internal.Lazy.Fusion as TLF
 import qualified Data.Text.Lazy as TL
 import qualified System.IO as IO
+import Control.Applicative (liftA2, liftA3)
+import Data.Bits (shiftR, shiftL, countLeadingZeros, finiteBitSize)
+import GHC.Num (integerLog2, integerLogBase)
 
 genWord8 :: Gen Word8
 genWord8 = chooseAny
@@ -79,42 +85,65 @@ newtype Sqrt a = Sqrt { unSqrt :: a }
     deriving (Eq, Show)
 
 instance Arbitrary a => Arbitrary (Sqrt a) where
-    arbitrary = fmap Sqrt $ sized $ \n -> resize (smallish n) arbitrary
-        where
-            smallish = round . (sqrt :: Double -> Double) . fromIntegral . abs
-    shrink = map Sqrt . shrink . unSqrt
+    arbitrary = coerce $ sized $ \n -> resize (smallish n) $ arbitrary @a
+     where
+      smallish = intSqrt . abs
+      intSqrt :: Int -> Int
+      intSqrt n =
+        if n < 2
+          then n
+          else
+            let b2 = shiftR (finiteBitSize n - countLeadingZeros n) 1 in
+            shiftR (shiftL 1 b2 + shiftR n b2) 1
+    shrink = coerce (shrink @a)
 
 instance Arbitrary T.Text where
-    arbitrary = (T.pack . getUnicodeString) `fmap` arbitrary
+    arbitrary = T.pack <$> listOf arbitraryUnicodeChar -- without surrogates
     shrink = map T.pack . shrink . T.unpack
 
 instance Arbitrary TL.Text where
-    arbitrary = (TL.fromChunks . map notEmpty . unSqrt) `fmap` arbitrary
+    arbitrary = TL.fromChunks <$> coerce (arbitrary @(Sqrt [NotEmpty T.Text]))
     shrink = map TL.pack . shrink . TL.unpack
 
 newtype BigInt = Big Integer
                deriving (Eq, Show)
 
 instance Arbitrary BigInt where
-    arbitrary = choose (1::Int,200) >>= \e -> Big <$> choose (10^(e-1),10^e)
-    shrink (Big a) = [Big (a `div` 2^(l-e)) | e <- shrink l]
-      where l = truncate (log (fromIntegral a) / log 2 :: Double) :: Integer
+    arbitrary = do
+      e <- choose @Int (1,200)
+      coerce $ choose @Integer (10^(e-1),10^e)
+
+    shrink ba = [coerce (a `div` 2^(l-e)) | e <- shrink l]
+     where
+      a :: Integer
+      a = coerce ba
+      l :: Word
+      l = integerLogBase 2 a
 
 newtype NotEmpty a = NotEmpty { notEmpty :: a }
-    deriving (Eq, Ord, Show)
+ deriving (Eq, Ord, Show)
+
+toNotEmptyBy :: Functor m => ([Char] -> a) -> m (NonEmptyList Char) -> m (NotEmpty a)
+toNotEmptyBy f = fmap (coerce f)
+
+arbitraryNotEmptyBy :: ([Char] -> a) -> Gen (NotEmpty a)
+arbitraryNotEmptyBy f = toNotEmptyBy f arbitrary
+
+shrinkNotEmptyBy :: ([Char] -> a) -> (a -> [Char]) -> NotEmpty a -> [NotEmpty a]
+shrinkNotEmptyBy g f =
+  toNotEmptyBy g . shrink . coerce f
 
 instance Arbitrary (NotEmpty T.Text) where
-    arbitrary   = fmap (NotEmpty . T.pack . getNonEmpty) arbitrary
-    shrink      = fmap (NotEmpty . T.pack . getNonEmpty)
-                . shrink . NonEmpty . T.unpack . notEmpty
+    arbitrary   = arbitraryNotEmptyBy T.pack
+    shrink      = shrinkNotEmptyBy T.pack T.unpack
 
 instance Arbitrary (NotEmpty TL.Text) where
-    arbitrary   = fmap (NotEmpty . TL.pack . getNonEmpty) arbitrary
-    shrink      = fmap (NotEmpty . TL.pack . getNonEmpty)
-                . shrink . NonEmpty . TL.unpack . notEmpty
+    arbitrary   = arbitraryNotEmptyBy TL.pack
+    shrink      = shrinkNotEmptyBy TL.pack TL.unpack
+
 
 data DecodeErr = Lenient | Ignore | Strict | Replace
-               deriving (Show, Eq, Bounded, Enum)
+ deriving (Show, Eq, Bounded, Enum)
 
 genDecodeErr :: DecodeErr -> Gen T.OnDecodeError
 genDecodeErr Lenient = return T.lenientDecode
@@ -167,59 +196,72 @@ eq a b s  = a s =^= b s
 -- What about with the RHS packed?
 eqP :: (Eq a, Show a, Stringy s) =>
        (String -> a) -> (s -> a) -> String -> Word8 -> Property
-eqP f g s w  = counterexample "orig" (f s =^= g t) .&&.
-               counterexample "mini" (f s =^= g mini) .&&.
-               counterexample "head" (f sa =^= g ta) .&&.
-               counterexample "tail" (f sb =^= g tb)
-    where t             = packS s
-          mini          = packSChunkSize 10 s
-          (sa,sb)       = splitAt m s
-          (ta,tb)       = splitAtS m t
-          l             = length s
-          m | l == 0    = n
-            | otherwise = n `mod` l
-          n             = fromIntegral w
+eqP f g s w  =
+  testCounterExample "orig" s t .&&.
+  testCounterExample "mini" s mini .&&.
+  testCounterExample "head" sa ta .&&.
+  testCounterExample "tail" sb tb
+ where
+  testCounterExample txt a b = counterexample txt $ f a =^= g b
+
+  t       = packS s
+  mini    = packSChunkSize 10 s
+  (sa,sb) = splitAt m s
+  (ta,tb) = splitAtS m t
+
+  m       = if l == 0 then n else n `mod` l
+   where
+    l       = length s
+    n       = fromIntegral w
 
 eqPSqrt :: (Eq a, Show a, Stringy s) =>
        (String -> a) -> (s -> a) -> Sqrt String -> Word8 -> Property
-eqPSqrt f g s = eqP f g (unSqrt s)
+eqPSqrt f g s = eqP f g $ coerce s
 
 instance Arbitrary FPFormat where
     arbitrary = arbitraryBoundedEnum
 
-newtype Precision a = Precision (Maybe Int)
-                    deriving (Eq, Show)
+newtype Precision a = Precision { unPrecision :: Maybe Int}
+ deriving (Eq, Show)
 
+--  Deprecated on 2021-10-05
 precision :: a -> Precision a -> Maybe Int
-precision _ (Precision prec) = prec
+precision _ = coerce
+{-# DEPRECATED precision "Use @coerce@ or @unPrecision@ with types instead." #-}
 
 arbitraryPrecision :: Int -> Gen (Precision a)
-arbitraryPrecision maxDigits = Precision <$> do
-  n <- choose (-1,maxDigits)
-  return $ if n == -1
-           then Nothing
-           else Just n
+arbitraryPrecision maxDigits = do
+  n <- choose (0,maxDigits)
+  frequency
+    [ (1, pure $ coerce $ Nothing @Int)
+    , (n, pure $ coerce $ Just n)
+    ]
 
 instance Arbitrary (Precision Float) where
     arbitrary = arbitraryPrecision 11
-    shrink    = map Precision . shrink . precision undefined
+    shrink    = coerce (shrink @(Maybe Int))
 
 instance Arbitrary (Precision Double) where
     arbitrary = arbitraryPrecision 22
-    shrink    = map Precision . shrink . precision undefined
+    shrink    = coerce (shrink @(Maybe Int))
 
 instance Arbitrary IO.Newline where
-    arbitrary = oneof [return IO.LF, return IO.CRLF]
+    arbitrary = oneof [pure IO.LF, pure IO.CRLF]
 
 instance Arbitrary IO.NewlineMode where
-    arbitrary = IO.NewlineMode <$> arbitrary <*> arbitrary
+    arbitrary =
+      liftA2 IO.NewlineMode
+        arbitrary
+        arbitrary
 
 instance Arbitrary IO.BufferMode where
-    arbitrary = oneof [ return IO.NoBuffering,
-                        return IO.LineBuffering,
-                        return (IO.BlockBuffering Nothing),
-                        (IO.BlockBuffering . Just . (+1) . fromIntegral) `fmap`
-                        (arbitrary :: Gen Word16) ]
+    arbitrary =
+      oneof
+        [ pure IO.NoBuffering
+        , pure IO.LineBuffering
+        , pure (IO.BlockBuffering Nothing)
+        , IO.BlockBuffering . pure . succ . fromIntegral <$> arbitrary @Word16
+        ]
 
 -- This test harness is complex!  What property are we checking?
 --
@@ -227,11 +269,11 @@ instance Arbitrary IO.BufferMode where
 -- results as were written.
 --
 -- What do we vary while checking this property?
--- * The lines themselves, scrubbed to contain neither CR nor LF.  (By
---   working with a list of lines, we ensure that the data will
---   sometimes contain line endings.)
--- * Newline translation mode.
--- * Buffering.
+--  * The lines themselves, scrubbed to contain neither CR nor LF.  (By
+--    working with a list of lines, we ensure that the data will
+--    sometimes contain line endings.)
+--  * Newline translation mode.
+--  * Buffering.
 write_read :: (NFData a, Eq a, Show a)
            => ([b] -> a)
            -> ((Char -> Bool) -> a -> b)
@@ -245,18 +287,25 @@ write_read _ _ _ _ (IO.NewlineMode IO.LF IO.CRLF) _ _ = discard
 write_read unline filt writer reader nl buf ts = ioProperty $
     (===t) <$> act
   where
-    t = unline . map (filt (not . (`elem` "\r\n"))) $ ts
+    t = unline . map (filt (`notElem` "\r\n")) $ ts
 
-    act = withTempFile $ \path h -> do
-            IO.hSetNewlineMode h nl
-            IO.hSetBuffering h buf
-            () <- writer h t
-            IO.hClose h
-            bracket (IO.openFile path IO.ReadMode) IO.hClose $ \h' -> do
-              IO.hSetNewlineMode h' nl
-              IO.hSetBuffering h' buf
-              r <- reader h'
-              r `deepseq` return r
+    act =
+      withTempFile roundTrip
+     where
+
+      readBack h' = do
+        IO.hSetNewlineMode h' nl
+        IO.hSetBuffering h' buf
+        r <- reader h'
+        r `deepseq` pure r
+
+      roundTrip path h = do
+        IO.hSetNewlineMode h nl
+        IO.hSetBuffering h buf
+        () <- writer h t
+        IO.hClose h
+
+        IO.withFile path IO.ReadMode readBack
 
 -- Generate various Unicode space characters with high probability
 arbitrarySpacyChar :: Gen Char
@@ -269,5 +318,5 @@ newtype SpacyString = SpacyString { getSpacyString :: String }
   deriving (Eq, Ord, Show, Read)
 
 instance Arbitrary SpacyString where
-  arbitrary = SpacyString `fmap` listOf arbitrarySpacyChar
-  shrink (SpacyString xs) = SpacyString `fmap` shrink xs
+  arbitrary = coerce $ listOf arbitrarySpacyChar
+  shrink = coerce (shrink @[Char])
