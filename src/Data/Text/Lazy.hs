@@ -199,7 +199,7 @@ module Data.Text.Lazy
     ) where
 
 import Prelude (Char, Bool(..), Maybe(..), String,
-                Eq(..), Ord(..), Ordering(..), Read(..), Show(..),
+                Eq, (==), Ord(..), Ordering(..), Read(..), Show(..),
                 (&&), (+), (-), (.), ($), (++),
                 error, flip, fmap, fromIntegral, not, otherwise, quot)
 import qualified Prelude as P
