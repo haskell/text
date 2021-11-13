@@ -35,7 +35,8 @@ import Data.Char (isSpace)
 import Data.Text.Foreign (I8)
 import Data.Text.Lazy.Builder.RealFloat (FPFormat(..))
 import Data.Word (Word8, Word16)
-import Test.QuickCheck hiding (Fixed(..), Small (..), (.&.))
+import Test.QuickCheck (Arbitrary(..), arbitraryUnicodeChar, arbitraryBoundedEnum, getUnicodeString, arbitrarySizedIntegral, shrinkIntegral, Property, ioProperty, discard, counterexample, (===), (.&&.), NonEmptyList(..))
+import Test.QuickCheck.Gen (Gen, choose, chooseAny, elements, frequency, listOf, oneof, resize, sized)
 import Tests.Utils
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
