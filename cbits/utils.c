@@ -7,7 +7,9 @@
 #include <string.h>
 #include <sys/types.h>
 
-int _hs_text_memcmp(const void *arr1, size_t off1, const void *arr2, size_t off2, size_t len)
+/* Changed name to disambiguate from _hs_text_memcmp,
+   which could be present in system-wide headers from installed ghc package */
+int _hs_text_memcmp2(const void *arr1, size_t off1, const void *arr2, size_t off2, size_t len)
 {
   return memcmp(arr1 + off1, arr2 + off2, len);
 }

@@ -324,7 +324,7 @@ compareInternal (ByteArray src1#) (I# off1#) (ByteArray src2#) (I# off2#) (I# co
 #else
     i = fromIntegral (inlinePerformIO (memcmp src1# off1# src2# off2# count#))
 
-foreign import ccall unsafe "_hs_text_memcmp" memcmp
+foreign import ccall unsafe "_hs_text_memcmp2" memcmp
     :: ByteArray# -> Int# -> ByteArray# -> Int# -> Int# -> IO CInt
 #endif
 {-# INLINE compareInternal #-}
