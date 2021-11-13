@@ -248,11 +248,13 @@ write_read unline filt writer reader nl buf ts = ioProperty $
     t = unline . map (filt (not . (`elem` "\r\n"))) $ ts
 
     act = withTempFile $ \path h -> do
+            IO.hSetEncoding h IO.utf8
             IO.hSetNewlineMode h nl
             IO.hSetBuffering h buf
             () <- writer h t
             IO.hClose h
             bracket (IO.openFile path IO.ReadMode) IO.hClose $ \h' -> do
+              IO.hSetEncoding h' IO.utf8
               IO.hSetNewlineMode h' nl
               IO.hSetBuffering h' buf
               r <- reader h'
