@@ -1,0 +1,37 @@
+# Emulation is incredibly slow and memory demanding. It seems that any
+# executable with GHC RTS takes at least 7-8 Gb of RAM, so we can run
+# `cabal` or `ghc` on their own, but cannot run them both at the same time,
+# striking out `cabal test`. Instead we rely on system packages and invoke
+# `ghc --make` manually, and even so `ghc -O` is prohibitively expensive.
+
+name: emulated
+on:
+  - push
+  - pull_request
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  emulated:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        arch: ['s390x', 'ppc64le']
+    steps:
+    - uses: actions/checkout@v2
+    - uses: uraimo/run-on-arch-action@v2.1.1
+      timeout-minutes: 60
+      with:
+        arch: ${{ matrix.arch }}
+        distro: ubuntu20.04
+        githubToken: ${{ github.token }}
+        install: |
+          apt-get update -y
+          apt-get install -y ghc libghc-tasty-quickcheck-dev libghc-tasty-hunit-dev
+        run: |
+          ghc --version
+          ghc --make -isrc:tests -o Main cbits/*.c tests/Tests.hs +RTS -s
+          ./Main +RTS -s
