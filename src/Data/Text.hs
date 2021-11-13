@@ -204,7 +204,7 @@ module Data.Text
     ) where
 
 import Prelude (Char, Bool(..), Int, Maybe(..), String,
-                Eq(..), Ord(..), Ordering(..), (++),
+                Eq, (==), (/=), Ord(..), Ordering(..), (++),
                 Read(..),
                 (&&), (||), (+), (-), (.), ($), ($!), (>>),
                 not, return, otherwise, quot, IO)

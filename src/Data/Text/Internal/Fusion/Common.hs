@@ -120,7 +120,7 @@ module Data.Text.Internal.Fusion.Common
     , zipWith
     ) where
 
-import Prelude (Bool(..), Char, Eq(..), Int, Integral, Maybe(..),
+import Prelude (Bool(..), Char, Eq, (==), Int, Integral, Maybe(..),
                 Ord(..), Ordering(..), String, (.), ($), (+), (-), (*), (++),
                 (&&), fromIntegral, otherwise)
 import qualified Data.List as L
