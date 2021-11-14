@@ -1064,6 +1064,7 @@ upperMapping = \case
   '\x2c5c'# -> unI64 11308
   '\x2c5d'# -> unI64 11309
   '\x2c5e'# -> unI64 11310
+  '\x2c5f'# -> unI64 11311
   '\x2c61'# -> unI64 11360
   '\x2c65'# -> unI64 570
   '\x2c66'# -> unI64 574
@@ -1267,9 +1268,13 @@ upperMapping = \case
   '\xa7bb'# -> unI64 42938
   '\xa7bd'# -> unI64 42940
   '\xa7bf'# -> unI64 42942
+  '\xa7c1'# -> unI64 42944
   '\xa7c3'# -> unI64 42946
   '\xa7c8'# -> unI64 42951
   '\xa7ca'# -> unI64 42953
+  '\xa7d1'# -> unI64 42960
+  '\xa7d7'# -> unI64 42966
+  '\xa7d9'# -> unI64 42968
   '\xa7f6'# -> unI64 42997
   '\xab53'# -> unI64 42931
   '\xab70'# -> unI64 5024
@@ -1454,6 +1459,41 @@ upperMapping = \case
   '\x104f9'# -> unI64 66769
   '\x104fa'# -> unI64 66770
   '\x104fb'# -> unI64 66771
+  '\x10597'# -> unI64 66928
+  '\x10598'# -> unI64 66929
+  '\x10599'# -> unI64 66930
+  '\x1059a'# -> unI64 66931
+  '\x1059b'# -> unI64 66932
+  '\x1059c'# -> unI64 66933
+  '\x1059d'# -> unI64 66934
+  '\x1059e'# -> unI64 66935
+  '\x1059f'# -> unI64 66936
+  '\x105a0'# -> unI64 66937
+  '\x105a1'# -> unI64 66938
+  '\x105a3'# -> unI64 66940
+  '\x105a4'# -> unI64 66941
+  '\x105a5'# -> unI64 66942
+  '\x105a6'# -> unI64 66943
+  '\x105a7'# -> unI64 66944
+  '\x105a8'# -> unI64 66945
+  '\x105a9'# -> unI64 66946
+  '\x105aa'# -> unI64 66947
+  '\x105ab'# -> unI64 66948
+  '\x105ac'# -> unI64 66949
+  '\x105ad'# -> unI64 66950
+  '\x105ae'# -> unI64 66951
+  '\x105af'# -> unI64 66952
+  '\x105b0'# -> unI64 66953
+  '\x105b1'# -> unI64 66954
+  '\x105b3'# -> unI64 66956
+  '\x105b4'# -> unI64 66957
+  '\x105b5'# -> unI64 66958
+  '\x105b6'# -> unI64 66959
+  '\x105b7'# -> unI64 66960
+  '\x105b8'# -> unI64 66961
+  '\x105b9'# -> unI64 66962
+  '\x105bb'# -> unI64 66964
+  '\x105bc'# -> unI64 66965
   '\x10cc0'# -> unI64 68736
   '\x10cc1'# -> unI64 68737
   '\x10cc2'# -> unI64 68738
@@ -2563,6 +2603,7 @@ lowerMapping = \case
   '\x2c2c'# -> unI64 11356
   '\x2c2d'# -> unI64 11357
   '\x2c2e'# -> unI64 11358
+  '\x2c2f'# -> unI64 11359
   '\x2c60'# -> unI64 11361
   '\x2c62'# -> unI64 619
   '\x2c63'# -> unI64 7549
@@ -2743,12 +2784,16 @@ lowerMapping = \case
   '\xa7ba'# -> unI64 42939
   '\xa7bc'# -> unI64 42941
   '\xa7be'# -> unI64 42943
+  '\xa7c0'# -> unI64 42945
   '\xa7c2'# -> unI64 42947
   '\xa7c4'# -> unI64 42900
   '\xa7c5'# -> unI64 642
   '\xa7c6'# -> unI64 7566
   '\xa7c7'# -> unI64 42952
   '\xa7c9'# -> unI64 42954
+  '\xa7d0'# -> unI64 42961
+  '\xa7d6'# -> unI64 42967
+  '\xa7d8'# -> unI64 42969
   '\xa7f5'# -> unI64 42998
   '\xff21'# -> unI64 65345
   '\xff22'# -> unI64 65346
@@ -2852,6 +2897,41 @@ lowerMapping = \case
   '\x104d1'# -> unI64 66809
   '\x104d2'# -> unI64 66810
   '\x104d3'# -> unI64 66811
+  '\x10570'# -> unI64 66967
+  '\x10571'# -> unI64 66968
+  '\x10572'# -> unI64 66969
+  '\x10573'# -> unI64 66970
+  '\x10574'# -> unI64 66971
+  '\x10575'# -> unI64 66972
+  '\x10576'# -> unI64 66973
+  '\x10577'# -> unI64 66974
+  '\x10578'# -> unI64 66975
+  '\x10579'# -> unI64 66976
+  '\x1057a'# -> unI64 66977
+  '\x1057c'# -> unI64 66979
+  '\x1057d'# -> unI64 66980
+  '\x1057e'# -> unI64 66981
+  '\x1057f'# -> unI64 66982
+  '\x10580'# -> unI64 66983
+  '\x10581'# -> unI64 66984
+  '\x10582'# -> unI64 66985
+  '\x10583'# -> unI64 66986
+  '\x10584'# -> unI64 66987
+  '\x10585'# -> unI64 66988
+  '\x10586'# -> unI64 66989
+  '\x10587'# -> unI64 66990
+  '\x10588'# -> unI64 66991
+  '\x10589'# -> unI64 66992
+  '\x1058a'# -> unI64 66993
+  '\x1058c'# -> unI64 66995
+  '\x1058d'# -> unI64 66996
+  '\x1058e'# -> unI64 66997
+  '\x1058f'# -> unI64 66998
+  '\x10590'# -> unI64 66999
+  '\x10591'# -> unI64 67000
+  '\x10592'# -> unI64 67001
+  '\x10594'# -> unI64 67003
+  '\x10595'# -> unI64 67004
   '\x10c80'# -> unI64 68800
   '\x10c81'# -> unI64 68801
   '\x10c82'# -> unI64 68802
@@ -3926,6 +4006,7 @@ titleMapping = \case
   '\x2c5c'# -> unI64 11308
   '\x2c5d'# -> unI64 11309
   '\x2c5e'# -> unI64 11310
+  '\x2c5f'# -> unI64 11311
   '\x2c61'# -> unI64 11360
   '\x2c65'# -> unI64 570
   '\x2c66'# -> unI64 574
@@ -4129,9 +4210,13 @@ titleMapping = \case
   '\xa7bb'# -> unI64 42938
   '\xa7bd'# -> unI64 42940
   '\xa7bf'# -> unI64 42942
+  '\xa7c1'# -> unI64 42944
   '\xa7c3'# -> unI64 42946
   '\xa7c8'# -> unI64 42951
   '\xa7ca'# -> unI64 42953
+  '\xa7d1'# -> unI64 42960
+  '\xa7d7'# -> unI64 42966
+  '\xa7d9'# -> unI64 42968
   '\xa7f6'# -> unI64 42997
   '\xab53'# -> unI64 42931
   '\xab70'# -> unI64 5024
@@ -4316,6 +4401,41 @@ titleMapping = \case
   '\x104f9'# -> unI64 66769
   '\x104fa'# -> unI64 66770
   '\x104fb'# -> unI64 66771
+  '\x10597'# -> unI64 66928
+  '\x10598'# -> unI64 66929
+  '\x10599'# -> unI64 66930
+  '\x1059a'# -> unI64 66931
+  '\x1059b'# -> unI64 66932
+  '\x1059c'# -> unI64 66933
+  '\x1059d'# -> unI64 66934
+  '\x1059e'# -> unI64 66935
+  '\x1059f'# -> unI64 66936
+  '\x105a0'# -> unI64 66937
+  '\x105a1'# -> unI64 66938
+  '\x105a3'# -> unI64 66940
+  '\x105a4'# -> unI64 66941
+  '\x105a5'# -> unI64 66942
+  '\x105a6'# -> unI64 66943
+  '\x105a7'# -> unI64 66944
+  '\x105a8'# -> unI64 66945
+  '\x105a9'# -> unI64 66946
+  '\x105aa'# -> unI64 66947
+  '\x105ab'# -> unI64 66948
+  '\x105ac'# -> unI64 66949
+  '\x105ad'# -> unI64 66950
+  '\x105ae'# -> unI64 66951
+  '\x105af'# -> unI64 66952
+  '\x105b0'# -> unI64 66953
+  '\x105b1'# -> unI64 66954
+  '\x105b3'# -> unI64 66956
+  '\x105b4'# -> unI64 66957
+  '\x105b5'# -> unI64 66958
+  '\x105b6'# -> unI64 66959
+  '\x105b7'# -> unI64 66960
+  '\x105b8'# -> unI64 66961
+  '\x105b9'# -> unI64 66962
+  '\x105bb'# -> unI64 66964
+  '\x105bc'# -> unI64 66965
   '\x10cc0'# -> unI64 68736
   '\x10cc1'# -> unI64 68737
   '\x10cc2'# -> unI64 68738
@@ -4709,16 +4829,6 @@ foldMapping = \case
   '\x1ff7'# -> unI64 4191340074107849
   -- GREEK CAPITAL LETTER OMEGA WITH PROSGEGRAMMENI
   '\x1ffc'# -> unI64 1998586825
-  -- GLAGOLITIC CAPITAL LETTER CAUDATE CHRIVI
-  '\x2c2f'# -> unI64 11359
-  -- LATIN CAPITAL LETTER OLD POLISH O
-  '\xa7c0'# -> unI64 42945
-  -- LATIN CAPITAL LETTER CLOSED INSULAR G
-  '\xa7d0'# -> unI64 42961
-  -- LATIN CAPITAL LETTER MIDDLE SCOTS S
-  '\xa7d6'# -> unI64 42967
-  -- LATIN CAPITAL LETTER SIGMOID S
-  '\xa7d8'# -> unI64 42969
   -- CHEROKEE SMALL LETTER A
   '\xab70'# -> unI64 5024
   -- CHEROKEE SMALL LETTER E
@@ -4903,76 +5013,6 @@ foldMapping = \case
   '\xfb16'# -> unI64 2931819902
   -- ARMENIAN SMALL LIGATURE MEN XEH
   '\xfb17'# -> unI64 2912945524
-  -- VITHKUQI CAPITAL LETTER A
-  '\x10570'# -> unI64 66967
-  -- VITHKUQI CAPITAL LETTER BBE
-  '\x10571'# -> unI64 66968
-  -- VITHKUQI CAPITAL LETTER BE
-  '\x10572'# -> unI64 66969
-  -- VITHKUQI CAPITAL LETTER CE
-  '\x10573'# -> unI64 66970
-  -- VITHKUQI CAPITAL LETTER CHE
-  '\x10574'# -> unI64 66971
-  -- VITHKUQI CAPITAL LETTER DE
-  '\x10575'# -> unI64 66972
-  -- VITHKUQI CAPITAL LETTER DHE
-  '\x10576'# -> unI64 66973
-  -- VITHKUQI CAPITAL LETTER EI
-  '\x10577'# -> unI64 66974
-  -- VITHKUQI CAPITAL LETTER E
-  '\x10578'# -> unI64 66975
-  -- VITHKUQI CAPITAL LETTER FE
-  '\x10579'# -> unI64 66976
-  -- VITHKUQI CAPITAL LETTER GA
-  '\x1057a'# -> unI64 66977
-  -- VITHKUQI CAPITAL LETTER HA
-  '\x1057c'# -> unI64 66979
-  -- VITHKUQI CAPITAL LETTER HHA
-  '\x1057d'# -> unI64 66980
-  -- VITHKUQI CAPITAL LETTER I
-  '\x1057e'# -> unI64 66981
-  -- VITHKUQI CAPITAL LETTER IJE
-  '\x1057f'# -> unI64 66982
-  -- VITHKUQI CAPITAL LETTER JE
-  '\x10580'# -> unI64 66983
-  -- VITHKUQI CAPITAL LETTER KA
-  '\x10581'# -> unI64 66984
-  -- VITHKUQI CAPITAL LETTER LA
-  '\x10582'# -> unI64 66985
-  -- VITHKUQI CAPITAL LETTER LLA
-  '\x10583'# -> unI64 66986
-  -- VITHKUQI CAPITAL LETTER ME
-  '\x10584'# -> unI64 66987
-  -- VITHKUQI CAPITAL LETTER NE
-  '\x10585'# -> unI64 66988
-  -- VITHKUQI CAPITAL LETTER NJE
-  '\x10586'# -> unI64 66989
-  -- VITHKUQI CAPITAL LETTER O
-  '\x10587'# -> unI64 66990
-  -- VITHKUQI CAPITAL LETTER PE
-  '\x10588'# -> unI64 66991
-  -- VITHKUQI CAPITAL LETTER QA
-  '\x10589'# -> unI64 66992
-  -- VITHKUQI CAPITAL LETTER RE
-  '\x1058a'# -> unI64 66993
-  -- VITHKUQI CAPITAL LETTER SE
-  '\x1058c'# -> unI64 66995
-  -- VITHKUQI CAPITAL LETTER SHE
-  '\x1058d'# -> unI64 66996
-  -- VITHKUQI CAPITAL LETTER TE
-  '\x1058e'# -> unI64 66997
-  -- VITHKUQI CAPITAL LETTER THE
-  '\x1058f'# -> unI64 66998
-  -- VITHKUQI CAPITAL LETTER U
-  '\x10590'# -> unI64 66999
-  -- VITHKUQI CAPITAL LETTER VE
-  '\x10591'# -> unI64 67000
-  -- VITHKUQI CAPITAL LETTER XE
-  '\x10592'# -> unI64 67001
-  -- VITHKUQI CAPITAL LETTER Y
-  '\x10594'# -> unI64 67003
-  -- VITHKUQI CAPITAL LETTER ZE
-  '\x10595'# -> unI64 67004
   '\x0041'# -> unI64 97
   '\x0042'# -> unI64 98
   '\x0043'# -> unI64 99
@@ -5899,6 +5939,7 @@ foldMapping = \case
   '\x2c2c'# -> unI64 11356
   '\x2c2d'# -> unI64 11357
   '\x2c2e'# -> unI64 11358
+  '\x2c2f'# -> unI64 11359
   '\x2c60'# -> unI64 11361
   '\x2c62'# -> unI64 619
   '\x2c63'# -> unI64 7549
@@ -6079,12 +6120,16 @@ foldMapping = \case
   '\xa7ba'# -> unI64 42939
   '\xa7bc'# -> unI64 42941
   '\xa7be'# -> unI64 42943
+  '\xa7c0'# -> unI64 42945
   '\xa7c2'# -> unI64 42947
   '\xa7c4'# -> unI64 42900
   '\xa7c5'# -> unI64 642
   '\xa7c6'# -> unI64 7566
   '\xa7c7'# -> unI64 42952
   '\xa7c9'# -> unI64 42954
+  '\xa7d0'# -> unI64 42961
+  '\xa7d6'# -> unI64 42967
+  '\xa7d8'# -> unI64 42969
   '\xa7f5'# -> unI64 42998
   '\xff21'# -> unI64 65345
   '\xff22'# -> unI64 65346
@@ -6188,6 +6233,41 @@ foldMapping = \case
   '\x104d1'# -> unI64 66809
   '\x104d2'# -> unI64 66810
   '\x104d3'# -> unI64 66811
+  '\x10570'# -> unI64 66967
+  '\x10571'# -> unI64 66968
+  '\x10572'# -> unI64 66969
+  '\x10573'# -> unI64 66970
+  '\x10574'# -> unI64 66971
+  '\x10575'# -> unI64 66972
+  '\x10576'# -> unI64 66973
+  '\x10577'# -> unI64 66974
+  '\x10578'# -> unI64 66975
+  '\x10579'# -> unI64 66976
+  '\x1057a'# -> unI64 66977
+  '\x1057c'# -> unI64 66979
+  '\x1057d'# -> unI64 66980
+  '\x1057e'# -> unI64 66981
+  '\x1057f'# -> unI64 66982
+  '\x10580'# -> unI64 66983
+  '\x10581'# -> unI64 66984
+  '\x10582'# -> unI64 66985
+  '\x10583'# -> unI64 66986
+  '\x10584'# -> unI64 66987
+  '\x10585'# -> unI64 66988
+  '\x10586'# -> unI64 66989
+  '\x10587'# -> unI64 66990
+  '\x10588'# -> unI64 66991
+  '\x10589'# -> unI64 66992
+  '\x1058a'# -> unI64 66993
+  '\x1058c'# -> unI64 66995
+  '\x1058d'# -> unI64 66996
+  '\x1058e'# -> unI64 66997
+  '\x1058f'# -> unI64 66998
+  '\x10590'# -> unI64 66999
+  '\x10591'# -> unI64 67000
+  '\x10592'# -> unI64 67001
+  '\x10594'# -> unI64 67003
+  '\x10595'# -> unI64 67004
   '\x10c80'# -> unI64 68800
   '\x10c81'# -> unI64 68801
   '\x10c82'# -> unI64 68802
