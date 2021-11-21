@@ -35,7 +35,7 @@ import Data.Char (isSpace)
 import Data.Text.Foreign (I8)
 import Data.Text.Lazy.Builder.RealFloat (FPFormat(..))
 import Data.Word (Word8, Word16)
-import Test.QuickCheck (Arbitrary(..), arbitraryUnicodeChar, arbitraryBoundedEnum, getUnicodeString, arbitrarySizedIntegral, shrinkIntegral, Property, ioProperty, discard, counterexample, (===), (.&&.), NonEmptyList(..))
+import Test.QuickCheck (Arbitrary(..), arbitraryUnicodeChar, arbitraryBoundedEnum, getUnicodeString, arbitrarySizedIntegral, shrinkIntegral, Property, ioProperty, discard, counterexample, scale, (===), (.&&.), NonEmptyList(..))
 import Test.QuickCheck.Gen (Gen, choose, chooseAny, elements, frequency, listOf, oneof, resize, sized)
 import Tests.Utils
 import qualified Data.ByteString as B
@@ -86,7 +86,10 @@ instance Arbitrary a => Arbitrary (Sqrt a) where
     shrink = map Sqrt . shrink . unSqrt
 
 instance Arbitrary T.Text where
-    arbitrary = (T.pack . getUnicodeString) `fmap` arbitrary
+    arbitrary = do
+        t <- (T.pack . getUnicodeString) `fmap` scale (* 2) arbitrary
+        -- Generate chunks that start in the middle of their buffers.
+        (\i -> T.drop i t) <$> choose (0, T.length t)
     shrink = map T.pack . shrink . T.unpack
 
 instance Arbitrary TL.Text where
