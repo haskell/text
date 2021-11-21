@@ -1,8 +1,6 @@
 {-# LANGUAGE BangPatterns,CPP #-}
 {-# LANGUAGE Trustworthy #-}
 
-{-# OPTIONS_GHC -fno-warn-deprecations #-}
-
 -- |
 -- Module      : Data.Text.Lazy.Encoding
 -- Copyright   : (c) 2009, 2010 Bryan O'Sullivan
@@ -80,11 +78,10 @@ import Data.Text.Unsafe (unsafeDupablePerformIO)
 -- 'decodeUtf8With' allows the programmer to determine what to do on a
 -- decoding error.
 
--- | /Deprecated/.  Decode a 'ByteString' containing 7-bit ASCII
+-- | Decode a 'ByteString' containing 7-bit ASCII
 -- encoded text.
 decodeASCII :: B.ByteString -> Text
 decodeASCII = foldr (chunk . TE.decodeASCII) empty . B.toChunks
-{-# DEPRECATED decodeASCII "Use decodeUtf8 instead" #-}
 
 -- | Decode a 'ByteString' containing Latin-1 (aka ISO-8859-1) encoded text.
 decodeLatin1 :: B.ByteString -> Text
