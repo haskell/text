@@ -211,7 +211,6 @@ import Prelude (Char, Bool(..), Int, Maybe(..), String,
 import Control.DeepSeq (NFData(rnf))
 #if defined(ASSERTS)
 import Control.Exception (assert)
-import GHC.Stack (HasCallStack)
 #endif
 import Data.Bits ((.&.))
 import Data.Char (isSpace, isAscii, ord)
@@ -249,6 +248,7 @@ import Data.Word (Word8)
 import Foreign.C.Types
 import GHC.Base (eqInt, neInt, gtInt, geInt, ltInt, leInt, ByteArray#)
 import qualified GHC.Exts as Exts
+import GHC.Stack (HasCallStack)
 import qualified Language.Haskell.TH.Lib as TH
 import qualified Language.Haskell.TH.Syntax as TH
 import Text.Printf (PrintfArg, formatArg, formatString)
@@ -449,8 +449,8 @@ snoc t c = unstream (S.snoc (stream t) (safe c))
 {-# INLINE snoc #-}
 
 -- | /O(1)/ Returns the first character of a 'Text', which must be
--- non-empty.
-head :: Text -> Char
+-- non-empty. This is a partial function, consider using 'uncons' instead.
+head :: HasCallStack => Text -> Char
 head t = S.head (stream t)
 {-# INLINE head #-}
 
@@ -464,16 +464,16 @@ uncons t@(Text arr off len)
 {-# INLINE [1] uncons #-}
 
 -- | /O(1)/ Returns the last character of a 'Text', which must be
--- non-empty.
-last :: Text -> Char
+-- non-empty. This is a partial function, consider using 'unsnoc' instead.
+last :: HasCallStack => Text -> Char
 last t@(Text _ _ len)
     | len <= 0  = emptyError "last"
     | otherwise = let Iter c _ = reverseIter t (len - 1) in c
 {-# INLINE [1] last #-}
 
 -- | /O(1)/ Returns all characters after the head of a 'Text', which
--- must be non-empty.
-tail :: Text -> Text
+-- must be non-empty. This is a partial function, consider using 'uncons' instead.
+tail :: HasCallStack => Text -> Text
 tail t@(Text arr off len)
     | len <= 0  = emptyError "tail"
     | otherwise = text arr (off+d) (len-d)
@@ -481,8 +481,8 @@ tail t@(Text arr off len)
 {-# INLINE [1] tail #-}
 
 -- | /O(1)/ Returns all but the last character of a 'Text', which must
--- be non-empty.
-init :: Text -> Text
+-- be non-empty. This is a partial function, consider using 'unsnoc' instead.
+init :: HasCallStack => Text -> Text
 init t@(Text arr off len)
     | len <= 0  = emptyError "init"
     | otherwise = text arr off (len + reverseIter_ t (len - 1))
@@ -758,7 +758,8 @@ foreign import ccall unsafe "_hs_text_reverse" c_reverse
 --
 -- In (unlikely) bad cases, this function's time complexity degrades
 -- towards /O(n*m)/.
-replace :: Text
+replace :: HasCallStack
+        => Text
         -- ^ @needle@ to search for.  If this string is empty, an
         -- error will occur.
         -> Text
@@ -960,12 +961,12 @@ foldl' f z t = S.foldl' f z (stream t)
 
 -- | /O(n)/ A variant of 'foldl' that has no starting value argument,
 -- and thus must be applied to a non-empty 'Text'.
-foldl1 :: (Char -> Char -> Char) -> Text -> Char
+foldl1 :: HasCallStack => (Char -> Char -> Char) -> Text -> Char
 foldl1 f t = S.foldl1 f (stream t)
 {-# INLINE foldl1 #-}
 
 -- | /O(n)/ A strict version of 'foldl1'.
-foldl1' :: (Char -> Char -> Char) -> Text -> Char
+foldl1' :: HasCallStack => (Char -> Char -> Char) -> Text -> Char
 foldl1' f t = S.foldl1' f (stream t)
 {-# INLINE foldl1' #-}
 
@@ -978,7 +979,7 @@ foldr f z t = S.foldr f z (stream t)
 
 -- | /O(n)/ A variant of 'foldr' that has no starting value argument,
 -- and thus must be applied to a non-empty 'Text'.
-foldr1 :: (Char -> Char -> Char) -> Text -> Char
+foldr1 :: HasCallStack => (Char -> Char -> Char) -> Text -> Char
 foldr1 f t = S.foldr1 f (stream t)
 {-# INLINE foldr1 #-}
 
@@ -1020,13 +1021,13 @@ all p t = S.all p (stream t)
 
 -- | /O(n)/ 'maximum' returns the maximum value from a 'Text', which
 -- must be non-empty.
-maximum :: Text -> Char
+maximum :: HasCallStack => Text -> Char
 maximum t = S.maximum (stream t)
 {-# INLINE maximum #-}
 
 -- | /O(n)/ 'minimum' returns the minimum value from a 'Text', which
 -- must be non-empty.
-minimum :: Text -> Char
+minimum :: HasCallStack => Text -> Char
 minimum t = S.minimum (stream t)
 {-# INLINE minimum #-}
 
@@ -1468,7 +1469,8 @@ tails t | null t    = [empty]
 --
 -- In (unlikely) bad cases, this function's time complexity degrades
 -- towards /O(n*m)/.
-splitOn :: Text
+splitOn :: HasCallStack
+        => Text
         -- ^ String to split on. If this string is empty, an error
         -- will occur.
         -> Text
@@ -1648,7 +1650,7 @@ filter p = go
 --
 -- In (unlikely) bad cases, this function's time complexity degrades
 -- towards /O(n*m)/.
-breakOn :: Text -> Text -> (Text, Text)
+breakOn :: HasCallStack => Text -> Text -> (Text, Text)
 breakOn pat src@(Text arr off len)
     | null pat  = emptyError "breakOn"
     | otherwise = case indices pat src of
@@ -1665,7 +1667,7 @@ breakOn pat src@(Text arr off len)
 --
 -- >>> breakOnEnd "::" "a::b::c"
 -- ("a::b::","c")
-breakOnEnd :: Text -> Text -> (Text, Text)
+breakOnEnd :: HasCallStack => Text -> Text -> (Text, Text)
 breakOnEnd pat src = (reverse b, reverse a)
     where (a,b) = breakOn (reverse pat) (reverse src)
 {-# INLINE breakOnEnd #-}
@@ -1689,7 +1691,8 @@ breakOnEnd pat src = (reverse b, reverse a)
 -- towards /O(n*m)/.
 --
 -- The @needle@ parameter may not be empty.
-breakOnAll :: Text              -- ^ @needle@ to search for
+breakOnAll :: HasCallStack
+           => Text              -- ^ @needle@ to search for
            -> Text              -- ^ @haystack@ in which to search
            -> [(Text, Text)]
 breakOnAll pat src@(Text arr off slen)
@@ -1720,7 +1723,7 @@ breakOnAll pat src@(Text arr off slen)
 -- before and after that index, you would instead use @breakOnAll \"::\"@.
 
 -- | /O(n)/ 'Text' index (subscript) operator, starting from 0.
-index :: Text -> Int -> Char
+index :: HasCallStack => Text -> Int -> Char
 index t n = S.index (stream t) n
 {-# INLINE index #-}
 
@@ -1737,7 +1740,7 @@ findIndex p t = S.findIndex p (stream t)
 --
 -- In (unlikely) bad cases, this function's time complexity degrades
 -- towards /O(n*m)/.
-count :: Text -> Text -> Int
+count :: HasCallStack => Text -> Text -> Int
 count pat
     | null pat        = emptyError "count"
     | isSingleton pat = countChar (unsafeHead pat)
@@ -1984,10 +1987,10 @@ sumP fun = go 0
           where ax = a + x
         go a  _         = a
 
-emptyError :: String -> a
+emptyError :: HasCallStack => String -> a
 emptyError fun = P.error $ "Data.Text." ++ fun ++ ": empty input"
 
-overflowError :: String -> a
+overflowError :: HasCallStack => String -> a
 overflowError fun = P.error $ "Data.Text." ++ fun ++ ": size overflow"
 
 -- | /O(n)/ Make a distinct copy of the given string, sharing no

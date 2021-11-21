@@ -37,9 +37,7 @@ import qualified Data.Text.Array as A
 import Data.Text.Internal.Unsafe.Char (unsafeWrite)
 import Data.Text.Unsafe (Iter(..), iter)
 import Data.Int (Int64)
-#if defined(ASSERTS)
 import GHC.Stack (HasCallStack)
-#endif
 
 default(Int64)
 
@@ -125,7 +123,7 @@ unfoldrN n = S.unfoldrNI n
 {-# INLINE [0] unfoldrN #-}
 
 -- | /O(n)/ stream index (subscript) operator, starting from 0.
-index :: Stream Char -> Int64 -> Char
+index :: HasCallStack => Stream Char -> Int64 -> Char
 index = S.indexI
 {-# INLINE [0] index #-}
 

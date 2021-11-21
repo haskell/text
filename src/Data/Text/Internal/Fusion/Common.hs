@@ -135,6 +135,7 @@ import Data.Text.Internal.Fusion.CaseMapping (foldMapping, lowerMapping, titleMa
 import Data.Text.Internal.Fusion.Size
 import GHC.Exts (Char(..), Char#, chr#)
 import GHC.Prim (Addr#, indexWord8OffAddr#)
+import GHC.Stack (HasCallStack)
 import GHC.Types (Int(..))
 import Data.Text.Internal.Unsafe.Char (unsafeChr8)
 import GHC.Word
@@ -264,11 +265,12 @@ append (Stream next0 s01 len1) (Stream next1 s02 len2) =
 {-# INLINE [0] append #-}
 
 -- | /O(1)/ Returns the first character of a 'Stream' 'Char', which must be non-empty.
+-- This is a partial function, consider using 'uncons'.
 --
 -- __Properties__
 --
 -- @ 'head' . 'Data.Text.Internal.Fusion.stream' = 'Data.Text.head' @
-head :: Stream Char -> Char
+head :: HasCallStack => Stream Char -> Char
 head (Stream next s0 _len) = loop_head s0
     where
       loop_head !s = case next s of
@@ -277,7 +279,7 @@ head (Stream next s0 _len) = loop_head s0
                       Done      -> head_empty
 {-# INLINE [0] head #-}
 
-head_empty :: a
+head_empty :: HasCallStack => a
 head_empty = streamError "head" "Empty stream"
 {-# NOINLINE head_empty #-}
 
@@ -304,7 +306,7 @@ uncons (Stream next s0 len) = loop_uncons s0
 -- __Properties__
 --
 -- @ 'last' . 'Data.Text.Internal.Fusion.stream' = 'Data.Text.last' @
-last :: Stream Char -> Char
+last :: HasCallStack => Stream Char -> Char
 last (Stream next s0 _len) = loop0_last s0
     where
       loop0_last !s = case next s of
@@ -318,12 +320,12 @@ last (Stream next s0 _len) = loop0_last s0
 {-# INLINE[0] last #-}
 
 -- | /O(1)/ Returns all characters after the head of a 'Stream' 'Char', which must
--- be non-empty.
+-- be non-empty. This is a partial function, consider using 'uncons'.
 --
 -- __Properties__
 --
 -- @ 'Data.Text.Internal.unstream' . 'tail' . 'Data.Text.Internal.Fusion.stream' = 'Data.Text.tail' @
-tail :: Stream Char -> Stream Char
+tail :: HasCallStack => Stream Char -> Stream Char
 tail (Stream next0 s0 len) = Stream next (C0 s0) (len - codePointsSize 1)
     where
       next (C0 s) = case next0 s of
@@ -345,7 +347,7 @@ data Init s = Init0 !s
 -- __Properties__
 --
 -- @ 'Data.Text.Internal.unstream' . 'init' . 'Data.Text.Internal.Fusion.stream' = 'Data.Text.init' @
-init :: Stream Char -> Stream Char
+init :: HasCallStack => Stream Char -> Stream Char
 init (Stream next0 s0 len) = Stream next (Init0 s0) (len - codePointsSize 1)
     where
       next (Init0 s) = case next0 s of
@@ -647,7 +649,7 @@ foldl' f z0 (Stream next s0 _len) = loop_foldl' z0 s0
 -- __Properties__
 --
 -- @ 'foldl1' f . 'Data.Text.Internal.Fusion.stream' = 'Data.Text.foldl1' f @
-foldl1 :: (Char -> Char -> Char) -> Stream Char -> Char
+foldl1 :: HasCallStack => (Char -> Char -> Char) -> Stream Char -> Char
 foldl1 f (Stream next s0 _len) = loop0_foldl1 s0
     where
       loop0_foldl1 !s = case next s of
@@ -665,7 +667,7 @@ foldl1 f (Stream next s0 _len) = loop0_foldl1 s0
 -- __Properties__
 --
 -- @ 'foldl1'' f . 'Data.Text.Internal.Fusion.stream' = 'Data.Text.foldl1'' f @
-foldl1' :: (Char -> Char -> Char) -> Stream Char -> Char
+foldl1' :: HasCallStack => (Char -> Char -> Char) -> Stream Char -> Char
 foldl1' f (Stream next s0 _len) = loop0_foldl1' s0
     where
       loop0_foldl1' !s = case next s of
@@ -700,7 +702,7 @@ foldr f z (Stream next s0 _len) = loop_foldr s0
 -- __Properties__
 --
 -- @ 'foldr1' f . 'Data.Text.Internal.Fusion.stream' = 'Data.Text.foldr1' f @
-foldr1 :: (Char -> Char -> Char) -> Stream Char -> Char
+foldr1 :: HasCallStack => (Char -> Char -> Char) -> Stream Char -> Char
 foldr1 f (Stream next s0 _len) = loop0_foldr1 s0
   where
     loop0_foldr1 !s = case next s of
@@ -784,7 +786,7 @@ all p (Stream next0 s0 _len) = loop_all s0
 -- __Properties__
 --
 -- @'maximum' . 'Data.Text.Fusion.stream' = 'Data.Text.maximum'@
-maximum :: Stream Char -> Char
+maximum :: HasCallStack => Stream Char -> Char
 maximum (Stream next0 s0 _len) = loop0_maximum s0
     where
       loop0_maximum !s   = case next0 s of
@@ -805,7 +807,7 @@ maximum (Stream next0 s0 _len) = loop0_maximum s0
 -- __Properties__
 --
 -- @'minimum' . 'Data.Text.Fusion.stream' = 'Data.Text.minimum'@
-minimum :: Stream Char -> Char
+minimum :: HasCallStack => Stream Char -> Char
 minimum (Stream next0 s0 _len) = loop0_minimum s0
     where
       loop0_minimum !s   = case next0 s of
@@ -1069,7 +1071,7 @@ findBy p (Stream next s0 _len) = loop_find s0
 -- __Properties__
 --
 -- @ 'indexI' ('Data.Text.Internal.Fusion.stream' t) n = 'Data.Text.index' t n@
-indexI :: Integral a => Stream Char -> a -> Char
+indexI :: (HasCallStack, Integral a) => Stream Char -> a -> Char
 indexI (Stream next s0 _len) n0
   | n0 < 0    = streamError "index" "Negative index"
   | otherwise = loop_index n0 s0
@@ -1174,13 +1176,13 @@ countCharI a (Stream next s0 _len) = loop 0 s0
                  | otherwise -> loop i s'
 {-# INLINE [0] countCharI #-}
 
-streamError :: String -> String -> a
+streamError :: HasCallStack => String -> String -> a
 streamError func msg = P.error $ "Data.Text.Internal.Fusion.Common." ++ func ++ ": " ++ msg
 
-emptyError :: String -> a
+emptyError :: HasCallStack => String -> a
 emptyError func = internalError func "Empty input"
 
-internalError :: String -> a
+internalError :: HasCallStack => String -> a
 internalError func = streamError func "Internal error"
 
 int64ToSize :: Int64 -> Size
