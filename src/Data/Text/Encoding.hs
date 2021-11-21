@@ -112,7 +112,7 @@ import GHC.Stack (HasCallStack)
 -- 'decodeUtf8With' allows the programmer to determine what to do on a
 -- decoding error.
 
--- | /Deprecated/.  Decode a 'ByteString' containing 7-bit ASCII
+-- | Decode a 'ByteString' containing 7-bit ASCII
 -- encoded text.
 decodeASCII :: ByteString -> Text
 decodeASCII bs = withBS bs $ \fp len -> if len == 0 then empty else runST $ do
@@ -122,7 +122,6 @@ decodeASCII bs = withBS bs $ \fp len -> if len == 0 then empty else runST $ do
   then let !(SBS.SBS arr) = SBS.toShort bs in
         return (Text (A.ByteArray arr) 0 len)
   else error $ "decodeASCII: detected non-ASCII codepoint at " ++ show asciiPrefixLen
-{-# DEPRECATED decodeASCII "Use decodeUtf8 instead" #-}
 
 -- | Decode a 'ByteString' containing Latin-1 (aka ISO-8859-1) encoded text.
 --

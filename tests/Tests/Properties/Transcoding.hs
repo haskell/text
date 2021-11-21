@@ -1,19 +1,14 @@
 -- | Tests for encoding and decoding
 
 {-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
-{-# OPTIONS_GHC -fno-warn-missing-signatures -fno-warn-unused-imports -fno-warn-deprecations #-}
+{-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Tests.Properties.Transcoding
     ( testTranscoding
     ) where
 
-import Control.Applicative ((<$>), (<*>))
 import Data.Bits ((.&.), shiftR)
 import Data.Char (chr, ord)
-import Data.Text.Encoding (encodeUtf8Builder, encodeUtf8BuilderEscaped)
-import Data.Text.Encoding.Error (UnicodeException)
-import Data.Text.Internal.Encoding.Utf8 (ord2, ord3, ord4)
 import Test.QuickCheck hiding ((.&.))
-import Test.QuickCheck.Property (Property(..))
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.QuickCheck (testProperty)
 import Tests.QuickCheckUtils
