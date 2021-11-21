@@ -62,10 +62,7 @@ import Data.Text.Internal.Fusion.Types
 import Data.Text.Internal.Fusion.Size
 import qualified Data.Text.Internal as I
 import qualified Data.Text.Internal.Encoding.Utf8 as U8
-
-#if defined(ASSERTS)
 import GHC.Stack (HasCallStack)
-#endif
 
 default(Int)
 
@@ -248,7 +245,7 @@ unfoldrN n = S.unfoldrNI n
 -- __Properties__
 --
 -- @'index' ('stream' t) n  = 'Data.Text.index' t n @
-index :: Stream Char -> Int -> Char
+index :: HasCallStack => Stream Char -> Int -> Char
 index = S.indexI
 {-# INLINE [0] index #-}
 

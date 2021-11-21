@@ -233,13 +233,10 @@ import Data.Text.Internal.Lazy.Search (indices)
 import qualified GHC.CString as GHC
 import qualified GHC.Exts as Exts
 import GHC.Prim (Addr#)
+import GHC.Stack (HasCallStack)
 import qualified Language.Haskell.TH.Lib as TH
 import qualified Language.Haskell.TH.Syntax as TH
 import Text.Printf (PrintfArg, formatArg, formatString)
-
-#if defined(ASSERTS)
-import GHC.Stack (HasCallStack)
-#endif
 
 -- $fusion
 --
@@ -467,21 +464,21 @@ uncons (Chunk t ts) = Just (T.unsafeHead t, ts')
 {-# INLINE uncons #-}
 
 -- | /O(1)/ Returns the first character of a 'Text', which must be
--- non-empty.
-head :: Text -> Char
+-- non-empty. This is a partial function, consider using 'uncons' instead.
+head :: HasCallStack => Text -> Char
 head t = S.head (stream t)
 {-# INLINE head #-}
 
 -- | /O(1)/ Returns all characters after the head of a 'Text', which
--- must be non-empty.
-tail :: Text -> Text
+-- must be non-empty. This is a partial function, consider using 'uncons' instead.
+tail :: HasCallStack => Text -> Text
 tail (Chunk t ts) = chunk (T.tail t) ts
 tail Empty        = emptyError "tail"
 {-# INLINE [1] tail #-}
 
 -- | /O(n\/c)/ Returns all but the last character of a 'Text', which must
--- be non-empty.
-init :: Text -> Text
+-- be non-empty. This is a partial function, consider using 'unsnoc' instead.
+init :: HasCallStack => Text -> Text
 init (Chunk t0 ts0) = go t0 ts0
     where go t (Chunk t' ts) = Chunk t (go t' ts)
           go t Empty         = chunk (T.init t) Empty
@@ -511,8 +508,8 @@ isSingleton = S.isSingleton . stream
 {-# INLINE isSingleton #-}
 
 -- | /O(n\/c)/ Returns the last character of a 'Text', which must be
--- non-empty.
-last :: Text -> Char
+-- non-empty. This is a partial function, consider using 'unsnoc' instead.
+last :: HasCallStack => Text -> Char
 last Empty        = emptyError "last"
 last (Chunk t ts) = go t ts
     where go _ (Chunk t' ts') = go t' ts'
@@ -670,7 +667,8 @@ reverse = rev Empty
 --
 -- In (unlikely) bad cases, this function's time complexity degrades
 -- towards /O(n*m)/.
-replace :: Text
+replace :: HasCallStack
+        => Text
         -- ^ @needle@ to search for.  If this string is empty, an
         -- error will occur.
         -> Text
@@ -773,12 +771,12 @@ foldl' f z t = S.foldl' f z (stream t)
 
 -- | /O(n)/ A variant of 'foldl' that has no starting value argument,
 -- and thus must be applied to a non-empty 'Text'.
-foldl1 :: (Char -> Char -> Char) -> Text -> Char
+foldl1 :: HasCallStack => (Char -> Char -> Char) -> Text -> Char
 foldl1 f t = S.foldl1 f (stream t)
 {-# INLINE foldl1 #-}
 
 -- | /O(n)/ A strict version of 'foldl1'.
-foldl1' :: (Char -> Char -> Char) -> Text -> Char
+foldl1' :: HasCallStack => (Char -> Char -> Char) -> Text -> Char
 foldl1' f t = S.foldl1' f (stream t)
 {-# INLINE foldl1' #-}
 
@@ -791,7 +789,7 @@ foldr f z t = S.foldr f z (stream t)
 
 -- | /O(n)/ A variant of 'foldr' that has no starting value argument,
 -- and thus must be applied to a non-empty 'Text'.
-foldr1 :: (Char -> Char -> Char) -> Text -> Char
+foldr1 :: HasCallStack => (Char -> Char -> Char) -> Text -> Char
 foldr1 f t = S.foldr1 f (stream t)
 {-# INLINE foldr1 #-}
 
@@ -823,13 +821,13 @@ all p t = S.all p (stream t)
 
 -- | /O(n)/ 'maximum' returns the maximum value from a 'Text', which
 -- must be non-empty.
-maximum :: Text -> Char
+maximum :: HasCallStack => Text -> Char
 maximum t = S.maximum (stream t)
 {-# INLINE maximum #-}
 
 -- | /O(n)/ 'minimum' returns the minimum value from a 'Text', which
 -- must be non-empty.
-minimum :: Text -> Char
+minimum :: HasCallStack => Text -> Char
 minimum t = S.minimum (stream t)
 {-# INLINE minimum #-}
 
@@ -935,7 +933,7 @@ replicateChunk !n !t@(T.Text _ _ len)
 -- equivalently, the infinite repetition of the original 'Text'.
 --
 -- @since 1.2.0.5
-cycle :: Text -> Text
+cycle :: HasCallStack => Text -> Text
 cycle Empty = emptyError "cycle"
 cycle t     = let t' = foldrChunks Chunk t' t
                in t'
@@ -1214,7 +1212,7 @@ splitAtWord x (Chunk c@(T.Text arr off len) cs)
 --
 -- In (unlikely) bad cases, this function's time complexity degrades
 -- towards /O(n*m)/.
-breakOn :: Text -> Text -> (Text, Text)
+breakOn :: HasCallStack => Text -> Text -> (Text, Text)
 breakOn pat src
     | null pat  = emptyError "breakOn"
     | otherwise = case indices pat src of
@@ -1229,7 +1227,7 @@ breakOn pat src
 -- remainder of @haystack@, following the match.
 --
 -- > breakOnEnd "::" "a::b::c" ==> ("a::b::", "c")
-breakOnEnd :: Text -> Text -> (Text, Text)
+breakOnEnd :: HasCallStack => Text -> Text -> (Text, Text)
 breakOnEnd pat src = let (a,b) = breakOn (reverse pat) (reverse src)
                    in  (reverse b, reverse a)
 {-# INLINE breakOnEnd #-}
@@ -1255,7 +1253,8 @@ breakOnEnd pat src = let (a,b) = breakOn (reverse pat) (reverse src)
 -- towards /O(n*m)/.
 --
 -- The @needle@ parameter may not be empty.
-breakOnAll :: Text              -- ^ @needle@ to search for
+breakOnAll :: HasCallStack
+           => Text              -- ^ @needle@ to search for
            -> Text              -- ^ @haystack@ in which to search
            -> [(Text, Text)]
 breakOnAll pat src
@@ -1360,7 +1359,8 @@ tails ts@(Chunk t ts')
 --
 -- In (unlikely) bad cases, this function's time complexity degrades
 -- towards /O(n*m)/.
-splitOn :: Text
+splitOn :: HasCallStack
+        => Text
         -- ^ String to split on. If this string is empty, an error
         -- will occur.
         -> Text
@@ -1426,7 +1426,7 @@ lines t = NE.toList $ go t
       -- x is non-empty, so T.lines x is non-empty as well
       | hasNlEnd x = NE.fromList $ P.map fromStrict (T.lines x) ++ lines xs
       | otherwise = case unsnocList (T.lines x) of
-      Nothing -> error "lines: unexpected empty chunk"
+      Nothing -> impossibleError "lines"
       Just (ls, l) -> P.foldr (NE.cons . fromStrict) (prependToHead l (go xs)) ls
 
 prependToHead :: T.Text -> NonEmpty Text -> NonEmpty Text
@@ -1608,7 +1608,7 @@ partition p t = (filter p t, filter (not . p) t)
 {-# INLINE partition #-}
 
 -- | /O(n)/ 'Text' index (subscript) operator, starting from 0.
-index :: Text -> Int64 -> Char
+index :: HasCallStack => Text -> Int64 -> Char
 index t n = S.index (stream t) n
 {-# INLINE index #-}
 
@@ -1618,7 +1618,7 @@ index t n = S.index (stream t) n
 --
 -- In (unlikely) bad cases, this function's time complexity degrades
 -- towards /O(n*m)/.
-count :: Text -> Text -> Int64
+count :: HasCallStack => Text -> Text -> Int64
 count pat
     | null pat        = emptyError "count"
     | otherwise       = go 0  . indices pat
@@ -1655,10 +1655,10 @@ zipWith f t1 t2 = unstream (S.zipWith g (stream t1) (stream t2))
 revChunks :: [T.Text] -> Text
 revChunks = L.foldl' (flip chunk) Empty
 
-emptyError :: String -> a
+emptyError :: HasCallStack => String -> a
 emptyError fun = P.error ("Data.Text.Lazy." ++ fun ++ ": empty input")
 
-impossibleError :: String -> a
+impossibleError :: HasCallStack => String -> a
 impossibleError fun = P.error ("Data.Text.Lazy." ++ fun ++ ": impossible case")
 
 intToInt64 :: Exts.Int -> Int64
