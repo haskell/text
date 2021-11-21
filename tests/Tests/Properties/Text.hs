@@ -235,6 +235,27 @@ t_indices_occurs = \(Sqrt (NotEmpty t)) ts ->
     let s = T.intercalate t ts
     in Slow.indices t s === T.indices t s
 
+t_indices_drop5 = T.indices (T.pack "no") (T.drop 5 (T.pack "abcdefghijklmno")) === [8]
+tl_indices_drop5 = S.indices (TL.pack "no") (TL.drop 5 (TL.pack "abcdefghijklmno")) === [8]
+tl_indices_chunked = S.indices (TL.pack "1234") (TL.pack "1" `TL.append` TL.pack "234" `TL.append` TL.pack "567") === [0]
+
+t_indices_drop n s pref suff = T.indices s t === Slow.indices s t
+  where
+    t = T.drop n $ pref `T.append` s `T.append` suff
+tl_indices_drop n s pref suff =
+  map fromIntegral (S.indices s t) === Slow.indices (TL.toStrict s) (TL.toStrict t)
+  where
+    t = TL.drop n $ pref `TL.append` s `TL.append` suff
+
+t_indices_char_drop n c pref suff = T.indices s t === Slow.indices s t
+  where
+    s = T.singleton c
+    t = T.drop n $ pref `T.append` s `T.append` suff
+tl_indices_char_drop n c pref suff = map fromIntegral (S.indices s t) === Slow.indices (TL.toStrict s) (TL.toStrict t)
+  where
+    s = TL.singleton c
+    t = TL.drop n $ pref `TL.append` s `TL.append` suff
+
 -- Make a stream appear shorter than it really is, to ensure that
 -- functions that consume inaccurately sized streams behave
 -- themselves.
@@ -350,7 +371,15 @@ testText =
       testProperty "tl_count" tl_count,
       testProperty "t_indices" t_indices,
       testProperty "tl_indices" tl_indices,
-      testProperty "t_indices_occurs" t_indices_occurs
+      testProperty "t_indices_occurs" t_indices_occurs,
+
+      testProperty "t_indices_drop5" t_indices_drop5,
+      testProperty "tl_indices_drop5" tl_indices_drop5,
+      testProperty "t_indices_drop" t_indices_drop,
+      testProperty "tl_indices_drop" tl_indices_drop,
+      testProperty "tl_indices_chunked" tl_indices_chunked,
+      testProperty "t_indices_char_drop" t_indices_char_drop,
+      testProperty "tl_indices_char_drop" tl_indices_char_drop
     ],
 
     testGroup "zips" [
