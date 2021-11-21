@@ -54,14 +54,19 @@ data T = {-# UNPACK #-} !Word64 :* {-# UNPACK #-} !Int
 indices :: Text                -- ^ Substring to search for (@needle@)
         -> Text                -- ^ Text to search in (@haystack@)
         -> [Int]
-indices (Text narr noff nlen)
+indices needle@(Text narr noff nlen)
   | nlen == 1 = scanOne (A.unsafeIndex narr noff)
   | nlen <= 0 = const []
-  | otherwise = scan
+  | otherwise = indices' needle
+{-# INLINE indices #-}
+
+-- | nlen must be >= 2, otherwise nindex causes access violation
+indices' :: Text -> Text -> [Int]
+indices' (Text narr noff nlen) (Text harr@(A.ByteArray harr#) hoff hlen) = loop (hoff + nlen)
   where
     nlast    = nlen - 1
     !z       = nindex nlast
-    nindex k = A.unsafeIndex narr (noff+k)
+    nindex k = if k < 0 then 0 else A.unsafeIndex narr (noff+k)
     buildTable !i !msk !skp
         | i >= nlast           = (msk .|. swizzle z) :* skp
         | otherwise            = buildTable (i+1) (msk .|. swizzle c) skp'
@@ -73,23 +78,22 @@ indices (Text narr noff nlen)
     swizzle :: Word8 -> Word64
     swizzle !k = 1 `unsafeShiftL` (word8ToInt k .&. 0x3f)
 
-    scan (Text harr@(A.ByteArray harr#) hoff hlen) = loop (hoff + nlen) where
-      loop !i
-        | i > hlen + hoff
-        = []
-        | A.unsafeIndex harr (i - 1) == z
-        = if A.equal narr noff harr (i - nlen) nlen
-          then i - nlen - hoff : loop (i + nlen)
-          else                   loop (i + skip + 1)
-        | i == hlen + hoff
-        = []
-        | mask .&. swizzle (A.unsafeIndex harr i) == 0
-        = loop (i + nlen + 1)
-        | otherwise
-        = case unsafeDupablePerformIO $ memchr harr# (intToCSize i) (intToCSize (hlen + hoff - i)) z of
-          -1 -> []
-          x  -> loop (i + cSsizeToInt x + 1)
-{-# INLINE indices #-}
+    loop !i
+      | i > hlen + hoff
+      = []
+      | A.unsafeIndex harr (i - 1) == z
+      = if A.equal narr noff harr (i - nlen) nlen
+        then i - nlen - hoff : loop (i + nlen)
+        else                   loop (i + skip + 1)
+      | i == hlen + hoff
+      = []
+      | mask .&. swizzle (A.unsafeIndex harr i) == 0
+      = loop (i + nlen + 1)
+      | otherwise
+      = case unsafeDupablePerformIO $ memchr harr# (intToCSize i) (intToCSize (hlen + hoff - i)) z of
+        -1 -> []
+        x  -> loop (i + cSsizeToInt x + 1)
+{-# INLINE indices' #-}
 
 scanOne :: Word8 -> Text -> [Int]
 scanOne c (Text harr hoff hlen) = loop 0
