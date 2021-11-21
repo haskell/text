@@ -45,9 +45,7 @@ import System.Posix.Types (CSsize(..))
 data T = {-# UNPACK #-} !Word64 :* {-# UNPACK #-} !Int
 
 -- | /O(n+m)/ Find the offsets of all non-overlapping indices of
--- @needle@ within @haystack@.  The offsets returned represent
--- uncorrected indices in the low-level \"needle\" array, to which its
--- offset must be added.
+-- @needle@ within @haystack@.
 --
 -- In (unlikely) bad cases, this algorithm's complexity degrades
 -- towards /O(n*m)/.
@@ -66,7 +64,7 @@ indices' (Text narr noff nlen) (Text harr@(A.ByteArray harr#) hoff hlen) = loop 
   where
     nlast    = nlen - 1
     !z       = nindex nlast
-    nindex k = if k < 0 then 0 else A.unsafeIndex narr (noff+k)
+    nindex k = A.unsafeIndex narr (noff+k)
     buildTable !i !msk !skp
         | i >= nlast           = (msk .|. swizzle z) :* skp
         | otherwise            = buildTable (i+1) (msk .|. swizzle c) skp'
