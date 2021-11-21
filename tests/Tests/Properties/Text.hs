@@ -237,7 +237,6 @@ t_indices_occurs = \(Sqrt (NotEmpty t)) ts ->
 
 t_indices_drop5 = T.indices (T.pack "no") (T.drop 5 (T.pack "abcdefghijklmno")) === [8]
 tl_indices_drop5 = S.indices (TL.pack "no") (TL.drop 5 (TL.pack "abcdefghijklmno")) === [8]
-tl_indices_chunked = S.indices (TL.pack "1234") (TL.pack "1" `TL.append` TL.pack "234" `TL.append` TL.pack "567") === [0]
 
 t_indices_drop n s pref suff = T.indices s t === Slow.indices s t
   where
@@ -246,6 +245,13 @@ tl_indices_drop n s pref suff =
   map fromIntegral (S.indices s t) === Slow.indices (TL.toStrict s) (TL.toStrict t)
   where
     t = TL.drop n $ pref `TL.append` s `TL.append` suff
+
+tl_indices_chunked = S.indices (TL.pack "1234") (TL.pack "1" `TL.append` TL.pack "234" `TL.append` TL.pack "567") === [0]
+tl_indices_drop_chunked n s pref suff =
+  map fromIntegral (S.indices s t) === Slow.indices (TL.toStrict s) (TL.toStrict t)
+  where
+    -- constructing a pathologically chunked haystack
+    t = TL.concatMap TL.singleton $ TL.drop n $ pref `TL.append` s `TL.append` suff
 
 t_indices_char_drop n c pref suff = T.indices s t === Slow.indices s t
   where
@@ -378,6 +384,7 @@ testText =
       testProperty "t_indices_drop" t_indices_drop,
       testProperty "tl_indices_drop" tl_indices_drop,
       testProperty "tl_indices_chunked" tl_indices_chunked,
+      testProperty "tl_indices_drop_chunked" tl_indices_drop_chunked,
       testProperty "t_indices_char_drop" t_indices_char_drop,
       testProperty "tl_indices_char_drop" tl_indices_char_drop
     ],
