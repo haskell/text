@@ -29,9 +29,9 @@ import qualified Data.Text.Array as A
 import Data.Int (Int64)
 import Data.Word (Word8, Word64)
 import qualified Data.Text.Internal as T
-import qualified Data.Text as T (concat)
+import qualified Data.Text as T (concat, isPrefixOf)
 import Data.Text.Internal.Fusion.Types (PairS(..))
-import Data.Text.Internal.Lazy (Text(..), foldrChunks, equal)
+import Data.Text.Internal.Lazy (Text(..), foldrChunks)
 import Data.Text.Unsafe (unsafeDupablePerformIO)
 import Data.Bits ((.|.), (.&.))
 import Foreign.C.Types
@@ -76,7 +76,7 @@ indices needle
          candidateMatch
           | i + nlen <= l = A.equal narr noff xarr (xoff + i) nlen
           | otherwise     = A.equal narr noff xarr (xoff + i) (l - i) &&
-            Chunk (T.Text narr (noff + l - i) (nlen - l + i)) Empty `equal` xs
+            T.Text narr (noff + l - i) (nlen - l + i) `isPrefixOf` xs
 
     nlast     = nlen - 1
     z         = A.unsafeIndex narr (noff + nlen - 1)
@@ -121,6 +121,13 @@ indicesOne c = chunk
              | on == c = i + intToInt64 h : go (h+1)
              | otherwise = go (h+1)
              where on = A.unsafeIndex oarr (ooff+h)
+
+-- | First argument is a strict Text, and second is a lazy one.
+isPrefixOf :: T.Text -> Text -> Bool
+isPrefixOf (T.Text _ _ xlen) Empty = xlen == 0
+isPrefixOf x@(T.Text xarr xoff xlen) (Chunk y@(T.Text _ _ ylen) ys)
+  | xlen <= ylen = x `T.isPrefixOf` y
+  | otherwise = y `T.isPrefixOf` x && T.Text xarr (xoff + ylen) (xlen - ylen) `isPrefixOf` ys
 
 intToInt64 :: Int -> Int64
 intToInt64 = fromIntegral
