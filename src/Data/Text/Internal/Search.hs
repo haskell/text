@@ -79,8 +79,8 @@ indices (Text narr noff nlen)
         = []
         | A.unsafeIndex harr (i - 1) == z
         = if A.equal narr noff harr (i - nlen) nlen
-          then i - nlen : loop (i + nlen)
-          else            loop (i + skip + 1)
+          then i - nlen - hoff : loop (i + nlen)
+          else                   loop (i + skip + 1)
         | i == hlen + hoff
         = []
         | mask .&. swizzle (A.unsafeIndex harr i) == 0
