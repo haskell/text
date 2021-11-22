@@ -199,6 +199,11 @@ t_decode_with_error3' =
 t_decode_with_error4' =
   case E.streamDecodeUtf8With (\_ _ -> Just 'x') (B.pack [0xC2, 97, 97, 97]) of
     E.Some x _ _ -> x === "xaaa"
+t_decode_with_error5' = ioProperty $ do
+  ret <- Exception.try $ Exception.evaluate $ E.streamDecodeUtf8 (B.pack [0x81])
+  pure $ case ret of
+    Left (_ :: UnicodeException) -> True
+    Right{} -> False
 
 t_infix_concat bs1 text bs2 =
   forAll (Blind <$> genDecodeErr Replace) $ \(Blind onErr) ->
@@ -245,6 +250,7 @@ testTranscoding =
       testProperty "t_decode_with_error2'" t_decode_with_error2',
       testProperty "t_decode_with_error3'" t_decode_with_error3',
       testProperty "t_decode_with_error4'" t_decode_with_error4',
+      testProperty "t_decode_with_error5'" t_decode_with_error5',
       testProperty "t_infix_concat" t_infix_concat
     ]
   ]
