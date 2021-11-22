@@ -328,7 +328,7 @@ decodeUtf8With2 onErr bs1@(B.length -> len1) bs2@(B.length -> len2) = runST $ do
 -- | A stream oriented decoding result.
 --
 -- @since 1.0.0.0
-data Decoding = Some Text ByteString (ByteString -> Decoding)
+data Decoding = Some !Text !ByteString (ByteString -> Decoding)
 
 instance Show Decoding where
     showsPrec d (Some t bs _) = showParen (d > prec) $
