@@ -114,6 +114,10 @@ import GHC.Stack (HasCallStack)
 
 -- | Decode a 'ByteString' containing 7-bit ASCII
 -- encoded text.
+--
+-- This is a partial function: it checks that input does not contain
+-- anything except ASCII and copies buffer or throws an error otherwise.
+--
 decodeASCII :: ByteString -> Text
 decodeASCII bs = withBS bs $ \fp len -> if len == 0 then empty else runST $ do
   asciiPrefixLen <- fmap cSizeToInt $ unsafeIOToST $ unsafeWithForeignPtr fp $ \src ->
@@ -127,6 +131,10 @@ decodeASCII bs = withBS bs $ \fp len -> if len == 0 then empty else runST $ do
 --
 -- 'decodeLatin1' is semantically equivalent to
 --  @Data.Text.pack . Data.ByteString.Char8.unpack@
+--
+-- This is a total function. However, bear in mind that decoding Latin-1 (non-ASCII)
+-- characters to UTf-8 requires actual work and is not just buffer copying.
+--
 decodeLatin1 ::
 #if defined(ASSERTS)
   HasCallStack =>
@@ -374,6 +382,10 @@ streamDecodeUtf8With onErr = go mempty
 -- thrown that cannot be caught in pure code.  For more control over
 -- the handling of invalid data, use 'decodeUtf8'' or
 -- 'decodeUtf8With'.
+--
+-- This is a partial function: it checks that input is a well-formed
+-- UTF-8 sequence and copies buffer or throws an error otherwise.
+--
 decodeUtf8 :: ByteString -> Text
 decodeUtf8 = decodeUtf8With strictDecode
 {-# INLINE[0] decodeUtf8 #-}
