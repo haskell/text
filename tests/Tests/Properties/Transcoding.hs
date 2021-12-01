@@ -202,7 +202,7 @@ t_decode_with_error4' =
 t_decode_with_error5' = ioProperty $ do
   ret <- Exception.try $ Exception.evaluate $ E.streamDecodeUtf8 (B.pack [0x81])
   pure $ case ret of
-    Left (_ :: UnicodeException) -> True
+    Left (_ :: E.UnicodeException) -> True
     Right{} -> False
 
 t_infix_concat bs1 text bs2 =
