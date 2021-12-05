@@ -90,7 +90,7 @@ import qualified Data.ByteString.Builder as B
 import qualified Data.ByteString.Builder.Internal as B hiding (empty, append)
 import qualified Data.ByteString.Builder.Prim as BP
 import qualified Data.ByteString.Builder.Prim.Internal as BP
-import Data.Text.Internal.Encoding.Utf8 (utf8LengthByLeader, utf8DecodeStart, utf8DecodeContinue, DecoderResult(..))
+import Data.Text.Internal.Encoding.Utf8 (utf8DecodeStart, utf8DecodeContinue, DecoderResult(..))
 import qualified Data.Text.Array as A
 import qualified Data.Text.Internal.Encoding.Fusion as E
 import qualified Data.Text.Internal.Fusion as F
@@ -474,33 +474,18 @@ encodeUtf8BuilderEscaped be =
           -- is smaller than 8, as this will save on divisions.
           | otherwise        = return $ B.bufferFull bound op0 (outerLoop i0)
           where
-            outRemaining = (ope `minusPtr` op0) `div` bound
+            outRemaining = (ope `minusPtr` op0) `quot` bound
             inpRemaining = iend - i0
 
             goPartial !iendTmp = go i0 op0
               where
                 go !i !op
-                  | i < iendTmp = case utf8LengthByLeader w of
-                    1 -> do
-                      BP.runB be w op >>= go (i + 1)
-                    2 -> do
-                      poke (op `plusPtr` 0) w
-                      poke (op `plusPtr` 1) (A.unsafeIndex arr (i+1))
-                      go (i + 2) (op `plusPtr` 2)
-                    3 -> do
-                      poke (op `plusPtr` 0) w
-                      poke (op `plusPtr` 1) (A.unsafeIndex arr (i+1))
-                      poke (op `plusPtr` 2) (A.unsafeIndex arr (i+2))
-                      go (i + 3) (op `plusPtr` 3)
-                    _ -> do
-                      poke (op `plusPtr` 0) w
-                      poke (op `plusPtr` 1) (A.unsafeIndex arr (i+1))
-                      poke (op `plusPtr` 2) (A.unsafeIndex arr (i+2))
-                      poke (op `plusPtr` 3) (A.unsafeIndex arr (i+3))
-                      go (i + 4) (op `plusPtr` 4)
+                  | i < iendTmp = do
+                    let w = A.unsafeIndex arr i
+                    if w < 0x80
+                      then BP.runB be w op >>= go (i + 1)
+                      else poke op w >> go (i + 1) (op `plusPtr` 1)
                   | otherwise = outerLoop i (B.BufferRange op ope)
-                  where
-                    w = A.unsafeIndex arr i
 
 -- | Encode text using UTF-8 encoding.
 encodeUtf8 :: Text -> ByteString
