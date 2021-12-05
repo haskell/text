@@ -35,6 +35,8 @@ module Data.Text.Internal.Encoding.Utf8
     , validate4
     -- * Naive decoding
     , DecoderResult(..)
+    , DecoderState(..)
+    , CodePoint(..)
     , utf8DecodeStart
     , utf8DecodeContinue
     ) where
@@ -269,18 +271,18 @@ data DecoderResult
 
 -- | @since 2.0
 utf8DecodeStart :: Word8 -> DecoderResult
-utf8DecodeStart w
+utf8DecodeStart !w
   | st == utf8AcceptState = Accept (chr (word8ToInt w))
   | st == utf8RejectState = Reject
   | otherwise             = Incomplete st (CodePoint cp)
   where
     cl@(ByteClass cl') = byteToClass w
     st = updateState cl utf8AcceptState
-    cp = word8ToInt $ (0xff `shiftR` word8ToInt cl') .&. w
+    cp = word8ToInt $ (0xff `unsafeShiftR` word8ToInt cl') .&. w
 
 -- | @since 2.0
 utf8DecodeContinue :: Word8 -> DecoderState -> CodePoint -> DecoderResult
-utf8DecodeContinue w st (CodePoint cp)
+utf8DecodeContinue !w !st (CodePoint !cp)
   | st' == utf8AcceptState = Accept (chr cp')
   | st' == utf8RejectState = Reject
   | otherwise              = Incomplete st' (CodePoint cp')
