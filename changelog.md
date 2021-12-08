@@ -24,6 +24,8 @@
 * [Remove `Data.Text.Internal.Unsafe.Shift`](https://github.com/haskell/text/pull/343)
 * [Remove `Data.Text.Internal.Functions`](https://github.com/haskell/text/pull/354)
 * [Bring type of `Data.Text.Unsafe.reverseIter` in line with `iter`](https://github.com/haskell/text/pull/355)
+* [Add `instance Bounded FPFormat`](https://github.com/haskell/text/pull/355)
+* [Add HasCallStack to partial functions](https://github.com/haskell/text/pull/388)
 
 ### 1.2.5.0
 
