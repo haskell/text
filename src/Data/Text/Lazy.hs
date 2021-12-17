@@ -1472,7 +1472,6 @@ isPrefixOf (Chunk x xs) (Chunk y ys)
         (yh,yt) = T.splitAt lx y
         lx = T.length x
         ly = T.length y
-{-# INLINE [1] isPrefixOf #-}
 
 -- | /O(n)/ The 'isSuffixOf' function takes two 'Text's and returns
 -- 'True' iff the first is a suffix of the second.
