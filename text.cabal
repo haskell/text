@@ -95,11 +95,12 @@ library
         extra-libraries: stdc++-6 gcc_s_seh-1
       else
         extra-libraries: stdc++-6 gcc_s_dw2-1
+    elif os(darwin) || os(freebsd)
+      extra-libraries: c++
+    elif os(openbsd)
+      extra-libraries: c++ c++abi
     else
-      if os(darwin)
-        extra-libraries: c++
-      else
-        extra-libraries: stdc++
+      extra-libraries: stdc++
 
   exposed-modules:
     Data.Text
