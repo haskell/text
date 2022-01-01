@@ -13,7 +13,7 @@ jobs:
     strategy:
       matrix:
         os: ['windows-latest', 'macOS-latest']
-        ghc: ['8.10.5']
+        ghc: ['latest']
       fail-fast: false
     steps:
     - uses: actions/checkout@v2
