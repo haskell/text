@@ -18,7 +18,7 @@
 #endif
 
 bool has_avx512_vl_bw() {
-#ifdef __x86_64__
+#if defined(__x86_64__) && (__GNUC__ >= 6 || defined(__clang_major__))
   uint32_t eax = 0, ebx = 0, ecx = 0, edx = 0;
   __get_cpuid_count(7, 0, &eax, &ebx, &ecx, &edx);
   // https://en.wikipedia.org/wiki/CPUID#EAX=7,_ECX=0:_Extended_Features
