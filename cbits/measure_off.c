@@ -24,21 +24,18 @@
 
   Apple LLVM version 10.0.0 (clang-1000.11.45.5) is based on clang-6
   https://en.wikipedia.org/wiki/Xcode#Toolchain_versions
-  and it's latest available version on macOS 10.13.
+  and it's the latest available version on macOS 10.13.
 
   Disable AVX-512 instructions as they are most likely not supported
   on the hardware running clang-6.
 */
-#if (defined(__apple_build_version__) && __apple_build_version__ <= 10001145) \
-    || (defined(__clang_major__) && __clang_major__ <= 6)
-#define NO_AVX512
+#if !((defined(__apple_build_version__) && __apple_build_version__ <= 10001145) \
+      || (defined(__clang_major__) && __clang_major__ <= 6))
+#define COMPILER_SUPPORTS_AVX512
 #endif
 
-#if defined(__x86_64__) && !defined(NO_AVX512)
-#define USE_AVX512
-#endif
 
-#ifdef USE_AVX512
+#if defined(__x86_64__) && defined(COMPILER_SUPPORTS_AVX512)
 bool has_avx512_vl_bw() {
   uint32_t eax = 0, ebx = 0, ecx = 0, edx = 0;
   __get_cpuid_count(7, 0, &eax, &ebx, &ecx, &edx);
@@ -87,7 +84,7 @@ static inline const ssize_t measure_off_naive(const uint8_t *src, const uint8_t 
   return cnt == 0 ? (ssize_t)(srcend - src) : (ssize_t)(- cnt);
 }
 
-#ifdef USE_AVX512
+#if defined(__x86_64__) && defined(COMPILER_SUPPORTS_AVX512)
 __attribute__((target("avx512vl,avx512bw")))
 static const ssize_t measure_off_avx(const uint8_t *src, const uint8_t *srcend, size_t cnt)
 {
@@ -165,7 +162,7 @@ ssize_t _hs_text_measure_off(const uint8_t *src, size_t off, size_t len, size_t 
   static _Atomic measure_off_t s_impl = (measure_off_t)NULL;
   measure_off_t impl = atomic_load_explicit(&s_impl, memory_order_relaxed);
   if (!impl) {
-#ifdef USE_AVX512
+#if defined(__x86_64__) && defined(COMPILER_SUPPORTS_AVX512)
     impl = has_avx512_vl_bw() ? measure_off_avx : measure_off_sse;
 #else
     impl = measure_off_sse;
