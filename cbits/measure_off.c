@@ -37,6 +37,7 @@
 
 #if defined(__x86_64__) && defined(COMPILER_SUPPORTS_AVX512)
 bool has_avx512_vl_bw() {
+#if __GNUC__ >= 6 || defined(__clang_major__)
   uint32_t eax = 0, ebx = 0, ecx = 0, edx = 0;
   __get_cpuid_count(7, 0, &eax, &ebx, &ecx, &edx);
   // https://en.wikipedia.org/wiki/CPUID#EAX=7,_ECX=0:_Extended_Features
@@ -44,6 +45,9 @@ bool has_avx512_vl_bw() {
   const bool has_avx512_vl = ebx & (1 << 31);
   // printf("cpuid=%d=cpuid\n", has_avx512_bw && has_avx512_vl);
   return has_avx512_bw && has_avx512_vl;
+#else
+  return false;
+#endif
 }
 #endif
 
