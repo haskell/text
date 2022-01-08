@@ -99,11 +99,11 @@ library
 
   -- Certain version of GHC crash on Windows, when TemplateHaskell encounters C++.
   -- https://gitlab.haskell.org/ghc/ghc/-/issues/19417
-  if flag(simdutf) && os(windows) && (impl(ghc == 8.0.1) || impl(ghc >= 8.8) && impl(ghc < 8.10.5) || impl(ghc == 9.0.1))
+  if flag(simdutf) && os(windows) && impl(ghc == 8.0.1 || >= 8.8 && < 8.10.5 || == 9.0.1)
     build-depends: base < 0
 
   -- For GHC 8.2, 8.6.3 and 8.10.1 even TH + C crash Windows linker.
-  if os(windows) && (impl(ghc >= 8.2) && impl(ghc < 8.4) || impl(ghc == 8.6.3) || impl(ghc == 8.10.1))
+  if os(windows) && impl(ghc >= 8.2 && < 8.4 || == 8.6.3 || == 8.10.1)
     build-depends: base < 0
 
   exposed-modules:
@@ -239,7 +239,7 @@ test-suite tests
   -- Starting from 9.2 ghc library depends on parsec,
   -- which causes circular dependency.
   -- Plugin infrastructure does not work properly in 8.0.1 and 8.6.1
-  if impl(ghc >= 8.0.2) && impl(ghc < 8.6) || impl(ghc >= 8.6.2) && impl(ghc < 9.2)
+  if impl(ghc >= 8.0.2 && < 8.6 || >= 8.6.2 && < 9.2)
     build-depends: tasty-inspection-testing
 
   default-language: Haskell2010
