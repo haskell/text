@@ -106,6 +106,14 @@ library
   if os(windows) && impl(ghc >= 8.2 && < 8.4 || == 8.6.3 || == 8.10.1)
     build-depends: base < 0
 
+  -- GHC 8.10 has linking issues (probably TH-related) on ARM.
+  if (arch(aarch64) || arch(arm)) && impl(ghc == 8.10.*)
+    build-depends: base < 0
+
+  -- Subword primitives in GHC 9.2.1 are broken on ARM platforms.
+  if (arch(aarch64) || arch(arm)) && impl(ghc == 9.2.1)
+    build-depends: base < 0
+
   exposed-modules:
     Data.Text
     Data.Text.Array
@@ -236,10 +244,9 @@ test-suite tests
     template-haskell,
     text
 
-  -- Starting from 9.2 ghc library depends on parsec,
-  -- which causes circular dependency.
-  -- Plugin infrastructure does not work properly in 8.0.1 and 8.6.1
-  if impl(ghc >= 8.0.2 && < 8.6 || >= 8.6.2 && < 9.2)
+  -- Plugin infrastructure does not work properly in 8.0.1 and 8.6.1, and
+  -- ghc-9.2.1 library depends on parsec, which causes a circular dependency.
+  if impl(ghc >= 8.0.2 && < 8.6 || >= 8.6.2 && < 9.2 || >= 9.2.2)
     build-depends: tasty-inspection-testing
 
   default-language: Haskell2010
