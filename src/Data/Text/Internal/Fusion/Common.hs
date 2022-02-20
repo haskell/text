@@ -834,7 +834,7 @@ minimum (Stream next0 s0 _len) = loop0_minimum s0
 -- __Properties__
 --
 -- @'head' ('scanl' f z xs) = z@
--- 
+--
 -- @'last' ('scanl' f z xs) = 'foldl' f z xs@
 scanl :: (Char -> Char -> Char) -> Char -> Stream Char -> Stream Char
 scanl f z0 (Stream next0 s0 len) = Stream next (Scan1 z0 s0) (len+1) -- HINT maybe too low
@@ -1008,7 +1008,7 @@ dropWhile p (Stream next0 s0 len) = Stream next (L s0) (len - unknownSize)
 {-# INLINE [0] dropWhile #-}
 
 -- | /O(n)/ The 'isPrefixOf' function takes two 'Stream's and returns
--- 'True' iff the first is a prefix of the second.
+-- 'True' if and only if the first is a prefix of the second.
 --
 -- __Properties__
 --
