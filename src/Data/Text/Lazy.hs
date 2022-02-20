@@ -1460,7 +1460,7 @@ unwords = intercalate (singleton ' ')
 {-# INLINE unwords #-}
 
 -- | /O(n)/ The 'isPrefixOf' function takes two 'Text's and returns
--- 'True' iff the first is a prefix of the second.
+-- 'True' if and only if the first is a prefix of the second.
 isPrefixOf :: Text -> Text -> Bool
 isPrefixOf Empty _  = True
 isPrefixOf _ Empty  = False
@@ -1474,14 +1474,14 @@ isPrefixOf (Chunk x xs) (Chunk y ys)
         ly = T.length y
 
 -- | /O(n)/ The 'isSuffixOf' function takes two 'Text's and returns
--- 'True' iff the first is a suffix of the second.
+-- 'True' if and only if the first is a suffix of the second.
 isSuffixOf :: Text -> Text -> Bool
 isSuffixOf x y = reverse x `isPrefixOf` reverse y
 {-# INLINE isSuffixOf #-}
 -- TODO: a better implementation
 
 -- | /O(n+m)/ The 'isInfixOf' function takes two 'Text's and returns
--- 'True' iff the first is contained, wholly and intact, anywhere
+-- 'True' if and only if the first is contained, wholly and intact, anywhere
 -- within the second.
 --
 -- This function is strict in its first argument, and lazy in its

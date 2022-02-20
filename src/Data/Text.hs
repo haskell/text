@@ -1042,7 +1042,7 @@ minimum t = S.minimum (stream t)
 -- __Properties__
 --
 -- @'head' ('scanl' f z xs) = z@
--- 
+--
 -- @'last' ('scanl' f z xs) = 'foldl' f z xs@
 scanl :: (Char -> Char -> Char) -> Char -> Text -> Text
 scanl f z t = unstream (S.scanl g z (stream t))
@@ -1848,14 +1848,14 @@ unwords = intercalate (singleton ' ')
 {-# INLINE unwords #-}
 
 -- | /O(n)/ The 'isPrefixOf' function takes two 'Text's and returns
--- 'True' iff the first is a prefix of the second.
+-- 'True' if and only if the first is a prefix of the second.
 isPrefixOf :: Text -> Text -> Bool
 isPrefixOf a@(Text _ _ alen) b@(Text _ _ blen) =
     alen <= blen && S.isPrefixOf (stream a) (stream b)
 {-# INLINE [1] isPrefixOf #-}
 
 -- | /O(n)/ The 'isSuffixOf' function takes two 'Text's and returns
--- 'True' iff the first is a suffix of the second.
+-- 'True' if and only if the first is a suffix of the second.
 isSuffixOf :: Text -> Text -> Bool
 isSuffixOf a@(Text _aarr _aoff alen) b@(Text barr boff blen) =
     d >= 0 && a == b'
@@ -1865,7 +1865,7 @@ isSuffixOf a@(Text _aarr _aoff alen) b@(Text barr boff blen) =
 {-# INLINE isSuffixOf #-}
 
 -- | /O(n+m)/ The 'isInfixOf' function takes two 'Text's and returns
--- 'True' iff the first is contained, wholly and intact, anywhere
+-- 'True' if and only if the first is contained, wholly and intact, anywhere
 -- within the second.
 --
 -- In (unlikely) bad cases, this function's time complexity degrades
