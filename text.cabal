@@ -102,8 +102,8 @@ library
   if flag(simdutf) && os(windows) && impl(ghc == 8.0.1 || >= 8.8 && < 8.10.5 || == 9.0.1)
     build-depends: base < 0
 
-  -- For GHC 8.6.3 and 8.10.1 even TH + C crash Windows linker.
-  if os(windows) && impl(ghc == 8.6.3 || == 8.10.1)
+  -- For GHC 8.2, 8.6.3 and 8.10.1 even TH + C crash Windows linker.
+  if os(windows) && impl(ghc >= 8.2 && < 8.4 || == 8.6.3 || == 8.10.1)
     build-depends: base < 0
 
   exposed-modules:
