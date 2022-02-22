@@ -93,7 +93,7 @@ library
     if os(darwin) || os(freebsd)
       extra-libraries: c++
     elif os(openbsd)
-      extra-libraries: c++ c++abi
+      extra-libraries: c++ c++abi pthread
     else
       extra-libraries: stdc++
 
