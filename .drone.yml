@@ -1,15 +1,25 @@
 kind: pipeline
-name: arm64
+name: arm64-ghc9.0
 platform: { os: linux, arch: arm64 }
 steps:
 - name: Test
-  image: buildpack-deps:focal
+  image: haskell:9.0
   commands:
-    - export LC_ALL=C.UTF-8
-    - apt-get update -y
-    - apt-get install -y ghc cabal-install
-    - cabal --version
-    - cabal new-update
+    - uname -a # check platform
+    - getconf LONG_BIT # check bitness
+    - cabal update
+    - cabal new-test
+---
+kind: pipeline
+name: arm64-ghc9.2
+platform: { os: linux, arch: arm64 }
+steps:
+- name: Test
+  image: haskell:9.2
+  commands:
+    - uname -a # check platform
+    - getconf LONG_BIT # check bitness
+    - cabal update
     - cabal new-test
 ---
 kind: pipeline
