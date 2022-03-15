@@ -238,6 +238,7 @@ import Data.Text.Show (singleton, unpack, unpackCString#, unpackCStringAscii#)
 import qualified Prelude as P
 import Data.Text.Unsafe (Iter(..), iter, iter_, lengthWord8, reverseIter,
                          reverseIter_, unsafeHead, unsafeTail, unsafeDupablePerformIO, iterArray, reverseIterArray)
+import Data.Text.Foreign (asForeignPtr)
 import Data.Text.Internal.Search (indices)
 #if defined(__HADDOCK__)
 import Data.ByteString (ByteString)
@@ -253,6 +254,7 @@ import qualified Language.Haskell.TH.Lib as TH
 import qualified Language.Haskell.TH.Syntax as TH
 import Text.Printf (PrintfArg, formatArg, formatString)
 import System.Posix.Types (CSsize(..))
+import System.IO.Unsafe (unsafePerformIO)
 
 -- $setup
 -- >>> import Data.Text
@@ -389,17 +391,30 @@ instance Data Text where
     _ -> P.error "gunfold"
   dataTypeOf _ = textDataType
 
--- | This instance has similar considerations to the 'Data' instance:
--- it preserves abstraction at the cost of inefficiency.
---
--- @since 1.2.4.0
+-- | @since 1.2.4.0
 instance TH.Lift Text where
+#if MIN_VERSION_template_haskell(2,16,0)
+  lift txt = do
+    let (ptr, len) = unsafePerformIO $ asForeignPtr txt 
+    let lenInt = P.fromIntegral len
+    TH.appE (TH.appE (TH.varE 'unpackCStringLen#) (TH.litE . TH.bytesPrimL $ TH.mkBytes ptr 0 lenInt)) (TH.lift lenInt)
+#else
   lift = TH.appE (TH.varE 'pack) . TH.stringE . unpack
+#endif
 #if MIN_VERSION_template_haskell(2,17,0)
   liftTyped = TH.unsafeCodeCoerce . TH.lift
 #elif MIN_VERSION_template_haskell(2,16,0)
   liftTyped = TH.unsafeTExpCoerce . TH.lift
 #endif
+
+unpackCStringLen# :: Exts.Addr# -> Int -> Text
+unpackCStringLen# addr# l = Text ba 0 l
+  where
+    ba = runST $ do
+      marr <- A.new l
+      A.copyFromPointer marr 0 (Exts.Ptr addr#) l
+      A.unsafeFreeze marr
+{-# NOINLINE unpackCStringLen# #-} -- set as NOINLINE to avoid generated code bloat
 
 -- | @since 1.2.2.0
 instance PrintfArg Text where

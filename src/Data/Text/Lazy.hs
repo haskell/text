@@ -346,12 +346,9 @@ instance Data Text where
     _ -> error "Data.Text.Lazy.Text.gunfold"
   dataTypeOf _   = textDataType
 
--- | This instance has similar considerations to the 'Data' instance:
--- it preserves abstraction at the cost of inefficiency.
---
--- @since 1.2.4.0
+-- | @since 1.2.4.0
 instance TH.Lift Text where
-  lift = TH.appE (TH.varE 'pack) . TH.stringE . unpack
+  lift = TH.appE (TH.varE 'fromStrict) . TH.lift . toStrict
 #if MIN_VERSION_template_haskell(2,17,0)
   liftTyped = TH.unsafeCodeCoerce . TH.lift
 #elif MIN_VERSION_template_haskell(2,16,0)
