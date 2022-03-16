@@ -330,7 +330,7 @@ mappendNChar c n = go 0
       | i < n     = TB.singleton c `mappend` go (i+1)
       | otherwise = mempty
 
--- | Gives more opportunity for inlining and elimination of unnecesary
+-- | Gives more opportunity for inlining and elimination of unnecessary
 -- bounds checks.
 --
 mappend8Char :: Char -> TB.Builder

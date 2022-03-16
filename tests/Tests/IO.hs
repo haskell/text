@@ -1,4 +1,4 @@
--- | Program which exposes some haskell functions as an exutable. The results
+-- | Program which exposes some haskell functions as an executable. The results
 -- and coverage of this module is meant to be checked using a shell script.
 --
 module Main

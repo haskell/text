@@ -1,8 +1,8 @@
--- | Search for a pattern in a file, find the number of occurences
+-- | Search for a pattern in a file, find the number of occurrences
 --
 -- Tested in this benchmark:
 --
--- * Searching all occurences of a pattern using library routines
+-- * Searching all occurrences of a pattern using library routines
 --
 module Benchmarks.Search
     ( initEnv
