@@ -175,6 +175,8 @@ library
   if flag(developer)
     ghc-options: -fno-ignore-asserts
     cpp-options: -DASSERTS
+    if impl(ghc >= 9.2.2)
+      ghc-options: -fcheck-prim-bounds
 
   -- https://gitlab.haskell.org/ghc/ghc/-/issues/19900
   if os(windows)
