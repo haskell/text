@@ -98,7 +98,7 @@ import GHC.Stack (HasCallStack)
 
 #ifdef SIMDUTF
 import Foreign.C.Types (CInt(..))
-#else
+#elif !MIN_VERSION_bytestring(0,11,2)
 import qualified Data.ByteString.Unsafe as B
 import Data.Text.Internal.Encoding.Utf8 (CodePoint(..))
 #endif
