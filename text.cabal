@@ -94,6 +94,8 @@ library
       extra-libraries: c++
     elif os(openbsd)
       extra-libraries: c++ c++abi pthread
+    elif os(windows) && impl(ghc > 9.3)
+      extra-libraries: c++ c++abi
     else
       extra-libraries: stdc++
 
@@ -177,7 +179,7 @@ library
     cpp-options: -DASSERTS
 
   -- https://gitlab.haskell.org/ghc/ghc/-/issues/19900
-  if os(windows)
+  if os(windows) && impl(ghc < 9.3)
     extra-libraries: gcc_s
 
   default-language: Haskell2010
