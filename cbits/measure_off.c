@@ -13,6 +13,11 @@
 #endif
 #include <stdbool.h>
 
+// stdatomic.h has been introduces in gcc 4.9
+#if !(__GNUC__ >= 5 || __GNUC__ == 4 && __GNUC_MINOR__ >= 9 || defined(__clang_major__))
+#define __STDC_NO_ATOMICS__
+#endif
+
 #ifndef __STDC_NO_ATOMICS__
 #include <stdatomic.h>
 #endif
@@ -30,7 +35,7 @@
   on the hardware running clang-6.
 */
 #if !((defined(__apple_build_version__) && __apple_build_version__ <= 10001145) \
-      || (defined(__clang_major__) && __clang_major__ <= 6))
+      || (defined(__clang_major__) && __clang_major__ <= 6)) && !defined(__STDC_NO_ATOMICS__)
 #define COMPILER_SUPPORTS_AVX512
 #endif
 
@@ -163,6 +168,7 @@ typedef const ssize_t (*measure_off_t) (const uint8_t*, const uint8_t*, size_t);
   this condition is not checked.
 */
 ssize_t _hs_text_measure_off(const uint8_t *src, size_t off, size_t len, size_t cnt) {
+#ifndef __STDC_NO_ATOMICS__
   static _Atomic measure_off_t s_impl = (measure_off_t)NULL;
   measure_off_t impl = atomic_load_explicit(&s_impl, memory_order_relaxed);
   if (!impl) {
@@ -173,6 +179,9 @@ ssize_t _hs_text_measure_off(const uint8_t *src, size_t off, size_t len, size_t 
 #endif
     atomic_store_explicit(&s_impl, impl, memory_order_relaxed);
   }
+#else
+  measure_off_t impl = measure_off_sse;
+#endif
   ssize_t ret = (*impl)(src + off, src + off + len, cnt);
   return ret >= 0 ? ((ssize_t)len - ret) : (- (cnt + ret));
 }
