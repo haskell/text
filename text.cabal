@@ -58,7 +58,7 @@ tested-with:
 extra-source-files:
     -- scripts/CaseFolding.txt
     -- scripts/SpecialCasing.txt
-    README.markdown
+    README.md
     changelog.md
     scripts/*.hs
     simdutf/LICENSE-APACHE
