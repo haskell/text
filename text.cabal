@@ -96,6 +96,10 @@ library
       extra-libraries: c++ c++abi pthread
     elif os(windows) && impl(ghc > 9.3)
       extra-libraries: c++ c++abi
+    elif arch(wasm32)
+      cpp-options: -DSIMDUTF_NO_THREADS
+      cxx-options: -fno-exceptions
+      extra-libraries: c++ c++abi
     else
       extra-libraries: stdc++
 
