@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, CPP, GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE CPP, GeneralizedNewtypeDeriving, MagicHash #-}
 -- |
 -- Module      : Data.Text.Foreign
 -- Copyright   : (c) 2009, 2010 Bryan O'Sullivan
@@ -17,6 +17,7 @@ module Data.Text.Foreign
       I8
     -- * Safe conversion functions
     , fromPtr
+    , fromPtr0
     , useAsPtr
     , asForeignPtr
     -- ** Encoding as UTF-8
@@ -36,12 +37,14 @@ import Data.ByteString.Unsafe (unsafePackCStringLen, unsafeUseAsCStringLen)
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import Data.Text.Internal (Text(..), empty)
 import Data.Text.Internal.Unsafe (unsafeWithForeignPtr)
+import Data.Text.Show (addrLen)
 import Data.Text.Unsafe (lengthWord8)
 import Data.Word (Word8)
 import Foreign.C.String (CStringLen)
 import Foreign.ForeignPtr (ForeignPtr, mallocForeignPtrArray)
 import Foreign.Marshal.Alloc (allocaBytes)
 import Foreign.Ptr (Ptr, castPtr)
+import GHC.Exts (Ptr(..))
 import qualified Data.Text.Array as A
 
 -- $interop
@@ -71,6 +74,12 @@ fromPtr ptr (I8 len) = unsafeSTToIO $ do
   A.copyFromPointer dst 0 ptr len
   arr <- A.unsafeFreeze dst
   return $! Text arr 0 len
+
+-- | /O(n)/ Create a new 'Text' from a 'Ptr' 'Word8' by copying the
+-- contents of the NUL-terminated array.
+fromPtr0 :: Ptr Word8           -- ^ source array
+         -> IO Text
+fromPtr0 ptr@(Ptr addr#) = fromPtr ptr (fromIntegral (addrLen addr#))
 
 -- $lowlevel
 --

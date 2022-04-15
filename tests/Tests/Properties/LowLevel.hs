@@ -66,6 +66,9 @@ t_dropWord8 m t = dropWord8 m t `T.isSuffixOf` t
 t_takeWord8 m t = takeWord8 m t `T.isPrefixOf` t
 t_take_drop_8 (Small n) t = T.append (takeWord8 n t) (dropWord8 n t) === t
 t_use_from t = ioProperty $ (==t) <$> useAsPtr t fromPtr
+t_use_from0 t = ioProperty $ do
+  let t' = t `T.snoc` '\0'
+  (== T.takeWhile (/= '\0') t') <$> useAsPtr t' (const . fromPtr0)
 
 t_copy t = T.copy t === t
 
@@ -118,6 +121,7 @@ testLowLevel =
       testProperty "t_takeWord8" t_takeWord8,
       testProperty "t_take_drop_8" t_take_drop_8,
       testProperty "t_use_from" t_use_from,
+      testProperty "t_use_from0" t_use_from0,
       testProperty "t_copy" t_copy,
       testCase "t_literal_length1" t_literal_length1,
       testCase "t_literal_length2" t_literal_length2,
