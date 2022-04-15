@@ -1,4 +1,4 @@
-/* auto-generated on 2021-07-29 10:43:28 -0400. Do not edit! */
+/* auto-generated on 2022-03-21 23:28:26 -0400. Do not edit! */
 // dofile: invoked with prepath=/Users/lemire/CVS/github/simdutf/src, filename=simdutf.cpp
 /* begin file src/simdutf.cpp */
 #include "simdutf.h"
@@ -115,55 +115,9 @@ namespace simdutf {
 namespace arm64 {
 namespace {
 
-// We sometimes call trailing_zero on inputs that are zero,
-// but the algorithms do not end up using the returned value.
-// Sadly, sanitizers are not smart enough to figure it out.
-NO_SANITIZE_UNDEFINED
-simdutf_really_inline int trailing_zeroes(uint64_t input_num) {
-#ifdef SIMDUTF_REGULAR_VISUAL_STUDIO
-  unsigned long ret;
-  // Search the mask data from least significant bit (LSB)
-  // to the most significant bit (MSB) for a set bit (1).
-  _BitScanForward64(&ret, input_num);
-  return (int)ret;
-#else // SIMDUTF_REGULAR_VISUAL_STUDIO
-  return __builtin_ctzll(input_num);
-#endif // SIMDUTF_REGULAR_VISUAL_STUDIO
-}
-
-/* result might be undefined when input_num is zero */
-simdutf_really_inline uint64_t clear_lowest_bit(uint64_t input_num) {
-  return input_num & (input_num-1);
-}
-
-/* result might be undefined when input_num is zero */
-simdutf_really_inline int leading_zeroes(uint64_t input_num) {
-#ifdef SIMDUTF_REGULAR_VISUAL_STUDIO
-  unsigned long leading_zero = 0;
-  // Search the mask data from most significant bit (MSB)
-  // to least significant bit (LSB) for a set bit (1).
-  if (_BitScanReverse64(&leading_zero, input_num))
-    return (int)(63 - leading_zero);
-  else
-    return 64;
-#else
-  return __builtin_clzll(input_num);
-#endif// SIMDUTF_REGULAR_VISUAL_STUDIO
-}
-
 /* result might be undefined when input_num is zero */
 simdutf_really_inline int count_ones(uint64_t input_num) {
    return vaddv_u8(vcnt_u8(vcreate_u8(input_num)));
-}
-
-simdutf_really_inline bool add_overflow(uint64_t value1, uint64_t value2, uint64_t *result) {
-#ifdef SIMDUTF_REGULAR_VISUAL_STUDIO
-  *result = value1 + value2;
-  return *result < value1;
-#else
-  return __builtin_uaddll_overflow(value1, value2,
-                                   reinterpret_cast<unsigned long long *>(result));
-#endif
 }
 
 } // unnamed namespace
@@ -172,36 +126,6 @@ simdutf_really_inline bool add_overflow(uint64_t value1, uint64_t value2, uint64
 
 #endif // SIMDUTF_ARM64_BITMANIPULATION_H
 /* end file src/simdutf/arm64/bitmanipulation.h */
-// dofile: invoked with prepath=/Users/lemire/CVS/github/simdutf/src, filename=simdutf/arm64/bitmask.h
-/* begin file src/simdutf/arm64/bitmask.h */
-#ifndef SIMDUTF_ARM64_BITMASK_H
-#define SIMDUTF_ARM64_BITMASK_H
-
-namespace simdutf {
-namespace arm64 {
-namespace {
-
-//
-// Perform a "cumulative bitwise xor," flipping bits each time a 1 is encountered.
-//
-// For example, prefix_xor(00100100) == 00011100
-//
-simdutf_really_inline uint64_t prefix_xor(uint64_t bitmask) {
-  bitmask ^= bitmask << 1;
-  bitmask ^= bitmask << 2;
-  bitmask ^= bitmask << 4;
-  bitmask ^= bitmask << 8;
-  bitmask ^= bitmask << 16;
-  bitmask ^= bitmask << 32;
-  return bitmask;
-}
-
-} // unnamed namespace
-} // namespace arm64
-} // namespace simdutf
-
-#endif
-/* end file src/simdutf/arm64/bitmask.h */
 // dofile: invoked with prepath=/Users/lemire/CVS/github/simdutf/src, filename=simdutf/arm64/simd.h
 /* begin file src/simdutf/arm64/simd.h */
 #ifndef SIMDUTF_ARM64_SIMD_H
@@ -1215,33 +1139,6 @@ namespace simdutf {
 namespace haswell {
 namespace {
 
-// We sometimes call trailing_zero on inputs that are zero,
-// but the algorithms do not end up using the returned value.
-// Sadly, sanitizers are not smart enough to figure it out.
-NO_SANITIZE_UNDEFINED
-simdutf_really_inline int trailing_zeroes(uint64_t input_num) {
-#ifdef SIMDUTF_REGULAR_VISUAL_STUDIO
-  return (int)_tzcnt_u64(input_num);
-#else // SIMDUTF_REGULAR_VISUAL_STUDIO
-  ////////
-  // You might expect the next line to be equivalent to
-  // return (int)_tzcnt_u64(input_num);
-  // but the generated code differs and might be less efficient?
-  ////////
-  return __builtin_ctzll(input_num);
-#endif // SIMDUTF_REGULAR_VISUAL_STUDIO
-}
-
-/* result might be undefined when input_num is zero */
-simdutf_really_inline uint64_t clear_lowest_bit(uint64_t input_num) {
-  return _blsr_u64(input_num);
-}
-
-/* result might be undefined when input_num is zero */
-simdutf_really_inline int leading_zeroes(uint64_t input_num) {
-  return int(_lzcnt_u64(input_num));
-}
-
 #ifdef SIMDUTF_REGULAR_VISUAL_STUDIO
 simdutf_really_inline unsigned __int64 count_ones(uint64_t input_num) {
   // note: we do not support legacy 32-bit Windows
@@ -1253,51 +1150,12 @@ simdutf_really_inline long long int count_ones(uint64_t input_num) {
 }
 #endif
 
-simdutf_really_inline bool add_overflow(uint64_t value1, uint64_t value2,
-                                uint64_t *result) {
-#ifdef SIMDUTF_REGULAR_VISUAL_STUDIO
-  return _addcarry_u64(0, value1, value2,
-                       reinterpret_cast<unsigned __int64 *>(result));
-#else
-  return __builtin_uaddll_overflow(value1, value2,
-                                   reinterpret_cast<unsigned long long *>(result));
-#endif
-}
-
 } // unnamed namespace
 } // namespace haswell
 } // namespace simdutf
 
 #endif // SIMDUTF_HASWELL_BITMANIPULATION_H
 /* end file src/simdutf/haswell/bitmanipulation.h */
-// dofile: invoked with prepath=/Users/lemire/CVS/github/simdutf/src, filename=simdutf/haswell/bitmask.h
-/* begin file src/simdutf/haswell/bitmask.h */
-#ifndef SIMDUTF_HASWELL_BITMASK_H
-#define SIMDUTF_HASWELL_BITMASK_H
-
-namespace simdutf {
-namespace haswell {
-namespace {
-
-//
-// Perform a "cumulative bitwise xor," flipping bits each time a 1 is encountered.
-//
-// For example, prefix_xor(00100100) == 00011100
-//
-simdutf_really_inline uint64_t prefix_xor(const uint64_t bitmask) {
-  // There should be no such thing with a processor supporting avx2
-  // but not clmul.
-  __m128i all_ones = _mm_set1_epi8('\xFF');
-  __m128i result = _mm_clmulepi64_si128(_mm_set_epi64x(0ULL, bitmask), all_ones, 0);
-  return _mm_cvtsi128_si64(result);
-}
-
-} // unnamed namespace
-} // namespace haswell
-} // namespace simdutf
-
-#endif // SIMDUTF_HASWELL_BITMASK_H
-/* end file src/simdutf/haswell/bitmask.h */
 // dofile: invoked with prepath=/Users/lemire/CVS/github/simdutf/src, filename=simdutf/haswell/simd.h
 /* begin file src/simdutf/haswell/simd.h */
 #ifndef SIMDUTF_HASWELL_SIMD_H
@@ -2063,42 +1921,6 @@ namespace simdutf {
 namespace westmere {
 namespace {
 
-// We sometimes call trailing_zero on inputs that are zero,
-// but the algorithms do not end up using the returned value.
-// Sadly, sanitizers are not smart enough to figure it out.
-NO_SANITIZE_UNDEFINED
-simdutf_really_inline int trailing_zeroes(uint64_t input_num) {
-#ifdef SIMDUTF_REGULAR_VISUAL_STUDIO
-  unsigned long ret;
-  // Search the mask data from least significant bit (LSB)
-  // to the most significant bit (MSB) for a set bit (1).
-  _BitScanForward64(&ret, input_num);
-  return (int)ret;
-#else // SIMDUTF_REGULAR_VISUAL_STUDIO
-  return __builtin_ctzll(input_num);
-#endif // SIMDUTF_REGULAR_VISUAL_STUDIO
-}
-
-/* result might be undefined when input_num is zero */
-simdutf_really_inline uint64_t clear_lowest_bit(uint64_t input_num) {
-  return input_num & (input_num-1);
-}
-
-/* result might be undefined when input_num is zero */
-simdutf_really_inline int leading_zeroes(uint64_t input_num) {
-#ifdef SIMDUTF_REGULAR_VISUAL_STUDIO
-  unsigned long leading_zero = 0;
-  // Search the mask data from most significant bit (MSB)
-  // to least significant bit (LSB) for a set bit (1).
-  if (_BitScanReverse64(&leading_zero, input_num))
-    return (int)(63 - leading_zero);
-  else
-    return 64;
-#else
-  return __builtin_clzll(input_num);
-#endif// SIMDUTF_REGULAR_VISUAL_STUDIO
-}
-
 #ifdef SIMDUTF_REGULAR_VISUAL_STUDIO
 simdutf_really_inline unsigned __int64 count_ones(uint64_t input_num) {
   // note: we do not support legacy 32-bit Windows
@@ -2110,51 +1932,12 @@ simdutf_really_inline long long int count_ones(uint64_t input_num) {
 }
 #endif
 
-simdutf_really_inline bool add_overflow(uint64_t value1, uint64_t value2,
-                                uint64_t *result) {
-#ifdef SIMDUTF_REGULAR_VISUAL_STUDIO
-  return _addcarry_u64(0, value1, value2,
-                       reinterpret_cast<unsigned __int64 *>(result));
-#else
-  return __builtin_uaddll_overflow(value1, value2,
-                                   reinterpret_cast<unsigned long long *>(result));
-#endif
-}
-
 } // unnamed namespace
 } // namespace westmere
 } // namespace simdutf
 
 #endif // SIMDUTF_WESTMERE_BITMANIPULATION_H
 /* end file src/simdutf/westmere/bitmanipulation.h */
-// dofile: invoked with prepath=/Users/lemire/CVS/github/simdutf/src, filename=simdutf/westmere/bitmask.h
-/* begin file src/simdutf/westmere/bitmask.h */
-#ifndef SIMDUTF_WESTMERE_BITMASK_H
-#define SIMDUTF_WESTMERE_BITMASK_H
-
-namespace simdutf {
-namespace westmere {
-namespace {
-
-//
-// Perform a "cumulative bitwise xor," flipping bits each time a 1 is encountered.
-//
-// For example, prefix_xor(00100100) == 00011100
-//
-simdutf_really_inline uint64_t prefix_xor(const uint64_t bitmask) {
-  // There should be no such thing with a processing supporting avx2
-  // but not clmul.
-  __m128i all_ones = _mm_set1_epi8('\xFF');
-  __m128i result = _mm_clmulepi64_si128(_mm_set_epi64x(0ULL, bitmask), all_ones, 0);
-  return _mm_cvtsi128_si64(result);
-}
-
-} // unnamed namespace
-} // namespace westmere
-} // namespace simdutf
-
-#endif // SIMDUTF_WESTMERE_BITMASK_H
-/* end file src/simdutf/westmere/bitmask.h */
 // dofile: invoked with prepath=/Users/lemire/CVS/github/simdutf/src, filename=simdutf/westmere/simd.h
 /* begin file src/simdutf/westmere/simd.h */
 #ifndef SIMDUTF_WESTMERE_SIMD_H
@@ -2941,42 +2724,6 @@ namespace simdutf {
 namespace ppc64 {
 namespace {
 
-// We sometimes call trailing_zero on inputs that are zero,
-// but the algorithms do not end up using the returned value.
-// Sadly, sanitizers are not smart enough to figure it out.
-NO_SANITIZE_UNDEFINED
-simdutf_really_inline int trailing_zeroes(uint64_t input_num) {
-#ifdef SIMDUTF_REGULAR_VISUAL_STUDIO
-  unsigned long ret;
-  // Search the mask data from least significant bit (LSB)
-  // to the most significant bit (MSB) for a set bit (1).
-  _BitScanForward64(&ret, input_num);
-  return (int)ret;
-#else  // SIMDUTF_REGULAR_VISUAL_STUDIO
-  return __builtin_ctzll(input_num);
-#endif // SIMDUTF_REGULAR_VISUAL_STUDIO
-}
-
-/* result might be undefined when input_num is zero */
-simdutf_really_inline uint64_t clear_lowest_bit(uint64_t input_num) {
-  return input_num & (input_num - 1);
-}
-
-/* result might be undefined when input_num is zero */
-simdutf_really_inline int leading_zeroes(uint64_t input_num) {
-#ifdef SIMDUTF_REGULAR_VISUAL_STUDIO
-  unsigned long leading_zero = 0;
-  // Search the mask data from most significant bit (MSB)
-  // to least significant bit (LSB) for a set bit (1).
-  if (_BitScanReverse64(&leading_zero, input_num))
-    return (int)(63 - leading_zero);
-  else
-    return 64;
-#else
-  return __builtin_clzll(input_num);
-#endif // SIMDUTF_REGULAR_VISUAL_STUDIO
-}
-
 #ifdef SIMDUTF_REGULAR_VISUAL_STUDIO
 simdutf_really_inline int count_ones(uint64_t input_num) {
   // note: we do not support legacy 32-bit Windows
@@ -2988,68 +2735,12 @@ simdutf_really_inline int count_ones(uint64_t input_num) {
 }
 #endif
 
-simdutf_really_inline bool add_overflow(uint64_t value1, uint64_t value2,
-                                         uint64_t *result) {
-#ifdef SIMDUTF_REGULAR_VISUAL_STUDIO
-  *result = value1 + value2;
-  return *result < value1;
-#else
-  return __builtin_uaddll_overflow(value1, value2,
-                                   reinterpret_cast<unsigned long long *>(result));
-#endif
-}
-
 } // unnamed namespace
 } // namespace ppc64
 } // namespace simdutf
 
 #endif // SIMDUTF_PPC64_BITMANIPULATION_H
 /* end file src/simdutf/ppc64/bitmanipulation.h */
-// dofile: invoked with prepath=/Users/lemire/CVS/github/simdutf/src, filename=simdutf/ppc64/bitmask.h
-/* begin file src/simdutf/ppc64/bitmask.h */
-#ifndef SIMDUTF_PPC64_BITMASK_H
-#define SIMDUTF_PPC64_BITMASK_H
-
-namespace simdutf {
-namespace ppc64 {
-namespace {
-
-//
-// Perform a "cumulative bitwise xor," flipping bits each time a 1 is
-// encountered.
-//
-// For example, prefix_xor(00100100) == 00011100
-//
-simdutf_really_inline uint64_t prefix_xor(uint64_t bitmask) {
-  // You can use the version below, however gcc sometimes miscompiles
-  // vec_pmsum_be, it happens somewhere around between 8 and 9th version.
-  // The performance boost was not noticeable, falling back to a usual
-  // implementation.
-  //   __vector unsigned long long all_ones = {~0ull, ~0ull};
-  //   __vector unsigned long long mask = {bitmask, 0};
-  //   // Clang and GCC return different values for pmsum for ull so cast it to one.
-  //   // Generally it is not specified by ALTIVEC ISA what is returned by
-  //   // vec_pmsum_be.
-  // #if defined(__LITTLE_ENDIAN__)
-  //   return (uint64_t)(((__vector unsigned long long)vec_pmsum_be(all_ones, mask))[0]);
-  // #else
-  //   return (uint64_t)(((__vector unsigned long long)vec_pmsum_be(all_ones, mask))[1]);
-  // #endif
-  bitmask ^= bitmask << 1;
-  bitmask ^= bitmask << 2;
-  bitmask ^= bitmask << 4;
-  bitmask ^= bitmask << 8;
-  bitmask ^= bitmask << 16;
-  bitmask ^= bitmask << 32;
-  return bitmask;
-}
-
-} // unnamed namespace
-} // namespace ppc64
-} // namespace simdutf
-
-#endif
-/* end file src/simdutf/ppc64/bitmask.h */
 // dofile: invoked with prepath=/Users/lemire/CVS/github/simdutf/src, filename=simdutf/ppc64/simd.h
 /* begin file src/simdutf/ppc64/simd.h */
 #ifndef SIMDUTF_PPC64_SIMD_H
@@ -9204,10 +8895,13 @@ inline simdutf_warn_unused bool validate(const char *buf, size_t len) noexcept {
       }
     }
     unsigned char byte = data[pos];
-    if (byte < 0b10000000) {
-      pos++;
-      continue;
-    } else if ((byte & 0b11100000) == 0b11000000) {
+
+    while (byte < 0b10000000) {
+      if (++pos == len) { return true; }
+      byte = data[pos];
+    }
+
+    if ((byte & 0b11100000) == 0b11000000) {
       next_pos = pos + 2;
       if (next_pos > len) { return false; }
       if ((data[pos + 1] & 0b11000000) != 0b10000000) { return false; }
@@ -11077,7 +10771,7 @@ std::pair<const char16_t*, char*> sse_convert_utf16_to_utf8(const char16_t* buf,
   const __m256i v_f800 = _mm256_set1_epi16((int16_t)0xf800);
   const __m256i v_d800 = _mm256_set1_epi16((int16_t)0xd800);
   const __m256i v_c080 = _mm256_set1_epi16((int16_t)0xc080);
-  const size_t safety_margin = 8; // to avoid overruns
+  const size_t safety_margin = 11; // to avoid overruns, see issue https://github.com/simdutf/simdutf/issues/92
 
   while (buf + 16 + safety_margin <= end) {
     __m256i in = _mm256_loadu_si256((__m256i*)buf);

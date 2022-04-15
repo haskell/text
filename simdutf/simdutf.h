@@ -1,11 +1,10 @@
-/* auto-generated on 2021-07-29 10:43:28 -0400. Do not edit! */
+/* auto-generated on 2022-03-21 23:28:26 -0400. Do not edit! */
 // dofile: invoked with prepath=/Users/lemire/CVS/github/simdutf/include, filename=simdutf.h
 /* begin file include/simdutf.h */
 #ifndef SIMDUTF_H
 #define SIMDUTF_H
 #include <string>
 #include <cstring>
-#include <atomic>
 #include <vector>
 
 // dofile: invoked with prepath=/Users/lemire/CVS/github/simdutf/include, filename=simdutf/compiler_check.h
@@ -412,18 +411,18 @@ SIMDUTF_DISABLE_UNDESIRED_WARNINGS
 #define SIMDUTF_SIMDUTF_VERSION_H
 
 /** The version of simdutf being used (major.minor.revision) */
-#define SIMDUTF_VERSION 0.1.0
+#define SIMDUTF_VERSION 1.0.1
 
 namespace simdutf {
 enum {
   /**
    * The major version (MAJOR.minor.revision) of simdutf being used.
    */
-  SIMDUTF_VERSION_MAJOR = 0,
+  SIMDUTF_VERSION_MAJOR = 1,
   /**
    * The minor version (major.MINOR.revision) of simdutf being used.
    */
-  SIMDUTF_VERSION_MINOR = 1,
+  SIMDUTF_VERSION_MINOR = 0,
   /**
    * The revision (major.minor.REVISION) of simdutf being used.
    */
@@ -438,7 +437,9 @@ enum {
 #ifndef SIMDUTF_IMPLEMENTATION_H
 #define SIMDUTF_IMPLEMENTATION_H
 #include <string>
+#if !defined(SIMDUTF_NO_THREADS)
 #include <atomic>
+#endif
 #include <vector>
 // dofile: invoked with prepath=/Users/lemire/CVS/github/simdutf/include, filename=simdutf/internal/isadetection.h
 /* begin file include/simdutf/internal/isadetection.h */
@@ -510,7 +511,10 @@ enum instruction_set {
   PCLMULQDQ = 0x10,
   BMI1 = 0x20,
   BMI2 = 0x40,
-  ALTIVEC = 0x80
+  ALTIVEC = 0x80,
+  AVX512F = 0x100,
+  AVX512BW = 0x200,
+  AVX512DQ = 0x400
 };
 
 #if defined(__PPC64__)
@@ -539,12 +543,38 @@ static inline uint32_t detect_supported_architectures() {
 
 
 namespace {
-// Can be found on Intel ISA Reference for CPUID
-constexpr uint32_t cpuid_avx2_bit = 1 << 5;      ///< @private Bit 5 of EBX for EAX=0x7
-constexpr uint32_t cpuid_bmi1_bit = 1 << 3;      ///< @private bit 3 of EBX for EAX=0x7
-constexpr uint32_t cpuid_bmi2_bit = 1 << 8;      ///< @private bit 8 of EBX for EAX=0x7
-constexpr uint32_t cpuid_sse42_bit = 1 << 20;    ///< @private bit 20 of ECX for EAX=0x1
-constexpr uint32_t cpuid_pclmulqdq_bit = 1 << 1; ///< @private bit  1 of ECX for EAX=0x1
+namespace cpuid_bit {
+    // Can be found on Intel ISA Reference for CPUID
+
+    // EAX = 0x01
+    constexpr uint32_t pclmulqdq = uint32_t(1) << 1; ///< @private bit  1 of ECX for EAX=0x1
+    constexpr uint32_t sse42 = uint32_t(1) << 20;    ///< @private bit 20 of ECX for EAX=0x1
+
+    // EAX = 0x7f (Structured Extended Feature Flags), ECX = 0x00 (Sub-leaf)
+    // See: "Table 3-8. Information Returned by CPUID Instruction"
+    namespace ebx {
+      constexpr uint32_t bmi1 = uint32_t(1) << 3;
+      constexpr uint32_t avx2 = uint32_t(1) << 5;
+      constexpr uint32_t bmi2 = uint32_t(1) << 8;
+      constexpr uint32_t avx512f = uint32_t(1) << 16;
+      constexpr uint32_t avx512dq = uint32_t(1) << 17;
+      constexpr uint32_t avx512ifma = uint32_t(1) << 21;
+      constexpr uint32_t avx512cd = uint32_t(1) << 28;
+      constexpr uint32_t avx512bw = uint32_t(1) << 30;
+      constexpr uint32_t avx512vl = uint32_t(1) << 31;
+    }
+
+    namespace ecx {
+      constexpr uint32_t avx512vbmi = uint32_t(1) << 1;
+      constexpr uint32_t avx512vbmi2 = uint32_t(1) << 6;
+      constexpr uint32_t avx512vnni = uint32_t(1) << 11;
+      constexpr uint32_t avx512bitalg = uint32_t(1) << 12;
+      constexpr uint32_t avx512vpopcnt = uint32_t(1) << 14;
+    }
+    namespace edx {
+      constexpr uint32_t avx512vp2intersect = uint32_t(1) << 8;
+    }
+  }
 }
 
 
@@ -572,34 +602,45 @@ static inline void cpuid(uint32_t *eax, uint32_t *ebx, uint32_t *ecx,
 }
 
 static inline uint32_t detect_supported_architectures() {
-  uint32_t eax, ebx, ecx, edx;
+  uint32_t eax;
+  uint32_t ebx = 0;
+  uint32_t ecx = 0;
+  uint32_t edx = 0;
   uint32_t host_isa = 0x0;
-
-  // ECX for EAX=0x7
-  eax = 0x7;
-  ecx = 0x0;
-  cpuid(&eax, &ebx, &ecx, &edx);
-  if (ebx & cpuid_avx2_bit) {
-    host_isa |= instruction_set::AVX2;
-  }
-  if (ebx & cpuid_bmi1_bit) {
-    host_isa |= instruction_set::BMI1;
-  }
-
-  if (ebx & cpuid_bmi2_bit) {
-    host_isa |= instruction_set::BMI2;
-  }
 
   // EBX for EAX=0x1
   eax = 0x1;
   cpuid(&eax, &ebx, &ecx, &edx);
 
-  if (ecx & cpuid_sse42_bit) {
+  if (ecx & cpuid_bit::sse42) {
     host_isa |= instruction_set::SSE42;
   }
 
-  if (ecx & cpuid_pclmulqdq_bit) {
+  if (ecx & cpuid_bit::pclmulqdq) {
     host_isa |= instruction_set::PCLMULQDQ;
+  }
+
+  // ECX for EAX=0x7
+  eax = 0x7;
+  ecx = 0x0; // Sub-leaf = 0
+  cpuid(&eax, &ebx, &ecx, &edx);
+  if (ebx & cpuid_bit::ebx::avx2) {
+    host_isa |= instruction_set::AVX2;
+  }
+  if (ebx & cpuid_bit::ebx::bmi1) {
+    host_isa |= instruction_set::BMI1;
+  }
+  if (ebx & cpuid_bit::ebx::bmi2) {
+    host_isa |= instruction_set::BMI2;
+  }
+  if (ebx & cpuid_bit::ebx::avx512f) {
+    host_isa |= instruction_set::AVX512F;
+  }
+  if (ebx & cpuid_bit::ebx::avx512bw) {
+    host_isa |= instruction_set::AVX512BW;
+  }
+  if (ebx & cpuid_bit::ebx::avx512dq) {
+    host_isa |= instruction_set::AVX512DQ;
   }
 
   return host_isa;
@@ -1039,6 +1080,17 @@ class atomic_ptr {
 public:
   atomic_ptr(T *_ptr) : ptr{_ptr} {}
 
+#if defined(SIMDUTF_NO_THREADS)
+  operator const T*() const { return ptr; }
+  const T& operator*() const { return *ptr; }
+  const T* operator->() const { return ptr; }
+
+  operator T*() { return ptr; }
+  T& operator*() { return *ptr; }
+  T* operator->() { return ptr; }
+  atomic_ptr& operator=(T *_ptr) { ptr = _ptr; return *this; }
+
+#else
   operator const T*() const { return ptr.load(); }
   const T& operator*() const { return *ptr; }
   const T* operator->() const { return ptr.load(); }
@@ -1048,8 +1100,14 @@ public:
   T* operator->() { return ptr.load(); }
   atomic_ptr& operator=(T *_ptr) { ptr = _ptr; return *this; }
 
+#endif
+
 private:
+#if defined(SIMDUTF_NO_THREADS)
+  T* ptr;
+#else
   std::atomic<T*> ptr;
+#endif
 };
 
 } // namespace internal
