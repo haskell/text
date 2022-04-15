@@ -16,7 +16,8 @@
 
 module Data.Text.Show
     (
-      singleton
+      addrLen
+    , singleton
     , unpack
     , unpackCString#
     , unpackCStringAscii#
