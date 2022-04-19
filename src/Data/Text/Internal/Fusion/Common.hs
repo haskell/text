@@ -716,7 +716,7 @@ foldr1 f (Stream next s0 _len) = loop0_foldr1 s0
       Yield x' s' -> f x (loop_foldr1 x' s')
 {-# INLINE [0] foldr1 #-}
 
--- | intercalate str strs interts the stream str in between the streams strs and
+-- | intercalate str strs inserts the stream str in between the streams strs and
 -- concatenates the result.
 --
 -- __Properties__

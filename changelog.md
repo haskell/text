@@ -261,7 +261,7 @@
 * New function toTitle converts words in a string to title case
 
 * New functions peekCStringLen and withCStringLen simplify
-  interoperability with C functionns
+  interoperability with C functions
 
 * Added support for decoding UTF-8 in stream-friendly fashion
 
