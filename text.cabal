@@ -94,8 +94,17 @@ library
       extra-libraries: c++
     elif os(openbsd)
       extra-libraries: c++ c++abi pthread
-    else
+    elif os(linux) || os(windows)
       extra-libraries: stdc++
+    else
+      -- This is supposed to be under arch(wasm32), but we can't do that yet
+      -- since cabal check would fail with unrecognized arch, see
+      -- https://github.com/haskell/cabal/pull/8096 for the fix.
+      -- TODO: when a new cabal release is out with that fix, bump cabal in CI
+      -- and add proper arch(wasm32) declaration here.
+      cpp-options: -DSIMDUTF_NO_THREADS
+      cxx-options: -fno-exceptions
+      extra-libraries: c++ c++abi
 
   -- Certain version of GHC crash on Windows, when TemplateHaskell encounters C++.
   -- https://gitlab.haskell.org/ghc/ghc/-/issues/19417
