@@ -58,7 +58,7 @@ tested-with:
 extra-source-files:
     -- scripts/CaseFolding.txt
     -- scripts/SpecialCasing.txt
-    README.markdown
+    README.md
     changelog.md
     scripts/*.hs
     simdutf/LICENSE-APACHE
@@ -94,10 +94,23 @@ library
       extra-libraries: c++
     elif os(openbsd)
       extra-libraries: c++ c++abi pthread
-    elif os(windows) && impl(ghc > 9.3)
-      extra-libraries: c++ c++abi
-    else
+    elif os(windows)
+      -- GHC's Windows toolchain is based on clang/libc++ in GHC 9.4 and later
+      if impl(ghc < 9.3)
+        extra-libraries: stdc++
+      else
+        extra-libraries: c++ c++abi
+    elif os(linux)
       extra-libraries: stdc++
+    else
+      -- This is supposed to be under arch(wasm32), but we can't do that yet
+      -- since cabal check would fail with unrecognized arch, see
+      -- https://github.com/haskell/cabal/pull/8096 for the fix.
+      -- TODO: when a new cabal release is out with that fix, bump cabal in CI
+      -- and add proper arch(wasm32) declaration here.
+      cpp-options: -DSIMDUTF_NO_THREADS
+      cxx-options: -fno-exceptions
+      extra-libraries: c++ c++abi
 
   -- Certain version of GHC crash on Windows, when TemplateHaskell encounters C++.
   -- https://gitlab.haskell.org/ghc/ghc/-/issues/19417
@@ -177,6 +190,8 @@ library
   if flag(developer)
     ghc-options: -fno-ignore-asserts
     cpp-options: -DASSERTS
+    if impl(ghc >= 9.2.2)
+      ghc-options: -fcheck-prim-bounds
 
   -- https://gitlab.haskell.org/ghc/ghc/-/issues/19900
   if os(windows) && impl(ghc < 9.3)

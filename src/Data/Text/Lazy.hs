@@ -241,7 +241,7 @@ import Text.Printf (PrintfArg, formatArg, formatString)
 -- $fusion
 --
 -- Starting from @text-1.3@ fusion is no longer implicit,
--- and pipelines of transormations usually allocate intermediate 'Text' values.
+-- and pipelines of transformations usually allocate intermediate 'Text' values.
 -- Users, who observe significant changes to performances,
 -- are encouraged to use fusion framework explicitly, employing
 -- "Data.Text.Internal.Fusion" and "Data.Text.Internal.Fusion.Common".

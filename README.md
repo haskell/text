@@ -16,6 +16,7 @@ git clone https://github.com/haskell/text
 To run benchmarks please clone and unpack test files:
 
 ```bash
+cd text
 git clone https://github.com/haskell/text-test-data benchmarks/text-test-data
 make -Cbenchmarks/text-test-data
 ```

@@ -160,7 +160,7 @@ genInvalidUTF8 = B.pack <$> oneof [
     upTo n gen = do
       k <- choose (0,n)
       vectorOf k gen
-    -- Data.Text.Internal.Encoding.Utf8.ord{2,3,4} withous sanity checks
+    -- Data.Text.Internal.Encoding.Utf8.ord{2,3,4} without sanity checks
     ord2_ n = map fromIntegral [(n `shiftR` 6) + 0xC0, (n .&. 0x3F) + 0x80]
     ord3_ n = map fromIntegral [(n `shiftR` 12) + 0xE0, ((n `shiftR` 6) .&. 0x3F) + 0x80, (n .&. 0x3F) + 0x80]
     ord4_ n = map fromIntegral [(n `shiftR` 18) + 0xF0, ((n `shiftR` 12) .&. 0x3F) + 0x80, ((n `shiftR` 6) .&. 0x3F) + 0x80, (n .&. 0x3F) + 0x80]
