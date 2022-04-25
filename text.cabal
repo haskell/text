@@ -94,7 +94,13 @@ library
       extra-libraries: c++
     elif os(openbsd)
       extra-libraries: c++ c++abi pthread
-    elif os(linux) || os(windows)
+    elif os(windows)
+      -- GHC's Windows toolchain is based on clang/libc++ in GHC 9.4 and later
+      if impl(ghc < 9.3)
+        extra-libraries: stdc++
+      else
+        extra-libraries: c++ c++abi
+    elif os(linux)
       extra-libraries: stdc++
     else
       -- This is supposed to be under arch(wasm32), but we can't do that yet
@@ -188,7 +194,7 @@ library
       ghc-options: -fcheck-prim-bounds
 
   -- https://gitlab.haskell.org/ghc/ghc/-/issues/19900
-  if os(windows)
+  if os(windows) && impl(ghc < 9.3)
     extra-libraries: gcc_s
 
   default-language: Haskell2010
