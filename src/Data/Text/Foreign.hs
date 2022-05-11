@@ -21,6 +21,7 @@ module Data.Text.Foreign
     , useAsPtr
     , asForeignPtr
     -- ** Encoding as UTF-8
+    , withCString
     , peekCStringLen
     , withCStringLen
     -- * Unsafe conversion code
@@ -40,10 +41,11 @@ import Data.Text.Internal.Unsafe (unsafeWithForeignPtr)
 import Data.Text.Show (addrLen)
 import Data.Text.Unsafe (lengthWord8)
 import Data.Word (Word8)
-import Foreign.C.String (CStringLen)
+import Foreign.C.String (CString, CStringLen)
 import Foreign.ForeignPtr (ForeignPtr, mallocForeignPtrArray)
 import Foreign.Marshal.Alloc (allocaBytes)
 import Foreign.Ptr (Ptr, castPtr)
+import Foreign.Storable (pokeByteOff)
 import GHC.Exts (Ptr(..))
 import qualified Data.Text.Array as A
 
@@ -148,6 +150,21 @@ asForeignPtr t@(Text _arr _off len) = do
   fp <- mallocForeignPtrArray len
   unsafeWithForeignPtr fp $ unsafeCopyToPtr t
   return (fp, I8 len)
+
+-- | Marshal a 'Text' into a C string with a trailing NUL byte,
+-- encoded as UTF-8 in temporary storage.
+--
+-- The temporary storage is freed when the subcomputation terminates
+-- (either normally or via an exception), so the pointer to the
+-- temporary storage must /not/ be used after this function returns.
+--
+-- @since 2.0.1
+withCString :: Text -> (CString -> IO a) -> IO a
+withCString t@(Text _arr _off len) action =
+  allocaBytes (len + 1) $ \buf -> do
+    unsafeCopyToPtr t buf
+    pokeByteOff buf len (0 :: Word8)
+    action (castPtr buf)
 
 -- | /O(n)/ Decode a C string with explicit length, which is assumed
 -- to have been encoded as UTF-8. If decoding fails, a
