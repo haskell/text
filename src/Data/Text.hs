@@ -98,6 +98,7 @@ module Data.Text
     , foldl1
     , foldl1'
     , foldr
+    , foldr'
     , foldr1
 
     -- ** Special folds
@@ -992,6 +993,22 @@ foldl1' f t = S.foldl1' f (stream t)
 -- | /O(n)/ 'foldr', applied to a binary operator, a starting value
 -- (typically the right-identity of the operator), and a 'Text',
 -- reduces the 'Text' using the binary operator, from right to left.
+--
+-- If the binary operator is strict in its second argument, use 'foldr''
+-- instead.
+--
+-- 'foldr' is lazy like 'Data.List.foldr' for lists: evaluation actually
+-- traverses the 'Text' from left to right, only as far as it needs to.
+--
+-- For example, 'head' can be defined with /O(1)/ complexity using 'foldr':
+--
+-- @
+-- head :: Text -> Char
+-- head = foldr const (error "head empty")
+-- @
+--
+-- Searches from left to right with short-circuiting behavior can
+-- also be defined using 'foldr' (/e.g./, 'any', 'all', 'find', 'elem').
 foldr :: (Char -> a -> a) -> a -> Text -> a
 foldr f z t = S.foldr f z (stream t)
 {-# INLINE foldr #-}
@@ -1001,6 +1018,13 @@ foldr f z t = S.foldr f z (stream t)
 foldr1 :: HasCallStack => (Char -> Char -> Char) -> Text -> Char
 foldr1 f t = S.foldr1 f (stream t)
 {-# INLINE foldr1 #-}
+
+-- | /O(n)/ A strict version of 'foldr'.
+--
+-- 'foldr'' evaluates as a right-to-left traversal using constant stack space.
+foldr' :: (Char -> a -> a) -> a -> Text -> a
+foldr' f z t = S.foldl' (P.flip f) z (reverseStream t)
+{-# INLINE foldr' #-}
 
 -- -----------------------------------------------------------------------------
 -- ** Special folds
