@@ -51,7 +51,9 @@
 * Update Haddock documentation to better reflect fusion eligibility; improve fusion
   rules for `takeWhileEnd` and `length` (gh-241, ghc-202)
 
-* Optimise `Data.Text.replicate` from `O(n)` to `O(log n)` (gh-209)
+* Optimise `Data.Text.replicate`. Rather than calling `memcpy` `n` times,
+  call it only `O(log n)` times on chunks of increasing size. The total
+  asymptotic complexity remains `O(nm)`. (gh-209)
 
 * Support `base-4.13.0.0`
 
