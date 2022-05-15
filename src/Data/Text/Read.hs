@@ -33,7 +33,7 @@ import Data.Word (Word, Word8, Word16, Word32, Word64)
 
 -- | Read some text.  If the read succeeds, return its value and the
 -- remaining text, otherwise an error message.
-type Reader a = IReader Text a
+type Reader a = Text -> Either String (a, Text)
 type Parser a = IParser Text a
 
 -- | Read a decimal integer.  The input must begin with at least one
