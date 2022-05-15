@@ -8,8 +8,10 @@ module Tests.Properties.Folds
     ) where
 
 import Control.Arrow (second)
+import Control.Exception (ErrorCall, evaluate, try)
 import Data.Word (Word8, Word16)
 import Test.Tasty (TestTree, testGroup)
+import Test.Tasty.HUnit (testCase, assertFailure)
 import Test.Tasty.QuickCheck (testProperty, Small(..), (===), applyFun, applyFun2)
 import Tests.QuickCheckUtils
 import qualified Data.List as L
@@ -47,12 +49,31 @@ sf_foldr (applyFun -> p) (applyFun2 -> f) z =
     where _types  = f :: Char -> Char -> Char
 t_foldr (applyFun2 -> f) z       = L.foldr f z  `eqP` T.foldr f z
     where _types  = f :: Char -> Char -> Char
+t_foldr' (applyFun2 -> f) z       = L.foldr f z  `eqP` T.foldr' f z
+    where _types  = f :: Char -> Char -> Char
 tl_foldr (applyFun2 -> f) z      = L.foldr f z  `eqPSqrt` TL.foldr f z
     where _types  = f :: Char -> Char -> Char
 sf_foldr1 (applyFun -> p) (applyFun2 -> f) =
     (L.foldr1 f . L.filter p) `eqPSqrt` (S.foldr1 f . S.filter p)
 t_foldr1 (applyFun2 -> f)        = L.foldr1 f   `eqP` T.foldr1 f
 tl_foldr1 (applyFun2 -> f)       = L.foldr1 f   `eqPSqrt` TL.foldr1 f
+
+-- Distinguish foldl/foldr from foldl'/foldr'
+
+fold_apart :: IO ()
+fold_apart = do
+    ok (T.foldr  f () (T.pack "az"))
+    ko (T.foldr' f () (T.pack "az"))
+    ok (T.foldl  (flip f) () (T.pack "za"))
+    ko (T.foldl' (flip f) () (T.pack "za"))
+  where
+    f c _ = if c == 'z' then error "catchme" else ()
+    ok = evaluate
+    ko t = do
+        x <- try (evaluate t)
+        case x :: Either ErrorCall () of
+            Left _ -> pure ()
+            Right _ -> assertFailure "test should have failed but didn't"
 
 -- Special folds
 
@@ -187,10 +208,12 @@ testFolds =
       testProperty "tl_foldl1'" tl_foldl1',
       testProperty "sf_foldr" sf_foldr,
       testProperty "t_foldr" t_foldr,
+      testProperty "t_foldr'" t_foldr',
       testProperty "tl_foldr" tl_foldr,
       testProperty "sf_foldr1" sf_foldr1,
       testProperty "t_foldr1" t_foldr1,
       testProperty "tl_foldr1" tl_foldr1,
+      testCase "fold_apart" fold_apart,
 
       testGroup "special" [
         testProperty "s_concat_s" s_concat_s,
