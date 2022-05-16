@@ -146,6 +146,8 @@ module Data.Text
     , breakOnEnd
     , break
     , span
+    , spanM
+    , spanEndM
     , group
     , groupBy
     , inits
@@ -206,7 +208,7 @@ module Data.Text
 
 import Prelude (Char, Bool(..), Int, Maybe(..), String,
                 Eq, (==), (/=), Ord(..), Ordering(..), (++),
-                Read(..),
+                Monad(..), pure, Read(..),
                 (&&), (||), (+), (-), (.), ($), ($!), (>>),
                 not, return, otherwise, quot, IO)
 import Control.DeepSeq (NFData(rnf))
@@ -258,6 +260,8 @@ import System.Posix.Types (CSsize(..))
 import System.IO.Unsafe (unsafePerformIO)
 
 -- $setup
+-- >>> :set -package transformers
+-- >>> import Control.Monad.Trans.State
 -- >>> import Data.Text
 -- >>> import qualified Data.Text as T
 -- >>> :seti -XOverloadedStrings
@@ -1428,7 +1432,7 @@ splitAt n t@(Text arr off len)
 -- | /O(n)/ 'span', applied to a predicate @p@ and text @t@, returns
 -- a pair whose first element is the longest prefix (possibly empty)
 -- of @t@ of elements that satisfy @p@, and whose second is the
--- remainder of the list.
+-- remainder of the text.
 --
 -- >>> T.span (=='0') "000AB"
 -- ("000","AB")
@@ -1445,6 +1449,51 @@ span p t = case span_ p t of
 break :: (Char -> Bool) -> Text -> (Text, Text)
 break p = span (not . p)
 {-# INLINE break #-}
+
+-- | /O(length of prefix)/ 'spanM', applied to a monadic predicate @p@,
+-- a text @t@, returns a pair @(t1, t2)@ where @t1@ is the longest prefix of
+-- @t@ whose elements satisfy @p@, and @t2@ is the remainder of the text.
+--
+-- >>> T.spanM (\c -> state $ \i -> (fromEnum c == i, i+1)) "abcefg" `runState` 97
+-- (("abc","efg"),101)
+--
+-- 'span' is 'spanM' specialized to 'Data.Functor.Identity.Identity':
+--
+-- @
+-- -- for all p :: Char -> Bool
+-- 'span' p = 'Data.Functor.Identity.runIdentity' . 'spanM' ('pure' . p)
+-- @
+spanM :: Monad m => (Char -> m Bool) -> Text -> m (Text, Text)
+spanM p t@(Text arr off len) = go 0
+  where
+    go !i | i < len = case iterArray arr (off+i) of
+        Iter c l -> do
+            continue <- p c
+            if continue then go (i+l)
+            else pure (text arr off i, text arr (off+i) (len-i))
+    go _ = pure (t, empty)
+{-# INLINE spanM #-}
+
+-- | /O(length of suffix)/ 'spanEndM', applied to a monadic predicate @p@,
+-- a text @t@, returns a pair @(t1, t2)@ where @t2@ is the longest suffix of
+-- @t@ whose elements satisfy @p@, and @t1@ is the remainder of the text.
+--
+-- >>> T.spanEndM (\c -> state $ \i -> (fromEnum c == i, i-1)) "tuvxyz" `runState` 122
+-- (("tuv","xyz"),118)
+--
+-- @
+-- 'spanEndM' p . 'reverse' = fmap ('Data.Bifunctor.bimap' 'reverse' 'reverse') . 'spanM' p
+-- @
+spanEndM :: Monad m => (Char -> m Bool) -> Text -> m (Text, Text)
+spanEndM p t@(Text arr off len) = go (len-1)
+  where
+    go !i | 0 <= i = case reverseIterArray arr (off+i) of
+        Iter c l -> do
+            continue <- p c
+            if continue then go (i+l)
+            else pure (text arr off (i+1), text arr (off+i+1) (len-i-1))
+    go _ = pure (empty, t)
+{-# INLINE spanEndM #-}
 
 -- | /O(n)/ Group characters in a string according to a predicate.
 groupBy :: (Char -> Char -> Bool) -> Text -> [Text]

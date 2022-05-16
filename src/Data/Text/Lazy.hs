@@ -146,6 +146,8 @@ module Data.Text.Lazy
     , stripEnd
     , splitAt
     , span
+    , spanM
+    , spanEndM
     , breakOn
     , breakOnEnd
     , break
@@ -200,6 +202,7 @@ module Data.Text.Lazy
 
 import Prelude (Char, Bool(..), Maybe(..), String,
                 Eq, (==), Ord(..), Ordering(..), Read(..), Show(..),
+                Monad(..), pure, (<$>),
                 (&&), (+), (-), (.), ($), (++),
                 error, flip, fmap, fromIntegral, not, otherwise, quot)
 import qualified Prelude as P
@@ -272,6 +275,8 @@ import Text.Printf (PrintfArg, formatArg, formatString)
 -- <http://unicode.org/reports/tr36/#Deletion_of_Noncharacters Unicode Technical Report 36, §3.5 >.)
 
 -- $setup
+-- >>> :set -package transformers
+-- >>> import Control.Monad.Trans.State
 -- >>> import Data.Text
 -- >>> import qualified Data.Text as T
 -- >>> :seti -XOverloadedStrings
@@ -1296,13 +1301,56 @@ break p t0 = break' t0
 -- | /O(n)/ 'span', applied to a predicate @p@ and text @t@, returns
 -- a pair whose first element is the longest prefix (possibly empty)
 -- of @t@ of elements that satisfy @p@, and whose second is the
--- remainder of the list.
+-- remainder of the text.
 --
 -- >>> T.span (=='0') "000AB"
 -- ("000","AB")
 span :: (Char -> Bool) -> Text -> (Text, Text)
 span p = break (not . p)
 {-# INLINE span #-}
+
+-- | /O(length of prefix)/ 'spanM', applied to a monadic predicate @p@,
+-- a text @t@, returns a pair @(t1, t2)@ where @t1@ is the longest prefix of
+-- @t@ whose elements satisfy @p@, and @t2@ is the remainder of the text.
+--
+-- >>> T.spanM (\c -> state $ \i -> (fromEnum c == i, i+1)) "abcefg" `runState` 97
+-- (("abc","efg"),101)
+--
+-- 'span' is 'spanM' specialized to 'Data.Functor.Identity.Identity':
+--
+-- @
+-- -- for all p :: Char -> Bool
+-- 'span' p = 'Data.Functor.Identity.runIdentity' . 'spanM' ('pure' . p)
+-- @
+spanM :: Monad m => (Char -> m Bool) -> Text -> m (Text, Text)
+spanM p t0 = go t0
+  where
+    go Empty = pure (empty, empty)
+    go (Chunk t ts) = do
+        (t1, t2) <- T.spanM p t
+        if T.null t2 then first (chunk t) <$> go ts
+        else pure (chunk t1 empty, Chunk t2 ts)
+{-# INLINE spanM #-}
+
+-- | /O(length of suffix)/ 'spanEndM', applied to a monadic predicate @p@,
+-- a text @t@, returns a pair @(t1, t2)@ where @t2@ is the longest suffix of
+-- @t@ whose elements satisfy @p@, and @t1@ is the remainder of the text.
+--
+-- >>> T.spanEndM (\c -> state $ \i -> (fromEnum c == i, i-1)) "tuvxyz" `runState` 122
+-- (("tuv","xyz"),118)
+--
+-- @
+-- 'spanEndM' p . 'reverse' = fmap ('Data.Bifunctor.bimap' 'reverse' 'reverse') . 'spanM' p
+-- @
+spanEndM :: Monad m => (Char -> m Bool) -> Text -> m (Text, Text)
+spanEndM p t0 = go t0
+  where
+    go Empty = pure (empty, empty)
+    go (Chunk t ts) = do
+        (t3, t4) <- go ts
+        if null t3 then (\(t1, t2) -> (chunk t1 empty, chunk t2 ts)) <$> T.spanEndM p t
+        else pure (Chunk t t3, t4)
+{-# INLINE spanEndM #-}
 
 -- | The 'group' function takes a 'Text' and returns a list of 'Text's
 -- such that the concatenation of the result is equal to the argument.
