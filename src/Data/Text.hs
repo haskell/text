@@ -561,13 +561,17 @@ length = P.negate . measureOff P.maxBound
     length (intercalate s ts) = let lenS = length s in max 0 (P.sum (P.map (\t -> length t + lenS) ts) - lenS)
   #-}
 
--- | /O(n)/ Compare the count of characters in a 'Text' to a number.
+-- | /O(min(n,c))/ Compare the count of characters in a 'Text' to a number.
+--
+-- @
+-- 'compareLength' t c = 'P.compare' ('length' t) c
+-- @
 --
 -- This function gives the same answer as comparing against the result
 -- of 'length', but can short circuit if the count of characters is
 -- greater than the number, and hence be more efficient.
 compareLength :: Text -> Int -> Ordering
-compareLength t n = S.compareLengthI (stream t) n
+compareLength t c = S.compareLengthI (stream t) c
 {-# INLINE [1] compareLength #-}
 
 {-# RULES
