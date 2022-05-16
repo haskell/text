@@ -259,6 +259,7 @@ test-suite tests
     tasty-hunit,
     tasty-quickcheck,
     template-haskell,
+    transformers,
     text
 
   -- Plugin infrastructure does not work properly in 8.0.1 and 8.6.1, and
