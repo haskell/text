@@ -12,6 +12,7 @@ module Tests.QuickCheckUtils
     , NotEmpty(..)
     , Sqrt(..)
     , SpacyString(..)
+    , SkewedBool(..)
 
     , Precision(..)
     , precision
@@ -277,3 +278,9 @@ newtype SpacyString = SpacyString { getSpacyString :: String }
 instance Arbitrary SpacyString where
   arbitrary = SpacyString `fmap` listOf arbitrarySpacyChar
   shrink (SpacyString xs) = SpacyString `fmap` shrink xs
+
+newtype SkewedBool = Skewed { getSkewed :: Bool }
+  deriving Show
+
+instance Arbitrary SkewedBool where
+  arbitrary = Skewed <$> frequency [(1, pure False), (5, pure True)]

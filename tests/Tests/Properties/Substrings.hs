@@ -7,6 +7,7 @@ module Tests.Properties.Substrings
     ( testSubstrings
     ) where
 
+import Control.Monad.Trans.State (State, state, runState)
 import Data.Char (isSpace)
 import Test.QuickCheck
 import Test.Tasty (TestTree, testGroup)
@@ -157,6 +158,37 @@ t_inits           = L.inits       `eqP` (map unpackS . T.inits)
 tl_inits          = L.inits       `eqP` (map unpackS . TL.inits)
 t_tails           = L.tails       `eqP` (map unpackS . T.tails)
 tl_tails          = L.tails       `eqPSqrt` (map unpackS . TL.tails)
+
+spanML :: Monad m => (b -> m Bool) -> [b] -> m ([b], [b])
+spanML p s = go [] s
+  where
+    go acc [] = pure (reverse acc, [])
+    go acc ccs@(c : cs) = do
+      continue <- p c
+      if continue then go (c : acc) cs else pure (reverse acc, ccs)
+
+spanEndML :: Monad m => (b -> m Bool) -> [b] -> m ([b], [b])
+spanEndML p s = (\(s1, s2) -> (reverse s2, reverse s1)) <$> spanML p (reverse s)
+
+eqSP :: Stringy s => (String -> State Int (String, String)) -> (s -> State Int (s, s)) -> Property
+eqSP a b = property $ ((`runState` 0) . a) `eqP` ((`runState` 0) . (fmap unpack2 . b))
+
+t_spanM (applyFun2 -> f')
+  = let f c = state $ \i -> (getSkewed (f' i c), i+1) in
+    spanML f `eqSP` T.spanM f
+
+t_spanEndM (applyFun2 -> f')
+  = let f c = state $ \i -> (getSkewed (f' i c), i+1) in
+        spanEndML f `eqSP` T.spanEndM f
+
+tl_spanM (applyFun2 -> f')
+  = let f c = state $ \i -> (getSkewed (f' i c), i+1) in
+    spanML f `eqSP` TL.spanM f
+
+tl_spanEndM (applyFun2 -> f')
+  = let f c = state $ \i -> (getSkewed (f' i c), i+1) in
+    spanEndML f `eqSP` TL.spanEndM f
+
 t_findAppendId = \(Sqrt (NotEmpty s)) ts ->
     let t = T.intercalate s ts
     in conjoin $ map (=== t) $ map (uncurry T.append) (T.breakOnAll s t)
@@ -327,7 +359,11 @@ testSubstrings =
       testProperty "t_inits" t_inits,
       testProperty "tl_inits" tl_inits,
       testProperty "t_tails" t_tails,
-      testProperty "tl_tails" tl_tails
+      testProperty "tl_tails" tl_tails,
+      testProperty "t_spanM" t_spanM,
+      testProperty "t_spanEndM" t_spanEndM,
+      testProperty "tl_spanM" tl_spanM,
+      testProperty "tl_spanEndM" tl_spanEndM
     ],
 
     testGroup "breaking many" [
