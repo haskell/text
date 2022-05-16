@@ -381,7 +381,7 @@ instance Binary Text where
 --
 -- The followup discussion that changed the behavior of 'Data.Set.Set'
 -- and 'Data.Map.Map' is archived here:
--- <http://markmail.org/message/trovdc6zkphyi3cr#query:+page:1+mid:a46der3iacwjcf6n+state:results Proposal: Allow gunfold for Data.Map, ... >
+-- <https://mail.haskell.org/pipermail/libraries/2012-August/018366.html Proposal: Allow gunfold for Data.Map, ... >
 
 instance Data Text where
   gfoldl f z txt = z pack `f` (unpack txt)
