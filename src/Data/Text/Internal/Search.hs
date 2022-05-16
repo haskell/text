@@ -25,8 +25,8 @@
 -- * D. M. Sunday: A Very Fast Substring Search Algorithm.
 --   Communications of the ACM, 33, 8, 132-142 (1990)
 --
--- * F. Lundh: The Fast Search Algorithm.
---   <http://effbot.org/zone/stringlib.htm> (2006)
+-- * F. Lundh:
+--   <http://web.archive.org/web/20201107074620/http://effbot.org/zone/stringlib.htm The Fast Search Algorithm>. (2006)
 
 module Data.Text.Internal.Search
     (
