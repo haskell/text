@@ -1,1 +1,3 @@
 ghcup-jobs: >=8.0
+docspec: True
+docspec-options: --timeout 2
