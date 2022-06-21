@@ -19,23 +19,29 @@ module Data.Text.Lazy.Encoding
     (
     -- * Decoding ByteStrings to Text
     -- $strict
-      decodeASCII
-    , decodeLatin1
-    , decodeUtf8
-    , decodeUtf16LE
-    , decodeUtf16BE
-    , decodeUtf32LE
-    , decodeUtf32BE
 
-    -- ** Catchable failure
+    -- ** Total Functions #total#
+    -- $total
+      decodeLatin1
+
+    -- *** Catchable failure
     , decodeUtf8'
 
-    -- ** Controllable error handling
+    -- *** Controllable error handling
     , decodeUtf8With
     , decodeUtf16LEWith
     , decodeUtf16BEWith
     , decodeUtf32LEWith
     , decodeUtf32BEWith
+
+    -- ** Partial Functions
+    -- $partial
+    , decodeASCII
+    , decodeUtf8
+    , decodeUtf16LE
+    , decodeUtf16BE
+    , decodeUtf32LE
+    , decodeUtf32BE
 
     -- * Encoding Text to ByteStrings
     , encodeUtf8
@@ -77,6 +83,17 @@ import Data.Text.Unsafe (unsafeDupablePerformIO)
 -- For instance, 'decodeUtf8' will throw an exception, but
 -- 'decodeUtf8With' allows the programmer to determine what to do on a
 -- decoding error.
+
+-- $total
+--
+-- These functions facilitate total decoding and should be preferred
+-- over their partial counterparts.
+
+-- $partial
+--
+-- These functions are partial and should only be used with great caution
+-- (preferably not at all). See "Data.Text.Lazy.Encoding#g:total" for better
+-- solutions.
 
 -- | Decode a 'ByteString' containing 7-bit ASCII
 -- encoded text.

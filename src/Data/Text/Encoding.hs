@@ -25,30 +25,38 @@ module Data.Text.Encoding
     (
     -- * Decoding ByteStrings to Text
     -- $strict
-      decodeASCII
-    , decodeLatin1
+
+    -- ** Total Functions #total#
+    -- $total
+      decodeLatin1
+    , decodeUtf8Lenient
+
+    -- *** Catchable failure
+    , decodeUtf8'
+
+    -- *** Controllable error handling
+    , decodeUtf8With
+    , decodeUtf16LEWith
+    , decodeUtf16BEWith
+    , decodeUtf32LEWith
+    , decodeUtf32BEWith
+
+    -- *** Stream oriented decoding
+    -- $stream
+    , streamDecodeUtf8With
+    , Decoding(..)
+
+    -- ** Partial Functions
+    -- $partial
+    , decodeASCII
     , decodeUtf8
     , decodeUtf16LE
     , decodeUtf16BE
     , decodeUtf32LE
     , decodeUtf32BE
 
-    -- ** Catchable failure
-    , decodeUtf8'
-
-    -- ** Controllable error handling
-    , decodeUtf8With
-    , decodeUtf8Lenient
-    , decodeUtf16LEWith
-    , decodeUtf16BEWith
-    , decodeUtf32LEWith
-    , decodeUtf32BEWith
-
-    -- ** Stream oriented decoding
-    -- $stream
+    -- *** Stream oriented decoding
     , streamDecodeUtf8
-    , streamDecodeUtf8With
-    , Decoding(..)
 
     -- * Encoding Text to ByteStrings
     , encodeUtf8
@@ -115,6 +123,17 @@ import Data.Text.Internal.Encoding.Utf8 (CodePoint(..))
 -- For instance, 'decodeUtf8' will throw an exception, but
 -- 'decodeUtf8With' allows the programmer to determine what to do on a
 -- decoding error.
+
+-- $total
+--
+-- These functions facilitate total decoding and should be preferred
+-- over their partial counterparts.
+
+-- $partial
+--
+-- These functions are partial and should only be used with great caution
+-- (preferably not at all). See "Data.Text.Encoding#g:total" for better
+-- solutions.
 
 -- | Decode a 'ByteString' containing 7-bit ASCII
 -- encoded text.
