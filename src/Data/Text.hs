@@ -353,10 +353,21 @@ instance Monoid Text where
     mappend = (<>)
     mconcat = concat
 
+-- | Performs replacement on invalid scalar values:
+--
+-- >>> :set -XOverloadedStrings
+-- >>> "\55555" :: Text
+-- "\65533"
 instance IsString Text where
     fromString = pack
 
--- | @since 1.2.0.0
+-- | Performs replacement on invalid scalar values:
+--
+-- >>> :set -XOverloadedLists
+-- >>> ['\55555'] :: Text
+-- "\65533"
+--
+-- @since 1.2.0.0
 instance Exts.IsList Text where
     type Item Text = Char
     fromList       = pack
@@ -443,7 +454,10 @@ compareText (Text arrA offA lenA) (Text arrB offB lenB) =
 -- * Conversion to/from 'Text'
 
 -- | /O(n)/ Convert a 'String' into a 'Text'.
--- Performs replacement on invalid scalar values.
+-- Performs replacement on invalid scalar values, so @'unpack' . 'pack'@ is not 'id':
+--
+-- >>> unpack (pack "\55555")
+-- "\65533"
 pack :: String -> Text
 pack = unstream . S.map safe . S.streamList
 {-# INLINE [1] pack #-}
