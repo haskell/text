@@ -108,6 +108,11 @@ instance Monoid Builder where
    mconcat = foldr mappend Data.Monoid.mempty
    {-# INLINE mconcat #-}
 
+-- | Performs replacement on invalid scalar values:
+--
+-- >>> :set -XOverloadedStrings
+-- >>> "\55555" :: Builder
+-- "\65533"
 instance String.IsString Builder where
     fromString = fromString
     {-# INLINE fromString #-}
@@ -181,6 +186,12 @@ fromText t@(Text arr off l)
 --
 --  * @'toLazyText' ('fromString' s) = 'L.fromChunks' [S.pack s]@
 --
+-- Performs replacement on invalid scalar values:
+--
+-- >>> fromString "\55555"
+-- "\65533"
+--
+-- @since 1.2.0.0
 fromString :: String -> Builder
 fromString str = Builder $ \k (Buffer p0 o0 u0 l0) ->
     let loop !marr !o !u !l [] = k (Buffer marr o u l)

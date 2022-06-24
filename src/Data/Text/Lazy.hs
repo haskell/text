@@ -316,10 +316,21 @@ instance Monoid Text where
     mappend = (<>)
     mconcat = concat
 
+-- | Performs replacement on invalid scalar values:
+--
+-- >>> :set -XOverloadedStrings
+-- >>> "\55555" :: Data.Text.Lazy.Text
+-- "\65533"
 instance IsString Text where
     fromString = pack
 
--- | @since 1.2.0.0
+-- | Performs replacement on invalid scalar values:
+--
+-- >>> :set -XOverloadedLists
+-- >>> ['\55555'] :: Data.Text.Lazy.Text
+-- "\65533"
+--
+-- @since 1.2.0.0
 instance Exts.IsList Text where
     type Item Text = Char
     fromList       = pack
@@ -372,7 +383,10 @@ textDataType = mkDataType "Data.Text.Lazy.Text" [packConstr]
 
 -- | /O(n)/ Convert a 'String' into a 'Text'.
 --
--- Performs replacement on invalid scalar values.
+-- Performs replacement on invalid scalar values, so @'unpack' . 'pack'@ is not 'id':
+--
+-- >>> Data.Text.Lazy.unpack (Data.Text.Lazy.pack "\55555")
+-- "\65533"
 pack ::
 #if defined(ASSERTS)
   HasCallStack =>
