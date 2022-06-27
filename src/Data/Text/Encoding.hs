@@ -44,6 +44,7 @@ module Data.Text.Encoding
     -- *** Stream oriented decoding
     -- $stream
     , streamDecodeUtf8With
+    , streamDecodeUtf8WithM
     , Decoding(..)
 
     -- ** Partial Functions
@@ -73,13 +74,19 @@ module Data.Text.Encoding
 import Control.Monad.ST.Unsafe (unsafeIOToST, unsafeSTToIO)
 
 import Control.Exception (evaluate, try)
-import Control.Monad.ST (runST, ST)
+import Control.Monad.Fix (fix)
+import Control.Monad.ST (runST)
+import Control.Monad.ST.Trans (runSTT)
+import Control.Monad.ST.Trans.Internal (liftST)
+import Control.Monad.Trans.Class (lift)
 import Data.Bits (shiftR, (.&.))
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Internal as B
 import qualified Data.ByteString.Short.Internal as SBS
-import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode, lenientDecode)
+import Data.Function ((&))
+import Data.Functor.Identity (Identity(..), runIdentity)
+import Data.Text.Encoding.Error (OnDecodeError, OnDecodeErrorM, UnicodeException, strictDecode, lenientDecode)
 import Data.Text.Internal (Text(..), safe, empty, append)
 import Data.Text.Internal.Unsafe (unsafeWithForeignPtr)
 import Data.Text.Internal.Unsafe.Char (unsafeWrite)
@@ -142,13 +149,16 @@ import Data.Text.Internal.Encoding.Utf8 (CodePoint(..))
 -- anything except ASCII and copies buffer or throws an error otherwise.
 --
 decodeASCII :: ByteString -> Text
-decodeASCII bs = withBS bs $ \fp len -> if len == 0 then empty else runST $ do
-  asciiPrefixLen <- fmap cSizeToInt $ unsafeIOToST $ unsafeWithForeignPtr fp $ \src ->
-    c_is_ascii src (src `plusPtr` len)
-  if asciiPrefixLen == len
-  then let !(SBS.SBS arr) = SBS.toShort bs in
-        return (Text (A.ByteArray arr) 0 len)
-  else error $ "decodeASCII: detected non-ASCII codepoint at " ++ show asciiPrefixLen
+decodeASCII bs = withBS bs $ \fp len ->
+  if len == 0
+    then empty
+    else runST $ do
+      asciiPrefixLen <- fmap cSizeToInt . unsafeIOToST . unsafeWithForeignPtr fp $ \src ->
+        c_is_ascii src (src `plusPtr` len)
+      if asciiPrefixLen == len
+      then let !(SBS.SBS arr) = SBS.toShort bs in
+            return (Text (A.ByteArray arr) 0 len)
+      else error $ "decodeASCII: detected non-ASCII codepoint at " ++ show asciiPrefixLen
 
 -- | Decode a 'ByteString' containing Latin-1 (aka ISO-8859-1) encoded text.
 --
@@ -231,7 +241,8 @@ decodeUtf8With onErr bs
     Nothing -> txt'
     Just c  -> T.singleton c `append` txt')
   where
-    (txt, undecoded) = decodeUtf8With2 onErr mempty bs
+    (txt, undecoded) = runIdentity . decodeUtf8With2 mempty bs $ \ desc' mWord8 ->
+      Identity $ onErr desc' mWord8
     txt' = decodeUtf8With onErr (B.tail undecoded)
     desc = "Data.Text.Internal.Encoding: Invalid UTF-8 stream"
 
@@ -240,9 +251,10 @@ decodeUtf8With2 ::
 #if defined(ASSERTS)
   HasCallStack =>
 #endif
-  OnDecodeError -> ByteString -> ByteString -> (Text, ByteString)
-decodeUtf8With2 onErr bs1@(B.length -> len1) bs2@(B.length -> len2) = runST $ do
-  marr <- A.new len'
+  Monad m =>
+  ByteString -> ByteString -> OnDecodeErrorM m -> m (Text, ByteString)
+decodeUtf8With2 bs1@(B.length -> len1) bs2@(B.length -> len2) onErrM = runSTT $ do
+  marr <- liftST $ A.new len'
   outer marr len' 0 0
   where
     len = len1 + len2
@@ -274,11 +286,10 @@ decodeUtf8With2 onErr bs1@(B.length -> len1) bs2@(B.length -> len2) = runST $ do
           | i < len = step (i + 1) (utf8DecodeContinue (index i) a b)
         step _ st = st
 
-    outer :: forall s. A.MArray s -> Int -> Int -> Int -> ST s (Text, ByteString)
     outer dst dstLen = inner
         where
           inner srcOff dstOff
-            | srcOff >= len = do
+            | srcOff >= len = liftST $ do
               A.shrinkM dst dstOff
               arr <- A.unsafeFreeze dst
               return (Text arr 0 dstOff, mempty)
@@ -288,25 +299,27 @@ decodeUtf8With2 onErr bs1@(B.length -> len1) bs2@(B.length -> len2) = runST $ do
             , dstOff + (len1 + guessUtf8Boundary - srcOff) <= dstLen
             , bs <- B.drop (srcOff - len1) (B.take guessUtf8Boundary bs2)
             , isValidBS bs = do
-              withBS bs $ \fp _ -> unsafeIOToST $ unsafeWithForeignPtr fp $ \src ->
+              liftST . withBS bs $ \fp _ -> unsafeIOToST $ unsafeWithForeignPtr fp $ \src ->
                 unsafeSTToIO $ A.copyFromPointer dst dstOff src (len1 + guessUtf8Boundary - srcOff)
               inner (len1 + guessUtf8Boundary) (dstOff + (len1 + guessUtf8Boundary - srcOff))
 
             | dstOff + 4 > dstLen = do
               let dstLen' = dstLen + 4
-              dst' <- A.resizeM dst dstLen'
+              dst' <- liftST $ A.resizeM dst dstLen'
               outer dst' dstLen' srcOff dstOff
 
             | otherwise = case decodeFrom srcOff of
               Accept c -> do
-                d <- unsafeWrite dst dstOff c
+                d <- liftST $ unsafeWrite dst dstOff c
                 inner (srcOff + d) (dstOff + d)
-              Reject -> case onErr desc (Just (index srcOff)) of
-                Nothing -> inner (srcOff + 1) dstOff
-                Just c -> do
-                  d <- unsafeWrite dst dstOff (safe c)
-                  inner (srcOff + 1) (dstOff + d)
-              Incomplete{} -> do
+              Reject -> do
+                res <- lift $ onErrM desc (Just (index srcOff))
+                case res of
+                  Nothing -> inner (srcOff + 1) dstOff
+                  Just c -> do
+                    d <- liftST $ unsafeWrite dst dstOff (safe c)
+                    inner (srcOff + 1) (dstOff + d)
+              Incomplete{} -> liftST $ do
                 A.shrinkM dst dstOff
                 arr <- A.unsafeFreeze dst
                 let bs = if srcOff >= len1
@@ -369,6 +382,22 @@ decodeUtf8With2 onErr bs1@(B.length -> len1) bs2@(B.length -> len2) = runST $ do
 -- If given invalid input, an exception will be thrown by the function
 -- or continuation where it is encountered.
 
+-- | Decode, in a monadic- and stream-oriented way using CPS, a lazy
+-- 'ByteString' containing UTF-8 encoded text.
+streamDecodeUtf8WithM ::
+#if defined(ASSERTS)
+  HasCallStack =>
+#endif
+  Monad m =>
+  ByteString
+  -> OnDecodeErrorM m
+  -> (Text -> ByteString -> (ByteString -> m b) -> m b)
+  -> m b
+streamDecodeUtf8WithM bstr onErrM f = fix (\ go bs1 bs2 -> do
+    (txt, undecoded) <- decodeUtf8With2 bs1 bs2 onErrM
+    f txt undecoded (go undecoded)
+  ) mempty bstr
+
 -- | A stream oriented decoding result.
 --
 -- @since 1.0.0.0
@@ -406,11 +435,11 @@ streamDecodeUtf8With ::
   HasCallStack =>
 #endif
   OnDecodeError -> ByteString -> Decoding
-streamDecodeUtf8With onErr = go mempty
-  where
-    go bs1 bs2 = Some txt undecoded (go undecoded)
-      where
-        (txt, undecoded) = decodeUtf8With2 onErr bs1 bs2
+streamDecodeUtf8With onErr = fix (\ go bs1 bs2 ->
+    runIdentity (decodeUtf8With2 bs1 bs2 (\ desc' mWord8 ->
+      Identity $ onErr desc' mWord8)) & (\ (txt, undecoded) ->
+        Some txt undecoded (go undecoded))
+  ) mempty
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text that is known
 -- to be valid.

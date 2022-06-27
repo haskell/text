@@ -6,6 +6,8 @@ module Tests.Properties.Transcoding
     ( testTranscoding
     ) where
 
+import Control.Concurrent.MVar (newEmptyMVar, tryPutMVar, tryTakeMVar)
+import Control.Monad.Cont (cont, runCont)
 import Data.Bits ((.&.), shiftR)
 import Data.Char (chr, ord)
 import Test.QuickCheck hiding ((.&.))
@@ -21,6 +23,8 @@ import qualified Data.ByteString.Builder.Prim as BP
 import qualified Data.ByteString.Char8 as BC
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString.Lazy.Char8 as BLC
+import Data.Functor.Identity (Identity(..))
+import Data.Maybe (isJust)
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as E
 import qualified Data.Text.Encoding.Error as E
@@ -199,11 +203,40 @@ t_decode_with_error3' =
 t_decode_with_error4' =
   case E.streamDecodeUtf8With (\_ _ -> Just 'x') (B.pack [0xC2, 97, 97, 97]) of
     E.Some x _ _ -> x === "xaaa"
+t_decode_with_error2'' =
+  runIdentity $ E.streamDecodeUtf8WithM (B.pack [0xC2, 97]) (\ _ _ -> pure $ Just 'x')
+    (\ x _ _ -> pure $ x === "xa")
+t_decode_with_error3'' =
+  runIdentity $ E.streamDecodeUtf8WithM (B.pack [0xC2, 97, 97]) (\ _ _ -> pure $ Just 'x')
+    (\ x _ _ -> pure $ x === "xaa")
+t_decode_with_error4'' =
+  runIdentity $ E.streamDecodeUtf8WithM (B.pack [0xC2, 97, 97, 97]) (\ _ _ -> pure $ Just 'x')
+    (\ x _ _ -> pure $ x === "xaaa")
 t_decode_with_error5' = ioProperty $ do
   ret <- Exception.try $ Exception.evaluate $ E.streamDecodeUtf8 (B.pack [0x81])
   pure $ case ret of
     Left (_ :: E.UnicodeException) -> True
     Right{} -> False
+-- log error test
+t_decode_with_error5'' =
+  ioProperty $ do
+    mVar <- newEmptyMVar
+    E.streamDecodeUtf8WithM (B.pack [0xC2, 97, 97, 97])
+      (\desc _ -> do
+        res <- tryPutMVar mVar desc
+        pure . Just $ if res then 'x' else 'y')
+      (\ x _ _ -> do
+        mDesc <- tryTakeMVar mVar
+        pure $ x == "xaaa" && isJust mDesc)
+-- test case demonstrating how to stop processing without 'throw' or 'error'
+t_decode_with_error6'' =
+  runCont (do
+    E.streamDecodeUtf8WithM (B.pack [0xC2, 97, 97, 97])
+      -- early exit
+      (\ _ _ -> cont $ \ _ -> True)
+      -- this should not be executed
+      (\ _ _ _ -> pure False)
+    ) id
 
 t_infix_concat bs1 text bs2 =
   forAll (Blind <$> genDecodeErr Replace) $ \(Blind onErr) ->
@@ -250,7 +283,12 @@ testTranscoding =
       testProperty "t_decode_with_error2'" t_decode_with_error2',
       testProperty "t_decode_with_error3'" t_decode_with_error3',
       testProperty "t_decode_with_error4'" t_decode_with_error4',
+      testProperty "t_decode_with_error2''" t_decode_with_error2'',
+      testProperty "t_decode_with_error3''" t_decode_with_error3'',
+      testProperty "t_decode_with_error4''" t_decode_with_error4'',
       testProperty "t_decode_with_error5'" t_decode_with_error5',
+      testProperty "t_decode_with_error5''" t_decode_with_error5'',
+      testProperty "t_decode_with_error6''" t_decode_with_error6'',
       testProperty "t_infix_concat" t_infix_concat
     ]
   ]
