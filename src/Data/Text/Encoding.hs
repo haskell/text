@@ -93,7 +93,8 @@ import Data.Word (Word8)
 import Foreign.C.Types (CSize(..))
 import Foreign.Ptr (Ptr, minusPtr, plusPtr)
 import Foreign.Storable (poke, peekByteOff)
-import GHC.Exts (byteArrayContents#, runRW#, unsafeCoerce#)
+import GHC.Exts (byteArrayContents#, unsafeCoerce#)
+import GHC.Magic (runRW#)
 import GHC.ForeignPtr (ForeignPtr(..), ForeignPtrContents(PlainPtr))
 import qualified Data.ByteString.Builder as B
 import qualified Data.ByteString.Builder.Internal as B hiding (empty, append)
@@ -331,6 +332,7 @@ decodeUtf8With2 bs1@(B.length -> len1) bs2@(B.length -> len2) onErrM = do
                 in pure (Text arr 0 dstOff, bs)
 
     desc = "Data.Text.Internal.Encoding: Invalid UTF-8 stream"
+{-# NOINLINE decodeUtf8With2 #-}
 
 -- $stream
 --
