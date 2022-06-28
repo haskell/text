@@ -181,15 +181,13 @@ library
     Data.Text.Show
 
   build-depends:
-    STMonadTrans     >= 0.4.6 && < 0.4.7,
     array            >= 0.3 && < 0.6,
     base             >= 4.9 && < 5,
     binary           >= 0.5 && < 0.9,
     bytestring       >= 0.10.4 && < 0.12,
     deepseq          >= 1.1 && < 1.5,
     ghc-prim         >= 0.2 && < 0.10,
-    template-haskell >= 2.5 && < 2.20,
-    transformers
+    template-haskell >= 2.5 && < 2.20
 
   ghc-options: -Wall -fwarn-tabs -funbox-strict-fields -O2
   if flag(developer)
