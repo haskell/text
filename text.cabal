@@ -82,6 +82,7 @@ library
                 cbits/measure_off.c
                 cbits/reverse.c
                 cbits/utils.c
+                cbits/codepoint_offset.c
   hs-source-dirs: src
 
   if flag(simdutf)
