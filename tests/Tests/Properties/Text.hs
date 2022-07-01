@@ -268,21 +268,26 @@ tl_indices_char_drop n c pref suff = map fromIntegral (S.indices s t) === Slow.i
     s = TL.singleton c
     t = TL.drop n $ pref `TL.append` s `TL.append` suff
 
+t_codepointOffset_exists :: T.Text -> Char -> T.Text -> Property
 t_codepointOffset_exists tPrefix target tSuffix =
   let cleanPrefix@(TI.Text _ _ len) = T.filter (/= target) tPrefix
   in T.codepointOffset (cleanPrefix <> T.singleton target <> tSuffix) target === len
 
+t_codepointOffset_missing :: T.Text -> Char -> Bool
 t_codepointOffset_missing t target = T.codepointOffset (T.filter (/= target) t) target == -1
 
+t_breakOnChar_exists :: T.Text -> Char -> T.Text -> Bool
 t_breakOnChar_exists tPrefix target tSuffix =
   let cleanPrefix = T.filter (/= target) tPrefix
       (before, after) = T.breakOnChar target (cleanPrefix <> T.singleton target <> tSuffix)
   in before == cleanPrefix && after == T.singleton target <> tSuffix
 
+t_breakOnChar_missing :: T.Text -> Char -> Bool
 t_breakOnChar_missing t target =
   let filtered = T.filter (/= target) t
   in T.breakOnChar target filtered == (filtered,T.empty)
 
+t_breakOnChar_is_break_eq_char :: T.Text -> Char -> Bool
 t_breakOnChar_is_break_eq_char t c = T.breakOnChar c t == T.break (== c) t
 
 -- Make a stream appear shorter than it really is, to ensure that
