@@ -1833,6 +1833,13 @@ breakOn pat src@(Text arr off len)
                     (x:_) -> (text arr off x, text arr (off+x) (len-x))
 {-# INLINE breakOn #-}
 
+-- | /O(n)/ Equivalent to @breakOn (== c)@ but should be faster.
+--
+-- >>> breakOnChar '/' "foo/bar/"
+-- ("foo","/bar/")
+--
+-- >>> breakOnChar '/' "foobar"
+-- ("foobar","")
 breakOnChar :: Char -> Text -> (Text, Text)
 breakOnChar c src@(Text arr off len) = case codepointOffset src c of
   -1 -> (src, empty)
