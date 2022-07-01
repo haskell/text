@@ -261,7 +261,6 @@ import qualified Language.Haskell.TH.Syntax as TH
 import Text.Printf (PrintfArg, formatArg, formatString)
 import System.Posix.Types (CSsize(..))
 import System.IO.Unsafe (unsafePerformIO)
-import Debug.Trace (traceShow)
 
 -- $setup
 -- >>> :set -package transformers
@@ -1621,11 +1620,9 @@ splitOn pat@(Text _ _ l) src@(Text arr off len)
 -- to the version using @indices@
 splitOn' :: Text -> Text -> [Text]
 splitOn' needle@(Text _ _ nlen) (Text harr hoff0 hlen0) = loop hoff0 hlen0 where
-    -- loop hoff hlen | traceShow ("loop", hoff, hlen, text harr hoff hlen) False = P.undefined
     loop !hoff !hlen | hlen < nlen = [text harr hoff hlen]
     loop _    hlen | hlen <= 0 = []
     loop hoff hlen = case memmem needle (text harr hoff hlen) of
-      -- n | traceShow ("memmem", n) False -> P.undefined
       (-1) -> []
       n    -> text harr hoff (n-hoff) : loop (n + nlen) (hlen - (n-hoff) - nlen)
 
