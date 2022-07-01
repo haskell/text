@@ -38,32 +38,32 @@
  */
 
 static char *
-twobyte_memmem(const unsigned char *h, size_t k, const unsigned char *n)
+twobyte_memmem(const uint8_t *h, size_t hlen, const uint8_t *n)
 {
 	uint16_t nw = n[0] << 8 | n[1], hw = h[0] << 8 | h[1];
-	for (h += 2, k -= 2; k; k--, hw = hw << 8 | *h++)
+	for (h += 2, hlen -= 2; hlen; hlen--, hw = hw << 8 | *h++)
 		if (hw == nw)
 			return (char *)h - 2;
 	return hw == nw ? (char *)h - 2 : 0;
 }
 
 static char *
-threebyte_memmem(const unsigned char *h, size_t k, const unsigned char *n)
+threebyte_memmem(const uint8_t *h, size_t hlen, const uint8_t *n)
 {
 	uint32_t nw = (uint32_t)n[0] << 24 | n[1] << 16 | n[2] << 8;
 	uint32_t hw = (uint32_t)h[0] << 24 | h[1] << 16 | h[2] << 8;
-	for (h += 3, k -= 3; k; k--, hw = (hw | *h++) << 8)
+	for (h += 3, hlen -= 3; hlen; hlen--, hw = (hw | *h++) << 8)
 		if (hw == nw)
 			return (char *)h - 3;
 	return hw == nw ? (char *)h - 3 : 0;
 }
 
 static char *
-fourbyte_memmem(const unsigned char *h, size_t k, const unsigned char *n)
+fourbyte_memmem(const uint8_t *h, size_t hlen, const uint8_t *n)
 {
 	uint32_t nw = (uint32_t)n[0] << 24 | n[1] << 16 | n[2] << 8 | n[3];
 	uint32_t hw = (uint32_t)h[0] << 24 | h[1] << 16 | h[2] << 8 | h[3];
-	for (h += 4, k -= 4; k; k--, hw = hw << 8 | *h++)
+	for (h += 4, hlen -= 4; hlen; hlen--, hw = hw << 8 | *h++)
 		if (hw == nw)
 			return (char *)h - 4;
 	return hw == nw ? (char *)h - 4 : 0;
@@ -84,8 +84,8 @@ fourbyte_memmem(const unsigned char *h, size_t k, const unsigned char *n)
  * Journal of the ACM 38(3):651-675
  */
 static char *
-twoway_memmem(const unsigned char *h, const unsigned char *z,
-							const unsigned char *n, size_t l)
+twoway_memmem(const uint8_t *h, const uint8_t *z,
+							const uint8_t *n, size_t l)
 {
 	size_t i, ip, jp, k, p, ms, p0, mem, mem0;
 	size_t byteset[32 / sizeof(size_t)] = {0};
@@ -215,34 +215,35 @@ twoway_memmem(const unsigned char *h, const unsigned char *z,
 	}
 }
 
+// TODO: If on a system which provides memmem (macOS, FreeBSD, Linux), use it instead
 void *
-_hs_memmem_standard(const void *h0, size_t k, const void *n0, size_t l)
+_hs_memmem_standard(const void *h0, size_t hlen, const void *n0, size_t nlen)
 {
-	const unsigned char *h = h0, *n = n0;
+	const uint8_t *h = h0, *n = n0;
 
 	/* Return immediately on empty needle */
-	if (!l)
+	if (!nlen)
 		return (void *)h;
 
 	/* Return immediately when needle is longer than haystack */
-	if (k < l)
+	if (hlen < nlen)
 		return 0;
 
 	/* Use faster algorithms for short needles */
-	h = memchr(h0, *n, k);
-	if (!h || l == 1)
+	h = memchr(h0, *n, hlen);
+	if (!h || nlen == 1)
 		return (void *)h;
-	k -= h - (const unsigned char *)h0;
-	if (k < l)
+	hlen -= h - (const uint8_t *)h0;
+	if (hlen < nlen)
 		return 0;
-	if (l == 2)
-		return twobyte_memmem(h, k, n);
-	if (l == 3)
-		return threebyte_memmem(h, k, n);
-	if (l == 4)
-		return fourbyte_memmem(h, k, n);
+	if (nlen == 2)
+		return twobyte_memmem(h, hlen, n);
+	if (nlen == 3)
+		return threebyte_memmem(h, hlen, n);
+	if (nlen == 4)
+		return fourbyte_memmem(h, hlen, n);
 
-	return twoway_memmem(h, h + k, n, l);
+	return twoway_memmem(h, h + hlen, n, nlen);
 }
 
 size_t
