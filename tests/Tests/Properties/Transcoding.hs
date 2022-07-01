@@ -6,7 +6,7 @@ module Tests.Properties.Transcoding
     ( testTranscoding
     ) where
 
-import Control.Concurrent.MVar (newEmptyMVar, tryPutMVar, tryTakeMVar)
+import Control.Concurrent.MVar (newEmptyMVar, newMVar, tryPutMVar, tryTakeMVar)
 import Control.Monad.Cont (cont, runCont)
 import Data.Bits ((.&.), shiftR)
 import Data.Char (chr, ord)
@@ -203,40 +203,75 @@ t_decode_with_error3' =
 t_decode_with_error4' =
   case E.streamDecodeUtf8With (\_ _ -> Just 'x') (B.pack [0xC2, 97, 97, 97]) of
     E.Some x _ _ -> x === "xaaa"
-t_decode_with_error2'' =
-  runIdentity $ E.streamDecodeUtf8WithM (B.pack [0xC2, 97]) (\ _ _ -> pure $ Just 'x')
-    (\ x _ _ -> pure $ x === "xa")
-t_decode_with_error3'' =
-  runIdentity $ E.streamDecodeUtf8WithM (B.pack [0xC2, 97, 97]) (\ _ _ -> pure $ Just 'x')
-    (\ x _ _ -> pure $ x === "xaa")
-t_decode_with_error4'' =
-  runIdentity $ E.streamDecodeUtf8WithM (B.pack [0xC2, 97, 97, 97]) (\ _ _ -> pure $ Just 'x')
-    (\ x _ _ -> pure $ x === "xaaa")
 t_decode_with_error5' = ioProperty $ do
   ret <- Exception.try $ Exception.evaluate $ E.streamDecodeUtf8 (B.pack [0x81])
   pure $ case ret of
     Left (_ :: E.UnicodeException) -> True
     Right{} -> False
+t_decode_withM_error1 =
+  runIdentity $ E.streamDecodeUtf8WithM (B.pack [0xC2, 97]) (\ _ _ _ -> pure $ Just 'x')
+    (\ x _ _ _ -> pure $ x === "xa")
+t_decode_withM_error2 =
+  runIdentity $ E.streamDecodeUtf8WithM (B.pack [0xC2, 97, 97]) (\ _ _ _ -> pure $ Just 'x')
+    (\ x _ _ _ -> pure $ x === "xaa")
+t_decode_withM_error3 =
+  runIdentity $ E.streamDecodeUtf8WithM (B.pack [0xC2, 97, 97, 97]) (\ _ _ _ -> pure $ Just 'x')
+    (\ x _ _ _ -> pure $ x === "xaaa")
 -- log error test
-t_decode_with_error5'' =
+t_decode_withM_error4 =
   ioProperty $ do
     mVar <- newEmptyMVar
     E.streamDecodeUtf8WithM (B.pack [0xC2, 97, 97, 97])
-      (\desc _ -> do
+      (\ desc _ _ -> do
         res <- tryPutMVar mVar desc
         pure . Just $ if res then 'x' else 'y')
-      (\ x _ _ -> do
+      (\ x _ _ _ -> do
         mDesc <- tryTakeMVar mVar
         pure $ x == "xaaa" && isJust mDesc)
--- test case demonstrating how to stop processing without 'throw' or 'error'
-t_decode_with_error6'' =
+-- test case demonstrating how to stop processing without 'throw' or 'error' using Either
+t_decode_withM_error5 =
+  case do
+    E.streamDecodeUtf8WithM (B.pack [0xC2, 97, 97, 97])
+      (\ _ errPos _ -> Left errPos)
+      (\ x _ _ _ -> pure x) of
+    Left pos -> pos == 0
+    Right _ -> False
+-- test case demonstrating how to stop processing without 'throw' or 'error' using Maybe
+t_decode_withM_error6 =
+  case do
+    E.streamDecodeUtf8WithM (B.pack [0xC2, 97, 97, 97])
+      (\ _ _ _ -> Nothing)
+      (\ x _ _ _ -> pure x) of
+    Just _ -> False
+    _ -> True
+-- test case demonstrating how to stop processing without 'throw' or 'error' using the continuation monad
+t_decode_withM_error7 =
   runCont (do
     E.streamDecodeUtf8WithM (B.pack [0xC2, 97, 97, 97])
       -- early exit
-      (\ _ _ -> cont $ \ _ -> True)
+      (\ _ _ _ -> cont $ \ _ -> True)
       -- this should not be executed
-      (\ _ _ _ -> pure False)
+      (\ _ _ _ _ -> pure False)
     ) id
+-- feed more data into the stream using the continuation
+t_decode_withM_error8 =
+  ioProperty $ do
+    mVar <- newMVar $ B.pack [84, 101, 115, 116] -- 'T' 'e' 's' 't'
+    E.streamDecodeUtf8WithM (B.pack [0xC2, 97, 97, 97])
+      (\ _ _ _ -> pure $ Just 'x')
+      (\ x _ _ f -> do
+        mBs <- tryTakeMVar mVar
+        case mBs of
+          Just bs -> f bs
+          _ -> pure $ x == "Test")
+tl_decode_withM_error1 =
+  ioProperty (do
+    x <- EL.decodeUtf8WithM (BL.pack [0xC2, 97]) (\ _ _ _ -> pure $ Just 'x')
+    pure $ x == "xa")
+tl_decode_withM_error2 =
+  runIdentity (EL.decodeUtf8WithM (BL.pack [0xE0, 97, 97]) (\ _ _ _ -> pure $ Just 'x')) === "xaa"
+tl_decode_withM_error3 =
+  runIdentity (EL.decodeUtf8WithM (BL.pack [0xF0, 97, 97, 97]) (\ _ _ _ -> pure $ Just 'x')) === "xaaa"
 
 t_infix_concat bs1 text bs2 =
   forAll (Blind <$> genDecodeErr Replace) $ \(Blind onErr) ->
@@ -283,12 +318,18 @@ testTranscoding =
       testProperty "t_decode_with_error2'" t_decode_with_error2',
       testProperty "t_decode_with_error3'" t_decode_with_error3',
       testProperty "t_decode_with_error4'" t_decode_with_error4',
-      testProperty "t_decode_with_error2''" t_decode_with_error2'',
-      testProperty "t_decode_with_error3''" t_decode_with_error3'',
-      testProperty "t_decode_with_error4''" t_decode_with_error4'',
+      testProperty "t_decode_withM_error1" t_decode_withM_error1,
+      testProperty "t_decode_withM_error2" t_decode_withM_error2,
+      testProperty "t_decode_withM_error3" t_decode_withM_error3,
       testProperty "t_decode_with_error5'" t_decode_with_error5',
-      testProperty "t_decode_with_error5''" t_decode_with_error5'',
-      testProperty "t_decode_with_error6''" t_decode_with_error6'',
+      testProperty "t_decode_withM_error4" t_decode_withM_error4,
+      testProperty "t_decode_withM_error5" t_decode_withM_error5,
+      testProperty "t_decode_withM_error6" t_decode_withM_error6,
+      testProperty "t_decode_withM_error7" t_decode_withM_error7,
+      testProperty "t_decode_withM_error8" t_decode_withM_error8,
+      testProperty "tl_decode_withM_error1" tl_decode_withM_error1,
+      testProperty "tl_decode_withM_error2" tl_decode_withM_error2,
+      testProperty "tl_decode_withM_error3" tl_decode_withM_error3,
       testProperty "t_infix_concat" t_infix_concat
     ]
   ]

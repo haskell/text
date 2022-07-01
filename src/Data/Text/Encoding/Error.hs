@@ -60,18 +60,13 @@ import Numeric (showHex)
 -- report.
 type OnError a b = String -> Maybe a -> Maybe b
 
--- | Similar to 'OnError' but in a monadic context which allows
--- additional capabilities. Depending on the monad(s) used, these
--- capabilities include logging decode errors (IO and/or logger monads)
--- and abort processessing without the need to use 'error' or 'throw'
--- (continuation monad).
-type OnErrorM a m b = String -> Maybe a -> m (Maybe b)
-
 -- | A handler for a decoding error.
 type OnDecodeError = OnError Word8 Char
 
--- | A monadic handler for a decoding error.
-type OnDecodeErrorM m = OnErrorM Word8 m Char
+-- | A monadic handler for a decoding error. With certain monads such as
+-- 'Maybe', 'Either', and 'Cont', processessing can be abandoned without
+-- the need to use 'error' or 'throw'.
+type OnDecodeErrorM m = String -> Int -> Maybe Word8 -> m (Maybe Char)
 
 -- | A handler for an encoding error.
 {-# DEPRECATED OnEncodeError "This exception is never used in practice, and will be removed." #-}
