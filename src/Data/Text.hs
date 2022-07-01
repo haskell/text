@@ -266,6 +266,7 @@ import Debug.Trace (traceShow)
 -- $setup
 -- >>> :set -package transformers
 -- >>> import Control.Monad.Trans.State
+-- >>> import Data.Char (isUpper)
 -- >>> import Data.Text
 -- >>> import qualified Data.Text as T
 -- >>> :seti -XOverloadedStrings
@@ -1668,6 +1669,11 @@ Probable fix: add phase [n] or [~n] to the competing rulecompile(-Winline-rule-s
   #-}
 
 
+-- | /O(n)/ Splits a 'Text' into components delimited by the given @Char@.
+-- The behaviour is the same as @split@ but should be faster than @split (== c)@
+--
+-- >>> split (=='a') "aabbaca"
+-- ["","","bb","c",""]
 splitOnChar :: Char -> Text -> [Text]
 splitOnChar _ t@(Text _off _arr 0) = [t]
 splitOnChar c t = loop t
