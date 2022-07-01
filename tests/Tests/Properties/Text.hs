@@ -279,7 +279,11 @@ t_breakOnChar_exists tPrefix target tSuffix =
       (before, after) = T.breakOnChar target (cleanPrefix <> T.singleton target <> tSuffix)
   in before == cleanPrefix && after == T.singleton target <> tSuffix
 
-t_breakOnChar_missing t target = T.breakOnChar target (T.filter (/= target) t) == (t,T.empty)
+t_breakOnChar_missing t target =
+  let filtered = T.filter (/= target) t
+  in T.breakOnChar target filtered == (filtered,T.empty)
+
+t_breakOnChar_is_break_eq_char t c = T.breakOnChar c t == T.break (== c) t
 
 -- Make a stream appear shorter than it really is, to ensure that
 -- functions that consume inaccurately sized streams behave
@@ -392,7 +396,8 @@ testText =
       testProperty "t_codepointOffset_exists" t_codepointOffset_exists,
       testProperty "t_codepointOffset_missing" t_codepointOffset_missing,
       testProperty "t_breakOnChar_exists" t_breakOnChar_exists,
-      testProperty "t_breakOnChar_missing" t_breakOnChar_missing
+      testProperty "t_breakOnChar_missing" t_breakOnChar_missing,
+      testProperty "t_breakOnChar_is_break_eq_char" t_breakOnChar_is_break_eq_char
     ],
 
     testGroup "indexing" [
