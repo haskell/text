@@ -1305,14 +1305,16 @@ measureOff !n (Text (A.ByteArray arr) off len) = if len == 0 then 0 else
 foreign import ccall unsafe "_hs_text_measure_off" c_measure_off
     :: ByteArray# -> CSize -> CSize -> CSize -> IO CSsize
 
--- | O(n) Finds the offset of the first occurrence of @c@ in the @Text@, or
+-- | O(n) Finds the byte offset of the first occurrence of @c@ in the @Text@, or
 -- '-1' if if can't be found.
 codepointOffset :: Text -> Char -> Int
 codepointOffset !(Text (A.ByteArray arr) off len) c = if len == 0 then -1 else
    cSsizeToInt $ unsafeDupablePerformIO $
     c_hs_offset_of_codepoint arr (intToCSize off) (intToCSize len) (intToCSize $ ord c)
 
-
+-- | The input buffer (arr :: ByteArray#, off :: CSize, len :: CSize)
+-- must specify a valid UTF-8 sequence, and the character must be less
+-- than 0x10FFFF, these conditions are not checked.
 foreign import ccall unsafe "_hs_offset_of_codepoint" c_hs_offset_of_codepoint
   ::ByteArray# -> CSize -> CSize -> CSize -> IO CSsize
 
