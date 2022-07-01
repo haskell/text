@@ -143,6 +143,7 @@ module Data.Text
     , stripEnd
     , splitAt
     , breakOn
+    , breakOnChar
     , breakOnEnd
     , break
     , span
@@ -156,6 +157,7 @@ module Data.Text
     -- ** Breaking into many substrings
     -- $split
     , splitOn
+    , splitOn'
     , split
     , chunksOf
 
@@ -204,6 +206,7 @@ module Data.Text
     , unpackCStringAscii#
 
     , measureOff
+    , codepointOffset
     ) where
 
 import Prelude (Char, Bool(..), Int, Maybe(..), String,
@@ -258,6 +261,7 @@ import qualified Language.Haskell.TH.Syntax as TH
 import Text.Printf (PrintfArg, formatArg, formatString)
 import System.Posix.Types (CSsize(..))
 import System.IO.Unsafe (unsafePerformIO)
+import Debug.Trace (traceShow)
 
 -- $setup
 -- >>> :set -package transformers
@@ -411,7 +415,7 @@ instance Data Text where
 instance TH.Lift Text where
 #if MIN_VERSION_template_haskell(2,16,0)
   lift txt = do
-    let (ptr, len) = unsafePerformIO $ asForeignPtr txt 
+    let (ptr, len) = unsafePerformIO $ asForeignPtr txt
     let lenInt = P.fromIntegral len
     TH.appE (TH.appE (TH.varE 'unpackCStringLen#) (TH.litE . TH.bytesPrimL $ TH.mkBytes ptr 0 lenInt)) (TH.lift lenInt)
 #else
@@ -1300,6 +1304,17 @@ measureOff !n (Text (A.ByteArray arr) off len) = if len == 0 then 0 else
 foreign import ccall unsafe "_hs_text_measure_off" c_measure_off
     :: ByteArray# -> CSize -> CSize -> CSize -> IO CSsize
 
+-- | O(n) Finds the offset of the first occurrence of @c@ in the @Text@, or
+-- '-1' if if can't be found.
+codepointOffset :: Text -> Char -> Int
+codepointOffset !(Text (A.ByteArray arr) off len) c = if len == 0 then -1 else
+   cSsizeToInt $ unsafeDupablePerformIO $
+    c_hs_offset_of_codepoint arr (intToCSize off) (intToCSize len) (intToCSize $ ord c)
+
+
+foreign import ccall unsafe "_hs_offset_of_codepoint" c_hs_offset_of_codepoint
+  ::ByteArray# -> CSize -> CSize -> CSize -> IO CSsize
+
 -- | /O(n)/ 'takeEnd' @n@ @t@ returns the suffix remaining after
 -- taking @n@ characters from the end of @t@.
 --
@@ -1528,6 +1543,8 @@ findAIndexOrEnd q t@(Text _arr _off len) = go 0
                 | otherwise             = go (i+d)
                 where Iter c d          = iter t i
 
+
+
 -- | /O(n)/ Group characters in a string by equality.
 group :: Text -> [Text]
 group = groupBy (==)
@@ -1584,7 +1601,7 @@ splitOn :: HasCallStack
         -> [Text]
 splitOn pat@(Text _ _ l) src@(Text arr off len)
     | l <= 0          = emptyError "splitOn"
-    | isSingleton pat = split (== unsafeHead pat) src
+    | isSingleton pat = splitOnChar (unsafeHead pat) src
     | otherwise       = go 0 (indices pat src)
   where
     go !s (x:xs) =  text arr (s+off) (x-s) : go (x+l) xs
@@ -1592,19 +1609,42 @@ splitOn pat@(Text _ _ l) src@(Text arr off len)
 {-# INLINE [1] splitOn #-}
 
 {-# RULES
-"TEXT splitOn/singleton -> split/==" [~1] forall c t.
-    splitOn (singleton c) t = split (==c) t
+"TEXT splitOn/singleton -> splitOnChar" [~1] forall c t.
+    splitOn (singleton c) t = splitOnChar c t
   #-}
+
+splitOn' :: Text -> Text -> [Text]
+splitOn' needle@(Text _ _ nlen) (Text harr hoff0 hlen0) = loop hoff0 hlen0 where
+    -- loop hoff hlen | traceShow ("loop", hoff, hlen, text harr hoff hlen) False = P.undefined
+    loop !hoff !hlen | hlen < nlen = [text harr hoff hlen]
+    loop _    hlen | hlen <= 0 = []
+    loop hoff hlen = case memmem needle (text harr hoff hlen) of
+      -- n | traceShow ("memmem", n) False -> P.undefined
+      (-1) -> []
+      n    -> text harr hoff (n-hoff) : loop (n + nlen) (hlen - (n-hoff) - nlen)
+
+memmem :: Text -> Text -> Int
+memmem (Text (A.ByteArray narr) noff nlen) (Text (A.ByteArray harr) hoff hlen) = unsafeDupablePerformIO $
+  cSsizeToInt
+    P.<$> text_memmem harr (intToCSize hoff) (intToCSize hlen)
+                      narr (intToCSize noff) (intToCSize nlen)
+{-# INLINE memmem #-}
+
+foreign import ccall unsafe "_hs_text_memmem" text_memmem
+    :: ByteArray# -> CSize -> CSize -> ByteArray# -> CSize -> CSize -> IO CSsize
+
 
 -- | /O(n)/ Splits a 'Text' into components delimited by separators,
 -- where the predicate returns True for a separator element.  The
 -- resulting components do not contain the separators.  Two adjacent
--- separators result in an empty component in the output.  eg.
+-- separators result in an empty component in the output.  To split
+-- on a specific character, use @splitOnChar@.
+-- eg.
 --
--- >>> split (=='a') "aabbaca"
--- ["","","bb","c",""]
+-- >>> split isUpper "theQuickBrownFox"
+-- ["the","uick","rown","ox"]
 --
--- >>> split (=='a') ""
+-- >>> split isUpper ""
 -- [""]
 split :: (Char -> Bool) -> Text -> [Text]
 split _ t@(Text _off _arr 0) = [t]
@@ -1613,6 +1653,27 @@ split p t = loop t
                  | otherwise = l : loop (unsafeTail s')
               where (# l, s' #) = span_ (not . p) s
 {-# INLINE split #-}
+
+
+{- TODO Fix:
+Rule "TEXT split/eq1 -> splitOnChar/==" may never fire
+  because rule "Class op ==" for ‘==’ might fire first
+Probable fix: add phase [n] or [~n] to the competing rulecompile(-Winline-rule-shadowing)
+-}
+{-# RULES
+"TEXT split/eq1 -> splitOnChar/==" [~2] forall c t.
+    split (== c) t = splitOnChar c t
+"TEXT split/eq1 -> splitOnChar/==" [~2] forall c t.
+    split (c ==) t = splitOnChar c t
+  #-}
+
+
+splitOnChar :: Char -> Text -> [Text]
+splitOnChar _ t@(Text _off _arr 0) = [t]
+splitOnChar c t = loop t
+      where loop s | null s'   = [l]
+                 | otherwise = l : loop (unsafeTail s')
+              where ( l, s' ) = breakOnChar c s
 
 -- | /O(n)/ Splits a 'Text' into components of length @k@.  The last
 -- element may be shorter than the other chunks, depending on the
@@ -1737,6 +1798,8 @@ filter p = go
 -- is the prefix of @haystack@ before @needle@ is matched.  The second
 -- is the remainder of @haystack@, starting with the match.
 --
+-- To break on a specific character, use @breakOnChar@
+--
 -- Examples:
 --
 -- >>> breakOn "::" "a::b::c"
@@ -1763,6 +1826,12 @@ breakOn pat src@(Text arr off len)
                     []    -> (src, empty)
                     (x:_) -> (text arr off x, text arr (off+x) (len-x))
 {-# INLINE breakOn #-}
+
+breakOnChar :: Char -> Text -> (Text, Text)
+breakOnChar c src@(Text arr off len) = case codepointOffset src c of
+  -1 -> (src, empty)
+  n  -> (text arr off n, text arr (off+n) (len-n) )
+
 
 -- | /O(n+m)/ Similar to 'breakOn', but searches from the end of the
 -- string.

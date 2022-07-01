@@ -23,6 +23,7 @@ import qualified Data.Text.Internal.Fusion.Common as S
 import qualified Data.Text.Internal.Lazy.Fusion as SL
 import qualified Data.Text.Internal.Lazy.Search as S (indices)
 import qualified Data.Text.Internal.Search as T (indices)
+import qualified Data.Text.Internal as TI (Text(..))
 import qualified Data.Text.Lazy as TL
 import qualified Tests.SlowFunctions as Slow
 
@@ -267,6 +268,19 @@ tl_indices_char_drop n c pref suff = map fromIntegral (S.indices s t) === Slow.i
     s = TL.singleton c
     t = TL.drop n $ pref `TL.append` s `TL.append` suff
 
+t_codepointOffset_exists tPrefix target tSuffix =
+  let cleanPrefix@(TI.Text _ _ len) = T.filter (/= target) tPrefix
+  in T.codepointOffset (cleanPrefix <> T.singleton target <> tSuffix) target === len
+
+t_codepointOffset_missing t target = T.codepointOffset (T.filter (/= target) t) target == -1
+
+t_breakOnChar_exists tPrefix target tSuffix =
+  let cleanPrefix = T.filter (/= target) tPrefix
+      (before, after) = T.breakOnChar target (cleanPrefix <> T.singleton target <> tSuffix)
+  in before == cleanPrefix && after == T.singleton target <> tSuffix
+
+t_breakOnChar_missing t target = T.breakOnChar target (T.filter (/= target) t) == (t,T.empty)
+
 -- Make a stream appear shorter than it really is, to ensure that
 -- functions that consume inaccurately sized streams behave
 -- themselves.
@@ -374,7 +388,11 @@ testText =
       testProperty "t_find" t_find,
       testProperty "tl_find" tl_find,
       testProperty "t_partition" t_partition,
-      testProperty "tl_partition" tl_partition
+      testProperty "tl_partition" tl_partition,
+      testProperty "t_codepointOffset_exists" t_codepointOffset_exists,
+      testProperty "t_codepointOffset_missing" t_codepointOffset_missing,
+      testProperty "t_breakOnChar_exists" t_breakOnChar_exists,
+      testProperty "t_breakOnChar_missing" t_breakOnChar_missing
     ],
 
     testGroup "indexing" [
