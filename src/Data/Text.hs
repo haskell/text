@@ -1614,6 +1614,9 @@ splitOn pat@(Text _ _ l) src@(Text arr off len)
     splitOn (singleton c) t = splitOnChar c t
   #-}
 
+
+-- | TODO: Remove - a test to ensure the behaviour using memmem is equivalent
+-- to the version using @indices@
 splitOn' :: Text -> Text -> [Text]
 splitOn' needle@(Text _ _ nlen) (Text harr hoff0 hlen0) = loop hoff0 hlen0 where
     -- loop hoff hlen | traceShow ("loop", hoff, hlen, text harr hoff hlen) False = P.undefined
