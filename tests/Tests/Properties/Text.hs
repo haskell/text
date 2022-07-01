@@ -271,7 +271,7 @@ tl_indices_char_drop n c pref suff = map fromIntegral (S.indices s t) === Slow.i
 t_codepointOffset_exists :: T.Text -> Char -> T.Text -> Property
 t_codepointOffset_exists tPrefix target tSuffix =
   let cleanPrefix@(TI.Text _ _ len) = T.filter (/= target) tPrefix
-  in T.codepointOffset (cleanPrefix <> T.singleton target <> tSuffix) target === len
+  in T.codepointOffset (T.append cleanPrefix $ T.cons target tSuffix) target === len
 
 t_codepointOffset_missing :: T.Text -> Char -> Bool
 t_codepointOffset_missing t target = T.codepointOffset (T.filter (/= target) t) target == -1
@@ -279,8 +279,8 @@ t_codepointOffset_missing t target = T.codepointOffset (T.filter (/= target) t) 
 t_breakOnChar_exists :: T.Text -> Char -> T.Text -> Bool
 t_breakOnChar_exists tPrefix target tSuffix =
   let cleanPrefix = T.filter (/= target) tPrefix
-      (before, after) = T.breakOnChar target (cleanPrefix <> T.singleton target <> tSuffix)
-  in before == cleanPrefix && after == T.singleton target <> tSuffix
+      (before, after) = T.breakOnChar target (T.append cleanPrefix $ T.cons target tSuffix)
+  in before == cleanPrefix && after == T.cons target tSuffix
 
 t_breakOnChar_missing :: T.Text -> Char -> Bool
 t_breakOnChar_missing t target =
