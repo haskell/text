@@ -146,16 +146,13 @@ import GHC.ST (ST(..), STRep)
 -- anything except ASCII and copies buffer or throws an error otherwise.
 --
 decodeASCII :: ByteString -> Text
-decodeASCII bs = withBS bs $ \fp len ->
-  if len == 0
-    then empty
-    else runST $ do
-      asciiPrefixLen <- fmap cSizeToInt . unsafeIOToST . unsafeWithForeignPtr fp $ \src ->
-        c_is_ascii src (src `plusPtr` len)
-      if asciiPrefixLen == len
-      then let !(SBS.SBS arr) = SBS.toShort bs in
-            return (Text (A.ByteArray arr) 0 len)
-      else error $ "decodeASCII: detected non-ASCII codepoint at " ++ show asciiPrefixLen
+decodeASCII bs = withBS bs $ \fp len -> if len == 0 then empty else runST $ do
+  asciiPrefixLen <- fmap cSizeToInt $ unsafeIOToST $ unsafeWithForeignPtr fp $ \src ->
+    c_is_ascii src (src `plusPtr` len)
+  if asciiPrefixLen == len
+  then let !(SBS.SBS arr) = SBS.toShort bs in
+        return (Text (A.ByteArray arr) 0 len)
+  else error $ "decodeASCII: detected non-ASCII codepoint at " ++ show asciiPrefixLen
 
 -- | Decode a 'ByteString' containing Latin-1 (aka ISO-8859-1) encoded text.
 --
@@ -360,10 +357,10 @@ streamDecodeUtf8WithM bstr onErrM f = fix (\ go bp bs1 bs2 -> do
 
         outer dst dstLen = inner
             where
-              inner srcOff dstOff s'#
+              inner srcOff dstOff s0#
                 | srcOff >= len =
-                  case unST (A.shrinkM dst dstOff) s'# of
-                    (# s''#, _ #) -> case unST (A.unsafeFreeze dst) s''# of
+                  case unST (A.shrinkM dst dstOff) s0# of
+                    (# s1#, _ #) -> case unST (A.unsafeFreeze dst) s1# of
                       (# _, arr #) -> pure (Text arr 0 dstOff, (mempty, srcOff))
 
                 | srcOff >= len1
@@ -372,28 +369,36 @@ streamDecodeUtf8WithM bstr onErrM f = fix (\ go bp bs1 bs2 -> do
                 , bs <- B.drop (srcOff - len1) (B.take guessUtf8Boundary bs2)
                 , isValidBS bs =
                   case unST (withBS bs $ \fp _ -> unsafeIOToST . unsafeWithForeignPtr fp $ \src ->
-                        unsafeSTToIO . A.copyFromPointer dst dstOff src $ len1 + guessUtf8Boundary - srcOff) s'# of
-                    (# s''#, _ #) -> inner (len1 + guessUtf8Boundary) (dstOff + (len1 + guessUtf8Boundary - srcOff)) s''#
+                        unsafeSTToIO . A.copyFromPointer dst dstOff src $ len1 + guessUtf8Boundary - srcOff) s0# of
+                    (# s1#, _ #) -> inner (len1 + guessUtf8Boundary) (dstOff + (len1 + guessUtf8Boundary - srcOff)) s1#
 
                 | dstOff + 4 > dstLen =
                   let dstLen' = dstLen + 4 in
-                  case unST (A.resizeM dst dstLen') s'# of
-                    !(# s''#, dst' #) -> outer dst' dstLen' srcOff dstOff s''#
+                  case unST (A.resizeM dst dstLen') s0# of
+                    !(# s1#, dst' #) -> outer dst' dstLen' srcOff dstOff s1#
 
                 | otherwise = case decodeFrom srcOff of
                   Accept c ->
-                    case unST (unsafeWrite dst dstOff c) s'# of
-                      (# s''#, d #) -> inner (srcOff + d) (dstOff + d) s''#
+                    case unST (unsafeWrite dst dstOff c) s0# of
+                      (# s1#, d #) -> inner (srcOff + d) (dstOff + d) s1#
                   Reject -> do
-                    res <- onErrM' desc srcOff . Just $ index srcOff
-                    case res of
-                      Nothing -> inner (srcOff + 1) dstOff s'#
-                      Just c ->
-                        case unST (unsafeWrite dst dstOff $ safe c) s'# of
-                          (# s''#, d #) -> inner (srcOff + 1) (dstOff + d) s''#
+                    -- gonna call this text array done
+                    case unST (A.shrinkM dst dstOff) s0# of
+                      -- might not be necessary
+                      (# s1#, _ #) -> case unST (A.unsafeFreeze dst) s1# of
+                        (# _, arr #) -> do
+                          res <- onErrM' desc srcOff . Just $ index srcOff
+                          -- continue on with a copy of the text array
+                          case runRW# (unST $ A.new dstLen) of
+                            (# s2#, dst' #) -> case unST (A.copyI dstOff dst' 0 arr 0) s2# of
+                              (# s3#, _ #) -> case res of
+                                Just c ->
+                                  case unST (unsafeWrite dst' dstOff $ safe c) s3# of
+                                    (# s4#, d #) -> outer dst' dstLen (srcOff + 1) (dstOff + d) s4#
+                                _ -> outer dst' dstLen (srcOff + 1) dstOff s3#
                   Incomplete{} ->
-                    case unST (A.shrinkM dst dstOff) s'# of
-                      (# s''#, _ #) -> case unST (A.unsafeFreeze dst) s''# of
+                    case unST (A.shrinkM dst dstOff) s0# of
+                      (# s1#, _ #) -> case unST (A.unsafeFreeze dst) s1# of
                         (# _, arr #) ->
                           let bs = if srcOff >= len1
                                 then B.drop (srcOff - len1) bs2
