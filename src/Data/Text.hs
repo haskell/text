@@ -1614,10 +1614,6 @@ splitOn pat@(Text _ _ l) src@(Text arr off len)
   #-}
 
 
-foreign import ccall unsafe "_hs_text_memmem" text_memmem
-    :: ByteArray# -> CSize -> CSize -> ByteArray# -> CSize -> CSize -> IO CSsize
-
-
 -- | /O(n)/ Splits a 'Text' into components delimited by separators,
 -- where the predicate returns True for a separator element.  The
 -- resulting components do not contain the separators.  Two adjacent
