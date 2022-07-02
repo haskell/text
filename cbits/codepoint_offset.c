@@ -37,36 +37,36 @@
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-static char *
+static uint8_t *
 twobyte_memmem(const uint8_t *h, size_t hlen, const uint8_t *n)
 {
 	uint16_t nw = n[0] << 8 | n[1], hw = h[0] << 8 | h[1];
 	for (h += 2, hlen -= 2; hlen; hlen--, hw = hw << 8 | *h++)
 		if (hw == nw)
-			return (char *)h - 2;
-	return hw == nw ? (char *)h - 2 : 0;
+			return (uint8_t *)h - 2;
+	return hw == nw ? (uint8_t *)h - 2 : 0;
 }
 
-static char *
+static uint8_t *
 threebyte_memmem(const uint8_t *h, size_t hlen, const uint8_t *n)
 {
 	uint32_t nw = (uint32_t)n[0] << 24 | n[1] << 16 | n[2] << 8;
 	uint32_t hw = (uint32_t)h[0] << 24 | h[1] << 16 | h[2] << 8;
 	for (h += 3, hlen -= 3; hlen; hlen--, hw = (hw | *h++) << 8)
 		if (hw == nw)
-			return (char *)h - 3;
-	return hw == nw ? (char *)h - 3 : 0;
+			return (uint8_t *)h - 3;
+	return hw == nw ? (uint8_t *)h - 3 : 0;
 }
 
-static char *
+static uint8_t *
 fourbyte_memmem(const uint8_t *h, size_t hlen, const uint8_t *n)
 {
 	uint32_t nw = (uint32_t)n[0] << 24 | n[1] << 16 | n[2] << 8 | n[3];
 	uint32_t hw = (uint32_t)h[0] << 24 | h[1] << 16 | h[2] << 8 | h[3];
 	for (h += 4, hlen -= 4; hlen; hlen--, hw = hw << 8 | *h++)
 		if (hw == nw)
-			return (char *)h - 4;
-	return hw == nw ? (char *)h - 4 : 0;
+			return (uint8_t *)h - 4;
+	return hw == nw ? (uint8_t *)h - 4 : 0;
 }
 
 static int _hs_codepoint_to_utf8(uint8_t asUtf8[4], uint32_t codepoint)
@@ -108,7 +108,7 @@ size_t _hs_offset_of_codepoint(const uint8_t *haystack0, const size_t hoffset, c
 	const int codepointLen = _hs_codepoint_to_utf8(asUtf8, needle);
 
 	// Skip to first location that could contain the character.
-	const uint8_t *haystackFirst = memchr(haystack, asUtf8[0], hlen0);
+	uint8_t *haystackFirst = (uint8_t *)memchr(haystack, asUtf8[0], hlen0);
 
 	if (haystackFirst)
 	{
