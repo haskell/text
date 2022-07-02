@@ -157,7 +157,6 @@ module Data.Text
     -- ** Breaking into many substrings
     -- $split
     , splitOn
-    , splitOn'
     , split
     , chunksOf
 
@@ -1615,23 +1614,6 @@ splitOn pat@(Text _ _ l) src@(Text arr off len)
     splitOn (singleton c) t = splitOnChar c t
   #-}
 
-
--- | TODO: Remove - a test to ensure the behaviour using memmem is equivalent
--- to the version using @indices@
-splitOn' :: Text -> Text -> [Text]
-splitOn' needle@(Text _ _ nlen) (Text harr hoff0 hlen0) = loop hoff0 hlen0 where
-    loop !hoff !hlen | hlen < nlen = [text harr hoff hlen]
-    loop _    hlen | hlen <= 0 = []
-    loop hoff hlen = case memmem needle (text harr hoff hlen) of
-      (-1) -> []
-      n    -> text harr hoff (n-hoff) : loop (n + nlen) (hlen - (n-hoff) - nlen)
-
-memmem :: Text -> Text -> Int
-memmem (Text (A.ByteArray narr) noff nlen) (Text (A.ByteArray harr) hoff hlen) = unsafeDupablePerformIO $
-  cSsizeToInt
-    P.<$> text_memmem harr (intToCSize hoff) (intToCSize hlen)
-                      narr (intToCSize noff) (intToCSize nlen)
-{-# INLINE memmem #-}
 
 foreign import ccall unsafe "_hs_text_memmem" text_memmem
     :: ByteArray# -> CSize -> CSize -> ByteArray# -> CSize -> CSize -> IO CSsize
