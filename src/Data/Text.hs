@@ -1304,7 +1304,7 @@ measureOff !n (Text (A.ByteArray arr) off len) = if len == 0 then 0 else
 foreign import ccall unsafe "_hs_text_measure_off" c_measure_off
     :: ByteArray# -> CSize -> CSize -> CSize -> IO CSsize
 
--- | O(n) Finds the byte offset of the first occurrence of @c@ in the @Text@, or
+-- | /O(n)/ Finds the byte offset of the first occurrence of @c@ in the @Text@, or
 -- '-1' if if can't be found.
 codepointOffset :: Text -> Char -> Int
 codepointOffset !(Text (A.ByteArray arr) off len) c = if len == 0 then -1 else
@@ -1544,8 +1544,6 @@ findAIndexOrEnd q t@(Text _arr _off len) = go 0
     where go !i | i >= len || q c       = i
                 | otherwise             = go (i+d)
                 where Iter c d          = iter t i
-
-
 
 -- | /O(n)/ Group characters in a string by equality.
 group :: Text -> [Text]
