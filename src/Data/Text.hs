@@ -158,6 +158,7 @@ module Data.Text
     -- $split
     , splitOn
     , split
+    , splitOnChar
     , chunksOf
 
     -- ** Breaking into lines and words
