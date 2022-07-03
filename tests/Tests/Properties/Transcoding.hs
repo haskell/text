@@ -205,44 +205,47 @@ t_decode_with_error5' = ioProperty $ do
     Left (_ :: E.UnicodeException) -> True
     Right{} -> False
 
+whenEqProp a b next = if a == b
+  then next
+  else a === b
+
 t_decode_with_error2'' =
   case E.streamDecodeUtf8With' (B.pack [97, 0xC2, 97]) of
-    E.InvalidWord t pos mWord8 f -> if pos /= 1
-      then pos =/= 1
-      else case mWord8 of
-        Just 0xC2 -> case f $ Just 'x' of
+    E.InvalidWord t pos word8 f -> whenEqProp pos 1
+      . whenEqProp word8 0xC2
+        $ case f $ Just 'x' of
           E.Ok x -> t `T.append` x === "axa"
           _ -> counterexample "Should have recovered from the invalid word (\\xC2)" False
-        Just y -> y =/= 0xC2
-        _ -> counterexample "Should have been something instead of Nothing" False
     _ -> counterexample "The second word (\\xC2) should have been invalid" False
 t_decode_with_error3'' =
   case E.streamDecodeUtf8With' (B.pack [97, 0xC2, 97]) of
-    E.InvalidWord t pos mWord8 f -> if pos /= 1
-      then pos =/= 1
-      else case mWord8 of
-        Just 0xC2 -> case f Nothing of
+    E.InvalidWord t pos word8 f -> whenEqProp pos 1
+      . whenEqProp word8 0xC2
+        $ case f Nothing of
           E.Ok x -> t `T.append` x === "aa"
           _ -> counterexample "Should have recovered from the invalid word (\\xC2)" False
-        Just y -> y =/= 0xC2
-        _ -> counterexample "Should have been something instead of Nothing" False
     _ -> counterexample "The second word (\\xC2) should have been invalid" False
 t_decode_with_error4'' =
   case E.streamDecodeUtf8With' (B.pack [104, 105, 32, 0xe2]) of -- hi \xe2
-    E.IncompleteCodePoint t pos bs f -> if pos /= 3
-      then pos =/= 3
-      else if bs /= B.pack [0xe2]
-        then bs =/= B.pack [0xe2]
-        else case f (B.pack [0x98]) of
-          E.IncompleteCodePoint t' pos' bs' f' -> if pos' /= 0
-            then pos' =/= 0
-            else if bs' /= B.pack [0xe2, 0x98]
-              then bs' =/= B.pack [0xe2, 0x98]
-              else case f' (B.pack [0x83]) of
-                E.Ok x -> "hi ☃" === t `T.append` t' `T.append` x
-                _ -> counterexample "Should have been a completely decoded text." False
+    E.IncompleteCodePoint t pos bs f -> whenEqProp pos 3
+      . whenEqProp bs (B.pack [0xe2])
+        $ case f (B.pack [0x98]) of
+          E.IncompleteCodePoint t' pos' bs' f' -> whenEqProp pos' 3
+            . whenEqProp bs' (B.pack [0xe2, 0x98])
+              $ case f' (B.pack [0x83, 32, 0xFF]) of
+                E.InvalidWord t'' pos'' word8 f'' -> whenEqProp pos'' 7
+                  . whenEqProp word8 0xFF
+                    $ case f'' $ Just 'x' of
+                      E.Ok x -> "hi ☃ x" === t `T.append` t' `T.append` t'' `T.append` x
+                      _ -> counterexample "Should have been decoded text." False
+                _ -> counterexample "Should have been an invalid word." False
           _ -> counterexample "Should have encountered an incomplete code point." False
     _ -> counterexample "Should have encountered an incomplete code point." False
+t_decode_with_error5'' =
+  case E.streamDecodeUtf8With' (B.pack [104, 105, 32, 0xe2, 0x98, 104]) of -- not quite "hi ☃", the last byte is wrong
+    E.IncompleteCodePoint _ _ _ _ -> counterexample "Not incomplete, but an invalid word." False
+    E.Ok x -> counterexample ("What??? " ++ show x) False
+    E.InvalidWord _ pos mWord8 _ -> counterexample ("Invalid word " ++ show mWord8 ++ " at byte position " ++ show pos ++ ".") True
 
 t_infix_concat bs1 text bs2 =
   forAll (Blind <$> genDecodeErr Replace) $ \(Blind onErr) ->
@@ -293,6 +296,7 @@ testTranscoding =
       testProperty "t_decode_with_error2''" t_decode_with_error2'',
       testProperty "t_decode_with_error3''" t_decode_with_error3'',
       testProperty "t_decode_with_error4''" t_decode_with_error4'',
+      testProperty "t_decode_with_error5''" t_decode_with_error5'',
       testProperty "t_infix_concat" t_infix_concat
     ]
   ]
