@@ -29,7 +29,6 @@ module Data.Text.Lazy.Encoding
 
     -- *** Controllable error handling
     , decodeUtf8With
-    , decodeUtf8WithM
     , decodeUtf16LEWith
     , decodeUtf16BEWith
     , decodeUtf32LEWith
@@ -57,12 +56,8 @@ module Data.Text.Lazy.Encoding
     ) where
 
 import Control.Exception (evaluate, try)
-import Control.Monad.Fix (fix)
-import Control.Monad.State (evalStateT, get, state)
-import Control.Monad.Trans.Class (lift)
-import Data.Functor.Identity (Identity(..))
 import Data.Monoid (Monoid(..))
-import Data.Text.Encoding.Error (OnDecodeError, OnDecodeErrorM, UnicodeException, strictDecode)
+import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode)
 import Data.Text.Internal.Lazy (Text(..), chunk, empty, foldrChunks)
 import Data.Word (Word8)
 import qualified Data.ByteString as S
@@ -111,31 +106,24 @@ decodeLatin1 = foldr (chunk . TE.decodeLatin1) empty . B.toChunks
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text.
 decodeUtf8With :: OnDecodeError -> B.ByteString -> Text
-decodeUtf8With onErr = runIdentity . flip decodeUtf8WithM (const . (Identity .) . onErr)
-
--- | Decode a 'ByteString' containing UTF-8 encoded text in a monad context.
-decodeUtf8WithM :: Monad m => B.ByteString -> OnDecodeErrorM m -> m Text
-decodeUtf8WithM (B.Chunk sb lb) onErrM =
-  evalStateT (TE.streamDecodeUtf8WithM sb (((lift .) .) . onErrM) (\ t cp bp f -> do
-    (lb', diff) <- get
-    case lb' of
-      B.Chunk sb' lb'' -> do
-        state $ const ((), (lb'', diff . chunk t))
-        f sb'
-      _ -> do
-        t'' <- lift $ fix (\ f' bp' cp' t' ->
-          case S.uncons cp' of
-            Just (word8, cp'') -> do
-              mC <- onErrM desc bp' $ Just word8
-              f' (bp' + 1) cp'' $ case mC of
-                Just c -> t' `T.snoc` c
-                _ -> t'
-            _ -> pure t') bp cp t
-        pure . diff $ Chunk t'' Empty
-    )) (lb, id)
+decodeUtf8With onErr (B.Chunk b0 bs0) =
+    case TE.streamDecodeUtf8With onErr b0 of
+      TE.Some t l f -> chunk t (go f l bs0)
   where
+    go f0 _ (B.Chunk b bs) =
+      case f0 b of
+        TE.Some t l f -> chunk t (go f l bs)
+    go _ l _
+      | S.null l  = empty
+      | otherwise =
+        let !t = T.pack (skipBytes l)
+            skipBytes = S.foldr (\x s' ->
+                  case onErr desc (Just x) of
+                    Just c -> c : s'
+                    Nothing -> s') [] in
+        Chunk t Empty
     desc = "Data.Text.Lazy.Encoding.decodeUtf8With: Invalid UTF-8 stream"
-decodeUtf8WithM _ _ = pure empty
+decodeUtf8With _ _ = empty
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text that is known
 -- to be valid.

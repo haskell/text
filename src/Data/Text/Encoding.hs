@@ -1,5 +1,5 @@
 {-# LANGUAGE BangPatterns, CPP, GeneralizedNewtypeDeriving, MagicHash,
-    UnliftedFFITypes, UnboxedTuples #-}
+    UnliftedFFITypes #-}
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -36,7 +36,6 @@ module Data.Text.Encoding
 
     -- *** Controllable error handling
     , decodeUtf8With
-    , decodeUtf8WithM
     , decodeUtf16LEWith
     , decodeUtf16BEWith
     , decodeUtf32LEWith
@@ -46,8 +45,9 @@ module Data.Text.Encoding
     -- $stream
     , streamDecodeUtf8
     , streamDecodeUtf8With
-    , streamDecodeUtf8WithM
+    , streamDecodeUtf8With'
     , Decoding(..)
+    , StreamDecode(..)
 
     -- ** Partial Functions
     -- $partial
@@ -73,15 +73,13 @@ module Data.Text.Encoding
 import Control.Monad.ST.Unsafe (unsafeIOToST, unsafeSTToIO)
 
 import Control.Exception (evaluate, try)
-import Control.Monad.Fix (fix)
-import Control.Monad.ST (runST)
+import Control.Monad.ST (runST, ST)
 import Data.Bits (shiftR, (.&.))
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Internal as B
 import qualified Data.ByteString.Short.Internal as SBS
-import Data.Functor.Identity (Identity(..), runIdentity)
-import Data.Text.Encoding.Error (OnDecodeError, OnDecodeErrorM, UnicodeException, strictDecode, lenientDecode)
+import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode, lenientDecode)
 import Data.Text.Internal (Text(..), safe, empty, append)
 import Data.Text.Internal.Unsafe (unsafeWithForeignPtr)
 import Data.Text.Internal.Unsafe.Char (unsafeWrite)
@@ -92,7 +90,6 @@ import Foreign.C.Types (CSize(..))
 import Foreign.Ptr (Ptr, minusPtr, plusPtr)
 import Foreign.Storable (poke, peekByteOff)
 import GHC.Exts (byteArrayContents#, unsafeCoerce#)
-import GHC.Magic (runRW#)
 import GHC.ForeignPtr (ForeignPtr(..), ForeignPtrContents(PlainPtr))
 import qualified Data.ByteString.Builder as B
 import qualified Data.ByteString.Builder.Internal as B hiding (empty, append)
@@ -113,7 +110,6 @@ import Foreign.C.Types (CInt(..))
 import qualified Data.ByteString.Unsafe as B
 import Data.Text.Internal.Encoding.Utf8 (CodePoint(..))
 #endif
-import GHC.ST (ST(..), STRep)
 
 -- $strict
 --
@@ -226,37 +222,24 @@ decodeUtf8With ::
   HasCallStack =>
 #endif
   OnDecodeError -> ByteString -> Text
-decodeUtf8With onErr bs =
-  runIdentity $ decodeUtf8WithM bs (\ desc' _ mWord8 -> Identity $ onErr desc' mWord8)
-
-decodeUtf8WithM ::
-#if defined(ASSERTS)
-  HasCallStack =>
-#endif
-  Monad m =>
-  ByteString -> OnDecodeErrorM m -> m Text
-decodeUtf8WithM bs onErrM =
-  streamDecodeUtf8WithM bs onErrM (\ t bs' bytePos _ ->
-    fix (\ f bp bs'' t' ->
-      case B.uncons bs'' of
-        Just (word8, bs''') -> do
-          mC <- onErrM desc bp $ Just word8
-          f (bp + 1) bs''' $ case mC of
-            Just c -> t' `append` T.singleton c
-            _ -> t'
-        _ -> pure t') bytePos bs' t
-  )
+decodeUtf8With onErr bs = case streamDecodeUtf8With onErr bs of
+  Some t unencoded _ -> codePointToInvalid unencoded t
   where
-    desc = "Data.Text.Internal.Encoding: Invalid UTF-8 stream"
+    codePointToInvalid bs' txt =
+      case B.uncons bs' of
+        Just (x, bs'') -> codePointToInvalid bs'' $ case onErr desc $ Just x of
+          Just c -> append txt $ T.singleton c
+          _ -> txt
+        _ -> txt
 
-unST :: ST s a -> STRep s a
-unST (ST st) = st
+    desc = "Data.Text.Internal.Encoding: Incomplete UTF-8 code point"
 
 -- $stream
 --
--- The 'streamDecodeUtf8' and 'streamDecodeUtf8With' functions accept
--- a 'ByteString' that represents a possibly incomplete input (e.g. a
--- packet from a network stream) that may not end on a UTF-8 boundary.
+-- The 'streamDecodeUtf8',  'streamDecodeUtf8With', and
+-- 'streamDecodeUtf8With'' functions accept a 'ByteString' that
+-- represents a possibly incomplete input (e.g. a packet from a network
+-- stream) that may not end on a UTF-8 boundary.
 --
 -- 1. The maximal prefix of 'Text' that could be decoded from the
 --    given input.
@@ -305,108 +288,6 @@ unST (ST st) = st
 -- If given invalid input, an exception will be thrown by the function
 -- or continuation where it is encountered.
 
--- | Decode, in a monadic- and stream-oriented way using CPS, a lazy
--- 'ByteString' containing UTF-8 encoded text.
-streamDecodeUtf8WithM ::
-#if defined(ASSERTS)
-  HasCallStack =>
-#endif
-  Monad m =>
-  ByteString
-  -> OnDecodeErrorM m
-  -> (Text -> ByteString -> Int -> (ByteString -> m b) -> m b)
-  -> m b
-streamDecodeUtf8WithM bstr onErrM f = fix (\ go bp bs1 bs2 -> do
-    (txt, (undecoded, bytePos)) <- decodeUtf8With2 bs1 bs2 (\ desc bp'' mWord8 -> onErrM desc (bp'' + bp) mWord8)
-    let bp' = bytePos + bp
-    f txt undecoded bp' $ go bp' undecoded
-  ) 0 mempty bstr
-  where
-    decodeUtf8With2 bs1@(B.length -> len1) bs2@(B.length -> len2) onErrM' = do
-      case runRW# $ unST (A.new len') of
-        (# s#, marr #) -> outer marr len' 0 0 s#
-      where
-        len = len1 + len2
-        len' = len + 4
-
-        index i
-          | i < len1  = B.index bs1 i
-          | otherwise = B.index bs2 $ i - len1
-
-        -- We need Data.ByteString.findIndexEnd, but it is unavailable before bytestring-0.10.12.0
-        guessUtf8Boundary :: Int
-        guessUtf8Boundary
-          | len2 >= 1 && w0 <  0x80 = len2     -- last char is ASCII
-          | len2 >= 1 && w0 >= 0xC0 = len2 - 1 -- last char starts a code point
-          | len2 >= 2 && w1 >= 0xC0 = len2 - 2 -- pre-last char starts a code point
-          | len2 >= 3 && w2 >= 0xC0 = len2 - 3
-          | len2 >= 4 && w3 >= 0xC0 = len2 - 4
-          | otherwise = 0
-          where
-            w0 = B.index bs2 $ len2 - 1
-            w1 = B.index bs2 $ len2 - 2
-            w2 = B.index bs2 $ len2 - 3
-            w3 = B.index bs2 $ len2 - 4
-
-        decodeFrom :: Int -> DecoderResult
-        decodeFrom off = step (off + 1) . utf8DecodeStart $ index off
-          where
-            step i (Incomplete a b)
-              | i < len = step (i + 1) $ utf8DecodeContinue (index i) a b
-            step _ st = st
-
-        outer dst dstLen = inner
-            where
-              inner srcOff dstOff s0#
-                | srcOff >= len =
-                  case unST (A.shrinkM dst dstOff) s0# of
-                    (# s1#, _ #) -> case unST (A.unsafeFreeze dst) s1# of
-                      (# _, arr #) -> pure (Text arr 0 dstOff, (mempty, srcOff))
-
-                | srcOff >= len1
-                , srcOff < len1 + guessUtf8Boundary
-                , dstOff + (len1 + guessUtf8Boundary - srcOff) <= dstLen
-                , bs <- B.drop (srcOff - len1) (B.take guessUtf8Boundary bs2)
-                , isValidBS bs =
-                  case unST (withBS bs $ \fp _ -> unsafeIOToST . unsafeWithForeignPtr fp $ \src ->
-                        unsafeSTToIO . A.copyFromPointer dst dstOff src $ len1 + guessUtf8Boundary - srcOff) s0# of
-                    (# s1#, _ #) -> inner (len1 + guessUtf8Boundary) (dstOff + (len1 + guessUtf8Boundary - srcOff)) s1#
-
-                | dstOff + 4 > dstLen =
-                  let dstLen' = dstLen + 4 in
-                  case unST (A.resizeM dst dstLen') s0# of
-                    !(# s1#, dst' #) -> outer dst' dstLen' srcOff dstOff s1#
-
-                | otherwise = case decodeFrom srcOff of
-                  Accept c ->
-                    case unST (unsafeWrite dst dstOff c) s0# of
-                      (# s1#, d #) -> inner (srcOff + d) (dstOff + d) s1#
-                  Reject -> do
-                    -- gonna call this text array done
-                    case unST (A.shrinkM dst dstOff) s0# of
-                      -- might not be necessary
-                      (# s1#, _ #) -> case unST (A.unsafeFreeze dst) s1# of
-                        (# _, arr #) -> do
-                          res <- onErrM' desc srcOff . Just $ index srcOff
-                          -- continue on with a copy of the text array
-                          case runRW# (unST $ A.new dstLen) of
-                            (# s2#, dst' #) -> case unST (A.copyI dstOff dst' 0 arr 0) s2# of
-                              (# s3#, _ #) -> case res of
-                                Just c ->
-                                  case unST (unsafeWrite dst' dstOff $ safe c) s3# of
-                                    (# s4#, d #) -> outer dst' dstLen (srcOff + 1) (dstOff + d) s4#
-                                _ -> outer dst' dstLen (srcOff + 1) dstOff s3#
-                  Incomplete{} ->
-                    case unST (A.shrinkM dst dstOff) s0# of
-                      (# s1#, _ #) -> case unST (A.unsafeFreeze dst) s1# of
-                        (# _, arr #) ->
-                          let bs = if srcOff >= len1
-                                then B.drop (srcOff - len1) bs2
-                                else B.drop srcOff $ bs1 `B.append` bs2 in
-                          pure (Text arr 0 dstOff, (bs, srcOff))
-
-        desc = "Data.Text.Internal.Encoding: Invalid UTF-8 stream"
-
 -- | A stream oriented decoding result.
 --
 -- @since 1.0.0.0
@@ -444,9 +325,122 @@ streamDecodeUtf8With ::
   HasCallStack =>
 #endif
   OnDecodeError -> ByteString -> Decoding
-streamDecodeUtf8With onErr bs = runIdentity $ streamDecodeUtf8WithM bs
-  (\ desc _ mWord8 -> Identity $ onErr desc mWord8)
-  (\ txt undecoded _ f -> Identity . Some txt undecoded $ runIdentity . f)
+streamDecodeUtf8With onErr = go empty . streamDecodeUtf8With'
+  where
+    go t res = case res of
+      Ok txt -> Some (t `append` txt) mempty $ go empty . streamDecodeUtf8With'
+      IncompleteCodePoint txt _ bs f -> Some (t `append` txt) bs $ go empty . f
+      InvalidWord txt _ mWord8 f -> go (t `append` txt) . f $ onErr desc mWord8
+
+    desc = "Data.Text.Internal.Encoding: Invalid UTF-8 stream"
+
+-- | A stream-oriented decoding result of one of three possibilities:
+--
+--     * 'Ok' - Decoded text without issue.
+--     * 'IncompleteCodePoint' - An incomplete code point at the end of
+-- the 'ByteString' which includes the position in the 'ByteString'
+-- where the code point start, the incomplete code point, and a
+-- continuation that accepts another 'ByteString' as a continuation of
+-- the initial input.
+--     * 'InvalidWord' - An invalid utf-8 'Word8' which includes the
+-- position of in the 'ByteString' where the invalid data occurs, the
+-- offending 'Word8', and a continuation that accepts as what 'Char' it
+-- should be interpreted if any.
+data StreamDecode =
+    Ok !Text
+  | IncompleteCodePoint !Text !Int !ByteString (ByteString -> StreamDecode)
+  | InvalidWord !Text !Int !(Maybe Word8) (Maybe Char -> StreamDecode)
+
+-- | Like 'streamDecodeUtf8With', but instead of accepting an
+-- 'OnDecodeError' callback, it returns a 'StreamDecode' identifying
+-- whether the 'ByteString' decoded without issue, it encountered an
+-- incomplete code point at the end of the 'ByteString', or an invalid
+-- 'Word8'.
+streamDecodeUtf8With' :: ByteString -> StreamDecode
+streamDecodeUtf8With' bs = decodeWithPossibleStartChar Nothing bs mempty
+  where
+    decodeWithPossibleStartChar :: Maybe Char -> ByteString -> ByteString -> StreamDecode
+    decodeWithPossibleStartChar mStartChar bs1@(B.length -> len1) bs2@(B.length -> len2) = runST $ do
+      marr <- A.new len'
+      case mStartChar of
+        Just c -> do
+          d <- unsafeWrite marr 0 (safe c)
+          outer marr len' 0 d
+        _ -> outer marr len' 0 0
+      where
+        len = len1 + len2
+        len' = len + 4
+
+        index i
+          | i < len1  = B.index bs1 i
+          | otherwise = B.index bs2 (i - len1)
+
+        -- We need Data.ByteString.findIndexEnd, but it is unavailable before bytestring-0.10.12.0
+        guessUtf8Boundary :: Int
+        guessUtf8Boundary
+          | len2 >= 1 && w0 <  0x80 = len2     -- last char is ASCII
+          | len2 >= 1 && w0 >= 0xC0 = len2 - 1 -- last char starts a code point
+          | len2 >= 2 && w1 >= 0xC0 = len2 - 2 -- pre-last char starts a code point
+          | len2 >= 3 && w2 >= 0xC0 = len2 - 3
+          | len2 >= 4 && w3 >= 0xC0 = len2 - 4
+          | otherwise = 0
+          where
+            w0 = B.index bs2 (len2 - 1)
+            w1 = B.index bs2 (len2 - 2)
+            w2 = B.index bs2 (len2 - 3)
+            w3 = B.index bs2 (len2 - 4)
+
+        decodeFrom :: Int -> DecoderResult
+        decodeFrom off = step (off + 1) (utf8DecodeStart (index off))
+          where
+            step i (Incomplete a b)
+              | i < len = step (i + 1) (utf8DecodeContinue (index i) a b)
+            step _ st = st
+
+        outer :: forall s. A.MArray s -> Int -> Int -> Int -> ST s StreamDecode
+        outer dst dstLen = inner
+            where
+              inner srcOff dstOff
+                | srcOff >= len = do
+                  A.shrinkM dst dstOff
+                  arr <- A.unsafeFreeze dst
+                  pure . Ok $ Text arr 0 dstOff
+
+                | srcOff >= len1
+                , srcOff < len1 + guessUtf8Boundary
+                , dstOff + (len1 + guessUtf8Boundary - srcOff) <= dstLen
+                , bs' <- B.drop (srcOff - len1) (B.take guessUtf8Boundary bs2)
+                , isValidBS bs' = do
+                  withBS bs' $ \fp _ -> unsafeIOToST $ unsafeWithForeignPtr fp $ \src ->
+                    unsafeSTToIO $ A.copyFromPointer dst dstOff src (len1 + guessUtf8Boundary - srcOff)
+                  inner (len1 + guessUtf8Boundary) (dstOff + (len1 + guessUtf8Boundary - srcOff))
+
+                | dstOff + 4 > dstLen = do
+                  let dstLen' = dstLen + 4
+                  dst' <- A.resizeM dst dstLen'
+                  outer dst' dstLen' srcOff dstOff
+
+                | otherwise = case decodeFrom srcOff of
+                  Accept c -> do
+                    d <- unsafeWrite dst dstOff c
+                    inner (srcOff + d) (dstOff + d)
+                  Reject -> do
+                    A.shrinkM dst dstOff
+                    arr <- A.unsafeFreeze dst
+                    let srcOff' = srcOff + 1
+                        bs' = if srcOff' >= len1
+                          then B.drop (srcOff' - len1) bs2
+                          else B.drop srcOff' (bs1 `B.append` bs2)
+                    pure . InvalidWord (Text arr 0 dstOff) srcOff (Just $ index srcOff) $ \ mChar ->
+                      decodeWithPossibleStartChar mChar bs' mempty
+                  Incomplete{} -> do
+                    A.shrinkM dst dstOff
+                    arr <- A.unsafeFreeze dst
+                    let bs' = if srcOff >= len1
+                          then B.drop (srcOff - len1) bs2
+                          else B.drop srcOff (bs1 `B.append` bs2)
+                    pure . IncompleteCodePoint (Text arr 0 dstOff) srcOff bs' $
+                      decodeWithPossibleStartChar Nothing bs'
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text that is known
 -- to be valid.

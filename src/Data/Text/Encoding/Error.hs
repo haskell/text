@@ -25,7 +25,6 @@ module Data.Text.Encoding.Error
       UnicodeException(..)
     , OnError
     , OnDecodeError
-    , OnDecodeErrorM
     , OnEncodeError
     -- * Useful error handling functions
     , lenientDecode
@@ -62,11 +61,6 @@ type OnError a b = String -> Maybe a -> Maybe b
 
 -- | A handler for a decoding error.
 type OnDecodeError = OnError Word8 Char
-
--- | A monadic handler for a decoding error. With certain monads such as
--- 'Maybe', 'Either', and 'Cont', processessing can be abandoned without
--- the need to use 'error' or 'throw'.
-type OnDecodeErrorM m = String -> Int -> Maybe Word8 -> m (Maybe Char)
 
 -- | A handler for an encoding error.
 {-# DEPRECATED OnEncodeError "This exception is never used in practice, and will be removed." #-}
