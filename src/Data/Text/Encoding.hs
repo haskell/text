@@ -338,8 +338,8 @@ streamDecodeUtf8With onErr = go empty . streamDecodeUtf8With'
 data StreamDecode
   -- | The 'ByteString' was decoded without issue.
   = Ok
-    -- | The decoded text.
-    !Text
+      -- | The decoded text.
+      !Text
   -- | An incomplete code point at the end of the 'ByteString'.
   | IncompleteCodePoint
       -- | The decoded text up to but not including the incomplete code
