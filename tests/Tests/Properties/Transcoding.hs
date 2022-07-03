@@ -300,3 +300,4 @@ testTranscoding =
       testProperty "t_infix_concat" t_infix_concat
     ]
   ]
+  

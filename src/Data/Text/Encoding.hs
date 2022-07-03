@@ -336,35 +336,21 @@ streamDecodeUtf8With onErr = go empty . streamDecodeUtf8With'
 
 -- | A stream-oriented decoding result of one of three possibilities.
 data StreamDecode
-  -- | The 'ByteString' was decoded without issue.
-  = Ok
-      -- | The decoded text.
-      !Text
-  -- | An incomplete code point at the end of the 'ByteString'.
-  | IncompleteCodePoint
-      -- | The decoded text up to but not including the incomplete code
-      -- point.
-      !Text
-      -- | The position in the 'ByteString' where the code point
-      -- starts.
-      !Int
-      -- | The incomplete code point.
-      !ByteString
-      -- | A function that accepts another 'ByteString' as a
-      -- continuation of the previous input.
-      (ByteString -> StreamDecode)
-  -- | An invalid utf-8 'Word8'.
-  | InvalidWord
-      -- | The decoded text up to but not including the invalid
-      -- 'Word8'.
-      !Text
-      -- | The position in the 'ByteString' of the offending 'Word8'.
-      !Int
-      -- | The offender.
-      !Word8
-      -- | A function that accepts a possible 'Char' as to interpret
-      -- the 'Word8' in this specific occurrence of it.
-      (Maybe Char -> StreamDecode)
+  -- | The 'ByteString' was decoded without issue. The value contains the
+  -- resulting 'Text'.
+  = Ok !Text
+  -- | An incomplete code point at the end of the 'ByteString'. The value
+  -- contains the decoded text up to but not including the incomplete
+  -- code point, the position in the 'ByteString' where the code point
+  -- starts, the incomplete code point, and a function that accepts
+  -- another 'ByteString' as a continuation of the previous input.
+  | IncompleteCodePoint !Text !Int !ByteString (ByteString -> StreamDecode)
+  -- | An invalid utf-8 'Word8'. The value contains the decoded text up
+  -- to but not including the invalid 'Word8', the position in the
+  -- 'ByteString' of the offending 'Word8', the offender, and a
+  -- function that accepts a possible 'Char' as to interpret the
+  -- 'Word8' in this specific occurrence of it.
+  | InvalidWord !Text !Int !Word8 (Maybe Char -> StreamDecode)
 
 -- | Like 'streamDecodeUtf8With', but instead of accepting an
 -- 'OnDecodeError' callback and returning a 'Decoding', it returns a
