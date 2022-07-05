@@ -209,43 +209,45 @@ whenEqProp a b next = if a == b
   then next
   else a === b
 
-t_decode_with_error2'' =
-  case E.streamDecodeUtf8With' (B.pack [97, 0xC2, 97]) of
+t_decode_utf8_with_error1 =
+  case E.streamDecodeUtf8With' $ B.pack [97, 0xC2, 97] of
     E.InvalidWord t pos word8 f -> whenEqProp pos 1
       . whenEqProp word8 0xC2
         $ case f $ Just 'x' of
-          E.Ok x -> t `T.append` x === "axa"
+          E.ThusFar x pos' bs _ -> whenEqProp (t `T.append` x) "axa"
+            . whenEqProp bs B.empty $ pos' === 3
           _ -> counterexample "Should have recovered from the invalid word (\\xC2)" False
     _ -> counterexample "The second word (\\xC2) should have been invalid" False
-t_decode_with_error3'' =
-  case E.streamDecodeUtf8With' (B.pack [97, 0xC2, 97]) of
+t_decode_utf8_with_error2 =
+  case E.streamDecodeUtf8With' $ B.pack [97, 0xC2, 97] of
     E.InvalidWord t pos word8 f -> whenEqProp pos 1
       . whenEqProp word8 0xC2
         $ case f Nothing of
-          E.Ok x -> t `T.append` x === "aa"
+          E.ThusFar x pos' bs _ -> whenEqProp (t `T.append` x) "aa"
+            . whenEqProp bs B.empty $ pos' === 3
           _ -> counterexample "Should have recovered from the invalid word (\\xC2)" False
     _ -> counterexample "The second word (\\xC2) should have been invalid" False
-t_decode_with_error4'' =
-  case E.streamDecodeUtf8With' (B.pack [104, 105, 32, 0xe2]) of -- hi \xe2
-    E.IncompleteCodePoint t pos bs f -> whenEqProp pos 3
+t_decode_utf8_with_error3 =
+  case E.streamDecodeUtf8With' $ B.pack [104, 105, 32, 0xe2] of -- hi \xe2
+    E.ThusFar t pos bs f -> whenEqProp pos 3
       . whenEqProp bs (B.pack [0xe2])
-        $ case f (B.pack [0x98]) of
-          E.IncompleteCodePoint t' pos' bs' f' -> whenEqProp pos' 3
+        $ case f $ B.pack [0x98] of
+          E.ThusFar t' pos' bs' f' -> whenEqProp pos' 3
             . whenEqProp bs' (B.pack [0xe2, 0x98])
-              $ case f' (B.pack [0x83, 32, 0xFF]) of
+              $ case f' $ B.pack [0x83, 32, 0xFF] of
                 E.InvalidWord t'' pos'' word8 f'' -> whenEqProp pos'' 7
                   . whenEqProp word8 0xFF
                     $ case f'' $ Just 'x' of
-                      E.Ok x -> "hi ☃ x" === t `T.append` t' `T.append` t'' `T.append` x
+                      E.ThusFar x pos''' bs'' _ -> whenEqProp (t `T.append` t' `T.append` t'' `T.append` x) "hi ☃ x"
+                        . whenEqProp pos''' 8 $ bs'' === B.empty
                       _ -> counterexample "Should have been decoded text." False
                 _ -> counterexample "Should have been an invalid word." False
           _ -> counterexample "Should have encountered an incomplete code point." False
     _ -> counterexample "Should have encountered an incomplete code point." False
-t_decode_with_error5'' =
-  case E.streamDecodeUtf8With' (B.pack [104, 105, 32, 0xe2, 0x98, 104]) of -- not quite "hi ☃", the last byte is wrong
-    E.IncompleteCodePoint _ _ _ _ -> counterexample "Not incomplete, but an invalid word." False
-    E.Ok x -> counterexample ("What??? " ++ show x) False
-    E.InvalidWord _ pos mWord8 _ -> counterexample ("Invalid word " ++ show mWord8 ++ " at byte position " ++ show pos ++ ".") True
+t_decode_utf8_with_error4 =
+  case E.streamDecodeUtf8With' $ B.pack [104, 105, 32, 0xe2, 0x98, 104] of -- not quite "hi ☃", the last byte is wrong
+    E.ThusFar _ _ _ _ -> counterexample "Not incomplete, but an invalid word." False
+    E.InvalidWord t pos word8 _ -> whenEqProp t "hi " . whenEqProp pos 3 $ word8 === 0xe2
 
 t_infix_concat bs1 text bs2 =
   forAll (Blind <$> genDecodeErr Replace) $ \(Blind onErr) ->
@@ -293,10 +295,10 @@ testTranscoding =
       testProperty "t_decode_with_error3'" t_decode_with_error3',
       testProperty "t_decode_with_error4'" t_decode_with_error4',
       testProperty "t_decode_with_error5'" t_decode_with_error5',
-      testProperty "t_decode_with_error2''" t_decode_with_error2'',
-      testProperty "t_decode_with_error3''" t_decode_with_error3'',
-      testProperty "t_decode_with_error4''" t_decode_with_error4'',
-      testProperty "t_decode_with_error5''" t_decode_with_error5'',
+      testProperty "t_decode_utf8_with_error1" t_decode_utf8_with_error1,
+      testProperty "t_decode_utf8_with_error2" t_decode_utf8_with_error2,
+      testProperty "t_decode_utf8_with_error3" t_decode_utf8_with_error3,
+      testProperty "t_decode_utf8_with_error4" t_decode_utf8_with_error4,
       testProperty "t_infix_concat" t_infix_concat
     ]
   ]

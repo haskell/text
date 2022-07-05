@@ -74,7 +74,7 @@ import Control.Monad.ST.Unsafe (unsafeIOToST, unsafeSTToIO)
 
 import Control.Exception (evaluate, try)
 import Control.Monad.ST (runST, ST)
-import Data.Bits (shiftR, (.&.))
+import Data.Bits (shiftL, shiftR, (.&.), (.|.))
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Internal as B
@@ -328,38 +328,35 @@ streamDecodeUtf8With ::
 streamDecodeUtf8With onErr = go empty . streamDecodeUtf8With'
   where
     go t res = case res of
-      Ok txt -> Some (t `append` txt) mempty $ go empty . streamDecodeUtf8With'
-      IncompleteCodePoint txt _ bs f -> Some (t `append` txt) bs $ go empty . f
+      ThusFar txt _ bs f -> Some (t `append` txt) bs $ go empty . f
       InvalidWord txt _ word8 f -> go (t `append` txt) . f . onErr desc $ Just word8
 
     desc = "Data.Text.Internal.Encoding: Invalid UTF-8 stream"
 
 -- | A stream-oriented decoding result of one of three possibilities.
-data StreamDecode
-  -- | The 'ByteString' was decoded without issue. The value contains the
-  -- resulting 'Text'.
-  = Ok !Text
-  -- | An incomplete code point at the end of the 'ByteString'. The value
-  -- contains the decoded text up to but not including the incomplete
-  -- code point, the position in the 'ByteString' where the code point
-  -- starts, the incomplete code point, and a function that accepts
-  -- another 'ByteString' as a continuation of the previous input.
-  | IncompleteCodePoint !Text !Int !ByteString (ByteString -> StreamDecode)
-  -- | An invalid utf-8 'Word8'. The value contains the decoded text up
-  -- to but not including the invalid 'Word8', the position in the
-  -- 'ByteString' of the offending 'Word8', the offender, and a
-  -- function that accepts a possible 'Char' as to interpret the
-  -- 'Word8' in this specific occurrence of it.
-  | InvalidWord !Text !Int !Word8 (Maybe Char -> StreamDecode)
+data StreamDecode w
+  -- | The decoded 'Text' thus far with a possibly incomplete code
+  -- point at the end of the 'ByteString'. The value contains the
+  -- decoded text up to but not including the incomplete code point,
+  -- the position in the 'ByteString' where the code point starts,
+  -- the incomplete code point, and a function that accepts another
+  -- 'ByteString' as a continuation of the previous input.
+  = ThusFar !Text !Int !ByteString (ByteString -> StreamDecode w)
+  -- | An encounter witt an invalid utf-8 'Word8'. The value contains
+  -- the decoded text up to but not including the invalid 'Word8',
+  -- the position in the 'ByteString' of the offending 'Word8', the
+  -- offender, and a function that accepts a possible 'Char' as to
+  -- interpret the 'Word8' in this specific occurrence of it.
+  | InvalidWord !Text !Int !w (Maybe Char -> StreamDecode w)
 
 -- | Like 'streamDecodeUtf8With', but instead of accepting an
 -- 'OnDecodeError' callback and returning a 'Decoding', it returns a
 -- 'StreamDecode'.
-streamDecodeUtf8With' :: ByteString -> StreamDecode
-streamDecodeUtf8With' bs = decodeWithPossibleStartChar Nothing 0 bs mempty
+streamDecodeUtf8With' :: ByteString -> StreamDecode Word8
+streamDecodeUtf8With' bs = decodeAtOffset Nothing 0 bs mempty
   where
-    decodeWithPossibleStartChar :: Maybe Char -> Int -> ByteString -> ByteString -> StreamDecode
-    decodeWithPossibleStartChar mStartChar bytePos bs1@(B.length -> len1) bs2@(B.length -> len2) = runST $ do
+    decodeAtOffset :: Maybe Char -> Int -> ByteString -> ByteString -> StreamDecode Word8
+    decodeAtOffset mStartChar bytePos bs1@(B.length -> len1) bs2@(B.length -> len2) = runST $ do
       marr <- A.new len'
       case mStartChar of
         Just c -> do
@@ -367,6 +364,7 @@ streamDecodeUtf8With' bs = decodeWithPossibleStartChar Nothing 0 bs mempty
           outer marr len' 0 d
         _ -> outer marr len' 0 0
       where
+        wordByteSize = 1
         len = len1 + len2
         len' = len + 4
 
@@ -396,14 +394,11 @@ streamDecodeUtf8With' bs = decodeWithPossibleStartChar Nothing 0 bs mempty
               | i < len = step (i + 1) $ utf8DecodeContinue (index i) a b
             step _ st = st
 
-        outer :: forall s. A.MArray s -> Int -> Int -> Int -> ST s StreamDecode
+        outer :: forall s. A.MArray s -> Int -> Int -> Int -> ST s (StreamDecode Word8)
         outer dst dstLen = inner
             where
               inner srcOff dstOff
-                | srcOff >= len = do
-                  A.shrinkM dst dstOff
-                  arr <- A.unsafeFreeze dst
-                  pure . Ok $ Text arr 0 dstOff
+                | srcOff >= len = thusFar
 
                 | srcOff >= len1
                 , srcOff < len1 + guessUtf8Boundary
@@ -420,26 +415,40 @@ streamDecodeUtf8With' bs = decodeWithPossibleStartChar Nothing 0 bs mempty
                   outer dst' dstLen' srcOff dstOff
 
                 | otherwise =
-                  let contin off res = do
-                        A.shrinkM dst dstOff
-                        arr <- A.unsafeFreeze dst
-                        let bs' = if off >= len1
-                              then B.drop (off - len1) bs2
-                              else B.drop off $ bs1 `B.append` bs2
-                        pure $ res arr bs'
-                  in
                   case decodeFrom srcOff of
                     Accept c -> do
                       d <- unsafeWrite dst dstOff c
                       inner (srcOff + d) $ dstOff + d
-                    Reject -> let srcOff' = srcOff + 1 in
-                      contin srcOff' $ \ arr bs' ->
-                        InvalidWord (Text arr 0 dstOff) (bytePos + srcOff) (index srcOff) $ \ mChar ->
-                          decodeWithPossibleStartChar mChar (bytePos + srcOff') bs' mempty
-                    Incomplete{} -> let bytePos' = bytePos + srcOff in
-                      contin srcOff $ \ arr bs' ->
-                        IncompleteCodePoint (Text arr 0 dstOff) bytePos' bs' $
-                          decodeWithPossibleStartChar Nothing bytePos' bs'
+                    Reject -> invalid
+                    Incomplete{} -> thusFar
+                where
+                  wrapUp f = do
+                    A.shrinkM dst dstOff
+                    arr <- A.unsafeFreeze dst
+                    f $ Text arr 0 dstOff
+                  continue off res = wrapUp $ \ t ->
+                    pure . res t $ if off >= len1
+                      then
+                        if off >= len
+                          then B.empty
+                          else B.drop (off - len1) bs2
+                      else B.drop off $ bs1 `B.append` bs2
+                  thusFar =
+                    let bytePos' = bytePos + srcOff in
+                    continue srcOff $ \ t bs' ->
+                      ThusFar t bytePos' bs' $
+                        decodeAtOffset Nothing bytePos' bs'
+                  invalid =
+                    let srcOff' = srcOff + wordByteSize
+                        bytesToWord n word =
+                          if n > 0
+                            then bytesToWord (n - 1) $
+                              (fromIntegral . index $ srcOff + wordByteSize - n) .|. (word `shiftL` 8)
+                            else word
+                    in
+                    continue srcOff' $ \ t bs' ->
+                      InvalidWord t (bytePos + srcOff) (bytesToWord wordByteSize 0) $ \ mChar' ->
+                        decodeAtOffset mChar' (bytePos + srcOff') bs' mempty
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text that is known
 -- to be valid.
