@@ -27,6 +27,9 @@ import qualified Data.Text.Encoding.Error as E
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as EL
 
+t_asciiE t    = E.decodeAsciiE (E.encodeUtf8 a) === Right a
+    where a  = T.map (\c -> chr (ord c `mod` 128)) t
+
 t_ascii t    = E.decodeASCII (E.encodeUtf8 a) === a
     where a  = T.map (\c -> chr (ord c `mod` 128)) t
 tl_ascii t   = EL.decodeASCII (EL.encodeUtf8 a) === a
@@ -249,6 +252,78 @@ t_decode_utf8_with_error4 =
     E.ThusFar _ _ _ _ -> counterexample "Not incomplete, but an invalid word." False
     E.InvalidWord t pos word8 _ -> whenEqProp t "hi " . whenEqProp pos 3 $ word8 === 0xe2
 
+t_decode_utf16BE_with_error =
+  case E.streamDecodeUtf16With True $ B.pack [0] of
+    E.ThusFar t pos bs f -> whenEqProp pos 0
+      . whenEqProp bs (B.pack [0])
+        $ case f $ B.pack [104, 0, 105, 0, 32, 0xD8, 0x01] of
+          E.ThusFar t' pos' bs' f' -> whenEqProp pos' 6
+            . whenEqProp bs' (B.pack [0xD8, 0x01])
+              $ case f' $ B.pack [0xDC, 0x37, 0, 32, 0xDC, 0] of
+                E.InvalidWord t'' pos'' word16 f'' -> whenEqProp pos'' 12
+                  . whenEqProp word16 (0xDC `Bits.shiftL` 8)
+                    $ case f'' $ Just 'x' of
+                      E.ThusFar x pos''' bs'' _ -> whenEqProp (t `T.append` t' `T.append` t'' `T.append` x) "hi \x10437 x"
+                        . whenEqProp pos''' 14 $ bs'' === B.empty
+                      _ -> counterexample "Should have been decoded text." False
+                _ -> counterexample "Should have been an invalid word." False
+          _ -> counterexample "Should have encountered an incomplete code point." False
+    _ -> counterexample "Should have encountered an incomplete code point." False
+
+t_decode_utf16LE_with_error =
+  case E.streamDecodeUtf16With False $ B.pack [104] of
+    E.ThusFar t pos bs f -> whenEqProp pos 0
+      . whenEqProp bs (B.pack [104])
+        $ case f $ B.pack [0, 105, 0, 32, 0, 0x01, 0xD8] of
+          E.ThusFar t' pos' bs' f' -> whenEqProp pos' 6
+            . whenEqProp bs' (B.pack [0x01, 0xD8])
+              $ case f' $ B.pack [0x37, 0xDC, 32, 0, 0, 0xDC] of
+                E.InvalidWord t'' pos'' word16 f'' -> whenEqProp pos'' 12
+                  . whenEqProp word16 0xDC
+                    $ case f'' $ Just 'x' of
+                      E.ThusFar x pos''' bs'' _ -> whenEqProp (t `T.append` t' `T.append` t'' `T.append` x) "hi \x10437 x"
+                        . whenEqProp pos''' 14 $ bs'' === B.empty
+                      _ -> counterexample "Should have been decoded text." False
+                _ -> counterexample "Should have been an invalid word." False
+          _ -> counterexample "Should have encountered an incomplete code point." False
+    _ -> counterexample "Should have encountered an incomplete code point." False
+
+t_decode_utf32BE_with_error =
+  case E.streamDecodeUtf32With True $ B.pack [0, 0, 0, 104, 0, 0, 0, 105, 0, 0] of -- hi \xe2
+    E.ThusFar t pos bs f -> whenEqProp pos 8
+      . whenEqProp bs (B.pack [0, 0])
+        $ case f $ B.pack [0, 32, 0, 0, 0x26] of
+          E.ThusFar t' pos' bs' f' -> whenEqProp pos' 12
+            . whenEqProp bs' (B.pack [0, 0, 0x26])
+              $ case f' $ B.pack [0x03, 0, 0, 0, 32, 0, 0, 0xD8, 0] of
+                E.InvalidWord t'' pos'' word32 f'' -> whenEqProp pos'' 20
+                  . whenEqProp word32 0x0000D800
+                    $ case f'' $ Just 'x' of
+                      E.ThusFar x pos''' bs'' _ -> whenEqProp (t `T.append` t' `T.append` t'' `T.append` x) "hi ☃ x"
+                        . whenEqProp pos''' 24 $ bs'' === B.empty
+                      _ -> counterexample "Should have been decoded text." False
+                _ -> counterexample "Should have been an invalid word." False
+          _ -> counterexample "Should have encountered an incomplete code point." False
+    _ -> counterexample "Should have encountered an incomplete code point." False
+
+t_decode_utf32LE_with_error =
+  case E.streamDecodeUtf32With False $ B.pack [104, 0, 0, 0, 105, 0, 0, 0, 32, 0] of -- hi \xe2
+    E.ThusFar t pos bs f -> whenEqProp pos 8
+      . whenEqProp bs (B.pack [32, 0])
+        $ case f $ B.pack [0, 0, 0x03, 0x26, 0] of
+          E.ThusFar t' pos' bs' f' -> whenEqProp pos' 12
+            . whenEqProp bs' (B.pack [0x03, 0x26, 0])
+              $ case f' $ B.pack [0, 32, 0, 0, 0, 0, 0xD8, 0, 0] of
+                E.InvalidWord t'' pos'' word32 f'' -> whenEqProp pos'' 20
+                  . whenEqProp word32 0x00D80000
+                    $ case f'' $ Just 'x' of
+                      E.ThusFar x pos''' bs'' _ -> whenEqProp (t `T.append` t' `T.append` t'' `T.append` x) "hi ☃ x"
+                        . whenEqProp pos''' 24 $ bs'' === B.empty
+                      _ -> counterexample "Should have been decoded text." False
+                _ -> counterexample "Should have been an invalid word." False
+          _ -> counterexample "Should have encountered an incomplete code point." False
+    _ -> counterexample "Should have encountered an incomplete code point." False
+
 t_infix_concat bs1 text bs2 =
   forAll (Blind <$> genDecodeErr Replace) $ \(Blind onErr) ->
   text `T.isInfixOf`
@@ -257,6 +332,7 @@ t_infix_concat bs1 text bs2 =
 testTranscoding :: TestTree
 testTranscoding =
   testGroup "transcoding" [
+    testProperty "t_asciiE" t_asciiE,
     testProperty "t_ascii" t_ascii,
     testProperty "tl_ascii" tl_ascii,
     testProperty "t_latin1" t_latin1,
@@ -299,6 +375,10 @@ testTranscoding =
       testProperty "t_decode_utf8_with_error2" t_decode_utf8_with_error2,
       testProperty "t_decode_utf8_with_error3" t_decode_utf8_with_error3,
       testProperty "t_decode_utf8_with_error4" t_decode_utf8_with_error4,
+      testProperty "t_decode_utf16BE_with_error" t_decode_utf16BE_with_error,
+      testProperty "t_decode_utf16LE_with_error" t_decode_utf16LE_with_error,
+      testProperty "t_decode_utf32BE_with_error" t_decode_utf32BE_with_error,
+      testProperty "t_decode_utf32LE_with_error" t_decode_utf32LE_with_error,
       testProperty "t_infix_concat" t_infix_concat
     ]
   ]
