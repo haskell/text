@@ -361,7 +361,7 @@ data StreamDecode w
   -- the incomplete code point, and a function that accepts another
   -- 'ByteString' as a continuation of the previous input.
   = ThusFar !Text !Int !ByteString (ByteString -> StreamDecode w)
-  -- | An encounter witt an invalid utf-8 'Word8'. The value contains
+  -- | An encounter with an invalid UTF-8 'Word8'. The value contains
   -- the decoded text up to but not including the invalid 'Word8',
   -- the position in the 'ByteString' of the offending 'Word8', the
   -- offender, and a function that accepts a possible 'Char' as to
