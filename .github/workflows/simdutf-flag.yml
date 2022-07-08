@@ -12,8 +12,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: ['ubuntu-latest']
-        ghc: ['latest']
+        os: ['ubuntu-latest', 'windows-latest']
+        ghc: ['9.2.1']
       fail-fast: false
     steps:
     - uses: actions/checkout@v2
@@ -29,4 +29,6 @@ jobs:
         path: ${{ steps.setup-haskell-cabal.outputs.cabal-store }}
         key: ${{ runner.os }}-${{ matrix.ghc }}
     - name: Test
-      run: cabal test -f-simdutf
+      run: |
+        ghc --info
+        cabal test -f-simdutf
