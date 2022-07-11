@@ -38,17 +38,51 @@ tl_ascii t   = EL.decodeASCII (EL.encodeUtf8 a) === a
 t_latin1     = E.decodeLatin1 `eq` (T.pack . BC.unpack)
 tl_latin1    = EL.decodeLatin1 `eq` (TL.pack . BLC.unpack)
 
+whenEqProp a b next = if a == b
+  then next
+  else a === b
+
 t_utf8       = (E.decodeUtf8 . E.encodeUtf8) `eq` id
 t_utf8'      = (E.decodeUtf8' . E.encodeUtf8) `eq` (id . Right)
 tl_utf8      = (EL.decodeUtf8 . EL.encodeUtf8) `eq` id
 tl_utf8'     = (EL.decodeUtf8' . EL.encodeUtf8) `eq` (id . Right)
+t_utf8_c     = (\ t ->
+                let E.DecodeResult t' mC bs _ = E.decodeUtf8Chunk $ E.encodeUtf8 t in
+                (t', mC, bs)) `eq` (\ t -> (t, Nothing, mempty))
+tl_utf8_c    = (\ t ->
+                let E.DecodeResult t' mC bs _ = EL.decodeUtf8Chunk $ EL.encodeUtf8 t in
+                (t', mC, bs)) `eq` (\ t -> (t, Nothing, mempty))
 t_utf16LE    = (E.decodeUtf16LE . E.encodeUtf16LE) `eq` id
+t_utf16LE_c  = (\ t ->
+                let E.DecodeResult t' mC bs _ = E.decodeUtf16Chunk False $ E.encodeUtf16LE t in
+                (t', mC, bs)) `eq` (\ t -> (t, Nothing, mempty))
+tl_utf16LE_c = (\ t ->
+                let E.DecodeResult t' mC bs _ = EL.decodeUtf16Chunk False $ EL.encodeUtf16LE t in
+                (t', mC, bs)) `eq` (\ t -> (t, Nothing, mempty))
 tl_utf16LE   = (EL.decodeUtf16LE . EL.encodeUtf16LE) `eq` id
 t_utf16BE    = (E.decodeUtf16BE . E.encodeUtf16BE) `eq` id
+t_utf16BE_c  = (\ t ->
+                let E.DecodeResult t' mC bs _ = E.decodeUtf16Chunk True $ E.encodeUtf16BE t in
+                (t', mC, bs)) `eq` (\ t -> (t, Nothing, mempty))
+tl_utf16BE_c = (\ t ->
+                let E.DecodeResult t' mC bs _ = EL.decodeUtf16Chunk True $ EL.encodeUtf16BE t in
+                (t', mC, bs)) `eq` (\ t -> (t, Nothing, mempty))
 tl_utf16BE   = (EL.decodeUtf16BE . EL.encodeUtf16BE) `eq` id
 t_utf32LE    = (E.decodeUtf32LE . E.encodeUtf32LE) `eq` id
+t_utf32LE_c  = (\ t ->
+                let E.DecodeResult t' mC bs _ = E.decodeUtf32Chunk False $ E.encodeUtf32LE t in
+                (t', mC, bs)) `eq` (\ t -> (t, Nothing, mempty))
+tl_utf32LE_c = (\ t ->
+                let E.DecodeResult t' mC bs _ = EL.decodeUtf32Chunk False $ EL.encodeUtf32LE t in
+                (t', mC, bs)) `eq` (\ t -> (t, Nothing, mempty))
 tl_utf32LE   = (EL.decodeUtf32LE . EL.encodeUtf32LE) `eq` id
 t_utf32BE    = (E.decodeUtf32BE . E.encodeUtf32BE) `eq` id
+t_utf32BE_c  = (\ t ->
+                let E.DecodeResult t' mC bs _ = E.decodeUtf32Chunk True $ E.encodeUtf32BE t in
+                (t', mC, bs)) `eq` (\ t -> (t, Nothing, mempty))
+tl_utf32BE_c  = (\ t ->
+                let E.DecodeResult t' mC bs _ = EL.decodeUtf32Chunk True $ EL.encodeUtf32BE t in
+                (t', mC, bs)) `eq` (\ t -> (t, Nothing, mempty))
 tl_utf32BE   = (EL.decodeUtf32BE . EL.encodeUtf32BE) `eq` id
 
 runBuilder :: B.Builder -> B.ByteString
@@ -127,6 +161,13 @@ t_utf8_err bad de = forAll (Blind <$> genDecodeErr de) $ \(Blind onErr) -> ioPro
       length (show err) >= 0
     Right _  -> counterexample (show (decoded, l)) $ de /= Strict
 
+t_utf8_c_err :: InvalidUtf8 -> Property
+t_utf8_c_err bad =
+  let E.DecodeResult t mW bs _ = E.decodeUtf8Chunk (toByteString bad) in
+  case mW of
+    Just w -> counterexample (show w) True
+    _  -> counterexample (show t) $ B.length bs > 0
+
 t_utf8_err' :: B.ByteString -> Bool
 t_utf8_err' bs = case E.decodeUtf8' bs of
   Left err -> length (show err) >= 0
@@ -168,6 +209,85 @@ genInvalidUTF8 = B.pack <$> oneof [
     ord3_ n = map fromIntegral [(n `shiftR` 12) + 0xE0, ((n `shiftR` 6) .&. 0x3F) + 0x80, (n .&. 0x3F) + 0x80]
     ord4_ n = map fromIntegral [(n `shiftR` 18) + 0xF0, ((n `shiftR` 12) .&. 0x3F) + 0x80, ((n `shiftR` 6) .&. 0x3F) + 0x80, (n .&. 0x3F) + 0x80]
 
+t_chunk_decode_utf8_1 =
+  let decodeResult0 = E.decodeUtf8Chunk $ B.pack [0x68, 0x69, 0x2C, 0x20, 0xe2, 0x98, 0x83, 0x21] in
+  decodeResult0 === (E.DecodeResult "hi, ☃!" Nothing mempty 8)
+t_chunk_decode_utf8_2 =
+  let decodeResult0 = E.decodeUtf8Chunk $ B.pack [97, 0xC2, 97]
+      expectedBs0 = B.singleton 97
+  in
+  whenEqProp decodeResult0 (E.DecodeResult (T.singleton 'a') (Just 0xC2) expectedBs0 2) $
+    let decodeResult1 = E.decodeUtf8Chunk expectedBs0 in
+    decodeResult1 === (E.DecodeResult (T.singleton 'a') Nothing mempty 1)
+t_chunk_decode_utf8_3 =
+  let decodeResult0 = E.decodeUtf8Chunk $ B.pack [104, 105, 32, 0xe2]
+      expectedBs0 = B.singleton 0xe2
+  in -- hi \xe2
+  whenEqProp decodeResult0 (E.DecodeResult "hi " Nothing expectedBs0 3) $
+    let decodeResult1 = E.decodeUtf8Chunk $ expectedBs0 `B.snoc` 0x98
+        expectedBs1 = B.pack [0xe2, 0x98]
+    in
+    whenEqProp decodeResult1 (E.DecodeResult "" Nothing expectedBs1 0) $
+      let decodeResult2 = E.decodeUtf8Chunk $ expectedBs1 `mappend` B.pack [0x83, 32, 0xFF] in
+      decodeResult2 === (E.DecodeResult "☃ " (Just 0xFF) mempty 5)
+t_chunk_decode_utf8_4 =
+  let decodeResult0 = E.decodeUtf8Chunk $ B.pack [104, 105, 32, 0xe2, 0x98, 104]
+      expectedBs0 = B.pack [0x98, 104]
+  in
+  decodeResult0 === (E.DecodeResult "hi " (Just 0xe2) expectedBs0 4)
+
+t_chunk_decode_utf16BE =
+  let decode = E.decodeUtf16Chunk True
+      expectedBs0 = B.pack [0]
+      decodeResult0 = decode expectedBs0 in
+  whenEqProp decodeResult0 (E.DecodeResult T.empty Nothing expectedBs0 0) $
+    let decodeResult1 = decode $ expectedBs0 `B.append` B.pack [104, 0, 105, 0, 32, 0xD8, 0x01]
+        expectedBs1 = B.pack [0xD8, 0x01]
+    in
+    whenEqProp decodeResult1 (E.DecodeResult "hi " Nothing expectedBs1 6) $
+      let decodeResult2 = decode $ expectedBs1 `B.append` B.pack [0xDC, 0x37, 0, 32, 0xDC, 0] in
+      decodeResult2 === (E.DecodeResult "\x10437 " (Just 0xDC00) mempty 8)
+t_chunk_decode_utf16LE =
+  let decode = E.decodeUtf16Chunk False
+      expectedBs0 = B.pack [104]
+      decodeResult0 = decode expectedBs0 in
+  whenEqProp decodeResult0 (E.DecodeResult T.empty Nothing expectedBs0 0) $
+    let decodeResult1 = decode $ expectedBs0 `B.append` B.pack [0, 105, 0, 32, 0, 0x01, 0xD8]
+        expectedBs1 = B.pack [0x01, 0xD8]
+    in
+    whenEqProp decodeResult1 (E.DecodeResult "hi " Nothing expectedBs1 6) $
+      let decodeResult2 = decode $ expectedBs1 `B.append` B.pack [0x37, 0xDC, 32, 0, 0, 0xDC] in
+      decodeResult2 === (E.DecodeResult "\x10437 " (Just 0xDC) mempty 8)
+
+t_chunk_decode_utf32BE =
+  let decode = E.decodeUtf32Chunk True
+      expBs0 = B.pack [0, 0]
+      decodeResult0 = decode $ B.pack [0, 0, 0, 104, 0, 0, 0, 105, 0, 0]
+  in
+  whenEqProp decodeResult0 (E.DecodeResult "hi" Nothing expBs0 8) $
+    let expBs1 = B.pack [0, 0, 0x26]
+        decodeResult1 = decode $ expBs0 `mappend` (B.pack [0, 32, 0, 0, 0x26])
+    in
+    whenEqProp decodeResult1 (E.DecodeResult " " Nothing expBs1 4) $
+      let expBs2 = mempty
+          decodeResult2 = decode $ expBs1 `mappend` (B.pack [0x03, 0, 0, 0, 32, 0, 0, 0xD8, 0])
+      in
+      decodeResult2 === (E.DecodeResult "☃ " (Just 0xD800) expBs2 12)
+t_chunk_decode_utf32LE =
+  let decode = E.decodeUtf32Chunk False
+      expBs0 = B.pack [0x20, 0]
+      decodeResult0 = decode $ B.pack [104, 0, 0, 0, 105, 0, 0, 0, 0x20, 0]
+  in
+  whenEqProp decodeResult0 (E.DecodeResult "hi" Nothing expBs0 8) $
+    let expBs1 = B.pack [0x03, 0x26, 0]
+        decodeResult1 = decode $ expBs0 `mappend` (B.pack [0, 0, 0x03, 0x26, 0])
+    in
+    whenEqProp decodeResult1 (E.DecodeResult " " Nothing expBs1 4) $
+      let expBs2 = mempty
+          decodeResult2 = decode $ expBs1 `mappend` (B.pack [0, 32, 0, 0, 0, 0, 0xD8, 0, 0])
+      in
+      decodeResult2 === (E.DecodeResult "☃ " (Just 0xD80000) expBs2 12)
+
 decodeLL :: BL.ByteString -> TL.Text
 decodeLL = EL.decodeUtf8With E.lenientDecode
 
@@ -179,6 +299,12 @@ decodeL = E.decodeUtf8With E.lenientDecode
 t_decode_utf8_lenient :: Property
 t_decode_utf8_lenient = forAllShrinkShow arbitrary shrink (show . BL.toChunks) $ \bs ->
     decodeLL bs === (TL.fromStrict . decodeL . B.concat . BL.toChunks) bs
+
+-- The decoding of lazy bytestrings should not depend on how they are chunked,
+-- and it should behave the same as decoding of strict bytestrings.
+-- t_decode_utf8_chunk :: Property
+-- t_decode_utf8_chunk = forAllShrinkShow arbitrary shrink (show . BL.toChunks) $ \bs ->
+--     EL.decodeUtf8Chunk bs === (TL.fromStrict . E.decodeUtf8Chunk . B.concat . BL.toChunks) bs
 
 -- See http://unicode.org/faq/utf_bom.html#gen8
 -- A sequence such as <110xxxxx2 0xxxxxxx2> is illegal ...
@@ -208,122 +334,6 @@ t_decode_with_error5' = ioProperty $ do
     Left (_ :: E.UnicodeException) -> True
     Right{} -> False
 
-whenEqProp a b next = if a == b
-  then next
-  else a === b
-
-t_decode_utf8_with_error1 =
-  case E.streamDecodeUtf8With' $ B.pack [97, 0xC2, 97] of
-    E.InvalidWord t pos word8 f -> whenEqProp pos 1
-      . whenEqProp word8 0xC2
-        $ case f $ Just 'x' of
-          E.ThusFar x pos' bs _ -> whenEqProp (t `T.append` x) "axa"
-            . whenEqProp bs B.empty $ pos' === 3
-          _ -> counterexample "Should have recovered from the invalid word (\\xC2)" False
-    _ -> counterexample "The second word (\\xC2) should have been invalid" False
-t_decode_utf8_with_error2 =
-  case E.streamDecodeUtf8With' $ B.pack [97, 0xC2, 97] of
-    E.InvalidWord t pos word8 f -> whenEqProp pos 1
-      . whenEqProp word8 0xC2
-        $ case f Nothing of
-          E.ThusFar x pos' bs _ -> whenEqProp (t `T.append` x) "aa"
-            . whenEqProp bs B.empty $ pos' === 3
-          _ -> counterexample "Should have recovered from the invalid word (\\xC2)" False
-    _ -> counterexample "The second word (\\xC2) should have been invalid" False
-t_decode_utf8_with_error3 =
-  case E.streamDecodeUtf8With' $ B.pack [104, 105, 32, 0xe2] of -- hi \xe2
-    E.ThusFar t pos bs f -> whenEqProp pos 3
-      . whenEqProp bs (B.pack [0xe2])
-        $ case f $ B.pack [0x98] of
-          E.ThusFar t' pos' bs' f' -> whenEqProp pos' 3
-            . whenEqProp bs' (B.pack [0xe2, 0x98])
-              $ case f' $ B.pack [0x83, 32, 0xFF] of
-                E.InvalidWord t'' pos'' word8 f'' -> whenEqProp pos'' 7
-                  . whenEqProp word8 0xFF
-                    $ case f'' $ Just 'x' of
-                      E.ThusFar x pos''' bs'' _ -> whenEqProp (t `T.append` t' `T.append` t'' `T.append` x) "hi ☃ x"
-                        . whenEqProp pos''' 8 $ bs'' === B.empty
-                      _ -> counterexample "Should have been decoded text." False
-                _ -> counterexample "Should have been an invalid word." False
-          _ -> counterexample "Should have encountered an incomplete code point." False
-    _ -> counterexample "Should have encountered an incomplete code point." False
-t_decode_utf8_with_error4 =
-  case E.streamDecodeUtf8With' $ B.pack [104, 105, 32, 0xe2, 0x98, 104] of -- not quite "hi ☃", the last byte is wrong
-    E.ThusFar _ _ _ _ -> counterexample "Not incomplete, but an invalid word." False
-    E.InvalidWord t pos word8 _ -> whenEqProp t "hi " . whenEqProp pos 3 $ word8 === 0xe2
-
-t_decode_utf16BE_with_error =
-  case E.streamDecodeUtf16With True $ B.pack [0] of
-    E.ThusFar t pos bs f -> whenEqProp pos 0
-      . whenEqProp bs (B.pack [0])
-        $ case f $ B.pack [104, 0, 105, 0, 32, 0xD8, 0x01] of
-          E.ThusFar t' pos' bs' f' -> whenEqProp pos' 6
-            . whenEqProp bs' (B.pack [0xD8, 0x01])
-              $ case f' $ B.pack [0xDC, 0x37, 0, 32, 0xDC, 0] of
-                E.InvalidWord t'' pos'' word16 f'' -> whenEqProp pos'' 12
-                  . whenEqProp word16 (0xDC `Bits.shiftL` 8)
-                    $ case f'' $ Just 'x' of
-                      E.ThusFar x pos''' bs'' _ -> whenEqProp (t `T.append` t' `T.append` t'' `T.append` x) "hi \x10437 x"
-                        . whenEqProp pos''' 14 $ bs'' === B.empty
-                      _ -> counterexample "Should have been decoded text." False
-                _ -> counterexample "Should have been an invalid word." False
-          _ -> counterexample "Should have encountered an incomplete code point." False
-    _ -> counterexample "Should have encountered an incomplete code point." False
-
-t_decode_utf16LE_with_error =
-  case E.streamDecodeUtf16With False $ B.pack [104] of
-    E.ThusFar t pos bs f -> whenEqProp pos 0
-      . whenEqProp bs (B.pack [104])
-        $ case f $ B.pack [0, 105, 0, 32, 0, 0x01, 0xD8] of
-          E.ThusFar t' pos' bs' f' -> whenEqProp pos' 6
-            . whenEqProp bs' (B.pack [0x01, 0xD8])
-              $ case f' $ B.pack [0x37, 0xDC, 32, 0, 0, 0xDC] of
-                E.InvalidWord t'' pos'' word16 f'' -> whenEqProp pos'' 12
-                  . whenEqProp word16 0xDC
-                    $ case f'' $ Just 'x' of
-                      E.ThusFar x pos''' bs'' _ -> whenEqProp (t `T.append` t' `T.append` t'' `T.append` x) "hi \x10437 x"
-                        . whenEqProp pos''' 14 $ bs'' === B.empty
-                      _ -> counterexample "Should have been decoded text." False
-                _ -> counterexample "Should have been an invalid word." False
-          _ -> counterexample "Should have encountered an incomplete code point." False
-    _ -> counterexample "Should have encountered an incomplete code point." False
-
-t_decode_utf32BE_with_error =
-  case E.streamDecodeUtf32With True $ B.pack [0, 0, 0, 104, 0, 0, 0, 105, 0, 0] of -- hi \xe2
-    E.ThusFar t pos bs f -> whenEqProp pos 8
-      . whenEqProp bs (B.pack [0, 0])
-        $ case f $ B.pack [0, 32, 0, 0, 0x26] of
-          E.ThusFar t' pos' bs' f' -> whenEqProp pos' 12
-            . whenEqProp bs' (B.pack [0, 0, 0x26])
-              $ case f' $ B.pack [0x03, 0, 0, 0, 32, 0, 0, 0xD8, 0] of
-                E.InvalidWord t'' pos'' word32 f'' -> whenEqProp pos'' 20
-                  . whenEqProp word32 0x0000D800
-                    $ case f'' $ Just 'x' of
-                      E.ThusFar x pos''' bs'' _ -> whenEqProp (t `T.append` t' `T.append` t'' `T.append` x) "hi ☃ x"
-                        . whenEqProp pos''' 24 $ bs'' === B.empty
-                      _ -> counterexample "Should have been decoded text." False
-                _ -> counterexample "Should have been an invalid word." False
-          _ -> counterexample "Should have encountered an incomplete code point." False
-    _ -> counterexample "Should have encountered an incomplete code point." False
-
-t_decode_utf32LE_with_error =
-  case E.streamDecodeUtf32With False $ B.pack [104, 0, 0, 0, 105, 0, 0, 0, 32, 0] of -- hi \xe2
-    E.ThusFar t pos bs f -> whenEqProp pos 8
-      . whenEqProp bs (B.pack [32, 0])
-        $ case f $ B.pack [0, 0, 0x03, 0x26, 0] of
-          E.ThusFar t' pos' bs' f' -> whenEqProp pos' 12
-            . whenEqProp bs' (B.pack [0x03, 0x26, 0])
-              $ case f' $ B.pack [0, 32, 0, 0, 0, 0, 0xD8, 0, 0] of
-                E.InvalidWord t'' pos'' word32 f'' -> whenEqProp pos'' 20
-                  . whenEqProp word32 0x00D80000
-                    $ case f'' $ Just 'x' of
-                      E.ThusFar x pos''' bs'' _ -> whenEqProp (t `T.append` t' `T.append` t'' `T.append` x) "hi ☃ x"
-                        . whenEqProp pos''' 24 $ bs'' === B.empty
-                      _ -> counterexample "Should have been decoded text." False
-                _ -> counterexample "Should have been an invalid word." False
-          _ -> counterexample "Should have encountered an incomplete code point." False
-    _ -> counterexample "Should have encountered an incomplete code point." False
-
 t_infix_concat bs1 text bs2 =
   forAll (Blind <$> genDecodeErr Replace) $ \(Blind onErr) ->
   text `T.isInfixOf`
@@ -339,18 +349,28 @@ testTranscoding =
     testProperty "tl_latin1" tl_latin1,
     testProperty "t_utf8" t_utf8,
     testProperty "t_utf8'" t_utf8',
+    testProperty "t_utf8_c" t_utf8_c,
     testProperty "t_utf8_incr" t_utf8_incr,
     testProperty "t_utf8_undecoded" t_utf8_undecoded,
     testProperty "tl_utf8" tl_utf8,
     testProperty "tl_utf8'" tl_utf8',
+    testProperty "tl_utf8_c" tl_utf8_c,
     testProperty "t_utf16LE" t_utf16LE,
+    testProperty "t_utf16LE_c" t_utf16LE_c,
     testProperty "tl_utf16LE" tl_utf16LE,
+    testProperty "tl_utf16LE_c" tl_utf16LE_c,
     testProperty "t_utf16BE" t_utf16BE,
+    testProperty "t_utf16BE_c" t_utf16BE_c,
     testProperty "tl_utf16BE" tl_utf16BE,
+    testProperty "tl_utf16BE_c" tl_utf16BE_c,
     testProperty "t_utf32LE" t_utf32LE,
+    testProperty "t_utf32LE_c" t_utf32LE_c,
     testProperty "tl_utf32LE" tl_utf32LE,
+    testProperty "tl_utf32LE_c" tl_utf32LE_c,
     testProperty "t_utf32BE" t_utf32BE,
+    testProperty "t_utf32BE_c" t_utf32BE_c,
     testProperty "tl_utf32BE" tl_utf32BE,
+    testProperty "tl_utf32BE_c" tl_utf32BE_c,
     testGroup "builder" [
       testProperty "t_encodeUtf8Builder" t_encodeUtf8Builder,
       testProperty "t_encodeUtf8Builder_nonZeroOffset" t_encodeUtf8Builder_nonZeroOffset,
@@ -360,9 +380,18 @@ testTranscoding =
     ],
     testGroup "errors" [
       testProperty "t_utf8_err" t_utf8_err,
+      testProperty "t_utf8_c_err" t_utf8_c_err,
       testProperty "t_utf8_err'" t_utf8_err'
     ],
     testGroup "error recovery" [
+      testProperty "t_chunk_decode_utf8_1" t_chunk_decode_utf8_1,
+      testProperty "t_chunk_decode_utf8_2" t_chunk_decode_utf8_2,
+      testProperty "t_chunk_decode_utf8_3" t_chunk_decode_utf8_3,
+      testProperty "t_chunk_decode_utf8_4" t_chunk_decode_utf8_4,
+      testProperty "t_chunk_decode_utf16BE" t_chunk_decode_utf16BE,
+      testProperty "t_chunk_decode_utf16LE" t_chunk_decode_utf16LE,
+      testProperty "t_chunk_decode_utf32BE" t_chunk_decode_utf32BE,
+      testProperty "t_chunk_decode_utf32LE" t_chunk_decode_utf32LE,
       testProperty "t_decode_utf8_lenient" t_decode_utf8_lenient,
       testProperty "t_decode_with_error2" t_decode_with_error2,
       testProperty "t_decode_with_error3" t_decode_with_error3,
@@ -371,15 +400,6 @@ testTranscoding =
       testProperty "t_decode_with_error3'" t_decode_with_error3',
       testProperty "t_decode_with_error4'" t_decode_with_error4',
       testProperty "t_decode_with_error5'" t_decode_with_error5',
-      testProperty "t_decode_utf8_with_error1" t_decode_utf8_with_error1,
-      testProperty "t_decode_utf8_with_error2" t_decode_utf8_with_error2,
-      testProperty "t_decode_utf8_with_error3" t_decode_utf8_with_error3,
-      testProperty "t_decode_utf8_with_error4" t_decode_utf8_with_error4,
-      testProperty "t_decode_utf16BE_with_error" t_decode_utf16BE_with_error,
-      testProperty "t_decode_utf16LE_with_error" t_decode_utf16LE_with_error,
-      testProperty "t_decode_utf32BE_with_error" t_decode_utf32BE_with_error,
-      testProperty "t_decode_utf32LE_with_error" t_decode_utf32LE_with_error,
       testProperty "t_infix_concat" t_infix_concat
     ]
   ]
-  

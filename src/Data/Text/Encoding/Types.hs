@@ -1,0 +1,35 @@
+{-# LANGUAGE CPP, DeriveDataTypeable #-}
+{-# LANGUAGE Safe #-}
+-- |
+-- Module      : Data.Text.Encoding.Error
+-- Copyright   : (c) Bryan O'Sullivan 2009
+--
+-- License     : BSD-style
+-- Maintainer  : bos@serpentine.com
+-- Portability : GHC
+--
+-- Types and functions for dealing with encoding and decoding errors
+-- in Unicode text.
+--
+-- The standard functions for encoding and decoding text are strict,
+-- which is to say that they throw exceptions on invalid input.  This
+-- is often unhelpful on real world input, so alternative functions
+-- exist that accept custom handlers for dealing with invalid inputs.
+-- These 'OnError' handlers are normal Haskell functions.  You can use
+-- one of the presupplied functions in this module, or you can write a
+-- custom handler of your own.
+
+module Data.Text.Encoding.Types
+  ( DecodeResult(..) )
+  where
+
+-- | A decoding result on encoded data.
+data DecodeResult t b w = DecodeResult
+  !t          -- ^ The decoded data up to an incomplete code point at
+              -- the end of the input data, an invalid word, or to the
+              -- end of the input.
+  !(Maybe w)  -- ^ If an invalid code point was encountered.
+  !b          -- ^ The remaining undecoded data. If an invald code
+              -- point was encountered, this is after that code point.
+  !Int        -- ^ Byte position of remaining undecoded data.
+  deriving (Eq, Ord, Show, Read)

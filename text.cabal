@@ -137,6 +137,7 @@ library
     Data.Text.Array
     Data.Text.Encoding
     Data.Text.Encoding.Error
+    Data.Text.Encoding.Types
     Data.Text.Foreign
     Data.Text.IO
     Data.Text.Internal

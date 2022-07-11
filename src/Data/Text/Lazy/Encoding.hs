@@ -23,6 +23,9 @@ module Data.Text.Lazy.Encoding
     -- ** Total Functions #total#
     -- $total
       decodeLatin1
+    , decodeUtf8Chunk
+    , decodeUtf16Chunk
+    , decodeUtf32Chunk
 
     -- *** Catchable failure
     , decodeUtf8'
@@ -58,8 +61,9 @@ module Data.Text.Lazy.Encoding
 import Control.Exception (evaluate, try)
 import Data.Monoid (Monoid(..))
 import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode)
+import Data.Text.Encoding.Types (DecodeResult(..))
 import Data.Text.Internal.Lazy (Text(..), chunk, empty, foldrChunks)
-import Data.Word (Word8)
+import Data.Word (Word16, Word32, Word8)
 import qualified Data.ByteString as S
 import qualified Data.ByteString.Builder as B
 import qualified Data.ByteString.Builder.Prim as BP
@@ -103,6 +107,35 @@ decodeASCII = foldr (chunk . TE.decodeASCII) empty . B.toChunks
 -- | Decode a 'ByteString' containing Latin-1 (aka ISO-8859-1) encoded text.
 decodeLatin1 :: B.ByteString -> Text
 decodeLatin1 = foldr (chunk . TE.decodeLatin1) empty . B.toChunks
+
+decodeChunk :: (S.ByteString -> S.ByteString -> DecodeResult T.Text S.ByteString w)
+  -> B.ByteString
+  -> DecodeResult Text B.ByteString w
+decodeChunk decoder = g id 0 mempty
+  where
+    g tDiff pos sb0 (B.Chunk sb1 lb1) =
+      let DecodeResult t mW sb1' pos' = decoder sb0 sb1
+          pos1 = pos + pos'
+      in
+      case mW of
+        Just _ -> DecodeResult (tDiff (chunk t Empty)) mW (B.chunk sb1' lb1) pos1
+        _ -> (g (tDiff . chunk t) pos1 sb1' lb1)
+    g tDiff pos sb0 _ = DecodeResult (tDiff Empty) Nothing (B.chunk sb0 B.Empty) pos
+
+-- | Decode a 'ByteString' containing UTF-8-encoded text returning a
+-- 'DecodeResult'.
+decodeUtf8Chunk :: B.ByteString -> DecodeResult Text B.ByteString Word8
+decodeUtf8Chunk = decodeChunk TE.decodeUtf8Chunks
+
+-- | Decode a 'ByteString' containing UTF-16-encoded text returning a
+-- 'DecodeResult'.
+decodeUtf16Chunk :: Bool -> B.ByteString -> DecodeResult Text B.ByteString Word16
+decodeUtf16Chunk isBE = decodeChunk $ TE.decodeUtf16Chunks isBE
+
+-- | Decode a 'ByteString' containing UTF-32-encoded text returning a
+-- 'DecodeResult'.
+decodeUtf32Chunk :: Bool -> B.ByteString -> DecodeResult Text B.ByteString Word32
+decodeUtf32Chunk isBE = decodeChunk $ TE.decodeUtf32Chunks isBE
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text.
 decodeUtf8With :: OnDecodeError -> B.ByteString -> Text

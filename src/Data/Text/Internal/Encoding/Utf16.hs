@@ -59,8 +59,7 @@ data Utf16Result
   | TwoWord16 (Word8 -> Maybe (Word8 -> Word8 -> Char))
   | Invalid16
 
--- queryUtf16Bytes :: Word8 -> (Word8 -> Word8 -> a)
---   -> Utf16Result a
+queryUtf16Bytes :: Word8 -> Utf16Result
 queryUtf16Bytes b0@(W8# w0#) =
   if b0 < 0xD8 || b0 >= 0xE0
     then OneWord16 $ \ (W8# w1#) -> C# (chr# (orI# (word2Int# (shiftL# (word8ToWord# w0#) 8#)) (word2Int# (word8ToWord# w1#))))

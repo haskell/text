@@ -30,6 +30,13 @@ module Data.Text.Encoding
     -- $total
       decodeLatin1
     , decodeUtf8Lenient
+    , decodeUtf8Chunk
+    , decodeUtf8Chunks
+    , decodeUtf16Chunk
+    , decodeUtf16Chunks
+    , decodeUtf32Chunk
+    , decodeUtf32Chunks
+    , DecodeResult(..)
 
     -- *** Catchable failure
     , decodeUtf8'
@@ -46,11 +53,7 @@ module Data.Text.Encoding
     -- $stream
     , streamDecodeUtf8
     , streamDecodeUtf8With
-    , streamDecodeUtf8With'
-    , streamDecodeUtf16With
-    , streamDecodeUtf32With
     , Decoding(..)
-    , StreamDecode(..)
 
     -- ** Partial Functions
     -- $partial
@@ -76,14 +79,15 @@ module Data.Text.Encoding
 import Control.Monad.ST.Unsafe (unsafeIOToST, unsafeSTToIO)
 
 import Control.Exception (evaluate, try)
-import Control.Monad.ST (runST, ST)
+import Control.Monad.ST (runST)
 import Data.Bits (Bits, shiftL, shiftR, (.&.), (.|.))
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Internal as B
 import qualified Data.ByteString.Short.Internal as SBS
 import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode, lenientDecode)
-import Data.Text.Internal (Text(..), safe, empty, append)
+import Data.Text.Encoding.Types (DecodeResult(..))
+import Data.Text.Internal (Text(..), empty, append)
 import Data.Text.Internal.Unsafe (unsafeWithForeignPtr)
 import Data.Text.Internal.Unsafe.Char (unsafeWrite)
 import Data.Text.Show as T (singleton)
@@ -91,7 +95,7 @@ import Data.Text.Unsafe (unsafeDupablePerformIO)
 import Data.Word (Word8, Word16, Word32)
 import Foreign.C.Types (CSize(..))
 import Foreign.Ptr (Ptr, minusPtr, plusPtr)
-import Foreign.Storable (poke, peekByteOff)
+import Foreign.Storable (Storable(..), poke, peekByteOff)
 import GHC.Exts (byteArrayContents#, unsafeCoerce#)
 import GHC.ForeignPtr (ForeignPtr(..), ForeignPtrContents(PlainPtr))
 import qualified Data.ByteString.Builder as B
@@ -218,6 +222,205 @@ isValidBS bs = start 0
 #endif
 #endif
 
+data Progression
+  = WriteAndAdvance Char (Int -> Int)
+  | NeedMore
+  | Invalid
+
+decodeChunksProxy :: (Bits w, Num w, Storable w) =>
+  w -- only used for Storable.sizeOf argument which the function discards
+  -> (ByteString -> ByteString -> Int -> Maybe (A.Array, Int))
+  -> ((Int -> Word8) -> Int -> Int -> Progression)
+  -> ByteString
+  -> ByteString
+  -> DecodeResult Text ByteString w
+decodeChunksProxy w queryOptimization decodeF bs1@(B.length -> len1) bs2@(B.length -> len2) = runST $ do
+  marr <- A.new len'
+  outer marr len' 0 0
+  where
+    wordByteSize = sizeOf w
+
+    index :: Int -> Word8
+    index i
+      | i < len1  = B.index bs1 i
+      | otherwise = B.index bs2 $ i - len1
+
+    len :: Int
+    len = len1 + len2
+    len' :: Int
+    len' = (len `div` wordByteSize) + 4
+
+    -- outer :: (Bits w, Num w) => A.MArray s -> Int -> Int -> Int -> ST s (DecodeResult Text ByteString w)
+    outer dst dstLen = inner
+      where
+        inner srcOff dstOff
+          -- finished
+          | len - srcOff < 1 = goodSoFar
+          -- shortcut for utf-8
+          | otherwise =
+            case queryOptimization bs1 bs2 srcOff of
+              Just (arr, tLen) ->
+                let minLen = tLen + dstOff in
+                if minLen > dstLen
+                  then do
+                    let dstLen' = minLen + 4
+                    dst' <- A.resizeM dst dstLen'
+                    A.copyI tLen dst' dstOff arr 0
+                    outer dst' dstLen' (srcOff + tLen) minLen
+                  else do
+                    A.copyI tLen dst dstOff arr 0
+                    inner (srcOff + tLen) minLen
+              _ -> if len - srcOff < wordByteSize
+                  -- incomplete code point
+                  then goodSoFar
+                  else
+                    if dstOff + 4 > dstLen
+                      -- need more space in destination
+                      then do
+                        let dstLen' = dstLen + 4
+                        dst' <- A.resizeM dst dstLen'
+                        outer dst' dstLen' srcOff dstOff
+                      else
+                        case decodeF index len srcOff of
+                          WriteAndAdvance c advance -> do
+                            d <- unsafeWrite dst dstOff c
+                            inner (advance d) $ dstOff + d
+                          NeedMore -> goodSoFar
+                          Invalid -> invalid
+          where
+            contin off res = do
+              A.shrinkM dst dstOff
+              arr <- A.unsafeFreeze dst
+              pure . res (Text arr 0 dstOff) $ if off >= len1
+                then B.drop (off - len1) bs2
+                else B.drop off $ bs1 `B.append` bs2
+            goodSoFar =
+              contin srcOff $ \ t bs' ->
+                DecodeResult t Nothing bs' srcOff
+            invalid =
+              let srcOff' = srcOff + wordByteSize
+                  bytesToWord n word =
+                    if n > 0
+                      then bytesToWord (n - 1) $ (fromIntegral . index $ srcOff + wordByteSize - n) .|. (word `shiftL` 8)
+                      else word
+              in
+              contin srcOff' $ \ t bs' ->
+                DecodeResult t (Just $ bytesToWord wordByteSize 0) bs' srcOff'
+
+decodeChunks :: (Bits w, Num w, Storable w) =>
+  (ByteString -> ByteString -> Int -> Maybe (A.Array, Int))
+  -> ((Int -> Word8) -> Int -> Int -> Progression)
+  -> ByteString
+  -> ByteString
+  -> DecodeResult Text ByteString w
+decodeChunks = decodeChunksProxy undefined -- This allows Haskell can
+-- determine the size in bytes of a data type using Storable.sizeOf
+-- so that it doesn't have to be passed as an arugment. Storable.sizeOf
+-- discards the actual value without resolving it.
+
+queryUtf8DecodeOptimization :: ByteString -> ByteString -> Int -> Maybe (A.Array, Int)
+queryUtf8DecodeOptimization (B.length -> len1) bs2@(B.length -> len2) srcOff
+  | srcOff >= len1
+  -- potential valid utf8 content endpoint
+  , utf8End <- len1 + guessUtf8Boundary
+  , srcOff < utf8End
+  -- potential valid utf8 content length
+  , utf8Len <- utf8End - srcOff
+  , bs' <- B.drop (srcOff - len1) $ B.take guessUtf8Boundary bs2
+  , isValidBS bs' = Just (runST $ do
+    marr <- A.new utf8Len
+    withBS bs' $ \fp _ -> unsafeIOToST $ unsafeWithForeignPtr fp $ \src ->
+      unsafeSTToIO $ A.copyFromPointer marr 0 src utf8Len
+    arr <- A.unsafeFreeze marr
+    pure $ (arr, utf8Len))
+  | otherwise = Nothing
+  where
+    -- We need Data.ByteString.findIndexEnd, but it is unavailable before bytestring-0.10.12.0
+    guessUtf8Boundary :: Int
+    guessUtf8Boundary
+      | len2 >= 1 && w0 <  0x80 = len2     -- last char is ASCII
+      | len2 >= 1 && w0 >= 0xC0 = len2 - 1 -- last char starts a code point
+      | len2 >= 2 && w1 >= 0xC0 = len2 - 2 -- pre-last char starts a code point
+      | len2 >= 3 && w2 >= 0xC0 = len2 - 3
+      | len2 >= 4 && w3 >= 0xC0 = len2 - 4
+      | otherwise = 0
+      where
+        w0 = B.index bs2 (len2 - 1)
+        w1 = B.index bs2 (len2 - 2)
+        w2 = B.index bs2 (len2 - 3)
+        w3 = B.index bs2 (len2 - 4)
+
+decodeUtf8Base :: (Int -> Word8) -> Int -> Int -> Progression
+decodeUtf8Base index len srcOff =
+  let decodeFrom off = step (off + 1) . utf8DecodeStart $ index off
+        where
+          step i (Incomplete a b)
+            | i < len = step (i + 1) $ utf8DecodeContinue (index i) a b
+          step _ st = st
+  in
+  case decodeFrom srcOff of
+    Accept c -> WriteAndAdvance c (srcOff +)
+    Reject -> Invalid
+    Incomplete{} -> NeedMore
+
+-- | Decode two 'ByteString's containing UTF-8-encoded text as though
+-- they were one continuous 'ByteString' returning a 'DecodeResult'.
+decodeUtf8Chunks :: ByteString -> ByteString -> DecodeResult Text ByteString Word8
+decodeUtf8Chunks = decodeChunks queryUtf8DecodeOptimization decodeUtf8Base
+
+-- | Decode a 'ByteString' containing UTF-8-encoded text returning a
+-- 'DecodeResult'.
+decodeUtf8Chunk :: ByteString -> DecodeResult Text ByteString Word8
+decodeUtf8Chunk = decodeUtf8Chunks mempty
+
+noOptimization :: p1 -> p2 -> p3 -> Maybe a
+noOptimization _ _ _ = Nothing
+
+-- | Decode two 'ByteString's containing UTF-16-encoded text as though
+-- they were one continuous 'ByteString' returning a 'DecodeResult'.
+decodeUtf16Chunks :: Bool -> ByteString -> ByteString -> DecodeResult Text ByteString Word16
+decodeUtf16Chunks isBE = decodeChunks noOptimization $ \ index len srcOff ->
+  -- get next Word8 pair
+  let writeAndAdvance c n = WriteAndAdvance c $ const n
+      b0 = index $ if isBE then srcOff else srcOff + 1
+      b1 = index $ if isBE then srcOff + 1 else srcOff
+  in
+  case queryUtf16Bytes b0 of
+    OneWord16 f -> writeAndAdvance (f b1) $ srcOff + 2
+    TwoWord16 g ->
+      if len - srcOff < 4
+        -- not enough Word8s to finish the code point
+        then NeedMore
+        else
+          let b2 = index $ srcOff + (if isBE then 2 else 3)
+              b3 = index $ srcOff + (if isBE then 3 else 2)
+          in
+          case g b2 of
+            Just f' -> writeAndAdvance (f' b1 b3) $ srcOff + 4
+            _ -> Invalid
+    _ -> Invalid
+
+-- | Decode a 'ByteString' containing UTF-16-encoded text returning a
+-- 'DecodeResult'.
+decodeUtf16Chunk :: Bool -> ByteString -> DecodeResult Text ByteString Word16
+decodeUtf16Chunk isBE = decodeUtf16Chunks isBE mempty
+
+-- | Decode two 'ByteString's containing UTF-16-encoded text as though
+-- they were one continuous 'ByteString' returning a 'DecodeResult'.
+decodeUtf32Chunks :: Bool -> ByteString -> ByteString -> DecodeResult Text ByteString Word32
+decodeUtf32Chunks isBE = decodeChunks noOptimization $ \ index _ srcOff ->
+  -- get next Word8 quartet
+  case (queryUtf32Bytes . index $ if isBE then srcOff else srcOff + 3)
+      >>= ($ (index $ srcOff + (if isBE then 1 else 2)))
+      >>= ($ (index $ srcOff + (if isBE then 2 else 1))) of
+    Just f -> WriteAndAdvance (f . index $ if isBE then srcOff + 3 else srcOff) . const $ srcOff + 4
+    _ -> Invalid
+
+-- | Decode a 'ByteString' containing UTF-32-encoded text returning a
+-- 'DecodeResult'.
+decodeUtf32Chunk :: Bool -> ByteString -> DecodeResult Text ByteString Word32
+decodeUtf32Chunk isBE = decodeUtf32Chunks isBE mempty
+
 -- | Decode a 'ByteString' containing 7-bit ASCII encoded text.
 --
 -- This is a total function: On success the decoded 'Text' is within a
@@ -255,10 +458,9 @@ decodeUtf8With onErr bs = case streamDecodeUtf8With onErr bs of
 
 -- $stream
 --
--- The 'streamDecodeUtf8',  'streamDecodeUtf8With', and
--- 'streamDecodeUtf8With'' functions accept a 'ByteString' that
--- represents a possibly incomplete input (e.g. a packet from a network
--- stream) that may not end on a UTF-8 boundary.
+-- The 'streamDecodeUtf8' and 'streamDecodeUtf8With' functions accept
+-- a 'ByteString' that represents a possibly incomplete input (e.g. a
+-- packet from a network stream) that may not end on a UTF-8 boundary.
 --
 -- 1. The maximal prefix of 'Text' that could be decoded from the
 --    given input.
@@ -335,7 +537,7 @@ streamDecodeUtf8 ::
   ByteString -> Decoding
 streamDecodeUtf8 = streamDecodeUtf8With strictDecode
 
--- | Decode, in a stream oriented way, a lazy 'ByteString' containing UTF-8
+-- | Decode, in a stream oriented way, a 'ByteString' containing UTF-8
 -- encoded text.
 --
 -- @since 1.0.0.0
@@ -344,199 +546,18 @@ streamDecodeUtf8With ::
   HasCallStack =>
 #endif
   OnDecodeError -> ByteString -> Decoding
-streamDecodeUtf8With onErr = go empty . streamDecodeUtf8With'
+streamDecodeUtf8With onErr = g empty mempty
   where
-    go t res = case res of
-      ThusFar txt _ bs f -> Some (t `append` txt) bs $ go empty . f
-      InvalidWord txt _ word8 f -> go (t `append` txt) . f . onErr desc $ Just word8
-
-    desc = "Data.Text.Internal.Encoding: Invalid UTF-8 stream"
-
--- | A stream-oriented decoding result of one of three possibilities.
-data StreamDecode w
-  -- | The decoded 'Text' thus far with a possibly incomplete code
-  -- point at the end of the 'ByteString'. The value contains the
-  -- decoded text up to but not including the incomplete code point,
-  -- the position in the 'ByteString' where the code point starts,
-  -- the incomplete code point, and a function that accepts another
-  -- 'ByteString' as a continuation of the previous input.
-  = ThusFar !Text !Int !ByteString (ByteString -> StreamDecode w)
-  -- | An encounter with an invalid UTF-8 'Word8'. The value contains
-  -- the decoded text up to but not including the invalid 'Word8',
-  -- the position in the 'ByteString' of the offending 'Word8', the
-  -- offender, and a function that accepts a possible 'Char' as to
-  -- interpret the 'Word8' in this specific occurrence of it.
-  | InvalidWord !Text !Int !w (Maybe Char -> StreamDecode w)
-
-data Progression
-  = WriteAndAdvance Char (Int -> Int)
-  | NeedMore
-  | Invalid
-
-streamDecodeWith :: (Bits w, Num w)
-  => Int
-  -> Bool
-  -> ByteString
-  -> ((Int -> Word8) -> Int -> Int -> Progression)
-  -> StreamDecode w
-streamDecodeWith wordByteSize isUtf bs decodeF = decodeAtOffset Nothing 0 bs mempty
-  where
-    decodeAtOffset :: (Bits w, Num w) => Maybe Char -> Int -> ByteString -> ByteString -> StreamDecode w
-    decodeAtOffset mStartChar bytePos bs1@(B.length -> len1) bs2@(B.length -> len2) = runST $ do
-      marr <- A.new len'
-      case mStartChar of
-        Just c -> do
-          d <- unsafeWrite marr 0 $ safe c
-          outer marr len' 0 d
-        _ -> outer marr len' 0 0
-      where
-        index :: Int -> Word8
-        index i
-          | i < len1  = B.index bs1 i
-          | otherwise = B.index bs2 $ i - len1
-
-        len :: Int
-        len = len1 + len2
-        len' :: Int
-        len' = (len `div` wordByteSize) + 4
-
-        queryutf8Optim srcOff dstOff dstLen dst f g
-          -- shortcut for utf-8
-          | wordByteSize == 1
-          , isUtf
-          , srcOff >= len1
-          -- potential valid utf8 content endpoint
-          , utf8End <- len1 + guessUtf8Boundary
-          , srcOff < utf8End
-          -- potential valid utf8 content length
-          , utf8Len <- utf8End - srcOff
-          -- potential endpoint in destination array if copied
-          , dstOff' <- dstOff + utf8Len
-          , dstOff' <= dstLen
-          , bs' <- B.drop (srcOff - len1) $ B.take guessUtf8Boundary bs2
-          , isValidBS bs' = do
-            withBS bs' $ \fp _ -> unsafeIOToST $ unsafeWithForeignPtr fp $ \src ->
-              unsafeSTToIO $ A.copyFromPointer dst dstOff src utf8Len
-            f utf8End dstOff'
-          | otherwise = g
-          where
-            -- We need Data.ByteString.findIndexEnd, but it is unavailable before bytestring-0.10.12.0
-            guessUtf8Boundary :: Int
-            guessUtf8Boundary
-              | len2 >= 1 && w0 <  0x80 = len2     -- last char is ASCII
-              | len2 >= 1 && w0 >= 0xC0 = len2 - 1 -- last char starts a code point
-              | len2 >= 2 && w1 >= 0xC0 = len2 - 2 -- pre-last char starts a code point
-              | len2 >= 3 && w2 >= 0xC0 = len2 - 3
-              | len2 >= 4 && w3 >= 0xC0 = len2 - 4
-              | otherwise = 0
-              where
-                w0 = B.index bs2 (len2 - 1)
-                w1 = B.index bs2 (len2 - 2)
-                w2 = B.index bs2 (len2 - 3)
-                w3 = B.index bs2 (len2 - 4)
-
-        outer :: (Bits w, Num w) => A.MArray s -> Int -> Int -> Int -> ST s (StreamDecode w)
-        outer dst dstLen = inner
-          where
-            inner srcOff dstOff
-              -- finished
-              | len - srcOff < 1 = incomplete
-              -- shortcut for utf-8
-              | otherwise = queryutf8Optim srcOff dstOff dstLen dst inner $
-                if len - srcOff < wordByteSize
-                  -- incomplete code point
-                  then incomplete
-                  else
-                    if dstOff + 4 > dstLen
-                      -- need more space in destination
-                      then do
-                        let dstLen' = dstLen + 4
-                        dst' <- A.resizeM dst dstLen'
-                        outer dst' dstLen' srcOff dstOff
-                      else
-                        case decodeF index len srcOff of
-                          WriteAndAdvance c advance -> do
-                            d <- unsafeWrite dst dstOff c
-                            inner (advance d) $ dstOff + d
-                          NeedMore -> incomplete
-                          Invalid -> invalid
-              where
-                wrapUp f = do
-                  A.shrinkM dst dstOff
-                  arr <- A.unsafeFreeze dst
-                  f $ Text arr 0 dstOff
-                contin off res = wrapUp $ \ t ->
-                  pure . res t $ if off >= len1
-                    then B.drop (off - len1) bs2
-                    else B.drop off $ bs1 `B.append` bs2
-                incomplete =
-                  let bytePos' = bytePos + srcOff in
-                  contin srcOff $ \ t bs' ->
-                    ThusFar t bytePos' bs' $
-                      decodeAtOffset Nothing bytePos' bs'
-                invalid =
-                  let srcOff' = srcOff + wordByteSize
-                      bytesToWord n word =
-                        if n > 0
-                          then bytesToWord (n - 1) $ (fromIntegral . index $ srcOff + wordByteSize - n) .|. (word `shiftL` 8)
-                          else word
-                  in
-                  contin srcOff' $ \ t bs' ->
-                    InvalidWord t (bytePos + srcOff) (bytesToWord wordByteSize 0) $ \ mChar' ->
-                      decodeAtOffset mChar' (bytePos + srcOff') bs' mempty
-
--- | Like 'streamDecodeUtf8With', but instead of accepting an
--- 'OnDecodeError' callback and returning a 'Decoding', it returns a
--- 'StreamDecode'.
-streamDecodeUtf8With' :: ByteString -> StreamDecode Word8
-streamDecodeUtf8With' bs = streamDecodeWith 1 True bs $ \ index len srcOff ->
-  let decodeFrom off = step (off + 1) . utf8DecodeStart $ index off
-        where
-          step i (Incomplete a b)
-            | i < len = step (i + 1) $ utf8DecodeContinue (index i) a b
-          step _ st = st
-  in
-  case decodeFrom srcOff of
-    Accept c -> WriteAndAdvance c (srcOff +)
-    Reject -> Invalid
-    Incomplete{} -> NeedMore
-
--- | Like 'streamDecodeUtf8With'', but for UTF-16 encoding and a
--- 'Bool' argument for whether the encoding is big- or little-endian.
-streamDecodeUtf16With :: Bool -> ByteString -> StreamDecode Word16
-streamDecodeUtf16With isBE bs = streamDecodeWith 2 True bs $ \ index len srcOff ->
-  -- get next Word8 pair
-  let writeAndAdvance c n = WriteAndAdvance c $ const n
-      b0 = index $ if isBE then srcOff else srcOff + 1
-      b1 = index $ if isBE then srcOff + 1 else srcOff
-  in
-  case queryUtf16Bytes b0 of
-    OneWord16 f -> writeAndAdvance (f b1) $ srcOff + 2
-    TwoWord16 g ->
-      if len - srcOff < 4
-        -- not enough Word8s to finish the code point
-        then NeedMore
-        else
-          let b2 = index $ srcOff + (if isBE then 2 else 3)
-              b3 = index $ srcOff + (if isBE then 3 else 2)
-          in
-          case g b2 of
-            Just f' -> writeAndAdvance (f' b1 b3) $ srcOff + 4
-            _ -> Invalid
-    _ -> Invalid
-
--- | Like 'streamDecodeUtf16With', but for UTF-32.
-streamDecodeUtf32With :: Bool -> ByteString -> StreamDecode Word32
-streamDecodeUtf32With isBE bs = streamDecodeWith 4 True bs $ \ index _ srcOff ->
-  -- get next Word8 quartet
-  let writeAndAdvance c n = WriteAndAdvance c $ const n in
-  case queryUtf32Bytes . index $ if isBE then srcOff else srcOff + 3 of
-    Just f -> case f . index $ srcOff + (if isBE then 1 else 2) of
-      Just f' -> case f' . index $ srcOff + (if isBE then 2 else 1) of
-        Just f'' -> writeAndAdvance (f'' . index $ if isBE then srcOff + 3 else srcOff) $ srcOff + 4
-        _ -> Invalid
-      _ -> Invalid
-    _ -> Invalid
+    g t bs0 bs1 =
+      let DecodeResult t' mW bs1' _ = decodeUtf8Chunks bs0 bs1
+          txt = t `append` t'
+      in
+      (case (mW :: Maybe Word8) of
+        Just _ ->
+          g (case onErr "" mW of
+            Just c -> txt `append` T.singleton c
+            _ -> txt) mempty
+        _ -> Some txt bs1' . g empty) bs1'
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text that is known
 -- to be valid.
