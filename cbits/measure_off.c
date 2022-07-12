@@ -70,7 +70,16 @@ static inline const ssize_t measure_off_naive(const uint8_t *src, const uint8_t 
   while (src < srcend - 7){
     uint64_t w64;
     memcpy(&w64, src, sizeof(uint64_t));
-    size_t leads = __builtin_popcountll(((w64 << 1) | ~w64) & 0x8080808080808080ULL);
+    w64 =  ((w64 << 1) | ~w64) & 0x8080808080808080ULL;
+    // compute the popcount of w64 with two bit shifts and a multiplication
+    size_t leads = (  (w64 >> 7)              // w64 >> 7           = Sum{0<= i <= 7} x_i * 256^i    (x_i \in {0,1})
+                    * (0x0101010101010101ULL) // 0x0101010101010101 = Sum{0<= i <= 7} 256^i
+                                              //              (Sum{0<= i <= 7} x_i * 256^i) * (Sum{0<= j <= 7} 256^j) 
+                                              // =(mod 256^8) (Sum{0<= k <= 7} (256^k) * (Sum {0 <= l < 7} x_l) 
+                                              // as the coefficients of 256^k in the result are the x_i such that i+j =(mod 8) k
+                                              // and each i satisfies this equation for exactly one such j
+                                              // So each byte of the result contains the sum we want.
+                   ) >> 56; // bit shift to get a single byte which contains Sum {0 <= j < 7} x_j
     if (cnt < leads) break;
     cnt-= leads;
     src+= 8;
@@ -134,6 +143,35 @@ static const ssize_t measure_off_avx(const uint8_t *src, const uint8_t *srcend, 
 }
 #endif
 
+/* Count the number of bits set in the argument 
+ * 
+   This is a temporary workaround for the fact that
+   the GHC RTS linker does not recognize the `__builtin_popcountll`
+   symbol.
+ 
+   See https://gitlab.haskell.org/ghc/ghc/-/issues/21787
+       https://gitlab.haskell.org/ghc/ghc/-/issues/19900
+       https://github.com/haskell/text/issues/450
+ 
+   It can be removed and the usages of popcount64 replaced with
+   `__builtin_popcountll` once affected versions of the compiler
+   are no longer in widespread use.
+ 
+   Once GHC learns to recognize the symbol, this can be gated
+   by CPP to call __builtin_popcountll when using the appropriate
+   version of GHC.
+*/
+static inline const size_t popcount16(uint16_t x) {
+  size_t i;
+  size_t count = 0;
+#pragma GCC unroll 16
+  for (i = 0; i < 16; i ++) {
+    count += x & 1;
+    x >>= 1;
+  }
+  return count;
+}
+
 static const ssize_t measure_off_sse(const uint8_t *src, const uint8_t *srcend, size_t cnt)
 {
 #ifdef __x86_64__
@@ -141,7 +179,7 @@ static const ssize_t measure_off_sse(const uint8_t *src, const uint8_t *srcend, 
     __m128i w128 = _mm_loadu_si128((__m128i *)src);
     // Which bytes are either < 128 or >= 192?
     uint16_t mask = _mm_movemask_epi8(_mm_cmpgt_epi8(w128, _mm_set1_epi8(0xBF)));
-    size_t leads = __builtin_popcount(mask);
+    size_t leads = popcount16(mask);
     if (cnt < leads) break;
     cnt-= leads;
     src+= 16;
