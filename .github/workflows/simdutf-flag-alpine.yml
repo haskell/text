@@ -1,0 +1,40 @@
+name: simdutf-flag-alpine-static-9.4
+on:
+  - push
+  - pull_request
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    container: alpine:3.12
+    strategy:
+      matrix:
+        os: ['ubuntu-latest']
+        ghc: ['latest']
+      fail-fast: false
+    steps:
+      - name: Install system dependencies
+        run: |
+          apk add --no-cache curl gcc g++ gmp-dev ncurses-dev libffi-dev make xz gzip tar perl git bash sudo binutils-gold
+          apk add --no-cache zlib zlib-dev zlib-static gmp gmp-dev ncurses-static
+      - name: Install ghcup
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://downloads.haskell.org/~ghcup/x86_64-linux-ghcup > /usr/bin/ghcup
+          chmod +x /usr/bin/ghcup
+          echo "$HOME/.ghcup/bin" $GITHUB_PATH
+        shell: bash
+      - name: Install GHC and cabal
+        run: |
+          ghcup install ghc   --force -i /usr/local -u "https://downloads.haskell.org/ghc/9.4.1-alpha3/ghc-9.4.0.20220623-x86_64-alpine3_12-linux-static.tar.xz" 9.4.1
+          ghcup install cabal --force -i /usr/local/bin 3.6.2.0
+        shell: bash
+
+      - name: Update cabal package database
+        run: cabal update
+
+      - uses: actions/checkout@v2
+      - name: Test
+        run: |
+          cabal build -f-simdutf --disable-tests --disable-benchmarks
+          cabal exec -f-simdutf --disable-tests --disable-benchmarks ghc -- tests/THLinkTest.hs
+        shell: bash
