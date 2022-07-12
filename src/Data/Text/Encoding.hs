@@ -30,13 +30,13 @@ module Data.Text.Encoding
     -- $total
       decodeLatin1
     , decodeUtf8Lenient
+    , DecodeResult(..)
     , decodeUtf8Chunk
     , decodeUtf8Chunks
     , decodeUtf16Chunk
     , decodeUtf16Chunks
     , decodeUtf32Chunk
     , decodeUtf32Chunks
-    , DecodeResult(..)
 
     -- *** Catchable failure
     , decodeUtf8'
@@ -54,6 +54,11 @@ module Data.Text.Encoding
     , streamDecodeUtf8
     , streamDecodeUtf8With
     , Decoding(..)
+
+    , StreamDecodeResult(..)
+    , decodeUtf8Stream
+    , decodeUtf16Stream
+    , decodeUtf32Stream
 
     -- ** Partial Functions
     -- $partial
@@ -86,7 +91,7 @@ import qualified Data.ByteString as B
 import qualified Data.ByteString.Internal as B
 import qualified Data.ByteString.Short.Internal as SBS
 import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode, lenientDecode)
-import Data.Text.Encoding.Types (DecodeResult(..))
+import Data.Text.Encoding.Types (DecodeResult(..), StreamDecodeResult(..))
 import Data.Text.Internal (Text(..), empty, append)
 import Data.Text.Internal.Unsafe (unsafeWithForeignPtr)
 import Data.Text.Internal.Unsafe.Char (unsafeWrite)
@@ -227,14 +232,14 @@ data Progression
   | NeedMore
   | Invalid
 
-decodeChunksProxy :: (Bits w, Num w, Storable w) =>
+decodeChunks :: (Bits w, Num w, Storable w) =>
   w -- only used for Storable.sizeOf argument which the function discards
   -> (ByteString -> ByteString -> Int -> Maybe (A.Array, Int))
   -> ((Int -> Word8) -> Int -> Int -> Progression)
   -> ByteString
   -> ByteString
   -> DecodeResult Text ByteString w
-decodeChunksProxy w queryOptimization decodeF bs1@(B.length -> len1) bs2@(B.length -> len2) = runST $ do
+decodeChunks w queryOptimization decodeF bs1@(B.length -> len1) bs2@(B.length -> len2) = runST $ do
   marr <- A.new len'
   outer marr len' 0 0
   where
@@ -307,16 +312,16 @@ decodeChunksProxy w queryOptimization decodeF bs1@(B.length -> len1) bs2@(B.leng
               contin srcOff' $ \ t bs' ->
                 DecodeResult t (Just $ bytesToWord wordByteSize 0) bs' srcOff'
 
-decodeChunks :: (Bits w, Num w, Storable w) =>
+decodeChunksProxy :: (Bits w, Num w, Storable w) =>
   (ByteString -> ByteString -> Int -> Maybe (A.Array, Int))
   -> ((Int -> Word8) -> Int -> Int -> Progression)
   -> ByteString
   -> ByteString
   -> DecodeResult Text ByteString w
-decodeChunks = decodeChunksProxy undefined -- This allows Haskell can
+decodeChunksProxy = decodeChunks undefined -- This allows Haskell can
 -- determine the size in bytes of a data type using Storable.sizeOf
 -- so that it doesn't have to be passed as an arugment. Storable.sizeOf
--- discards the actual value without resolving it.
+-- discards the actual value without evaluating it.
 
 queryUtf8DecodeOptimization :: ByteString -> ByteString -> Int -> Maybe (A.Array, Int)
 queryUtf8DecodeOptimization (B.length -> len1) bs2@(B.length -> len2) srcOff
@@ -352,21 +357,21 @@ queryUtf8DecodeOptimization (B.length -> len1) bs2@(B.length -> len2) srcOff
 
 decodeUtf8Base :: (Int -> Word8) -> Int -> Int -> Progression
 decodeUtf8Base index len srcOff =
-  let decodeFrom off = step (off + 1) . utf8DecodeStart $ index off
-        where
-          step i (Incomplete a b)
-            | i < len = step (i + 1) $ utf8DecodeContinue (index i) a b
-          step _ st = st
-  in
   case decodeFrom srcOff of
     Accept c -> WriteAndAdvance c (srcOff +)
     Reject -> Invalid
     Incomplete{} -> NeedMore
+  where
+    decodeFrom off = step (off + 1) . utf8DecodeStart $ index off
+
+    step i (Incomplete a b)
+      | i < len = step (i + 1) $ utf8DecodeContinue (index i) a b
+    step _ st = st
 
 -- | Decode two 'ByteString's containing UTF-8-encoded text as though
 -- they were one continuous 'ByteString' returning a 'DecodeResult'.
 decodeUtf8Chunks :: ByteString -> ByteString -> DecodeResult Text ByteString Word8
-decodeUtf8Chunks = decodeChunks queryUtf8DecodeOptimization decodeUtf8Base
+decodeUtf8Chunks = decodeChunksProxy queryUtf8DecodeOptimization decodeUtf8Base
 
 -- | Decode a 'ByteString' containing UTF-8-encoded text returning a
 -- 'DecodeResult'.
@@ -379,7 +384,7 @@ noOptimization _ _ _ = Nothing
 -- | Decode two 'ByteString's containing UTF-16-encoded text as though
 -- they were one continuous 'ByteString' returning a 'DecodeResult'.
 decodeUtf16Chunks :: Bool -> ByteString -> ByteString -> DecodeResult Text ByteString Word16
-decodeUtf16Chunks isBE = decodeChunks noOptimization $ \ index len srcOff ->
+decodeUtf16Chunks isBE = decodeChunksProxy noOptimization $ \ index len srcOff ->
   -- get next Word8 pair
   let writeAndAdvance c n = WriteAndAdvance c $ const n
       b0 = index $ if isBE then srcOff else srcOff + 1
@@ -408,7 +413,7 @@ decodeUtf16Chunk isBE = decodeUtf16Chunks isBE mempty
 -- | Decode two 'ByteString's containing UTF-16-encoded text as though
 -- they were one continuous 'ByteString' returning a 'DecodeResult'.
 decodeUtf32Chunks :: Bool -> ByteString -> ByteString -> DecodeResult Text ByteString Word32
-decodeUtf32Chunks isBE = decodeChunks noOptimization $ \ index _ srcOff ->
+decodeUtf32Chunks isBE = decodeChunksProxy noOptimization $ \ index _ srcOff ->
   -- get next Word8 quartet
   case (queryUtf32Bytes . index $ if isBE then srcOff else srcOff + 3)
       >>= ($ (index $ srcOff + (if isBE then 1 else 2)))
@@ -558,6 +563,30 @@ streamDecodeUtf8With onErr = g empty mempty
             Just c -> txt `append` T.singleton c
             _ -> txt) mempty
         _ -> Some txt bs1' . g empty) bs1'
+
+decodeStream :: Monoid b => (b -> b -> DecodeResult t b w) -> b -> StreamDecodeResult t b w
+decodeStream chunksDecoder = g 0 mempty
+  where
+    g pos bs0 bs1 =
+      let DecodeResult t mW bs1' pos1 = chunksDecoder bs0 bs1
+          pos' = pos + pos1
+      in
+      StreamDecodeResult t mW bs1' pos' $ \ bs2 -> g pos' bs1' bs2
+
+-- | Decode, in a stream oriented way, a 'ByteString' containing UTF-8-
+-- encoded text.
+decodeUtf8Stream :: ByteString -> StreamDecodeResult Text ByteString Word8
+decodeUtf8Stream = decodeStream decodeUtf8Chunks
+
+-- | Decode, in a stream oriented way, a 'ByteString' containing UTF-16-
+-- encoded text.
+decodeUtf16Stream :: Bool -> ByteString -> StreamDecodeResult Text ByteString Word16
+decodeUtf16Stream = decodeStream . decodeUtf16Chunks
+
+-- | Decode, in a stream oriented way, a 'ByteString' containing UTF-32-
+-- encoded text.
+decodeUtf32Stream :: Bool -> ByteString -> StreamDecodeResult Text ByteString Word32
+decodeUtf32Stream = decodeStream . decodeUtf32Chunks
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text that is known
 -- to be valid.
