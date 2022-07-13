@@ -352,7 +352,12 @@ queryUtf8DecodeOptimization (B.length -> len1) bs2@(B.length -> len2) srcOff
 
 -- | Decode two 'ByteString's containing UTF-8-encoded text as though
 -- they were one continuous 'ByteString' returning a 'DecodeResult'.
-decodeUtf8Chunks :: ByteString -> ByteString -> DecodeResult Text ByteString Word8
+--
+-- @since 2.0.0.1
+decodeUtf8Chunks
+  :: ByteString -- ^ The first `ByteString` chunk to decode. Typically this is the unencoded data from the previous call of this function.
+  -> ByteString -- ^ The second `ByteString` chunk to decode.
+  -> DecodeResult Text ByteString Word8
 decodeUtf8Chunks = decodeChunksProxy queryUtf8DecodeOptimization $ \ index len srcOff ->
   let decodeFrom off = step (off + 1) . utf8DecodeStart $ index off
 
@@ -370,7 +375,13 @@ noOptimization _ _ _ = Nothing
 
 -- | Decode two 'ByteString's containing UTF-16-encoded text as though
 -- they were one continuous 'ByteString' returning a 'DecodeResult'.
-decodeUtf16Chunks :: Bool -> ByteString -> ByteString -> DecodeResult Text ByteString Word16
+--
+-- @since 2.0.0.1
+decodeUtf16Chunks
+  :: Bool       -- ^ Indicates whether the encoding is big-endian (`True`) or little-endian (`False`)
+  -> ByteString -- ^ The first `ByteString` chunk to decode. Typically this is the unencoded data from the previous call of this function.
+  -> ByteString -- ^ The second `ByteString` chunk to decode.
+  -> DecodeResult Text ByteString Word16
 decodeUtf16Chunks isBE = decodeChunksProxy noOptimization $ \ index len srcOff ->
   -- get next Word8 pair
   let writeAndAdvance c n = WriteAndAdvance c $ const n
@@ -394,7 +405,13 @@ decodeUtf16Chunks isBE = decodeChunksProxy noOptimization $ \ index len srcOff -
 
 -- | Decode two 'ByteString's containing UTF-16-encoded text as though
 -- they were one continuous 'ByteString' returning a 'DecodeResult'.
-decodeUtf32Chunks :: Bool -> ByteString -> ByteString -> DecodeResult Text ByteString Word32
+--
+-- @since 2.0.0.1
+decodeUtf32Chunks
+  :: Bool       -- ^ Indicates whether the encoding is big-endian (`True`) or little-endian (`False`)
+  -> ByteString -- ^ The first `ByteString` chunk to decode. Typically this is the unencoded data from the previous call of this function.
+  -> ByteString -- ^ The second `ByteString` chunk to decode.
+  -> DecodeResult Text ByteString Word32
 decodeUtf32Chunks isBE = decodeChunksProxy noOptimization $ \ index _ srcOff ->
   -- get next Word8 quartet
   case (queryUtf32Bytes . index $ if isBE then srcOff else srcOff + 3)
@@ -408,6 +425,8 @@ decodeUtf32Chunks isBE = decodeChunksProxy noOptimization $ \ index _ srcOff ->
 -- This is a total function: On success the decoded 'Text' is within a
 -- 'Right' value, and an error ('Left' 'Int') indicates the postion of
 -- the offending 'Word8'.
+--
+-- @since 2.0.0.1
 decodeAsciiE :: ByteString -> Either Int Text
 decodeAsciiE bs = withBS bs $ \fp len -> if len == 0 then Right empty else runST $ do
   asciiPrefixLen <- fmap cSizeToInt $ unsafeIOToST $ unsafeWithForeignPtr fp $ \src ->

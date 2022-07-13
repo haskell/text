@@ -30,6 +30,8 @@ import qualified Data.Text.Lazy.Encoding as EL
 
 t_asciiE t    = E.decodeAsciiE (E.encodeUtf8 a) === Right a
     where a  = T.map (\c -> chr (ord c `mod` 128)) t
+tl_asciiE t    = EL.decodeAsciiE (EL.encodeUtf8 a) === Right a
+    where a  = TL.map (\c -> chr (ord c `mod` 128)) t
 
 t_ascii t    = E.decodeASCII (E.encodeUtf8 a) === a
     where a  = T.map (\c -> chr (ord c `mod` 128)) t
@@ -413,6 +415,7 @@ testTranscoding :: TestTree
 testTranscoding =
   testGroup "transcoding" [
     testProperty "t_asciiE" t_asciiE,
+    testProperty "tl_asciiE" tl_asciiE,
     testProperty "t_ascii" t_ascii,
     testProperty "tl_ascii" tl_ascii,
     testProperty "t_latin1" t_latin1,

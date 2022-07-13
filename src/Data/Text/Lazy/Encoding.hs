@@ -23,6 +23,7 @@ module Data.Text.Lazy.Encoding
     -- ** Total Functions #total#
     -- $total
       decodeLatin1
+    , decodeAsciiE
     , DecodeResult(..)
     , decodeUtf8Chunks
     , decodeUtf16Chunks
@@ -109,6 +110,16 @@ decodeASCII = foldr (chunk . TE.decodeASCII) empty . B.toChunks
 decodeLatin1 :: B.ByteString -> Text
 decodeLatin1 = foldr (chunk . TE.decodeLatin1) empty . B.toChunks
 
+-- | Decode a 'ByteString' containing 7-bit ASCII encoded text.
+--
+-- This is a total function: On success the decoded 'Text' is within a
+-- 'Right' value, and an error ('Left' 'Int') indicates the postion of
+-- the offending 'Word8'.
+--
+-- @since 2.0.0.1
+decodeAsciiE :: B.ByteString -> Either Int Text
+decodeAsciiE = foldr (\ lb -> (chunk <$> TE.decodeAsciiE lb <*>)) (pure empty) . B.toChunks
+
 decodeChunks :: (S.ByteString -> S.ByteString -> DecodeResult T.Text S.ByteString w)
   -> B.ByteString
   -> B.ByteString
@@ -125,19 +136,36 @@ decodeChunks decoder = g id 0 mempty
     g tDiff pos sb0 _ (B.Chunk sb1 lb1) = g tDiff pos sb0 (B.Chunk sb1 lb1) mempty
     g tDiff pos sb0 _ _ = DecodeResult (tDiff Empty) Nothing (B.chunk sb0 mempty) pos
 
--- | Decode two 'ByteString's containing UTF-8-encoded text as though
--- they were one continuous 'ByteString' returning a 'DecodeResult'.
-decodeUtf8Chunks :: B.ByteString -> B.ByteString -> DecodeResult Text B.ByteString Word8
+-- | Decode two 'B.ByteString's containing UTF-8-encoded text as though
+-- they were one continuous 'B.ByteString' returning a 'DecodeResult'.
+--
+-- @since 2.0.0.1
+decodeUtf8Chunks
+  :: B.ByteString -- ^ The first `B.ByteString` chunk to decode. Typically this is the unencoded data from the previous call of this function.
+  -> B.ByteString -- ^ The second `B.ByteString` chunk to decode.
+  -> DecodeResult Text B.ByteString Word8
 decodeUtf8Chunks = decodeChunks TE.decodeUtf8Chunks
 
--- | Decode two 'ByteString's containing UTF-16-encoded text as though
--- they were one continuous 'ByteString' returning a 'DecodeResult'.
-decodeUtf16Chunks :: Bool -> B.ByteString -> B.ByteString -> DecodeResult Text B.ByteString Word16
+-- | Decode two 'B.ByteString's containing UTF-16-encoded text as though
+-- they were one continuous 'B.ByteString' returning a 'DecodeResult'.
+--
+-- @since 2.0.0.1
+decodeUtf16Chunks
+  :: Bool         -- ^ Indicates whether the encoding is big-endian (`True`) or little-endian (`False`)
+  -> B.ByteString -- ^ The first `B.ByteString` chunk to decode. Typically this is the unencoded data from the previous call of this function.
+  -> B.ByteString -- ^ The second `B.ByteString` chunk to decode.
+  -> DecodeResult Text B.ByteString Word16
 decodeUtf16Chunks = decodeChunks . TE.decodeUtf16Chunks
 
--- | Decode two 'ByteString's containing UTF-32-encoded text as though
--- they were one continuous 'ByteString' returning a 'DecodeResult'.
-decodeUtf32Chunks :: Bool -> B.ByteString -> B.ByteString -> DecodeResult Text B.ByteString Word32
+-- | Decode two 'B.ByteString's containing UTF-32-encoded text as though
+-- they were one continuous 'B.ByteString' returning a 'DecodeResult'.
+--
+-- @since 2.0.0.1
+decodeUtf32Chunks
+  :: Bool         -- ^ Indicates whether the encoding is big-endian (`True`) or little-endian (`False`)
+  -> B.ByteString -- ^ The first `B.ByteString` chunk to decode. Typically this is the unencoded data from the previous call of this function.
+  -> B.ByteString -- ^ The second `B.ByteString` chunk to decode.
+  -> DecodeResult Text B.ByteString Word32
 decodeUtf32Chunks = decodeChunks . TE.decodeUtf32Chunks
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text.

@@ -17,6 +17,8 @@ module Data.Text.Encoding.Types
   where
 
 -- | A decoding result on encoded data.
+--
+-- @since 2.0.0.1
 data DecodeResult t b w = DecodeResult
   !t          -- ^ The decoded data up to an incomplete code point at
               -- the end of the input data, an invalid word, or to the
@@ -28,6 +30,8 @@ data DecodeResult t b w = DecodeResult
   deriving (Eq, Ord, Show, Read)
 
 -- | A decoding result on encoded data.
+--
+-- @since 2.0.0.1
 data StreamDecodeResult t b w = StreamDecodeResult
   !t          -- ^ The decoded data up to an incomplete code point at
               -- the end of the input data, an invalid word, or to the
@@ -46,7 +50,11 @@ data StreamDecodeResult t b w = StreamDecodeResult
 -- stream decoder will return a 'StreamDecodeResult' which contains a
 -- continuation function that accepts another section of unencoded
 -- data as a continuation of any remaining unencoded data.
-chunksDecoderToStream :: Monoid b => (b -> b -> DecodeResult t b w) -> b -> StreamDecodeResult t b w
+--
+-- @since 2.0.0.1
+chunksDecoderToStream :: Monoid b
+  => (b -> b -> DecodeResult t b w) -- ^ Chunk decoder function
+  -> b -> StreamDecodeResult t b w
 chunksDecoderToStream chunksDecoder = g 0 mempty
   where
     g pos bs0 bs1 =
