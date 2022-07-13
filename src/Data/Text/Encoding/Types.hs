@@ -12,6 +12,7 @@
 module Data.Text.Encoding.Types
   ( DecodeResult(..)
   , StreamDecodeResult(..)
+  , chunksDecoderToStream
   )
   where
 
@@ -40,3 +41,16 @@ data StreamDecodeResult t b w = StreamDecodeResult
   (b -> StreamDecodeResult t b w) -- ^ Continuation to accept the next
                                   -- span of data to be decoded with
                                   -- the remaining unencoded data.
+
+-- | Create a stream decoder from a chunks decoder. The resulting
+-- stream decoder will return a 'StreamDecodeResult' which contains a
+-- continuation function that accepts another section of unencoded
+-- data as a continuation of any remaining unencoded data.
+chunksDecoderToStream :: Monoid b => (b -> b -> DecodeResult t b w) -> b -> StreamDecodeResult t b w
+chunksDecoderToStream chunksDecoder = g 0 mempty
+  where
+    g pos bs0 bs1 =
+      let DecodeResult t mW bs1' pos1 = chunksDecoder bs0 bs1
+          pos' = pos + pos1
+      in
+      StreamDecodeResult t mW bs1' pos' $ \ bs2 -> g pos' bs1' bs2

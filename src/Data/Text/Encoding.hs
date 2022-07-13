@@ -31,11 +31,8 @@ module Data.Text.Encoding
       decodeLatin1
     , decodeUtf8Lenient
     , DecodeResult(..)
-    , decodeUtf8Chunk
     , decodeUtf8Chunks
-    , decodeUtf16Chunk
     , decodeUtf16Chunks
-    , decodeUtf32Chunk
     , decodeUtf32Chunks
 
     -- *** Catchable failure
@@ -54,11 +51,6 @@ module Data.Text.Encoding
     , streamDecodeUtf8
     , streamDecodeUtf8With
     , Decoding(..)
-
-    , StreamDecodeResult(..)
-    , decodeUtf8Stream
-    , decodeUtf16Stream
-    , decodeUtf32Stream
 
     -- ** Partial Functions
     -- $partial
@@ -91,7 +83,7 @@ import qualified Data.ByteString as B
 import qualified Data.ByteString.Internal as B
 import qualified Data.ByteString.Short.Internal as SBS
 import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode, lenientDecode)
-import Data.Text.Encoding.Types (DecodeResult(..), StreamDecodeResult(..))
+import Data.Text.Encoding.Types (DecodeResult(..))
 import Data.Text.Internal (Text(..), empty, append)
 import Data.Text.Internal.Unsafe (unsafeWithForeignPtr)
 import Data.Text.Internal.Unsafe.Char (unsafeWrite)
@@ -239,78 +231,81 @@ decodeChunks :: (Bits w, Num w, Storable w) =>
   -> ByteString
   -> ByteString
   -> DecodeResult Text ByteString w
-decodeChunks w queryOptimization decodeF bs1@(B.length -> len1) bs2@(B.length -> len2) = runST $ do
-  marr <- A.new len'
-  outer marr len' 0 0
-  where
-    wordByteSize = sizeOf w
+decodeChunks w queryOptimization decodeF bs1@(B.length -> len1) bs2@(B.length -> len2)
+  | len2 == 0
+  , len1 > 0 = decodeChunks w queryOptimization decodeF bs2 bs1
+  | otherwise = runST $ do
+    marr <- A.new len'
+    outer marr len' 0 0
+    where
+      wordByteSize = sizeOf w
 
-    index :: Int -> Word8
-    index i
-      | i < len1  = B.index bs1 i
-      | otherwise = B.index bs2 $ i - len1
+      index :: Int -> Word8
+      index i
+        | i < len1  = B.index bs1 i
+        | otherwise = B.index bs2 $ i - len1
 
-    len :: Int
-    len = len1 + len2
-    len' :: Int
-    len' = (len `div` wordByteSize) + 4
+      len :: Int
+      len = len1 + len2
+      len' :: Int
+      len' = (len `div` wordByteSize) + 4
 
-    -- outer :: (Bits w, Num w) => A.MArray s -> Int -> Int -> Int -> ST s (DecodeResult Text ByteString w)
-    outer dst dstLen = inner
-      where
-        inner srcOff dstOff
-          -- finished
-          | len - srcOff < 1 = goodSoFar
-          -- shortcut for utf-8
-          | otherwise =
-            case queryOptimization bs1 bs2 srcOff of
-              Just (arr, tLen) ->
-                let minLen = tLen + dstOff in
-                if minLen > dstLen
-                  then do
-                    let dstLen' = minLen + 4
-                    dst' <- A.resizeM dst dstLen'
-                    A.copyI tLen dst' dstOff arr 0
-                    outer dst' dstLen' (srcOff + tLen) minLen
-                  else do
-                    A.copyI tLen dst dstOff arr 0
-                    inner (srcOff + tLen) minLen
-              _ -> if len - srcOff < wordByteSize
-                  -- incomplete code point
-                  then goodSoFar
-                  else
-                    if dstOff + 4 > dstLen
-                      -- need more space in destination
-                      then do
-                        let dstLen' = dstLen + 4
-                        dst' <- A.resizeM dst dstLen'
-                        outer dst' dstLen' srcOff dstOff
-                      else
-                        case decodeF index len srcOff of
-                          WriteAndAdvance c advance -> do
-                            d <- unsafeWrite dst dstOff c
-                            inner (advance d) $ dstOff + d
-                          NeedMore -> goodSoFar
-                          Invalid -> invalid
-          where
-            contin off res = do
-              A.shrinkM dst dstOff
-              arr <- A.unsafeFreeze dst
-              pure . res (Text arr 0 dstOff) $ if off >= len1
-                then B.drop (off - len1) bs2
-                else B.drop off $ bs1 `B.append` bs2
-            goodSoFar =
-              contin srcOff $ \ t bs' ->
-                DecodeResult t Nothing bs' srcOff
-            invalid =
-              let srcOff' = srcOff + wordByteSize
-                  bytesToWord n word =
-                    if n > 0
-                      then bytesToWord (n - 1) $ (fromIntegral . index $ srcOff + wordByteSize - n) .|. (word `shiftL` 8)
-                      else word
-              in
-              contin srcOff' $ \ t bs' ->
-                DecodeResult t (Just $ bytesToWord wordByteSize 0) bs' srcOff'
+      -- outer :: (Bits w, Num w) => A.MArray s -> Int -> Int -> Int -> ST s (DecodeResult Text ByteString w)
+      outer dst dstLen = inner
+        where
+          inner srcOff dstOff
+            -- finished
+            | len - srcOff < 1 = goodSoFar
+            -- shortcut for utf-8
+            | otherwise =
+              case queryOptimization bs1 bs2 srcOff of
+                Just (arr, tLen) ->
+                  let minLen = tLen + dstOff in
+                  if minLen > dstLen
+                    then do
+                      let dstLen' = minLen + 4
+                      dst' <- A.resizeM dst dstLen'
+                      A.copyI tLen dst' dstOff arr 0
+                      outer dst' dstLen' (srcOff + tLen) minLen
+                    else do
+                      A.copyI tLen dst dstOff arr 0
+                      inner (srcOff + tLen) minLen
+                _ -> if len - srcOff < wordByteSize
+                    -- incomplete code point
+                    then goodSoFar
+                    else
+                      if dstOff + 4 > dstLen
+                        -- need more space in destination
+                        then do
+                          let dstLen' = dstLen + 4
+                          dst' <- A.resizeM dst dstLen'
+                          outer dst' dstLen' srcOff dstOff
+                        else
+                          case decodeF index len srcOff of
+                            WriteAndAdvance c advance -> do
+                              d <- unsafeWrite dst dstOff c
+                              inner (advance d) $ dstOff + d
+                            NeedMore -> goodSoFar
+                            Invalid -> invalid
+            where
+              contin off res = do
+                A.shrinkM dst dstOff
+                arr <- A.unsafeFreeze dst
+                pure . res (Text arr 0 dstOff) $ if off >= len1
+                  then B.drop (off - len1) bs2
+                  else B.drop off $ bs1 `B.append` bs2
+              goodSoFar =
+                contin srcOff $ \ t bs' ->
+                  DecodeResult t Nothing bs' srcOff
+              invalid =
+                let srcOff' = srcOff + wordByteSize
+                    bytesToWord n word =
+                      if n > 0
+                        then bytesToWord (n - 1) $ (fromIntegral . index $ srcOff + wordByteSize - n) .|. (word `shiftL` 8)
+                        else word
+                in
+                contin srcOff' $ \ t bs' ->
+                  DecodeResult t (Just $ bytesToWord wordByteSize 0) bs' srcOff'
 
 decodeChunksProxy :: (Bits w, Num w, Storable w) =>
   (ByteString -> ByteString -> Int -> Maybe (A.Array, Int))
@@ -318,7 +313,7 @@ decodeChunksProxy :: (Bits w, Num w, Storable w) =>
   -> ByteString
   -> ByteString
   -> DecodeResult Text ByteString w
-decodeChunksProxy = decodeChunks undefined -- This allows Haskell can
+decodeChunksProxy = decodeChunks undefined -- This allows Haskell to
 -- determine the size in bytes of a data type using Storable.sizeOf
 -- so that it doesn't have to be passed as an arugment. Storable.sizeOf
 -- discards the actual value without evaluating it.
@@ -355,28 +350,20 @@ queryUtf8DecodeOptimization (B.length -> len1) bs2@(B.length -> len2) srcOff
         w2 = B.index bs2 (len2 - 3)
         w3 = B.index bs2 (len2 - 4)
 
-decodeUtf8Base :: (Int -> Word8) -> Int -> Int -> Progression
-decodeUtf8Base index len srcOff =
+-- | Decode two 'ByteString's containing UTF-8-encoded text as though
+-- they were one continuous 'ByteString' returning a 'DecodeResult'.
+decodeUtf8Chunks :: ByteString -> ByteString -> DecodeResult Text ByteString Word8
+decodeUtf8Chunks = decodeChunksProxy queryUtf8DecodeOptimization $ \ index len srcOff ->
+  let decodeFrom off = step (off + 1) . utf8DecodeStart $ index off
+
+      step i (Incomplete a b)
+        | i < len = step (i + 1) $ utf8DecodeContinue (index i) a b
+      step _ st = st
+  in
   case decodeFrom srcOff of
     Accept c -> WriteAndAdvance c (srcOff +)
     Reject -> Invalid
     Incomplete{} -> NeedMore
-  where
-    decodeFrom off = step (off + 1) . utf8DecodeStart $ index off
-
-    step i (Incomplete a b)
-      | i < len = step (i + 1) $ utf8DecodeContinue (index i) a b
-    step _ st = st
-
--- | Decode two 'ByteString's containing UTF-8-encoded text as though
--- they were one continuous 'ByteString' returning a 'DecodeResult'.
-decodeUtf8Chunks :: ByteString -> ByteString -> DecodeResult Text ByteString Word8
-decodeUtf8Chunks = decodeChunksProxy queryUtf8DecodeOptimization decodeUtf8Base
-
--- | Decode a 'ByteString' containing UTF-8-encoded text returning a
--- 'DecodeResult'.
-decodeUtf8Chunk :: ByteString -> DecodeResult Text ByteString Word8
-decodeUtf8Chunk = decodeUtf8Chunks mempty
 
 noOptimization :: p1 -> p2 -> p3 -> Maybe a
 noOptimization _ _ _ = Nothing
@@ -405,11 +392,6 @@ decodeUtf16Chunks isBE = decodeChunksProxy noOptimization $ \ index len srcOff -
             _ -> Invalid
     _ -> Invalid
 
--- | Decode a 'ByteString' containing UTF-16-encoded text returning a
--- 'DecodeResult'.
-decodeUtf16Chunk :: Bool -> ByteString -> DecodeResult Text ByteString Word16
-decodeUtf16Chunk isBE = decodeUtf16Chunks isBE mempty
-
 -- | Decode two 'ByteString's containing UTF-16-encoded text as though
 -- they were one continuous 'ByteString' returning a 'DecodeResult'.
 decodeUtf32Chunks :: Bool -> ByteString -> ByteString -> DecodeResult Text ByteString Word32
@@ -420,11 +402,6 @@ decodeUtf32Chunks isBE = decodeChunksProxy noOptimization $ \ index _ srcOff ->
       >>= ($ (index $ srcOff + (if isBE then 2 else 1))) of
     Just f -> WriteAndAdvance (f . index $ if isBE then srcOff + 3 else srcOff) . const $ srcOff + 4
     _ -> Invalid
-
--- | Decode a 'ByteString' containing UTF-32-encoded text returning a
--- 'DecodeResult'.
-decodeUtf32Chunk :: Bool -> ByteString -> DecodeResult Text ByteString Word32
-decodeUtf32Chunk isBE = decodeUtf32Chunks isBE mempty
 
 -- | Decode a 'ByteString' containing 7-bit ASCII encoded text.
 --
@@ -563,30 +540,6 @@ streamDecodeUtf8With onErr = g empty mempty
             Just c -> txt `append` T.singleton c
             _ -> txt) mempty
         _ -> Some txt bs1' . g empty) bs1'
-
-decodeStream :: Monoid b => (b -> b -> DecodeResult t b w) -> b -> StreamDecodeResult t b w
-decodeStream chunksDecoder = g 0 mempty
-  where
-    g pos bs0 bs1 =
-      let DecodeResult t mW bs1' pos1 = chunksDecoder bs0 bs1
-          pos' = pos + pos1
-      in
-      StreamDecodeResult t mW bs1' pos' $ \ bs2 -> g pos' bs1' bs2
-
--- | Decode, in a stream oriented way, a 'ByteString' containing UTF-8-
--- encoded text.
-decodeUtf8Stream :: ByteString -> StreamDecodeResult Text ByteString Word8
-decodeUtf8Stream = decodeStream decodeUtf8Chunks
-
--- | Decode, in a stream oriented way, a 'ByteString' containing UTF-16-
--- encoded text.
-decodeUtf16Stream :: Bool -> ByteString -> StreamDecodeResult Text ByteString Word16
-decodeUtf16Stream = decodeStream . decodeUtf16Chunks
-
--- | Decode, in a stream oriented way, a 'ByteString' containing UTF-32-
--- encoded text.
-decodeUtf32Stream :: Bool -> ByteString -> StreamDecodeResult Text ByteString Word32
-decodeUtf32Stream = decodeStream . decodeUtf32Chunks
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text that is known
 -- to be valid.

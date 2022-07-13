@@ -24,6 +24,7 @@ import qualified Data.ByteString.Lazy.Char8 as BLC
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as E
 import qualified Data.Text.Encoding.Error as E
+import qualified Data.Text.Encoding.Types as Ty
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as EL
 
@@ -45,74 +46,44 @@ whenEqProp a b next = if a == b
 t_utf8       = (E.decodeUtf8 . E.encodeUtf8) `eq` id
 t_utf8'      = (E.decodeUtf8' . E.encodeUtf8) `eq` (id . Right)
 t_utf8_c     = (\ t ->
-                let E.DecodeResult t' mC bs _ = E.decodeUtf8Chunk $ E.encodeUtf8 t in
-                (t', mC, bs)) `eq` (\ t -> (t, Nothing, mempty))
-t_utf8_s     = (\ t ->
-                let E.StreamDecodeResult t' mC bs _ _ = E.decodeUtf8Stream $ E.encodeUtf8 t in
+                let E.DecodeResult t' mC bs _ = E.decodeUtf8Chunks mempty $ E.encodeUtf8 t in
                 (t', mC, bs)) `eq` (\ t -> (t, Nothing, mempty))
 tl_utf8      = (EL.decodeUtf8 . EL.encodeUtf8) `eq` id
 tl_utf8'     = (EL.decodeUtf8' . EL.encodeUtf8) `eq` (id . Right)
 tl_utf8_c    = (\ t ->
-                let E.DecodeResult t' mC bs _ = EL.decodeUtf8Chunk $ EL.encodeUtf8 t in
-                (t', mC, bs)) `eq` (\ t -> (t, Nothing, mempty))
-tl_utf8_s    = (\ t ->
-                let E.StreamDecodeResult t' mC bs _ _ = EL.decodeUtf8Stream $ EL.encodeUtf8 t in
+                let E.DecodeResult t' mC bs _ = EL.decodeUtf8Chunks mempty $ EL.encodeUtf8 t in
                 (t', mC, bs)) `eq` (\ t -> (t, Nothing, mempty))
 t_utf16LE    = (E.decodeUtf16LE . E.encodeUtf16LE) `eq` id
 t_utf16LE_c  = (\ t ->
-                let E.DecodeResult t' mC bs _ = E.decodeUtf16Chunk False $ E.encodeUtf16LE t in
-                (t', mC, bs)) `eq` (\ t -> (t, Nothing, mempty))
-t_utf16LE_s  = (\ t ->
-                let E.StreamDecodeResult t' mC bs _ _ = E.decodeUtf16Stream False $ E.encodeUtf16LE t in
+                let E.DecodeResult t' mC bs _ = E.decodeUtf16Chunks False mempty $ E.encodeUtf16LE t in
                 (t', mC, bs)) `eq` (\ t -> (t, Nothing, mempty))
 tl_utf16LE   = (EL.decodeUtf16LE . EL.encodeUtf16LE) `eq` id
 tl_utf16LE_c = (\ t ->
-                let E.DecodeResult t' mC bs _ = EL.decodeUtf16Chunk False $ EL.encodeUtf16LE t in
-                (t', mC, bs)) `eq` (\ t -> (t, Nothing, mempty))
-tl_utf16LE_s = (\ t ->
-                let E.StreamDecodeResult t' mC bs _ _ = EL.decodeUtf16Stream False $ EL.encodeUtf16LE t in
+                let E.DecodeResult t' mC bs _ = EL.decodeUtf16Chunks False mempty $ EL.encodeUtf16LE t in
                 (t', mC, bs)) `eq` (\ t -> (t, Nothing, mempty))
 t_utf16BE    = (E.decodeUtf16BE . E.encodeUtf16BE) `eq` id
 t_utf16BE_c  = (\ t ->
-                let E.DecodeResult t' mC bs _ = E.decodeUtf16Chunk True $ E.encodeUtf16BE t in
-                (t', mC, bs)) `eq` (\ t -> (t, Nothing, mempty))
-t_utf16BE_s  = (\ t ->
-                let E.StreamDecodeResult t' mC bs _ _ = E.decodeUtf16Stream True $ E.encodeUtf16BE t in
+                let E.DecodeResult t' mC bs _ = E.decodeUtf16Chunks True mempty $ E.encodeUtf16BE t in
                 (t', mC, bs)) `eq` (\ t -> (t, Nothing, mempty))
 tl_utf16BE   = (EL.decodeUtf16BE . EL.encodeUtf16BE) `eq` id
 tl_utf16BE_c = (\ t ->
-                let E.DecodeResult t' mC bs _ = EL.decodeUtf16Chunk True $ EL.encodeUtf16BE t in
-                (t', mC, bs)) `eq` (\ t -> (t, Nothing, mempty))
-tl_utf16BE_s = (\ t ->
-                let E.StreamDecodeResult t' mC bs _ _ = EL.decodeUtf16Stream True $ EL.encodeUtf16BE t in
+                let E.DecodeResult t' mC bs _ = EL.decodeUtf16Chunks True mempty $ EL.encodeUtf16BE t in
                 (t', mC, bs)) `eq` (\ t -> (t, Nothing, mempty))
 t_utf32LE    = (E.decodeUtf32LE . E.encodeUtf32LE) `eq` id
 t_utf32LE_c  = (\ t ->
-                let E.DecodeResult t' mC bs _ = E.decodeUtf32Chunk False $ E.encodeUtf32LE t in
-                (t', mC, bs)) `eq` (\ t -> (t, Nothing, mempty))
-t_utf32LE_s  = (\ t ->
-                let E.StreamDecodeResult t' mC bs _ _ = E.decodeUtf32Stream False $ E.encodeUtf32LE t in
+                let E.DecodeResult t' mC bs _ = E.decodeUtf32Chunks False mempty $ E.encodeUtf32LE t in
                 (t', mC, bs)) `eq` (\ t -> (t, Nothing, mempty))
 tl_utf32LE   = (EL.decodeUtf32LE . EL.encodeUtf32LE) `eq` id
 tl_utf32LE_c = (\ t ->
-                let E.DecodeResult t' mC bs _ = EL.decodeUtf32Chunk False $ EL.encodeUtf32LE t in
-                (t', mC, bs)) `eq` (\ t -> (t, Nothing, mempty))
-tl_utf32LE_s = (\ t ->
-                let E.StreamDecodeResult t' mC bs _ _ = EL.decodeUtf32Stream False $ EL.encodeUtf32LE t in
+                let E.DecodeResult t' mC bs _ = EL.decodeUtf32Chunks False mempty $ EL.encodeUtf32LE t in
                 (t', mC, bs)) `eq` (\ t -> (t, Nothing, mempty))
 t_utf32BE    = (E.decodeUtf32BE . E.encodeUtf32BE) `eq` id
 t_utf32BE_c  = (\ t ->
-                let E.DecodeResult t' mC bs _ = E.decodeUtf32Chunk True $ E.encodeUtf32BE t in
-                (t', mC, bs)) `eq` (\ t -> (t, Nothing, mempty))
-t_utf32BE_s  = (\ t ->
-                let E.StreamDecodeResult t' mC bs _ _ = E.decodeUtf32Stream True $ E.encodeUtf32BE t in
+                let E.DecodeResult t' mC bs _ = E.decodeUtf32Chunks True mempty $ E.encodeUtf32BE t in
                 (t', mC, bs)) `eq` (\ t -> (t, Nothing, mempty))
 tl_utf32BE   = (EL.decodeUtf32BE . EL.encodeUtf32BE) `eq` id
 tl_utf32BE_c  = (\ t ->
-                let E.DecodeResult t' mC bs _ = EL.decodeUtf32Chunk True $ EL.encodeUtf32BE t in
-                (t', mC, bs)) `eq` (\ t -> (t, Nothing, mempty))
-tl_utf32BE_s  = (\ t ->
-                let E.StreamDecodeResult t' mC bs _ _ = EL.decodeUtf32Stream True $ EL.encodeUtf32BE t in
+                let E.DecodeResult t' mC bs _ = EL.decodeUtf32Chunks True mempty $ EL.encodeUtf32BE t in
                 (t', mC, bs)) `eq` (\ t -> (t, Nothing, mempty))
 
 runBuilder :: B.Builder -> B.ByteString
@@ -193,14 +164,7 @@ t_utf8_err bad de = forAll (Blind <$> genDecodeErr de) $ \(Blind onErr) -> ioPro
 
 t_utf8_c_err :: InvalidUtf8 -> Property
 t_utf8_c_err bad =
-  let E.DecodeResult t mW bs _ = E.decodeUtf8Chunk (toByteString bad) in
-  case mW of
-    Just w -> counterexample (show w) True
-    _  -> counterexample (show t) $ B.length bs > 0
-
-t_utf8_s_err :: InvalidUtf8 -> Property
-t_utf8_s_err bad =
-  let E.StreamDecodeResult t mW bs _ _ = E.decodeUtf8Stream (toByteString bad) in
+  let E.DecodeResult t mW bs _ = E.decodeUtf8Chunks mempty $ toByteString bad in
   case mW of
     Just w -> counterexample (show w) True
     _  -> counterexample (show t) $ B.length bs > 0
@@ -247,125 +211,133 @@ genInvalidUTF8 = B.pack <$> oneof [
     ord4_ n = map fromIntegral [(n `shiftR` 18) + 0xF0, ((n `shiftR` 12) .&. 0x3F) + 0x80, ((n `shiftR` 6) .&. 0x3F) + 0x80, (n .&. 0x3F) + 0x80]
 
 t_chunk_decode_utf8_1 =
-  let decodeResult0 = E.decodeUtf8Chunk $ B.pack [0x68, 0x69, 0x2C, 0x20, 0xe2, 0x98, 0x83, 0x21] in
-  decodeResult0 === (E.DecodeResult "hi, ☃!" Nothing mempty 8)
+  let decodeResult0 = E.decodeUtf8Chunks mempty $ B.pack [0x68, 0x69, 0x2C, 0x20, 0xe2, 0x98, 0x83, 0x21] in
+  decodeResult0 === E.DecodeResult "hi, ☃!" Nothing mempty 8
 t_chunk_decode_utf8_2 =
-  let decodeResult0 = E.decodeUtf8Chunk $ B.pack [97, 0xC2, 97]
+  let decode = E.decodeUtf8Chunks mempty
+      decodeResult0 = decode $ B.pack [97, 0xC2, 97]
       expectedBs0 = B.singleton 97
   in
   whenEqProp decodeResult0 (E.DecodeResult (T.singleton 'a') (Just 0xC2) expectedBs0 2) $
-    let decodeResult1 = E.decodeUtf8Chunk expectedBs0 in
-    decodeResult1 === (E.DecodeResult (T.singleton 'a') Nothing mempty 1)
+    let decodeResult1 = decode expectedBs0 in
+    decodeResult1 === E.DecodeResult (T.singleton 'a') Nothing mempty 1
 t_chunk_decode_utf8_3 =
-  let decodeResult0 = E.decodeUtf8Chunk $ B.pack [104, 105, 32, 0xe2]
+  let decode = E.decodeUtf8Chunks
+      decodeResult0 = decode mempty $ B.pack [104, 105, 32, 0xe2]
       expectedBs0 = B.singleton 0xe2
   in -- hi \xe2
   whenEqProp decodeResult0 (E.DecodeResult "hi " Nothing expectedBs0 3) $
-    let decodeResult1 = E.decodeUtf8Chunk $ expectedBs0 `B.snoc` 0x98
+    let decodeResult1 = decode expectedBs0 $ B.singleton 0x98
         expectedBs1 = B.pack [0xe2, 0x98]
     in
     whenEqProp decodeResult1 (E.DecodeResult "" Nothing expectedBs1 0) $
-      let decodeResult2 = E.decodeUtf8Chunk $ expectedBs1 `mappend` B.pack [0x83, 32, 0xFF] in
-      decodeResult2 === (E.DecodeResult "☃ " (Just 0xFF) mempty 5)
+      let decodeResult2 = decode expectedBs1 $ B.pack [0x83, 32, 0xFF] in
+      decodeResult2 === E.DecodeResult "☃ " (Just 0xFF) mempty 5
 
 t_chunk_decode_utf16BE =
-  let decode = E.decodeUtf16Chunk True
+  let decode = E.decodeUtf16Chunks True
       expectedBs0 = B.pack [0]
-      decodeResult0 = decode expectedBs0 in
+      decodeResult0 = decode mempty expectedBs0 in
   whenEqProp decodeResult0 (E.DecodeResult T.empty Nothing expectedBs0 0) $
-    let decodeResult1 = decode $ expectedBs0 `B.append` B.pack [104, 0, 105, 0, 32, 0xD8, 0x01]
+    let decodeResult1 = decode expectedBs0 $ B.pack [104, 0, 105, 0, 32, 0xD8, 0x01]
         expectedBs1 = B.pack [0xD8, 0x01]
     in
     whenEqProp decodeResult1 (E.DecodeResult "hi " Nothing expectedBs1 6) $
-      let decodeResult2 = decode $ expectedBs1 `B.append` B.pack [0xDC, 0x37, 0, 32, 0xDC, 0] in
-      decodeResult2 === (E.DecodeResult "\x10437 " (Just 0xDC00) mempty 8)
+      let decodeResult2 = decode expectedBs1 $ B.pack [0xDC, 0x37, 0, 32, 0xDC, 0] in
+      decodeResult2 === E.DecodeResult "\x10437 " (Just 0xDC00) mempty 8
 t_chunk_decode_utf16LE =
-  let decode = E.decodeUtf16Chunk False
+  let decode = E.decodeUtf16Chunks False
       expectedBs0 = B.pack [104]
-      decodeResult0 = decode expectedBs0 in
+      decodeResult0 = decode mempty expectedBs0 in
   whenEqProp decodeResult0 (E.DecodeResult T.empty Nothing expectedBs0 0) $
-    let decodeResult1 = decode $ expectedBs0 `B.append` B.pack [0, 105, 0, 32, 0, 0x01, 0xD8]
+    let decodeResult1 = decode expectedBs0 $ B.pack [0, 105, 0, 32, 0, 0x01, 0xD8]
         expectedBs1 = B.pack [0x01, 0xD8]
     in
     whenEqProp decodeResult1 (E.DecodeResult "hi " Nothing expectedBs1 6) $
-      let decodeResult2 = decode $ expectedBs1 `B.append` B.pack [0x37, 0xDC, 32, 0, 0, 0xDC] in
-      decodeResult2 === (E.DecodeResult "\x10437 " (Just 0xDC) mempty 8)
+      let decodeResult2 = decode expectedBs1 $ B.pack [0x37, 0xDC, 32, 0, 0, 0xDC] in
+      decodeResult2 === E.DecodeResult "\x10437 " (Just 0xDC) mempty 8
 
 t_chunk_decode_utf32BE =
-  let decode = E.decodeUtf32Chunk True
+  let decode = E.decodeUtf32Chunks True
       expBs0 = B.pack [0, 0]
-      decodeResult0 = decode $ B.pack [0, 0, 0, 104, 0, 0, 0, 105, 0, 0]
+      decodeResult0 = decode mempty $ B.pack [0, 0, 0, 104, 0, 0, 0, 105, 0, 0]
   in
   whenEqProp decodeResult0 (E.DecodeResult "hi" Nothing expBs0 8) $
     let expBs1 = B.pack [0, 0, 0x26]
-        decodeResult1 = decode $ expBs0 `mappend` (B.pack [0, 32, 0, 0, 0x26])
+        decodeResult1 = decode expBs0 $ B.pack [0, 32, 0, 0, 0x26]
     in
     whenEqProp decodeResult1 (E.DecodeResult " " Nothing expBs1 4) $
       let expBs2 = mempty
-          decodeResult2 = decode $ expBs1 `mappend` (B.pack [0x03, 0, 0, 0, 32, 0, 0, 0xD8, 0])
+          decodeResult2 = decode expBs1 $ B.pack [0x03, 0, 0, 0, 32, 0, 0, 0xD8, 0]
       in
-      decodeResult2 === (E.DecodeResult "☃ " (Just 0xD800) expBs2 12)
+      decodeResult2 === E.DecodeResult "☃ " (Just 0xD800) expBs2 12
 t_chunk_decode_utf32LE =
-  let decode = E.decodeUtf32Chunk False
+  let decode = E.decodeUtf32Chunks False
       expBs0 = B.pack [0x20, 0]
-      decodeResult0 = decode $ B.pack [104, 0, 0, 0, 105, 0, 0, 0, 0x20, 0]
+      decodeResult0 = decode mempty $ B.pack [104, 0, 0, 0, 105, 0, 0, 0, 0x20, 0]
   in
   whenEqProp decodeResult0 (E.DecodeResult "hi" Nothing expBs0 8) $
     let expBs1 = B.pack [0x03, 0x26, 0]
-        decodeResult1 = decode $ expBs0 `mappend` (B.pack [0, 0, 0x03, 0x26, 0])
+        decodeResult1 = decode expBs0 $ B.pack [0, 0, 0x03, 0x26, 0]
     in
     whenEqProp decodeResult1 (E.DecodeResult " " Nothing expBs1 4) $
       let expBs2 = mempty
-          decodeResult2 = decode $ expBs1 `mappend` (B.pack [0, 32, 0, 0, 0, 0, 0xD8, 0, 0])
+          decodeResult2 = decode expBs1 $ B.pack [0, 32, 0, 0, 0, 0, 0xD8, 0, 0]
       in
-      decodeResult2 === (E.DecodeResult "☃ " (Just 0xD80000) expBs2 12)
+      decodeResult2 === E.DecodeResult "☃ " (Just 0xD80000) expBs2 12
+
+decodeUtf8StreamS = Ty.chunksDecoderToStream E.decodeUtf8Chunks
 
 t_stream_decode_utf8_1 =
-  let (E.StreamDecodeResult t0 mW0 bs0 pos0 _) = E.decodeUtf8Stream $ B.pack [0x68, 0x69, 0x2C, 0x20, 0xe2, 0x98, 0x83, 0x21] in
+  let (Ty.StreamDecodeResult t0 mW0 bs0 pos0 _) = decodeUtf8StreamS $ B.pack [0x68, 0x69, 0x2C, 0x20, 0xe2, 0x98, 0x83, 0x21] in
   (t0, mW0, bs0, pos0) === ("hi, ☃!", Nothing, mempty, 8)
 t_stream_decode_utf8_2 =
-  let (E.StreamDecodeResult t0 mW0 bs0 pos0 f0) = E.decodeUtf8Stream $ B.pack [97, 0xC2, 97] in
+  let (Ty.StreamDecodeResult t0 mW0 bs0 pos0 f0) = decodeUtf8StreamS $ B.pack [97, 0xC2, 97] in
   whenEqProp (t0, mW0, bs0, pos0) (T.singleton 'a', Just 0xC2, B.singleton 97, 2) $
-    let (E.StreamDecodeResult t1 mW1 bs1 pos1 _) = f0 mempty in
+    let (Ty.StreamDecodeResult t1 mW1 bs1 pos1 _) = f0 mempty in
     (t1, mW1, bs1, pos1) === (T.singleton 'a', Nothing, mempty, 3)
 t_stream_decode_utf8_3 =
-  let (E.StreamDecodeResult t0 mW0 bs0 pos0 f0) = E.decodeUtf8Stream $ B.pack [104, 105, 32, 0xe2] in
+  let (Ty.StreamDecodeResult t0 mW0 bs0 pos0 f0) = decodeUtf8StreamS $ B.pack [104, 105, 32, 0xe2] in
   whenEqProp (t0, mW0, bs0, pos0) ("hi ", Nothing, B.singleton 0xe2, 3) $
-    let (E.StreamDecodeResult t1 mW1 bs1 pos1 f1) = f0 $ B.singleton 0x98 in
+    let (Ty.StreamDecodeResult t1 mW1 bs1 pos1 f1) = f0 $ B.singleton 0x98 in
     whenEqProp (t1, mW1, bs1, pos1) ("", Nothing, B.pack [0xe2, 0x98], 3) $
-      let (E.StreamDecodeResult t2 mW2 bs2 pos2 _) = f1 $ B.pack [0x83, 32, 0xFF] in
+      let (Ty.StreamDecodeResult t2 mW2 bs2 pos2 _) = f1 $ B.pack [0x83, 32, 0xFF] in
       (t2, mW2, bs2, pos2) === ("☃ ", Just 0xFF, mempty, 8)
+
+decodeUtf16StreamS = Ty.chunksDecoderToStream . E.decodeUtf16Chunks
 
 t_stream_decode_utf16BE =
   let expectedBs0 = B.pack [0]
-      (E.StreamDecodeResult t0 mW0 bs0 pos0 f0) = E.decodeUtf16Stream True expectedBs0 in
+      (Ty.StreamDecodeResult t0 mW0 bs0 pos0 f0) = decodeUtf16StreamS True expectedBs0 in
   whenEqProp (t0, mW0, bs0, pos0) (T.empty, Nothing, expectedBs0, 0) $
-    let (E.StreamDecodeResult t1 mW1 bs1 pos1 f1) = f0 $ B.pack [104, 0, 105, 0, 32, 0xD8, 0x01] in
+    let (Ty.StreamDecodeResult t1 mW1 bs1 pos1 f1) = f0 $ B.pack [104, 0, 105, 0, 32, 0xD8, 0x01] in
     whenEqProp (t1, mW1, bs1, pos1) ("hi ", Nothing, B.pack [0xD8, 0x01], 6) $
-      let (E.StreamDecodeResult t2 mW2 bs2 pos2 _) = f1 $ B.pack [0xDC, 0x37, 0, 32, 0xDC, 0] in
+      let (Ty.StreamDecodeResult t2 mW2 bs2 pos2 _) = f1 $ B.pack [0xDC, 0x37, 0, 32, 0xDC, 0] in
       (t2, mW2, bs2, pos2) === ("\x10437 ", Just 0xDC00, mempty, 14)
 t_stream_decode_utf16LE =
   let expectedBs0 = B.pack [104]
-      (E.StreamDecodeResult t0 mW0 bs0 pos0 f0) = E.decodeUtf16Stream False expectedBs0 in
+      (Ty.StreamDecodeResult t0 mW0 bs0 pos0 f0) = decodeUtf16StreamS False expectedBs0 in
   whenEqProp (t0, mW0, bs0, pos0) (T.empty, Nothing, expectedBs0, 0) $
-    let (E.StreamDecodeResult t1 mW1 bs1 pos1 f1) = f0 $ B.pack [0, 105, 0, 32, 0, 0x01, 0xD8] in
+    let (Ty.StreamDecodeResult t1 mW1 bs1 pos1 f1) = f0 $ B.pack [0, 105, 0, 32, 0, 0x01, 0xD8] in
     whenEqProp (t1, mW1, bs1, pos1) ("hi ", Nothing, B.pack [0x01, 0xD8], 6) $
-      let (E.StreamDecodeResult t2 mW2 bs2 pos2 _) = f1 $ B.pack [0x37, 0xDC, 32, 0, 0, 0xDC] in
+      let (Ty.StreamDecodeResult t2 mW2 bs2 pos2 _) = f1 $ B.pack [0x37, 0xDC, 32, 0, 0, 0xDC] in
       (t2, mW2, bs2, pos2) === ("\x10437 ", Just 0xDC, mempty, 14)
 
+decodeUtf32StreamS = Ty.chunksDecoderToStream . E.decodeUtf32Chunks
+
 t_stream_decode_utf32BE =
-  let (E.StreamDecodeResult t0 mW0 bs0 pos0 f0) = E.decodeUtf32Stream True $ B.pack [0, 0, 0, 104, 0, 0, 0, 105, 0, 0] in
+  let (Ty.StreamDecodeResult t0 mW0 bs0 pos0 f0) = decodeUtf32StreamS True $ B.pack [0, 0, 0, 104, 0, 0, 0, 105, 0, 0] in
   whenEqProp (t0, mW0, bs0, pos0) ("hi", Nothing, B.pack [0, 0], 8) $
-    let (E.StreamDecodeResult t1 mW1 bs1 pos1 f1) = f0 $ B.pack [0, 32, 0, 0, 0x26] in
+    let (Ty.StreamDecodeResult t1 mW1 bs1 pos1 f1) = f0 $ B.pack [0, 32, 0, 0, 0x26] in
     whenEqProp (t1, mW1, bs1, pos1) (" ", Nothing, B.pack [0, 0, 0x26], 12) $
-      let (E.StreamDecodeResult t2 mW2 bs2 pos2 _) = f1 $ B.pack [0x03, 0, 0, 0, 32, 0, 0, 0xD8, 0] in
+      let (Ty.StreamDecodeResult t2 mW2 bs2 pos2 _) = f1 $ B.pack [0x03, 0, 0, 0, 32, 0, 0, 0xD8, 0] in
       (t2, mW2, bs2, pos2) === ("☃ ", Just 0xD800, mempty, 24)
 t_stream_decode_utf32LE =
-  let (E.StreamDecodeResult t0 mW0 bs0 pos0 f0) = E.decodeUtf32Stream False $ B.pack [104, 0, 0, 0, 105, 0, 0, 0, 0x20, 0] in
+  let (Ty.StreamDecodeResult t0 mW0 bs0 pos0 f0) = decodeUtf32StreamS False $ B.pack [104, 0, 0, 0, 105, 0, 0, 0, 0x20, 0] in
   whenEqProp (t0, mW0, bs0, pos0) ("hi", Nothing, B.pack [0x20, 0], 8) $
-    let (E.StreamDecodeResult t1 mW1 bs1 pos1 f1) = f0 $ B.pack [0, 0, 0x03, 0x26, 0] in
+    let (Ty.StreamDecodeResult t1 mW1 bs1 pos1 f1) = f0 $ B.pack [0, 0, 0x03, 0x26, 0] in
     whenEqProp (t1, mW1, bs1, pos1) (" ", Nothing, B.pack [0x03, 0x26, 0], 12) $
-      let (E.StreamDecodeResult t2 mW2 bs2 pos2 _) = f1 $ B.pack [0, 32, 0, 0, 0, 0, 0xD8, 0, 0] in
+      let (Ty.StreamDecodeResult t2 mW2 bs2 pos2 _) = f1 $ B.pack [0, 32, 0, 0, 0, 0, 0xD8, 0, 0] in
       (t2, mW2, bs2, pos2) === ("☃ ", Just 0xD80000, mempty, 24)
 
 decodeLL :: BL.ByteString -> TL.Text
@@ -383,7 +355,7 @@ t_decode_utf8_lenient = forAllShrinkShow arbitrary shrink (show . BL.toChunks) $
 decodeStream decoder snoc bs =
   g mempty $ decoder bs
   where
-    g t0 (E.StreamDecodeResult t mW bs' pos f) =
+    g t0 (Ty.StreamDecodeResult t mW bs' pos f) =
       let t0' = t0 `mappend` t in
       case mW of
         Just _ -> let mC = E.lenientDecode "" mW in
@@ -393,12 +365,14 @@ decodeStream decoder snoc bs =
           in g t' $ f mempty
         _ -> (t0', bs', pos)
 
+decodeUtf8StreamL = Ty.chunksDecoderToStream EL.decodeUtf8Chunks
+
 -- The decoding of lazy bytestrings should not depend on how they are chunked,
 -- and it should behave the same as decoding of strict bytestrings.
 t_decode_utf8_stream :: Property
 t_decode_utf8_stream = forAllShrinkShow arbitrary shrink (show . BL.toChunks) $ \bs ->
-    decodeStream EL.decodeUtf8Stream TL.snoc bs ===
-      ( let (st, sb, pos) = decodeStream E.decodeUtf8Stream T.snoc . B.concat $ BL.toChunks bs in
+    decodeStream decodeUtf8StreamL TL.snoc bs ===
+      ( let (st, sb, pos) = decodeStream decodeUtf8StreamS T.snoc . B.concat $ BL.toChunks bs in
         (TL.fromStrict st, BL.fromStrict sb, pos)
       )
 
@@ -446,37 +420,27 @@ testTranscoding =
     testProperty "t_utf8" t_utf8,
     testProperty "t_utf8'" t_utf8',
     testProperty "t_utf8_c" t_utf8_c,
-    testProperty "t_utf8_s" t_utf8_s,
     testProperty "t_utf8_incr" t_utf8_incr,
     testProperty "t_utf8_undecoded" t_utf8_undecoded,
     testProperty "tl_utf8" tl_utf8,
     testProperty "tl_utf8'" tl_utf8',
     testProperty "tl_utf8_c" tl_utf8_c,
-    testProperty "tl_utf8_s" tl_utf8_s,
     testProperty "t_utf16LE" t_utf16LE,
     testProperty "t_utf16LE_c" t_utf16LE_c,
-    testProperty "t_utf16LE_s" t_utf16LE_s,
     testProperty "tl_utf16LE" tl_utf16LE,
     testProperty "tl_utf16LE_c" tl_utf16LE_c,
-    testProperty "tl_utf16LE_s" tl_utf16LE_s,
     testProperty "t_utf16BE" t_utf16BE,
     testProperty "t_utf16BE_c" t_utf16BE_c,
-    testProperty "t_utf16BE_s" t_utf16BE_s,
     testProperty "tl_utf16BE" tl_utf16BE,
     testProperty "tl_utf16BE_c" tl_utf16BE_c,
-    testProperty "tl_utf16BE_s" tl_utf16BE_s,
     testProperty "t_utf32LE" t_utf32LE,
     testProperty "t_utf32LE_c" t_utf32LE_c,
-    testProperty "t_utf32LE_s" t_utf32LE_s,
     testProperty "tl_utf32LE" tl_utf32LE,
     testProperty "tl_utf32LE_c" tl_utf32LE_c,
-    testProperty "tl_utf32LE_s" tl_utf32LE_s,
     testProperty "t_utf32BE" t_utf32BE,
     testProperty "t_utf32BE_c" t_utf32BE_c,
-    testProperty "t_utf32BE_s" t_utf32BE_s,
     testProperty "tl_utf32BE" tl_utf32BE,
     testProperty "tl_utf32BE_c" tl_utf32BE_c,
-    testProperty "tl_utf32BE_s" tl_utf32BE_s,
     testGroup "builder" [
       testProperty "t_encodeUtf8Builder" t_encodeUtf8Builder,
       testProperty "t_encodeUtf8Builder_nonZeroOffset" t_encodeUtf8Builder_nonZeroOffset,
@@ -487,7 +451,6 @@ testTranscoding =
     testGroup "errors" [
       testProperty "t_utf8_err" t_utf8_err,
       testProperty "t_utf8_c_err" t_utf8_c_err,
-      testProperty "t_utf8_s_err" t_utf8_s_err,
       testProperty "t_utf8_err'" t_utf8_err'
     ],
     testGroup "error recovery" [

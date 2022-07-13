@@ -24,13 +24,9 @@ module Data.Text.Lazy.Encoding
     -- $total
       decodeLatin1
     , DecodeResult(..)
-    , decodeUtf8Chunk
-    , decodeUtf16Chunk
-    , decodeUtf32Chunk
-    , StreamDecodeResult(..)
-    , decodeUtf8Stream
-    , decodeUtf16Stream
-    , decodeUtf32Stream
+    , decodeUtf8Chunks
+    , decodeUtf16Chunks
+    , decodeUtf32Chunks
 
     -- *** Catchable failure
     , decodeUtf8'
@@ -66,7 +62,7 @@ module Data.Text.Lazy.Encoding
 import Control.Exception (evaluate, try)
 import Data.Monoid (Monoid(..))
 import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode)
-import Data.Text.Encoding.Types (DecodeResult(..), StreamDecodeResult(..))
+import Data.Text.Encoding.Types (DecodeResult(..))
 import Data.Text.Internal.Lazy (Text(..), chunk, empty, foldrChunks)
 import Data.Word (Word16, Word32, Word8)
 import qualified Data.ByteString as S
@@ -113,61 +109,36 @@ decodeASCII = foldr (chunk . TE.decodeASCII) empty . B.toChunks
 decodeLatin1 :: B.ByteString -> Text
 decodeLatin1 = foldr (chunk . TE.decodeLatin1) empty . B.toChunks
 
-decodeChunk :: (S.ByteString -> S.ByteString -> DecodeResult T.Text S.ByteString w)
+decodeChunks :: (S.ByteString -> S.ByteString -> DecodeResult T.Text S.ByteString w)
+  -> B.ByteString
   -> B.ByteString
   -> DecodeResult Text B.ByteString w
-decodeChunk decoder = g id 0 mempty
+decodeChunks decoder = g id 0 mempty
   where
-    g tDiff pos sb0 (B.Chunk sb1 lb1) =
+    g tDiff pos sb0 (B.Chunk sb1 lb1) lb2 =
       let DecodeResult t mW sb1' pos' = decoder sb0 sb1
           pos1 = pos + pos'
       in
       case mW of
-        Just _ -> DecodeResult (tDiff (chunk t Empty)) mW (B.chunk sb1' lb1) pos1
-        _ -> (g (tDiff . chunk t) pos1 sb1' lb1)
-    g tDiff pos sb0 _ = DecodeResult (tDiff Empty) Nothing (B.chunk sb0 B.Empty) pos
+        Just _ -> DecodeResult (tDiff $ chunk t Empty) mW (B.chunk sb1' $ lb1 `B.append` lb2) pos1
+        _ -> g (tDiff . chunk t) pos1 sb1' lb1 lb2
+    g tDiff pos sb0 _ (B.Chunk sb1 lb1) = g tDiff pos sb0 (B.Chunk sb1 lb1) mempty
+    g tDiff pos sb0 _ _ = DecodeResult (tDiff Empty) Nothing (B.chunk sb0 mempty) pos
 
--- | Decode a 'ByteString' containing UTF-8-encoded text returning a
--- 'DecodeResult'.
-decodeUtf8Chunk :: B.ByteString -> DecodeResult Text B.ByteString Word8
-decodeUtf8Chunk = decodeChunk TE.decodeUtf8Chunks
+-- | Decode two 'ByteString's containing UTF-8-encoded text as though
+-- they were one continuous 'ByteString' returning a 'DecodeResult'.
+decodeUtf8Chunks :: B.ByteString -> B.ByteString -> DecodeResult Text B.ByteString Word8
+decodeUtf8Chunks = decodeChunks TE.decodeUtf8Chunks
 
--- | Decode a 'ByteString' containing UTF-16-encoded text returning a
--- 'DecodeResult'.
-decodeUtf16Chunk :: Bool -> B.ByteString -> DecodeResult Text B.ByteString Word16
-decodeUtf16Chunk = decodeChunk . TE.decodeUtf16Chunks
+-- | Decode two 'ByteString's containing UTF-16-encoded text as though
+-- they were one continuous 'ByteString' returning a 'DecodeResult'.
+decodeUtf16Chunks :: Bool -> B.ByteString -> B.ByteString -> DecodeResult Text B.ByteString Word16
+decodeUtf16Chunks = decodeChunks . TE.decodeUtf16Chunks
 
--- | Decode a 'ByteString' containing UTF-32-encoded text returning a
--- 'DecodeResult'.
-decodeUtf32Chunk :: Bool -> B.ByteString -> DecodeResult Text B.ByteString Word32
-decodeUtf32Chunk = decodeChunk . TE.decodeUtf32Chunks
-
-decodeStream
-  :: (S.ByteString -> S.ByteString -> DecodeResult T.Text S.ByteString w)
-  -> B.ByteString
-  -> StreamDecodeResult Text B.ByteString w
-decodeStream decoder = g 0 mempty
-  where
-    g pos bs0 bs1 =
-      let DecodeResult t mW bs1' pos1 = decodeChunk decoder $ B.append bs0 bs1
-          pos' = pos + pos1
-      in
-      StreamDecodeResult t mW bs1' pos' $ \ bs2 -> g pos' bs1' bs2
-
--- | Decode a 'ByteString' containing UTF-8-encoded text returning a
--- 'StreamDecodeResult'.
-decodeUtf8Stream :: B.ByteString -> StreamDecodeResult Text B.ByteString Word8
-decodeUtf8Stream = decodeStream TE.decodeUtf8Chunks
-
--- | Decode a 'ByteString' containing UTF-16-encoded text returning a
--- 'StreamDecodeResult'.
-decodeUtf16Stream :: Bool -> B.ByteString -> StreamDecodeResult Text B.ByteString Word16
-decodeUtf16Stream = decodeStream . TE.decodeUtf16Chunks
-
--- | Decode a 'ByteString' containing UTF-32-encoded text returning a
--- 'StreamDecodeResult'.
-decodeUtf32Stream :: Bool -> B.ByteString -> StreamDecodeResult Text B.ByteString Word32
-decodeUtf32Stream = decodeStream . TE.decodeUtf32Chunks
+-- | Decode two 'ByteString's containing UTF-32-encoded text as though
+-- they were one continuous 'ByteString' returning a 'DecodeResult'.
+decodeUtf32Chunks :: Bool -> B.ByteString -> B.ByteString -> DecodeResult Text B.ByteString Word32
+decodeUtf32Chunks = decodeChunks . TE.decodeUtf32Chunks
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text.
 decodeUtf8With :: OnDecodeError -> B.ByteString -> Text
