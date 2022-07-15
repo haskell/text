@@ -31,7 +31,7 @@ jobs:
 
       - name: Build Tests
         run: |
-          cabal build test:tests --enable-tests --enable-benchmarks;
+          cabal build test:tests --enable-tests --enable-benchmarks -f-simdutf;
       - name: Run Tests
         run: |
           $bin = cabal list-bin test:tests
