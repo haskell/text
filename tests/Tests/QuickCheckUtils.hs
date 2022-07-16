@@ -42,7 +42,7 @@ import Tests.Utils
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
 import qualified Data.Text as T
-import qualified Data.Text.Encoding.Error as T
+import qualified Data.Text.Encoding.Common as T
 import qualified Data.Text.Internal.Fusion as TF
 import qualified Data.Text.Internal.Fusion.Common as TF
 import qualified Data.Text.Internal.Lazy as TL

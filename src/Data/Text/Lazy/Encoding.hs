@@ -62,8 +62,7 @@ module Data.Text.Lazy.Encoding
 
 import Control.Exception (evaluate, try)
 import Data.Monoid (Monoid(..))
-import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode)
-import Data.Text.Encoding.Types (DecodeResult(..))
+import Data.Text.Encoding.Common (DecodeResult(..), OnDecodeError, UnicodeException, strictDecode)
 import Data.Text.Internal.Lazy (Text(..), chunk, empty, foldrChunks)
 import Data.Word (Word16, Word32, Word8)
 import qualified Data.ByteString as S

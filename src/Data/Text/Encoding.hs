@@ -82,8 +82,7 @@ import Data.ByteString (ByteString)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Internal as B
 import qualified Data.ByteString.Short.Internal as SBS
-import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode, lenientDecode)
-import Data.Text.Encoding.Types (DecodeResult(..))
+import Data.Text.Encoding.Common (DecodeResult(..), OnDecodeError, UnicodeException, strictDecode, lenientDecode)
 import Data.Text.Internal (Text(..), empty, append)
 import Data.Text.Internal.Unsafe (unsafeWithForeignPtr)
 import Data.Text.Internal.Unsafe.Char (unsafeWrite)

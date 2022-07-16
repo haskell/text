@@ -41,7 +41,7 @@ import Data.Bits (shiftL, shiftR)
 import Data.ByteString.Internal (ByteString(..), mallocByteString, memcpy)
 import Data.Text.Internal.Fusion (Step(..), Stream(..))
 import Data.Text.Internal.Fusion.Size
-import Data.Text.Encoding.Error
+import Data.Text.Encoding.Common
 import Data.Text.Internal.Encoding.Fusion.Common
 import Data.Text.Internal.Unsafe.Char (unsafeChr8, unsafeChr16, unsafeChr32)
 import Data.Text.Internal.Unsafe (unsafeWithForeignPtr)

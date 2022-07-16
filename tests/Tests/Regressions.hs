@@ -21,7 +21,7 @@ import qualified Data.ByteString.Lazy as LB
 import qualified Data.Text as T
 import qualified Data.Text.Array as TA
 import qualified Data.Text.Encoding as TE
-import qualified Data.Text.Encoding.Error as E
+import qualified Data.Text.Encoding.Common as E
 import qualified Data.Text.Internal as T
 import qualified Data.Text.IO as T
 import qualified Data.Text.Lazy as LT

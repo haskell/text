@@ -1,13 +1,17 @@
 -- | Tests for encoding and decoding
 
-{-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
+{-# LANGUAGE OverloadedStrings, ScopedTypeVariables, FlexibleContexts #-}
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Tests.Properties.Transcoding
     ( testTranscoding
     ) where
 
+import Control.Monad.Writer (runWriterT, tell)
+import Data.Functor.Identity (runIdentity)
+-- import Data.Monoid (Endo(appEndo))
 import Data.Bits ((.&.), shiftR)
 import Data.Char (chr, ord)
+import Data.Maybe (fromMaybe)
 import Test.QuickCheck hiding ((.&.))
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.QuickCheck (testProperty)
@@ -23,8 +27,7 @@ import qualified Data.ByteString.Lazy as BL
 import qualified Data.ByteString.Lazy.Char8 as BLC
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as E
-import qualified Data.Text.Encoding.Error as E
-import qualified Data.Text.Encoding.Types as Ty
+import qualified Data.Text.Encoding.Common as C
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as EL
 
@@ -288,65 +291,11 @@ t_chunk_decode_utf32LE =
       in
       decodeResult2 === E.DecodeResult "☃ " (Just 0xD80000) expBs2 12
 
-decodeUtf8StreamS = Ty.chunksDecoderToStream E.decodeUtf8Chunks
-
-t_stream_decode_utf8_1 =
-  let (Ty.StreamDecodeResult t0 mW0 bs0 pos0 _) = decodeUtf8StreamS $ B.pack [0x68, 0x69, 0x2C, 0x20, 0xe2, 0x98, 0x83, 0x21] in
-  (t0, mW0, bs0, pos0) === ("hi, ☃!", Nothing, mempty, 8)
-t_stream_decode_utf8_2 =
-  let (Ty.StreamDecodeResult t0 mW0 bs0 pos0 f0) = decodeUtf8StreamS $ B.pack [97, 0xC2, 97] in
-  whenEqProp (t0, mW0, bs0, pos0) (T.singleton 'a', Just 0xC2, B.singleton 97, 2) $
-    let (Ty.StreamDecodeResult t1 mW1 bs1 pos1 _) = f0 mempty in
-    (t1, mW1, bs1, pos1) === (T.singleton 'a', Nothing, mempty, 3)
-t_stream_decode_utf8_3 =
-  let (Ty.StreamDecodeResult t0 mW0 bs0 pos0 f0) = decodeUtf8StreamS $ B.pack [104, 105, 32, 0xe2] in
-  whenEqProp (t0, mW0, bs0, pos0) ("hi ", Nothing, B.singleton 0xe2, 3) $
-    let (Ty.StreamDecodeResult t1 mW1 bs1 pos1 f1) = f0 $ B.singleton 0x98 in
-    whenEqProp (t1, mW1, bs1, pos1) ("", Nothing, B.pack [0xe2, 0x98], 3) $
-      let (Ty.StreamDecodeResult t2 mW2 bs2 pos2 _) = f1 $ B.pack [0x83, 32, 0xFF] in
-      (t2, mW2, bs2, pos2) === ("☃ ", Just 0xFF, mempty, 8)
-
-decodeUtf16StreamS = Ty.chunksDecoderToStream . E.decodeUtf16Chunks
-
-t_stream_decode_utf16BE =
-  let expectedBs0 = B.pack [0]
-      (Ty.StreamDecodeResult t0 mW0 bs0 pos0 f0) = decodeUtf16StreamS True expectedBs0 in
-  whenEqProp (t0, mW0, bs0, pos0) (T.empty, Nothing, expectedBs0, 0) $
-    let (Ty.StreamDecodeResult t1 mW1 bs1 pos1 f1) = f0 $ B.pack [104, 0, 105, 0, 32, 0xD8, 0x01] in
-    whenEqProp (t1, mW1, bs1, pos1) ("hi ", Nothing, B.pack [0xD8, 0x01], 6) $
-      let (Ty.StreamDecodeResult t2 mW2 bs2 pos2 _) = f1 $ B.pack [0xDC, 0x37, 0, 32, 0xDC, 0] in
-      (t2, mW2, bs2, pos2) === ("\x10437 ", Just 0xDC00, mempty, 14)
-t_stream_decode_utf16LE =
-  let expectedBs0 = B.pack [104]
-      (Ty.StreamDecodeResult t0 mW0 bs0 pos0 f0) = decodeUtf16StreamS False expectedBs0 in
-  whenEqProp (t0, mW0, bs0, pos0) (T.empty, Nothing, expectedBs0, 0) $
-    let (Ty.StreamDecodeResult t1 mW1 bs1 pos1 f1) = f0 $ B.pack [0, 105, 0, 32, 0, 0x01, 0xD8] in
-    whenEqProp (t1, mW1, bs1, pos1) ("hi ", Nothing, B.pack [0x01, 0xD8], 6) $
-      let (Ty.StreamDecodeResult t2 mW2 bs2 pos2 _) = f1 $ B.pack [0x37, 0xDC, 32, 0, 0, 0xDC] in
-      (t2, mW2, bs2, pos2) === ("\x10437 ", Just 0xDC, mempty, 14)
-
-decodeUtf32StreamS = Ty.chunksDecoderToStream . E.decodeUtf32Chunks
-
-t_stream_decode_utf32BE =
-  let (Ty.StreamDecodeResult t0 mW0 bs0 pos0 f0) = decodeUtf32StreamS True $ B.pack [0, 0, 0, 104, 0, 0, 0, 105, 0, 0] in
-  whenEqProp (t0, mW0, bs0, pos0) ("hi", Nothing, B.pack [0, 0], 8) $
-    let (Ty.StreamDecodeResult t1 mW1 bs1 pos1 f1) = f0 $ B.pack [0, 32, 0, 0, 0x26] in
-    whenEqProp (t1, mW1, bs1, pos1) (" ", Nothing, B.pack [0, 0, 0x26], 12) $
-      let (Ty.StreamDecodeResult t2 mW2 bs2 pos2 _) = f1 $ B.pack [0x03, 0, 0, 0, 32, 0, 0, 0xD8, 0] in
-      (t2, mW2, bs2, pos2) === ("☃ ", Just 0xD800, mempty, 24)
-t_stream_decode_utf32LE =
-  let (Ty.StreamDecodeResult t0 mW0 bs0 pos0 f0) = decodeUtf32StreamS False $ B.pack [104, 0, 0, 0, 105, 0, 0, 0, 0x20, 0] in
-  whenEqProp (t0, mW0, bs0, pos0) ("hi", Nothing, B.pack [0x20, 0], 8) $
-    let (Ty.StreamDecodeResult t1 mW1 bs1 pos1 f1) = f0 $ B.pack [0, 0, 0x03, 0x26, 0] in
-    whenEqProp (t1, mW1, bs1, pos1) (" ", Nothing, B.pack [0x03, 0x26, 0], 12) $
-      let (Ty.StreamDecodeResult t2 mW2 bs2 pos2 _) = f1 $ B.pack [0, 32, 0, 0, 0, 0, 0xD8, 0, 0] in
-      (t2, mW2, bs2, pos2) === ("☃ ", Just 0xD80000, mempty, 24)
-
 decodeLL :: BL.ByteString -> TL.Text
-decodeLL = EL.decodeUtf8With E.lenientDecode
+decodeLL = EL.decodeUtf8With C.lenientDecode
 
 decodeL :: B.ByteString -> T.Text
-decodeL = E.decodeUtf8With E.lenientDecode
+decodeL = E.decodeUtf8With C.lenientDecode
 
 -- The lenient decoding of lazy bytestrings should not depend on how they are chunked,
 -- and it should behave the same as decoding of strict bytestrings.
@@ -354,20 +303,42 @@ t_decode_utf8_lenient :: Property
 t_decode_utf8_lenient = forAllShrinkShow arbitrary shrink (show . BL.toChunks) $ \bs ->
     decodeLL bs === (TL.fromStrict . decodeL . B.concat . BL.toChunks) bs
 
-decodeStream decoder snoc bs =
-  g mempty $ decoder bs
-  where
-    g t0 (Ty.StreamDecodeResult t mW bs' pos f) =
-      let t0' = t0 `mappend` t in
-      case mW of
-        Just _ -> let mC = E.lenientDecode "" mW in
-          let t' = case mC of
-                Just c -> t0' `snoc` c
-                _ -> t0'
-          in g t' $ f mempty
-        _ -> (t0', bs', pos)
+decodeStream decoder snoc bs = runIdentity $ do
+  ((b, p), tDiff) <- runWriterT $ decoder bs $ \ t mW b p f ->
+    case mW of
+      Just w ->
+        let t' = (case C.lenientDecode "" $ Just w of
+              Just c -> t `snoc` c
+              _ -> t)
+        in do
+          tell (t' <>)
+          f mempty
+      _ -> do
+      tell (t <>)
+      pure (b, p)
+  pure (tDiff mempty, b, p)
 
-decodeUtf8StreamL = Ty.chunksDecoderToStream EL.decodeUtf8Chunks
+decodeUtf8StreamL = C.chunksDecoderToStream EL.decodeUtf8Chunks
+
+decodeUtf8StreamS = C.chunksDecoderToStream E.decodeUtf8Chunks
+
+-- The results of the stream decoder on a strict bytestring should
+-- match the results of a non-stream decoder on a lazy bytestring.
+t_decode_utf8_lenient_stream :: Property
+t_decode_utf8_lenient_stream = forAllShrinkShow arbitrary shrink (show . BL.toChunks) $ \bs ->
+  let (st, sb, _) = decodeStream decodeUtf8StreamS T.snoc . B.concat $ BL.toChunks bs
+      st' = B.foldr (\ w st'' -> st'' `T.snoc` (fromMaybe 'a' . C.lenientDecode "" $ Just w)) st sb
+  in
+  decodeLL bs === TL.fromStrict st'
+
+-- The results of the non-stream decoder on a strict bytestring should
+-- match the results of a stream decoder on a lazy bytestring.
+t_decode_utf8_stream_lenient :: Property
+t_decode_utf8_stream_lenient = forAllShrinkShow arbitrary shrink (show . BL.toChunks) $ \bs ->
+  let (lt, lb, _) = decodeStream decodeUtf8StreamL TL.snoc bs
+      lt' = BL.foldr (\ w lt'' -> lt'' `TL.snoc` (fromMaybe 'a' . C.lenientDecode "" $ Just w)) lt lb
+  in
+  lt' === (TL.fromStrict . decodeL . B.concat . BL.toChunks) bs
 
 -- The decoding of lazy bytestrings should not depend on how they are chunked,
 -- and it should behave the same as decoding of strict bytestrings.
@@ -403,7 +374,7 @@ t_decode_with_error4' =
 t_decode_with_error5' = ioProperty $ do
   ret <- Exception.try $ Exception.evaluate $ E.streamDecodeUtf8 (B.pack [0x81])
   pure $ case ret of
-    Left (_ :: E.UnicodeException) -> True
+    Left (_ :: C.UnicodeException) -> True
     Right{} -> False
 
 t_infix_concat bs1 text bs2 =
@@ -464,14 +435,9 @@ testTranscoding =
       testProperty "t_chunk_decode_utf16LE" t_chunk_decode_utf16LE,
       testProperty "t_chunk_decode_utf32BE" t_chunk_decode_utf32BE,
       testProperty "t_chunk_decode_utf32LE" t_chunk_decode_utf32LE,
-      testProperty "t_stream_decode_utf8_1" t_stream_decode_utf8_1,
-      testProperty "t_stream_decode_utf8_2" t_stream_decode_utf8_2,
-      testProperty "t_stream_decode_utf8_3" t_stream_decode_utf8_3,
-      testProperty "t_stream_decode_utf16BE" t_stream_decode_utf16BE,
-      testProperty "t_stream_decode_utf16LE" t_stream_decode_utf16LE,
-      testProperty "t_stream_decode_utf32BE" t_stream_decode_utf32BE,
-      testProperty "t_stream_decode_utf32LE" t_stream_decode_utf32LE,
       testProperty "t_decode_utf8_lenient" t_decode_utf8_lenient,
+      testProperty "t_decode_utf8_stream_lenient" t_decode_utf8_stream_lenient,
+      testProperty "t_decode_utf8_lenient_stream" t_decode_utf8_lenient_stream,
       testProperty "t_decode_utf8_stream" t_decode_utf8_stream,
       testProperty "t_decode_with_error2" t_decode_with_error2,
       testProperty "t_decode_with_error3" t_decode_with_error3,
