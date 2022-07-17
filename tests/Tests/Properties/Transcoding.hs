@@ -311,10 +311,10 @@ decodeStream decoder snoc bs = runIdentity $ do
               Just c -> t `snoc` c
               _ -> t)
         in do
-          tell (t' <>)
+          tell (mappend t')
           f mempty
       _ -> do
-      tell (t <>)
+      tell (mappend t)
       pure (b, p)
   pure (tDiff mempty, b, p)
 
