@@ -45,42 +45,38 @@ import Data.Typeable (Typeable)
 import Data.Word (Word8)
 import Numeric (showHex)
 
--- | A decoding result on encoded data.
+-- | A decoding result on encoded data. It contains:
+--
+--   1. the decoded data up to an incomplete code point at the end of
+--      the input data, an invalid word, or to the end of the input,
+--   2. the invalid code point if one was encountered,
+--   3. the remaining undecoded data, which is either an incomplete
+--      code point, the data after the invalid code point, or empty,
+--      and
+--   4. the byte position of remaining undecoded data.
 --
 -- @since 2.0.1
-data DecodeResult t b w = DecodeResult
-  !t          -- ^ The decoded data up to an incomplete code point at
-              -- the end of the input data, an invalid word, or to the
-              -- end of the input.
-  (Maybe w)  -- ^ If an invalid code point was encountered.
-  !b          -- ^ The remaining undecoded data. If an invald code
-              -- point was encountered, this is after that code point.
-  !Int        -- ^ Byte position of remaining undecoded data.
+data DecodeResult t b w = DecodeResult !t !(Maybe w) !b !Int
   deriving (Eq, Ord, Show, Read)
 
--- | The funtion type for handling successful decodings.
+-- | The funtion type for handling successful decodings. The arguments
+-- passed to the handler are:
+--
+--   1. the decoded data up to an incomplete code point at the end of
+--      the input data, an invalid word, or to the end of the input,
+--   2. the invalid code point if one was encountered,
+--   3. the remaining undecoded data, which is either an incomplete
+--      code point, the data after the invalid code point, or empty,
+--   4. the byte position of remaining undecoded data, and
+--   5. a continuation function that accepts data that as treated as
+--      a continuation of any remaining unencoded data.
 --
 -- @since 2.0.1
-type DecodeResultHandler t w b b' r
-  = t           -- ^ The decoded data up to an incomplete code point at
-                -- the end of the input data, an invalid word, or to
-                -- the end of the input.
-  -> Maybe w    -- ^ If an invalid code point was encountered.
-  -> b          -- ^ The remaining undecoded data. If an invald code
-                -- point was encountered, this is after that code
-                -- point.
-  -> Int        -- ^ Byte position of remaining undecoded data. This
-                -- is treated as if all the data fed to previous
-                -- invocations of the continations were one continuous
-                -- feed.
-  -> (b' -> r)  -- ^ Continuation to accept the next span of data to be
-                -- decoded with the remaining unencoded data.
-  -> r          -- ^ Result of the continuation.
+type DecodeResultHandler t w b b' r = t -> Maybe w -> b -> Int -> (b' -> r) -> r
 
 -- | Create a stream decoder from a chunks decoder. The resulting
 -- stream decoder accepts a 'DecodeResultHandler' to process the decode
--- result. The continuations accept another section of unencoded data
--- as a continuation of any remaining unencoded data.
+-- result.
 --
 -- @since 2.0.1
 chunksDecoderToStream :: Monoid b
