@@ -115,7 +115,7 @@ decodeLatin1 = foldr (chunk . TE.decodeLatin1) empty . B.toChunks
 -- 'Right' value, and an error ('Left' 'Int') indicates the postion of
 -- the offending 'Word8'.
 --
--- @since 2.0.0.1
+-- @since 2.0.1
 decodeAsciiE :: B.ByteString -> Either Int Text
 decodeAsciiE = foldr (\ lb -> (chunk <$> TE.decodeAsciiE lb <*>)) (pure empty) . B.toChunks
 
@@ -138,7 +138,7 @@ decodeChunks decoder = g id 0 mempty
 -- | Decode two 'B.ByteString's containing UTF-8-encoded text as though
 -- they were one continuous 'B.ByteString' returning a 'DecodeResult'.
 --
--- @since 2.0.0.1
+-- @since 2.0.1
 decodeUtf8Chunks
   :: B.ByteString -- ^ The first `B.ByteString` chunk to decode. Typically this is the unencoded data from the previous call of this function.
   -> B.ByteString -- ^ The second `B.ByteString` chunk to decode.
@@ -148,7 +148,7 @@ decodeUtf8Chunks = decodeChunks TE.decodeUtf8Chunks
 -- | Decode two 'B.ByteString's containing UTF-16-encoded text as though
 -- they were one continuous 'B.ByteString' returning a 'DecodeResult'.
 --
--- @since 2.0.0.1
+-- @since 2.0.1
 decodeUtf16Chunks
   :: Bool         -- ^ Indicates whether the encoding is big-endian (`True`) or little-endian (`False`)
   -> B.ByteString -- ^ The first `B.ByteString` chunk to decode. Typically this is the unencoded data from the previous call of this function.
@@ -159,7 +159,7 @@ decodeUtf16Chunks = decodeChunks . TE.decodeUtf16Chunks
 -- | Decode two 'B.ByteString's containing UTF-32-encoded text as though
 -- they were one continuous 'B.ByteString' returning a 'DecodeResult'.
 --
--- @since 2.0.0.1
+-- @since 2.0.1
 decodeUtf32Chunks
   :: Bool         -- ^ Indicates whether the encoding is big-endian (`True`) or little-endian (`False`)
   -> B.ByteString -- ^ The first `B.ByteString` chunk to decode. Typically this is the unencoded data from the previous call of this function.

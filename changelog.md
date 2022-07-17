@@ -1,5 +1,3 @@
-### 2.0.1
-
 * Improve portability of C and C++ code.
 * [Make `Lift` instance more efficient](https://github.com/haskell/text/pull/413)
 * [Make `toCaseFold` idempotent](https://github.com/haskell/text/pull/402)

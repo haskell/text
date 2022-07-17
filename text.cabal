@@ -255,7 +255,6 @@ test-suite tests
     deepseq,
     directory,
     ghc-prim,
-    mtl,
     tasty,
     tasty-hunit,
     tasty-quickcheck,

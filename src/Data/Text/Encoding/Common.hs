@@ -47,12 +47,12 @@ import Numeric (showHex)
 
 -- | A decoding result on encoded data.
 --
--- @since 2.0.0.1
+-- @since 2.0.1
 data DecodeResult t b w = DecodeResult
   !t          -- ^ The decoded data up to an incomplete code point at
               -- the end of the input data, an invalid word, or to the
               -- end of the input.
-  !(Maybe w)  -- ^ If an invalid code point was encountered.
+  (Maybe w)  -- ^ If an invalid code point was encountered.
   !b          -- ^ The remaining undecoded data. If an invald code
               -- point was encountered, this is after that code point.
   !Int        -- ^ Byte position of remaining undecoded data.
@@ -60,7 +60,7 @@ data DecodeResult t b w = DecodeResult
 
 -- | The funtion type for handling successful decodings.
 --
--- @since 2.0.0.1
+-- @since 2.0.1
 type DecodeResultHandler t w b b' r
   = t           -- ^ The decoded data up to an incomplete code point at
                 -- the end of the input data, an invalid word, or to
@@ -82,7 +82,7 @@ type DecodeResultHandler t w b b' r
 -- result. The continuations accept another section of unencoded data
 -- as a continuation of any remaining unencoded data.
 --
--- @since 2.0.0.1
+-- @since 2.0.1
 chunksDecoderToStream :: Monoid b
   => (b -> b' -> DecodeResult t b w)  -- ^ Chunks decoder
   -> b'                               -- ^ Encoded data

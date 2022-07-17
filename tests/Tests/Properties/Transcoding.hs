@@ -6,9 +6,6 @@ module Tests.Properties.Transcoding
     ( testTranscoding
     ) where
 
-import Control.Monad.Writer (runWriterT, tell)
-import Data.Functor.Identity (runIdentity)
--- import Data.Monoid (Endo(appEndo))
 import Data.Bits ((.&.), shiftR)
 import Data.Char (chr, ord)
 import Data.Maybe (fromMaybe)
@@ -303,20 +300,18 @@ t_decode_utf8_lenient :: Property
 t_decode_utf8_lenient = forAllShrinkShow arbitrary shrink (show . BL.toChunks) $ \bs ->
     decodeLL bs === (TL.fromStrict . decodeL . B.concat . BL.toChunks) bs
 
-decodeStream decoder snoc bs = runIdentity $ do
-  ((b, p), tDiff) <- runWriterT $ decoder bs $ \ t mW b p f ->
+decodeStream decoder snoc bs =
+  case decoder bs $ \ t mW b p f ->
     case mW of
       Just w ->
         let t' = (case C.lenientDecode "" $ Just w of
               Just c -> t `snoc` c
               _ -> t)
         in do
-          tell (mappend t')
+          (mappend t', ())
           f mempty
-      _ -> do
-      tell (mappend t)
-      pure (b, p)
-  pure (tDiff mempty, b, p)
+      _ -> (mappend t, (b, p)) of
+    (tDiff, (b, p)) -> (tDiff mempty, b, p)
 
 decodeUtf8StreamL = C.chunksDecoderToStream EL.decodeUtf8Chunks
 

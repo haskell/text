@@ -352,7 +352,7 @@ queryUtf8DecodeOptimization (B.length -> len1) bs2@(B.length -> len2) srcOff
 -- | Decode two 'ByteString's containing UTF-8-encoded text as though
 -- they were one continuous 'ByteString' returning a 'DecodeResult'.
 --
--- @since 2.0.0.1
+-- @since 2.0.1
 decodeUtf8Chunks
   :: ByteString -- ^ The first `ByteString` chunk to decode. Typically this is the unencoded data from the previous call of this function.
   -> ByteString -- ^ The second `ByteString` chunk to decode.
@@ -375,7 +375,7 @@ noOptimization _ _ _ = Nothing
 -- | Decode two 'ByteString's containing UTF-16-encoded text as though
 -- they were one continuous 'ByteString' returning a 'DecodeResult'.
 --
--- @since 2.0.0.1
+-- @since 2.0.1
 decodeUtf16Chunks
   :: Bool       -- ^ Indicates whether the encoding is big-endian (`True`) or little-endian (`False`)
   -> ByteString -- ^ The first `ByteString` chunk to decode. Typically this is the unencoded data from the previous call of this function.
@@ -405,7 +405,7 @@ decodeUtf16Chunks isBE = decodeChunksProxy noOptimization $ \ index len srcOff -
 -- | Decode two 'ByteString's containing UTF-16-encoded text as though
 -- they were one continuous 'ByteString' returning a 'DecodeResult'.
 --
--- @since 2.0.0.1
+-- @since 2.0.1
 decodeUtf32Chunks
   :: Bool       -- ^ Indicates whether the encoding is big-endian (`True`) or little-endian (`False`)
   -> ByteString -- ^ The first `ByteString` chunk to decode. Typically this is the unencoded data from the previous call of this function.
@@ -425,7 +425,7 @@ decodeUtf32Chunks isBE = decodeChunksProxy noOptimization $ \ index _ srcOff ->
 -- 'Right' value, and an error ('Left' 'Int') indicates the postion of
 -- the offending 'Word8'.
 --
--- @since 2.0.0.1
+-- @since 2.0.1
 decodeAsciiE :: ByteString -> Either Int Text
 decodeAsciiE bs = withBS bs $ \fp len -> if len == 0 then Right empty else runST $ do
   asciiPrefixLen <- fmap cSizeToInt $ unsafeIOToST $ unsafeWithForeignPtr fp $ \src ->

@@ -38,7 +38,6 @@ import Data.Text.Encoding.Common
   , OnError
   , OnDecodeError
   , OnEncodeError
-  -- * Useful error handling functions
   , lenientDecode
   , strictDecode
   , strictEncode
