@@ -1,6 +1,6 @@
 -- | Tests for encoding and decoding
 
-{-# LANGUAGE OverloadedStrings, ScopedTypeVariables, FlexibleContexts #-}
+{-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 module Tests.Properties.Transcoding
     ( testTranscoding
@@ -307,9 +307,9 @@ decodeStream decoder snoc bs =
         let t' = (case C.lenientDecode "" $ Just w of
               Just c -> t `snoc` c
               _ -> t)
-        in do
-          (mappend t', ())
-          f mempty
+        in
+        case f mempty of
+          (tDiff, bp) -> (mappend t' `mappend` tDiff, bp)
       _ -> (mappend t, (b, p)) of
     (tDiff, (b, p)) -> (tDiff mempty, b, p)
 
