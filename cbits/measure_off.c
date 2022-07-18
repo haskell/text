@@ -162,14 +162,15 @@ static const ssize_t measure_off_avx(const uint8_t *src, const uint8_t *srcend, 
    version of GHC.
 */
 static inline const size_t popcount16(uint16_t x) {
-  size_t i;
-  size_t count = 0;
-#pragma GCC unroll 16
-  for (i = 0; i < 16; i ++) {
-    count += x & 1;
-    x >>= 1;
-  }
-  return count;
+
+  // Taken from https://en.wikipedia.org/wiki/Hamming_weight
+  const uint16_t m1  = 0x5555; //binary: 0101...
+  const uint16_t m2  = 0x3333; //binary: 00110011..
+  const uint16_t m4  = 0x0f0f; //binary:  4 zeros,  4 ones ...
+  x -= (x >> 1) & m1;             //put count of each 2 bits into those 2 bits
+  x = (x & m2) + ((x >> 2) & m2); //put count of each 4 bits into those 4 bits 
+  x = (x + (x >> 4)) & m4;        //put count of each 8 bits into those 8 bits 
+  return (x >> 8) + (x & 0x00FF);
 }
 
 static const ssize_t measure_off_sse(const uint8_t *src, const uint8_t *srcend, size_t cnt)
