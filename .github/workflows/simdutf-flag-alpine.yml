@@ -35,6 +35,14 @@ jobs:
       - uses: actions/checkout@v2
       - name: Test
         run: |
+          cat > THLinkTest.hs <<EOF
+          {-# LANGUAGE TemplateHaskell #-}
+          import Debug.Trace
+          import Data.Text
+          main :: IO ()
+          main = return ()
+          ( traceM (unpack (pack "test")) >> pure [] )
+          EOF
           cabal build -f-simdutf --disable-tests --disable-benchmarks
-          cabal exec -f-simdutf --disable-tests --disable-benchmarks ghc -- tests/THLinkTest.hs
+          cabal exec -f-simdutf --disable-tests --disable-benchmarks ghc -- THLinkTest.hs
         shell: bash
