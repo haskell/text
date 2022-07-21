@@ -74,10 +74,9 @@ module Data.Text.Encoding
     , encodeUtf8BuilderEscaped
     ) where
 
-import Control.Monad.ST.Unsafe (unsafeIOToST, unsafeSTToIO)
-
 import Control.Exception (evaluate, try)
 import Control.Monad.ST (ST, runST)
+import Control.Monad.ST.Unsafe (unsafeIOToST, unsafeSTToIO)
 import Data.Bits (Bits, shiftL, shiftR, (.&.), (.|.))
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as B
@@ -219,20 +218,23 @@ isValidBS bs = start 0
 #endif
 #endif
 
+data Progression
+  = WriteAndAdvance Char Int
+  | NeedMore
+  | Invalid
+
 decodeChunks :: (Bits w, Num w, Storable w)
   => w
-  -> ( Int
+  -> ( ByteString
     -> ByteString
     -> Int
     -> A.MArray s
     -> Int
     -> Int
-    -> ST
-        s
-        (Maybe
-            ((A.MArray s
-              -> Int -> Int -> Int -> ST s (DecodeResult Text ByteString w))
-            -> ST s (DecodeResult Text ByteString w)))
+    -> ST s (Maybe (
+        (A.MArray s -> Int -> Int -> Int -> ST s (DecodeResult Text ByteString w))
+        -> ST s (DecodeResult Text ByteString w))
+      )
     )
   -> ((Int -> Word8) -> Int -> Int -> Progression)
   -> ByteString
@@ -264,7 +266,7 @@ decodeChunks w queryOptimization decodeF bs1@(B.length -> len1) bs2@(B.length ->
             | len - srcOff < 1 = goodSoFar
             -- shortcut for utf-8
             | otherwise = do
-              mOuterArgs <- queryOptimization len1 bs2 srcOff dst dstLen dstOff
+              mOuterArgs <- queryOptimization bs1 bs2 srcOff dst dstLen dstOff
               case mOuterArgs of
                 Just outerArgs -> outerArgs outer
                 _ -> if len - srcOff < wordByteSize
@@ -279,9 +281,9 @@ decodeChunks w queryOptimization decodeF bs1@(B.length -> len1) bs2@(B.length ->
                         outer dst' dstLen' srcOff dstOff
                       else
                         case decodeF index len srcOff of
-                          WriteAndAdvance c advance -> do
+                          WriteAndAdvance c srcOff' -> do
                             d <- unsafeWrite dst dstOff c
-                            inner (advance d) $ dstOff + d
+                            inner srcOff' $ dstOff + d
                           NeedMore -> goodSoFar
                           Invalid -> invalid
             where
@@ -305,7 +307,7 @@ decodeChunks w queryOptimization decodeF bs1@(B.length -> len1) bs2@(B.length ->
                   DecodeResult t (Just $ bytesToWord wordByteSize 0) bs' srcOff'
 
 decodeChunksProxy :: (Bits w, Num w, Storable w)
-  => ( Int
+  => ( ByteString
     -> ByteString
     -> Int
     -> A.MArray s
@@ -327,14 +329,14 @@ decodeChunksProxy = decodeChunks undefined -- This allows Haskell to
 -- discards the actual value without evaluating it.
 
 queryUtf8DecodeOptimization
-  :: Int
+  :: ByteString
   -> ByteString
   -> Int
   -> A.MArray s
   -> Int
   -> Int
   -> ST s (Maybe ((A.MArray s -> Int -> Int -> Int -> t) -> t))
-queryUtf8DecodeOptimization len1 bs2@(B.length -> len2) srcOff dst dstLen dstOff
+queryUtf8DecodeOptimization (B.length -> len1) bs2@(B.length -> len2) srcOff dst dstLen dstOff
   | srcOff >= len1
   -- potential valid utf8 content endpoint
   , utf8End <- len1 + guessUtf8Boundary
@@ -379,14 +381,13 @@ decodeUtf8Chunks
   -> ByteString -- ^ The second `ByteString` chunk to decode.
   -> DecodeResult Text ByteString Word8
 decodeUtf8Chunks bs1 bs2 = runST $ decodeChunksProxy queryUtf8DecodeOptimization (\ index len srcOff ->
-  let decodeFrom off = step (off + 1) . utf8DecodeStart $ index off
-
-      step i (Incomplete a b)
+  let step i (Incomplete a b)
         | i < len = step (i + 1) $ utf8DecodeContinue (index i) a b
-      step _ st = st
+      step i st = (st, i)
+      (dr, srcOff') = step (srcOff + 1) . utf8DecodeStart $ index srcOff
   in
-  case decodeFrom srcOff of
-    Accept c -> WriteAndAdvance c (srcOff +)
+  case dr of
+    Accept c -> WriteAndAdvance c srcOff'
     Reject -> Invalid
     Incomplete{} -> NeedMore) bs1 bs2
 
@@ -404,12 +405,12 @@ decodeUtf16Chunks
   -> DecodeResult Text ByteString Word16
 decodeUtf16Chunks isBE bs1 bs2 = runST $ decodeChunksProxy noOptimization (\ index len srcOff ->
   -- get next Word8 pair
-  let writeAndAdvance c n = WriteAndAdvance c $ const n
+  let writeAndAdvance c n = WriteAndAdvance c $ srcOff + n
       b0 = index $ if isBE then srcOff else srcOff + 1
       b1 = index $ if isBE then srcOff + 1 else srcOff
   in
   case queryUtf16Bytes b0 b1 of
-    OneWord16 c -> writeAndAdvance c $ srcOff + 2
+    OneWord16 c -> writeAndAdvance c 2
     TwoWord16 g ->
       if len - srcOff < 4
         -- not enough Word8s to finish the code point
@@ -419,7 +420,7 @@ decodeUtf16Chunks isBE bs1 bs2 = runST $ decodeChunksProxy noOptimization (\ ind
               b3 = index $ srcOff + (if isBE then 3 else 2)
           in
           case g b2 b3 of
-            Just c -> writeAndAdvance c $ srcOff + 4
+            Just c -> writeAndAdvance c 4
             _ -> Invalid
     _ -> Invalid) bs1 bs2
 
@@ -438,13 +439,8 @@ decodeUtf32Chunks isBE bs1 bs2 = runST $ decodeChunksProxy noOptimization (\ ind
       (index $ srcOff + (if isBE then 1 else 2))
       (index $ srcOff + (if isBE then 2 else 1))
       (index $ if isBE then srcOff + 3 else srcOff) of
-    Just c -> WriteAndAdvance c . const $ srcOff + 4
+    Just c -> WriteAndAdvance c $ srcOff + 4
     _ -> Invalid) bs1 bs2
-
-data Progression
-  = WriteAndAdvance Char (Int -> Int)
-  | NeedMore
-  | Invalid
 
 -- | Decode a 'ByteString' containing 7-bit ASCII encoded text.
 --

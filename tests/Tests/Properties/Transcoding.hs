@@ -8,7 +8,6 @@ module Tests.Properties.Transcoding
 
 import Data.Bits ((.&.), shiftR)
 import Data.Char (chr, ord)
-import Data.Maybe (fromMaybe)
 import Test.QuickCheck hiding ((.&.))
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.QuickCheck (testProperty)
@@ -300,50 +299,6 @@ t_decode_utf8_lenient :: Property
 t_decode_utf8_lenient = forAllShrinkShow arbitrary shrink (show . BL.toChunks) $ \bs ->
     decodeLL bs === (TL.fromStrict . decodeL . B.concat . BL.toChunks) bs
 
-decodeStream decoder snoc bs =
-  case decoder bs $ \ t mW b p f ->
-    case mW of
-      Just w ->
-        let t' = (case C.lenientDecode "" $ Just w of
-              Just c -> t `snoc` c
-              _ -> t)
-        in
-        case f mempty of
-          (tDiff, bp) -> (mappend t' `mappend` tDiff, bp)
-      _ -> (mappend t, (b, p)) of
-    (tDiff, (b, p)) -> (tDiff mempty, b, p)
-
-decodeUtf8StreamL = C.chunksDecoderToStream EL.decodeUtf8Chunks
-
-decodeUtf8StreamS = C.chunksDecoderToStream E.decodeUtf8Chunks
-
--- The results of the stream decoder on a strict bytestring should
--- match the results of a non-stream decoder on a lazy bytestring.
-t_decode_utf8_lenient_stream :: Property
-t_decode_utf8_lenient_stream = forAllShrinkShow arbitrary shrink (show . BL.toChunks) $ \bs ->
-  let (st, sb, _) = decodeStream decodeUtf8StreamS T.snoc . B.concat $ BL.toChunks bs
-      st' = B.foldr (\ w st'' -> st'' `T.snoc` (fromMaybe 'a' . C.lenientDecode "" $ Just w)) st sb
-  in
-  decodeLL bs === TL.fromStrict st'
-
--- The results of the non-stream decoder on a strict bytestring should
--- match the results of a stream decoder on a lazy bytestring.
-t_decode_utf8_stream_lenient :: Property
-t_decode_utf8_stream_lenient = forAllShrinkShow arbitrary shrink (show . BL.toChunks) $ \bs ->
-  let (lt, lb, _) = decodeStream decodeUtf8StreamL TL.snoc bs
-      lt' = BL.foldr (\ w lt'' -> lt'' `TL.snoc` (fromMaybe 'a' . C.lenientDecode "" $ Just w)) lt lb
-  in
-  lt' === (TL.fromStrict . decodeL . B.concat . BL.toChunks) bs
-
--- The decoding of lazy bytestrings should not depend on how they are chunked,
--- and it should behave the same as decoding of strict bytestrings.
-t_decode_utf8_stream :: Property
-t_decode_utf8_stream = forAllShrinkShow arbitrary shrink (show . BL.toChunks) $ \bs ->
-    decodeStream decodeUtf8StreamL TL.snoc bs ===
-      ( let (st, sb, pos) = decodeStream decodeUtf8StreamS T.snoc . B.concat $ BL.toChunks bs in
-        (TL.fromStrict st, BL.fromStrict sb, pos)
-      )
-
 -- See http://unicode.org/faq/utf_bom.html#gen8
 -- A sequence such as <110xxxxx2 0xxxxxxx2> is illegal ...
 -- When faced with this illegal byte sequence ... a UTF-8 conformant process
@@ -431,9 +386,6 @@ testTranscoding =
       testProperty "t_chunk_decode_utf32BE" t_chunk_decode_utf32BE,
       testProperty "t_chunk_decode_utf32LE" t_chunk_decode_utf32LE,
       testProperty "t_decode_utf8_lenient" t_decode_utf8_lenient,
-      testProperty "t_decode_utf8_stream_lenient" t_decode_utf8_stream_lenient,
-      testProperty "t_decode_utf8_lenient_stream" t_decode_utf8_lenient_stream,
-      testProperty "t_decode_utf8_stream" t_decode_utf8_stream,
       testProperty "t_decode_with_error2" t_decode_with_error2,
       testProperty "t_decode_with_error3" t_decode_with_error3,
       testProperty "t_decode_with_error4" t_decode_with_error4,

@@ -21,10 +21,8 @@
 
 module Data.Text.Encoding.Common
   (
-  -- * Full-service result types and functions
+  -- * Full-service result type
     DecodeResult(..)
-  , DecodeResultHandler
-  , chunksDecoderToStream
   -- * Error handling types
   , UnicodeException(..)
   , OnError
@@ -49,7 +47,7 @@ import Numeric (showHex)
 --
 --   1. the decoded data up to an incomplete code point at the end of
 --      the input data, an invalid word, or to the end of the input,
---   2. the invalid code point if one was encountered,
+--   2. the first word of an invalid code point if one was encountered,
 --   3. the remaining undecoded data, which is either an incomplete
 --      code point, the data after the invalid code point, or empty,
 --      and
@@ -58,40 +56,6 @@ import Numeric (showHex)
 -- @since 2.0.1
 data DecodeResult t b w = DecodeResult !t !(Maybe w) !b !Int
   deriving (Eq, Ord, Show, Read)
-
--- | The funtion type for handling successful decodings. The arguments
--- passed to the handler are:
---
---   1. the decoded data up to an incomplete code point at the end of
---      the input data, an invalid word, or to the end of the input,
---   2. the invalid code point if one was encountered,
---   3. the remaining undecoded data, which is either an incomplete
---      code point, the data after the invalid code point, or empty,
---   4. the byte position of remaining undecoded data, and
---   5. a continuation function that accepts data that as treated as
---      a continuation of any remaining unencoded data.
---
--- @since 2.0.1
-type DecodeResultHandler t w b b' r = t -> Maybe w -> b -> Int -> (b' -> r) -> r
-
--- | Create a stream decoder from a chunks decoder. The resulting
--- stream decoder accepts a 'DecodeResultHandler' to process the decode
--- result.
---
--- @since 2.0.1
-chunksDecoderToStream :: Monoid b
-  => (b -> b' -> DecodeResult t b w)  -- ^ Chunks decoder
-  -> b'                               -- ^ Encoded data
-  -> DecodeResultHandler t w b b' r   -- ^ Result continuation
-  -> r                                -- ^ Continuation result
-chunksDecoderToStream chunksDecoder bs f =
-  g mempty bs 0
-  where
-    g bs0 bs1 pos0 =
-      let DecodeResult t mW bs1' pos1 = chunksDecoder bs0 bs1
-          pos = pos0 + pos1
-      in
-      f t mW bs1' pos $ \ bs2 -> g bs1' bs2 pos
 
 -- | Function type for handling a coding error.  It is supplied with
 -- two inputs:
