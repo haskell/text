@@ -79,6 +79,8 @@ fromPtr ptr (I8 len) = unsafeSTToIO $ do
 
 -- | /O(n)/ Create a new 'Text' from a 'Ptr' 'Word8' by copying the
 -- contents of the NUL-terminated array.
+--
+-- @since 2.0.1
 fromPtr0 :: Ptr Word8           -- ^ source array
          -> IO Text
 fromPtr0 ptr@(Ptr addr#) = fromPtr ptr (fromIntegral (addrLen addr#))

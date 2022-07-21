@@ -1336,6 +1336,8 @@ span p = break (not . p)
 -- -- for all p :: Char -> Bool
 -- 'span' p = 'Data.Functor.Identity.runIdentity' . 'spanM' ('pure' . p)
 -- @
+--
+-- @since 2.0.1
 spanM :: Monad m => (Char -> m Bool) -> Text -> m (Text, Text)
 spanM p t0 = go t0
   where
@@ -1356,6 +1358,8 @@ spanM p t0 = go t0
 -- @
 -- 'spanEndM' p . 'reverse' = fmap ('Data.Bifunctor.bimap' 'reverse' 'reverse') . 'spanM' p
 -- @
+--
+-- @since 2.0.1
 spanEndM :: Monad m => (Char -> m Bool) -> Text -> m (Text, Text)
 spanEndM p t0 = go t0
   where

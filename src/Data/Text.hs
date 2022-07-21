@@ -1040,6 +1040,8 @@ foldr1 f t = S.foldr1 f (stream t)
 -- | /O(n)/ A strict version of 'foldr'.
 --
 -- 'foldr'' evaluates as a right-to-left traversal using constant stack space.
+--
+-- @since 2.0.1
 foldr' :: (Char -> a -> a) -> a -> Text -> a
 foldr' f z t = S.foldl' (P.flip f) z (reverseStream t)
 {-# INLINE foldr' #-}
@@ -1477,6 +1479,8 @@ break p = span (not . p)
 -- -- for all p :: Char -> Bool
 -- 'span' p = 'Data.Functor.Identity.runIdentity' . 'spanM' ('pure' . p)
 -- @
+--
+-- @since 2.0.1
 spanM :: Monad m => (Char -> m Bool) -> Text -> m (Text, Text)
 spanM p t@(Text arr off len) = go 0
   where
@@ -1498,6 +1502,8 @@ spanM p t@(Text arr off len) = go 0
 -- @
 -- 'spanEndM' p . 'reverse' = fmap ('Data.Bifunctor.bimap' 'reverse' 'reverse') . 'spanM' p
 -- @
+--
+-- @since 2.0.1
 spanEndM :: Monad m => (Char -> m Bool) -> Text -> m (Text, Text)
 spanEndM p t@(Text arr off len) = go (len-1)
   where
