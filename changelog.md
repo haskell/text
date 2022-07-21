@@ -1,3 +1,13 @@
+### 2.0.1
+
+* Improve portability of C and C++ code.
+* [Make `Lift` instance more efficient](https://github.com/haskell/text/pull/413)
+* [Make `toCaseFold` idempotent](https://github.com/haskell/text/pull/402)
+* [Add `fromPtr0`](https://github.com/haskell/text/pull/423)
+* [Add `Data.Text.foldr'`](https://github.com/haskell/text/pull/436)
+* [Add `withCString`](https://github.com/haskell/text/pull/431)
+* [Add `spanM` and `spanEndM`](https://github.com/haskell/text/pull/437)
+
 ### 2.0
 
 * [Switch internal representation of text from UTF-16 to UTF-8](https://github.com/haskell/text/pull/365):
