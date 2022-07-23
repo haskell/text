@@ -366,13 +366,19 @@ decodeUtf8Bulk bsOff bs dst dstLen srcOff dstOff
     -- We need Data.ByteString.findIndexEnd, but it is unavailable before bytestring-0.10.12.0
     guessUtf8Boundary :: ByteString -> Int
     guessUtf8Boundary bs'@(B.length -> len)
-      | len >= 1 && w 1 <  0x80 = len     -- last char is ASCII
-      | len >= 1 && w 1 >= 0xc0 = len - 1 -- last char starts a two-(or more-)word code point
-      | len >= 2 && w 2 >= 0xe0 = len - 2 -- pre-last char starts a three- or four-word code point
-      | len >= 3 && w 3 >= 0xf0 = len - 3 -- third to last char starts a four-word code point
-      | otherwise = 0 -- gonna have to resolve this with an incremental approach
+      | len >= 1 && wr 1 < 0x80 -- last char is ASCII
+      , wb 2 0xe0 0xc0          -- last two chars are a two-word code point
+      , wb 3 0xf0 0xe0          -- last three chars are a three-word code point
+      , wb 2 0xf8 0xf0          -- last four chars are a four-word code point
+        = len
+      | w 1 0xc0 = len - 1      -- last char starts a two-(or more-)word code point
+      | w 2 0xe0 = len - 2      -- pre-last char starts a three- or four-word code point
+      | w 3 0xf0 = len - 3      -- third to last char starts a four-word code point
+      | otherwise = 0           -- gonna have to resolve this with an incremental approach
       where
-        w n = B.index bs' (len - n)
+        wr n = B.index bs' (len - n)
+        w n bt = len >= n && wr n >= bt
+        wb n mask bt = len >= n && wr n .&. mask == bt
 
     isValidBS :: ByteString -> Int -> Int -> Bool
     isValidBS bs' off count = if off + count > B.length bs'
@@ -388,13 +394,13 @@ decodeUtf8Bulk bsOff bs dst dstLen srcOff dstOff
         start off
       where
         start ix
-          | ix >= count = True
+          | ix >= off + count = True
           | otherwise = case utf8DecodeStart (B.unsafeIndex bs' ix) of
             Accept{} -> start (ix + 1)
             Reject{} -> False
             Incomplete st _ -> step (ix + 1) st
         step ix st
-          | ix >= count = False
+          | ix >= off + count = False
           -- We do not use decoded code point, so passing a dummy value to save an argument.
           | otherwise = case utf8DecodeContinue (B.unsafeIndex bs' ix) st (CodePoint 0) of
             Accept{} -> start (ix + 1)
