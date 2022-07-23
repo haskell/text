@@ -53,7 +53,7 @@ import Numeric (showHex)
 --      and
 --   4. the byte position of remaining undecoded data.
 --
--- @since 2.0.1
+-- @since 2.0.2
 data DecodeResult t b w = DecodeResult !t !(Maybe w) !b !Int
   deriving (Eq, Ord, Show, Read)
 

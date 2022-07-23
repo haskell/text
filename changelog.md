@@ -207,7 +207,7 @@
 * Bumped lower bound on deepseq to 1.4 for compatibility with the
   upcoming GHC 7.10
 
-#### 1.2.0.1
+#### 1.2.0.2
 
 * Fixed a buffer overflow in rendering of large Integers
   (https://github.com/bos/text/issues/99)

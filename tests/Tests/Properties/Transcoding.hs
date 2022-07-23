@@ -13,6 +13,7 @@ import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.QuickCheck (testProperty)
 import Tests.QuickCheckUtils
 import qualified Control.Exception as Exception
+import qualified Control.Monad.Fix as F
 import qualified Data.Bits as Bits (shiftL, shiftR)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Builder as B
@@ -26,11 +27,6 @@ import qualified Data.Text.Encoding as E
 import qualified Data.Text.Encoding.Common as C
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as EL
-
-t_asciiE t    = E.decodeAsciiE (E.encodeUtf8 a) === Right a
-    where a  = T.map (\c -> chr (ord c `mod` 128)) t
-tl_asciiE t    = EL.decodeAsciiE (EL.encodeUtf8 a) === Right a
-    where a  = TL.map (\c -> chr (ord c `mod` 128)) t
 
 t_ascii t    = E.decodeASCII (E.encodeUtf8 a) === a
     where a  = T.map (\c -> chr (ord c `mod` 128)) t
@@ -211,9 +207,33 @@ genInvalidUTF8 = B.pack <$> oneof [
     ord3_ n = map fromIntegral [(n `shiftR` 12) + 0xE0, ((n `shiftR` 6) .&. 0x3F) + 0x80, (n .&. 0x3F) + 0x80]
     ord4_ n = map fromIntegral [(n `shiftR` 18) + 0xF0, ((n `shiftR` 12) .&. 0x3F) + 0x80, ((n `shiftR` 6) .&. 0x3F) + 0x80, (n .&. 0x3F) + 0x80]
 
+t_chunk_decode_ascii_1 =
+  let bs1 = B.pack [0x68, 0x69, 0x2c, 0x20, 0x83,
+        0x68, 0x65, 0x6c, 0x6c]
+      bs2 = B.pack [0x6f, 0x2c, 0x20, 0x94,
+        0x68, 0x6f, 0x77, 0x20, 0xcc,
+        0x61, 0x72, 0x65, 0x20, 0x79, 0x61, 0x3f]
+      decode = E.decodeAsciiChunks
+      decodeResult0 = decode bs1 mempty
+      expectedBs0 = B.pack [0x68, 0x65, 0x6c, 0x6c]
+  in
+  whenEqProp decodeResult0 (E.DecodeResult "hi, " (Just 0x83) expectedBs0 5) $
+    let decodeResult1 = decode expectedBs0 bs2
+        expectedBs1 = B.pack [0x68, 0x6f, 0x77, 0x20, 0xcc,
+          0x61, 0x72, 0x65, 0x20, 0x79, 0x61, 0x3f]
+    in
+    whenEqProp decodeResult1 (E.DecodeResult "hello, " (Just 0x94) expectedBs1 8) $
+      let decodeResult2 = decode expectedBs1 mempty
+          expectedBs2 = B.pack [0x61, 0x72, 0x65, 0x20, 0x79, 0x61, 0x3f]
+      in
+      whenEqProp decodeResult2 (E.DecodeResult "how " (Just 0xcc) expectedBs2 5) $
+        decode expectedBs2 mempty === E.DecodeResult "are ya?" Nothing mempty 7
+
 t_chunk_decode_utf8_1 =
-  let decodeResult0 = E.decodeUtf8Chunks mempty $ B.pack [0x68, 0x69, 0x2C, 0x20, 0xe2, 0x98, 0x83, 0x21] in
-  decodeResult0 === E.DecodeResult "hi, ☃!" Nothing mempty 8
+  let decodeResult0 = E.decodeUtf8Chunks mempty $ B.pack [0x68, 0x69, 0x2C, 0x20, 0xC4, 0x89, 0x2C, 0x20,
+        0xe2, 0x98, 0x83, 0x2C, 0x20, 0x61, 0x6e, 0x64,
+        0x20, 0xF0, 0x90, 0x90, 0xB7, 0x21] in
+  decodeResult0 === E.DecodeResult "hi, ĉ, ☃, and \x10437!" Nothing mempty 22
 t_chunk_decode_utf8_2 =
   let decode = E.decodeUtf8Chunks mempty
       decodeResult0 = decode $ B.pack [97, 0xC2, 97]
@@ -234,6 +254,24 @@ t_chunk_decode_utf8_3 =
     whenEqProp decodeResult1 (E.DecodeResult "" Nothing expectedBs1 0) $
       let decodeResult2 = decode expectedBs1 $ B.pack [0x83, 32, 0xFF] in
       decodeResult2 === E.DecodeResult "☃ " (Just 0xFF) mempty 5
+
+-- test multi-word code points split across bytestring chunks
+t_chunk_decode_utf8_4 =
+  F.fix (\ f bs s ->
+    case s of
+      (input, expected) : s' -> whenEqProp (E.decodeUtf8Chunks bs input) expected $
+        case expected of
+          E.DecodeResult _ _ bs' _ -> f bs' s'
+      _ -> counterexample "" True
+    ) mempty
+    [ (B.pack [0x68, 0x69, 0x2C, 0x20, 0xC4], E.DecodeResult "hi, " Nothing (B.singleton 0xc4) 4)
+    , (B.pack [0x89, 0x2C, 0x20, 0xe2], E.DecodeResult "ĉ, " Nothing (B.singleton 0xe2) 4)
+    , (B.singleton 0x98, E.DecodeResult "" Nothing (B.pack [0xe2, 0x98]) 0)
+    , (B.pack [0x83, 0x2C, 0x20, 0x61, 0x6e, 0x64, 0x20, 0xF0], E.DecodeResult "☃, and " Nothing (B.singleton 0xF0) 9)
+    , (B.singleton 0x90, E.DecodeResult "" Nothing (B.pack [0xF0, 0x90]) 0)
+    , (B.singleton 0x90, E.DecodeResult "" Nothing (B.pack [0xF0, 0x90, 0x90]) 0)
+    , (B.pack [0xB7, 0x21], E.DecodeResult "\x10437!" Nothing mempty 5)
+    ]
 
 t_chunk_decode_utf16BE =
   let decode = E.decodeUtf16Chunks True
@@ -335,8 +373,6 @@ t_infix_concat bs1 text bs2 =
 testTranscoding :: TestTree
 testTranscoding =
   testGroup "transcoding" [
-    testProperty "t_asciiE" t_asciiE,
-    testProperty "tl_asciiE" tl_asciiE,
     testProperty "t_ascii" t_ascii,
     testProperty "tl_ascii" tl_ascii,
     testProperty "t_latin1" t_latin1,
@@ -381,6 +417,8 @@ testTranscoding =
       testProperty "t_chunk_decode_utf8_1" t_chunk_decode_utf8_1,
       testProperty "t_chunk_decode_utf8_2" t_chunk_decode_utf8_2,
       testProperty "t_chunk_decode_utf8_3" t_chunk_decode_utf8_3,
+      testProperty "t_chunk_decode_utf8_4" t_chunk_decode_utf8_4,
+      testProperty "t_chunk_decode_ascii_1" t_chunk_decode_ascii_1,
       testProperty "t_chunk_decode_utf16BE" t_chunk_decode_utf16BE,
       testProperty "t_chunk_decode_utf16LE" t_chunk_decode_utf16LE,
       testProperty "t_chunk_decode_utf32BE" t_chunk_decode_utf32BE,
