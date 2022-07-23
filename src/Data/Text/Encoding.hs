@@ -229,7 +229,7 @@ decodeChunks w bulkDecodeF incrementalDecodeF bs1@(B.length -> len1) bs2@(B.leng
     len :: Int
     len = len1 + len2
     len' :: Int
-    len' = len `div` wordByteSize + 4
+    len' = (len `div` wordByteSize) + 4
 
     outer dst dstLen = inner
       where
