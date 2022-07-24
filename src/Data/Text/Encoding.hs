@@ -367,9 +367,9 @@ decodeUtf8Bulk bsOff bs dst dstLen srcOff dstOff
     guessUtf8Boundary :: ByteString -> Int
     guessUtf8Boundary bs'@(B.length -> len)
       | len >= 1 && wr 1 < 0x80 -- last char is ASCII
-      , wb 2 0xe0 0xc0          -- last two chars are a two-word code point
-      , wb 3 0xf0 0xe0          -- last three chars are a three-word code point
-      , wb 2 0xf8 0xf0          -- last four chars are a four-word code point
+        || wb 2 0xe0 0xc0       -- last two chars are a two-word code point
+        || wb 3 0xf0 0xe0       -- last three chars are a three-word code point
+        || wb 2 0xf8 0xf0       -- last four chars are a four-word code point
         = len
       | w 1 0xc0 = len - 1      -- last char starts a two-(or more-)word code point
       | w 2 0xe0 = len - 2      -- pre-last char starts a three- or four-word code point
