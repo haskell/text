@@ -13,7 +13,6 @@ import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.QuickCheck (testProperty)
 import Tests.QuickCheckUtils
 import qualified Control.Exception as Exception
-import qualified Control.Monad.Fix as F
 import qualified Data.Bits as Bits (shiftL, shiftR)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Builder as B
@@ -207,123 +206,117 @@ genInvalidUTF8 = B.pack <$> oneof [
     ord3_ n = map fromIntegral [(n `shiftR` 12) + 0xE0, ((n `shiftR` 6) .&. 0x3F) + 0x80, (n .&. 0x3F) + 0x80]
     ord4_ n = map fromIntegral [(n `shiftR` 18) + 0xF0, ((n `shiftR` 12) .&. 0x3F) + 0x80, ((n `shiftR` 6) .&. 0x3F) + 0x80, (n .&. 0x3F) + 0x80]
 
-t_chunk_decode_ascii_1 =
-  let bs1 = B.pack [0x68, 0x69, 0x2c, 0x20, 0x83,
-        0x68, 0x65, 0x6c, 0x6c]
-      bs2 = B.pack [0x6f, 0x2c, 0x20, 0x94,
+-- test multi-word code points split across bytestring chunks
+chunksTests decodeF insExpectedOuts =
+  f mempty insExpectedOuts
+  where
+    f bs s =
+      case s of
+        (input, expected) : s' -> whenEqProp (decodeF bs input) expected $
+          case expected of
+            E.DecodeResult _ _ bs' _ -> f bs' s'
+        _ -> counterexample "" True
+
+t_chunk_decode_ascii_1 = chunksTests E.decodeAsciiChunks
+  [ ( B.pack [0x68, 0x69, 0x2c, 0x20, 0x83, 0x68, 0x65, 0x6c, 0x6c]
+    , E.DecodeResult "hi, " (Just 0x83) (B.pack [0x68, 0x65, 0x6c, 0x6c]) 5
+    )
+  , ( B.pack [0x6f, 0x2c, 0x20, 0x94,
         0x68, 0x6f, 0x77, 0x20, 0xcc,
         0x61, 0x72, 0x65, 0x20, 0x79, 0x61, 0x3f]
-      decode = E.decodeAsciiChunks
-      decodeResult0 = decode bs1 mempty
-      expectedBs0 = B.pack [0x68, 0x65, 0x6c, 0x6c]
-  in
-  whenEqProp decodeResult0 (E.DecodeResult "hi, " (Just 0x83) expectedBs0 5) $
-    let decodeResult1 = decode expectedBs0 bs2
-        expectedBs1 = B.pack [0x68, 0x6f, 0x77, 0x20, 0xcc,
-          0x61, 0x72, 0x65, 0x20, 0x79, 0x61, 0x3f]
-    in
-    whenEqProp decodeResult1 (E.DecodeResult "hello, " (Just 0x94) expectedBs1 8) $
-      let decodeResult2 = decode expectedBs1 mempty
-          expectedBs2 = B.pack [0x61, 0x72, 0x65, 0x20, 0x79, 0x61, 0x3f]
-      in
-      whenEqProp decodeResult2 (E.DecodeResult "how " (Just 0xcc) expectedBs2 5) $
-        decode expectedBs2 mempty === E.DecodeResult "are ya?" Nothing mempty 7
+    , E.DecodeResult "hello, " (Just 0x94) (B.pack [0x68, 0x6f, 0x77, 0x20, 0xcc,
+          0x61, 0x72, 0x65, 0x20, 0x79, 0x61, 0x3f]) 8
+    )
+  , ( mempty
+    , E.DecodeResult "how " (Just 0xcc) (B.pack [0x61, 0x72, 0x65, 0x20, 0x79, 0x61, 0x3f]) 5
+    )
+  , ( mempty
+    , E.DecodeResult "are ya?" Nothing mempty 7
+    )
+  ]
 
-t_chunk_decode_utf8_1 =
-  let decodeResult0 = E.decodeUtf8Chunks mempty $ B.pack [0x68, 0x69, 0x2C, 0x20, 0xC4, 0x89, 0x2C, 0x20,
+t_chunk_decode_utf8_1 = chunksTests E.decodeUtf8Chunks
+  [ ( B.pack [0x68, 0x69, 0x2C, 0x20, 0xC4, 0x89, 0x2C, 0x20,
         0xe2, 0x98, 0x83, 0x2C, 0x20, 0x61, 0x6e, 0x64,
-        0x20, 0xF0, 0x90, 0x90, 0xB7, 0x21] in
-  decodeResult0 === E.DecodeResult "hi, ĉ, ☃, and \x10437!" Nothing mempty 22
-t_chunk_decode_utf8_2 =
-  let decode = E.decodeUtf8Chunks mempty
-      decodeResult0 = decode $ B.pack [97, 0xC2, 97]
-      expectedBs0 = B.singleton 97
-  in
-  whenEqProp decodeResult0 (E.DecodeResult (T.singleton 'a') (Just 0xC2) expectedBs0 2) $
-    let decodeResult1 = decode expectedBs0 in
-    decodeResult1 === E.DecodeResult (T.singleton 'a') Nothing mempty 1
-t_chunk_decode_utf8_3 =
-  let decode = E.decodeUtf8Chunks
-      decodeResult0 = decode mempty $ B.pack [104, 105, 32, 0xe2]
-      expectedBs0 = B.singleton 0xe2
-  in -- hi \xe2
-  whenEqProp decodeResult0 (E.DecodeResult "hi " Nothing expectedBs0 3) $
-    let decodeResult1 = decode expectedBs0 $ B.singleton 0x98
-        expectedBs1 = B.pack [0xe2, 0x98]
-    in
-    whenEqProp decodeResult1 (E.DecodeResult "" Nothing expectedBs1 0) $
-      let decodeResult2 = decode expectedBs1 $ B.pack [0x83, 32, 0xFF] in
-      decodeResult2 === E.DecodeResult "☃ " (Just 0xFF) mempty 5
-
+        0x20, 0xF0, 0x90, 0x90, 0xB7, 0x21]
+    , E.DecodeResult "hi, ĉ, ☃, and \x10437!" Nothing mempty 22
+    )
+  ]
+t_chunk_decode_utf8_2 = chunksTests E.decodeUtf8Chunks
+  [ ( B.pack [97, 0xC2, 97]
+    , E.DecodeResult (T.singleton 'a') (Just 0xC2) (B.singleton 97) 2
+    )
+  , ( mempty
+    , E.DecodeResult (T.singleton 'a') Nothing mempty 1
+    )
+  ]
+t_chunk_decode_utf8_3 = chunksTests E.decodeUtf8Chunks
+  [ ( B.pack [104, 105, 32, 0xe2]
+    , E.DecodeResult "hi " Nothing (B.singleton 0xe2) 3
+    )
+  , ( B.singleton 0x98
+    , E.DecodeResult "" Nothing (B.pack [0xe2, 0x98]) 0
+    )
+  , ( B.pack [0x83, 32, 0xFF]
+    , E.DecodeResult "☃ " (Just 0xFF) mempty 5
+    )
+  ]
 -- test multi-word code points split across bytestring chunks
-t_chunk_decode_utf8_4 =
-  F.fix (\ f bs s ->
-    case s of
-      (input, expected) : s' -> whenEqProp (E.decodeUtf8Chunks bs input) expected $
-        case expected of
-          E.DecodeResult _ _ bs' _ -> f bs' s'
-      _ -> counterexample "" True
-    ) mempty
-    [ (B.pack [0x68, 0x69, 0x2C, 0x20, 0xC4], E.DecodeResult "hi, " Nothing (B.singleton 0xc4) 4)
-    , (B.pack [0x89, 0x2C, 0x20, 0xe2], E.DecodeResult "ĉ, " Nothing (B.singleton 0xe2) 4)
-    , (B.singleton 0x98, E.DecodeResult "" Nothing (B.pack [0xe2, 0x98]) 0)
-    , (B.pack [0x83, 0x2C, 0x20, 0x61, 0x6e, 0x64, 0x20, 0xF0], E.DecodeResult "☃, and " Nothing (B.singleton 0xF0) 9)
-    , (B.singleton 0x90, E.DecodeResult "" Nothing (B.pack [0xF0, 0x90]) 0)
-    , (B.singleton 0x90, E.DecodeResult "" Nothing (B.pack [0xF0, 0x90, 0x90]) 0)
-    , (B.pack [0xB7, 0x21], E.DecodeResult "\x10437!" Nothing mempty 5)
-    ]
+t_chunk_decode_utf8_4 = chunksTests E.decodeUtf8Chunks
+  [ (B.pack [0x68, 0x69, 0x2C, 0x20, 0xC4], E.DecodeResult "hi, " Nothing (B.singleton 0xc4) 4)
+  , (B.pack [0x89, 0x2C, 0x20, 0xe2], E.DecodeResult "ĉ, " Nothing (B.singleton 0xe2) 4)
+  , (B.singleton 0x98, E.DecodeResult "" Nothing (B.pack [0xe2, 0x98]) 0)
+  , (B.pack [0x83, 0x2C, 0x20, 0x61, 0x6e, 0x64, 0x20, 0xF0], E.DecodeResult "☃, and " Nothing (B.singleton 0xF0) 9)
+  , (B.singleton 0x90, E.DecodeResult "" Nothing (B.pack [0xF0, 0x90]) 0)
+  , (B.singleton 0x90, E.DecodeResult "" Nothing (B.pack [0xF0, 0x90, 0x90]) 0)
+  , (B.pack [0xB7, 0x21], E.DecodeResult "\x10437!" Nothing mempty 5)
+  ]
 
-t_chunk_decode_utf16BE =
-  let decode = E.decodeUtf16Chunks True
-      expectedBs0 = B.pack [0]
-      decodeResult0 = decode mempty expectedBs0 in
-  whenEqProp decodeResult0 (E.DecodeResult T.empty Nothing expectedBs0 0) $
-    let decodeResult1 = decode expectedBs0 $ B.pack [104, 0, 105, 0, 32, 0xD8, 0x01]
-        expectedBs1 = B.pack [0xD8, 0x01]
-    in
-    whenEqProp decodeResult1 (E.DecodeResult "hi " Nothing expectedBs1 6) $
-      let decodeResult2 = decode expectedBs1 $ B.pack [0xDC, 0x37, 0, 32, 0xDC, 0] in
-      decodeResult2 === E.DecodeResult "\x10437 " (Just 0xDC00) mempty 8
-t_chunk_decode_utf16LE =
-  let decode = E.decodeUtf16Chunks False
-      expectedBs0 = B.pack [104]
-      decodeResult0 = decode mempty expectedBs0 in
-  whenEqProp decodeResult0 (E.DecodeResult T.empty Nothing expectedBs0 0) $
-    let decodeResult1 = decode expectedBs0 $ B.pack [0, 105, 0, 32, 0, 0x01, 0xD8]
-        expectedBs1 = B.pack [0x01, 0xD8]
-    in
-    whenEqProp decodeResult1 (E.DecodeResult "hi " Nothing expectedBs1 6) $
-      let decodeResult2 = decode expectedBs1 $ B.pack [0x37, 0xDC, 32, 0, 0, 0xDC] in
-      decodeResult2 === E.DecodeResult "\x10437 " (Just 0xDC) mempty 8
+t_chunk_decode_utf16BE = chunksTests (E.decodeUtf16Chunks True)
+  [ ( B.pack [0]
+    , E.DecodeResult T.empty Nothing (B.pack [0]) 0
+    )
+  , ( B.pack [104, 0, 105, 0, 32, 0xD8, 0x01]
+    , E.DecodeResult "hi " Nothing (B.pack [0xD8, 0x01]) 6
+    )
+  , ( B.pack [0xDC, 0x37, 0, 32, 0xDC, 0]
+    , E.DecodeResult "\x10437 " (Just 0xDC00) mempty 8
+    )
+  ]
+t_chunk_decode_utf16LE = chunksTests (E.decodeUtf16Chunks False)
+  [ ( B.pack [104]
+    , E.DecodeResult T.empty Nothing (B.pack [104]) 0
+    )
+  , ( B.pack [0, 105, 0, 32, 0, 0x01, 0xD8]
+    , E.DecodeResult "hi " Nothing (B.pack [0x01, 0xD8]) 6
+    )
+  , ( B.pack [0x37, 0xDC, 32, 0, 0, 0xDC]
+    , E.DecodeResult "\x10437 " (Just 0xDC) mempty 8
+    )
+  ]
 
-t_chunk_decode_utf32BE =
-  let decode = E.decodeUtf32Chunks True
-      expBs0 = B.pack [0, 0]
-      decodeResult0 = decode mempty $ B.pack [0, 0, 0, 104, 0, 0, 0, 105, 0, 0]
-  in
-  whenEqProp decodeResult0 (E.DecodeResult "hi" Nothing expBs0 8) $
-    let expBs1 = B.pack [0, 0, 0x26]
-        decodeResult1 = decode expBs0 $ B.pack [0, 32, 0, 0, 0x26]
-    in
-    whenEqProp decodeResult1 (E.DecodeResult " " Nothing expBs1 4) $
-      let expBs2 = mempty
-          decodeResult2 = decode expBs1 $ B.pack [0x03, 0, 0, 0, 32, 0, 0, 0xD8, 0]
-      in
-      decodeResult2 === E.DecodeResult "☃ " (Just 0xD800) expBs2 12
-t_chunk_decode_utf32LE =
-  let decode = E.decodeUtf32Chunks False
-      expBs0 = B.pack [0x20, 0]
-      decodeResult0 = decode mempty $ B.pack [104, 0, 0, 0, 105, 0, 0, 0, 0x20, 0]
-  in
-  whenEqProp decodeResult0 (E.DecodeResult "hi" Nothing expBs0 8) $
-    let expBs1 = B.pack [0x03, 0x26, 0]
-        decodeResult1 = decode expBs0 $ B.pack [0, 0, 0x03, 0x26, 0]
-    in
-    whenEqProp decodeResult1 (E.DecodeResult " " Nothing expBs1 4) $
-      let expBs2 = mempty
-          decodeResult2 = decode expBs1 $ B.pack [0, 32, 0, 0, 0, 0, 0xD8, 0, 0]
-      in
-      decodeResult2 === E.DecodeResult "☃ " (Just 0xD80000) expBs2 12
+t_chunk_decode_utf32BE = chunksTests (E.decodeUtf32Chunks True)
+  [ ( B.pack [0, 0, 0, 104, 0, 0, 0, 105, 0, 0]
+    , E.DecodeResult "hi" Nothing (B.pack [0, 0]) 8
+    )
+  , ( B.pack [0, 32, 0, 0, 0x26]
+    , E.DecodeResult " " Nothing (B.pack [0, 0, 0x26]) 4
+    )
+  , ( B.pack [0x03, 0, 0, 0, 32, 0, 0, 0xD8, 0]
+    , E.DecodeResult "☃ " (Just 0xD800) mempty 12
+    )
+  ]
+t_chunk_decode_utf32LE = chunksTests (E.decodeUtf32Chunks False)
+  [ ( B.pack [104, 0, 0, 0, 105, 0, 0, 0, 0x20, 0]
+    , E.DecodeResult "hi" Nothing (B.pack [0x20, 0]) 8
+    )
+  , ( B.pack [0, 0, 0x03, 0x26, 0]
+    , E.DecodeResult " " Nothing (B.pack [0x03, 0x26, 0]) 4
+    )
+  , ( B.pack [0, 32, 0, 0, 0, 0, 0xD8, 0, 0]
+    , E.DecodeResult "☃ " (Just 0xD80000) mempty 12
+    )
+  ]
 
 decodeLL :: BL.ByteString -> TL.Text
 decodeLL = EL.decodeUtf8With C.lenientDecode
