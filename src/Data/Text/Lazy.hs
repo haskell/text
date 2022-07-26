@@ -727,7 +727,7 @@ replace s d = intercalate d . splitOn s
 -- case folded to the Greek small letter letter mu (U+03BC) instead of
 -- itself.
 toCaseFold :: Text -> Text
-toCaseFold t = unstream (S.toCaseFold (stream t))
+toCaseFold = foldrChunks (\chnk acc -> Chunk (T.toCaseFold chnk) acc) Empty
 {-# INLINE toCaseFold #-}
 
 -- | /O(n)/ Convert a string to lower case, using simple case
@@ -738,7 +738,7 @@ toCaseFold t = unstream (S.toCaseFold (stream t))
 -- to the sequence Latin small letter i (U+0069) followed by combining
 -- dot above (U+0307).
 toLower :: Text -> Text
-toLower t = unstream (S.toLower (stream t))
+toLower = foldrChunks (\chnk acc -> Chunk (T.toLower chnk) acc) Empty
 {-# INLINE toLower #-}
 
 -- | /O(n)/ Convert a string to upper case, using simple case
@@ -748,7 +748,7 @@ toLower t = unstream (S.toLower (stream t))
 -- instance, the German eszett (U+00DF) maps to the two-letter
 -- sequence SS.
 toUpper :: Text -> Text
-toUpper t = unstream (S.toUpper (stream t))
+toUpper = foldrChunks (\chnk acc -> Chunk (T.toUpper chnk) acc) Empty
 {-# INLINE toUpper #-}
 
 
@@ -773,7 +773,7 @@ toUpper t = unstream (S.toUpper (stream t))
 --
 -- @since 1.0.0.0
 toTitle :: Text -> Text
-toTitle t = unstream (S.toTitle (stream t))
+toTitle = foldrChunks (\chnk acc -> Chunk (T.toTitle chnk) acc) Empty
 {-# INLINE toTitle #-}
 
 -- | /O(n)/ 'foldl', applied to a binary operator, a starting value
