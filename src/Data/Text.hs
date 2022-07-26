@@ -3,8 +3,10 @@
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE UnliftedFFITypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE PartialTypeSignatures #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
+{-# OPTIONS_GHC -Wno-partial-type-signatures #-}
 
 -- |
 -- Module      : Data.Text
@@ -215,7 +217,7 @@ import Control.DeepSeq (NFData(rnf))
 #if defined(ASSERTS)
 import Control.Exception (assert)
 #endif
-import Data.Bits ((.&.))
+import Data.Bits ((.&.), shiftR, shiftL)
 import Data.Char (isSpace, isAscii, ord)
 import Data.Data (Data(gfoldl, toConstr, gunfold, dataTypeOf), constrIndex,
                   Constr, mkConstr, DataType, mkDataType, Fixity(Prefix))
@@ -225,12 +227,12 @@ import Control.Monad.ST.Unsafe (unsafeIOToST)
 import qualified Data.Text.Array as A
 import qualified Data.List as L
 import Data.Binary (Binary(get, put))
-import Data.Int (Int8)
 import Data.Monoid (Monoid(..))
 import Data.Semigroup (Semigroup(..))
 import Data.String (IsString(..))
 import Data.Text.Internal.Encoding.Utf8 (utf8Length, utf8LengthByLeader, chr2, chr3, chr4, ord2, ord3, ord4)
 import qualified Data.Text.Internal.Fusion as S
+import Data.Text.Internal.Fusion.CaseMapping (foldMapping, lowerMapping, upperMapping)
 import qualified Data.Text.Internal.Fusion.Common as S
 import Data.Text.Encoding (decodeUtf8', encodeUtf8)
 import Data.Text.Internal.Fusion (stream, reverseStream, unstream)
@@ -246,12 +248,12 @@ import Data.Text.Internal.Search (indices)
 #if defined(__HADDOCK__)
 import Data.ByteString (ByteString)
 import qualified Data.Text.Lazy as L
-import Data.Int (Int64)
 #endif
 import Data.Word (Word8)
 import Foreign.C.Types
 import GHC.Base (eqInt, neInt, gtInt, geInt, ltInt, leInt, ByteArray#)
 import qualified GHC.Exts as Exts
+import GHC.Int (Int8, Int64(..))
 import GHC.Stack (HasCallStack)
 import qualified Language.Haskell.TH.Lib as TH
 import qualified Language.Haskell.TH.Syntax as TH
@@ -848,6 +850,84 @@ replace needle@(Text _      _      neeLen)
 -- sensitivity should use appropriate versions of the
 -- <http://hackage.haskell.org/package/text-icu-0.6.3.7/docs/Data-Text-ICU.html#g:4 case mapping functions from the text-icu package >.
 
+caseConvert :: (Word8 -> Word8) -> (Exts.Char# -> _ {- unboxed Int64 -}) -> Text -> Text
+caseConvert ascii remap (Text src o l) = runST $ do
+  -- Case conversion a single code point may produce up to 3 code-points,
+  -- each up to 4 bytes, so 12 in total.
+  dst <- A.new (l + 12)
+  outer dst l o 0
+  where
+    outer :: forall s. A.MArray s -> Int -> Int -> Int -> ST s Text
+    outer !dst !dstLen = inner
+      where
+        inner !srcOff !dstOff
+          | srcOff >= o + l = do
+            A.shrinkM dst dstOff
+            arr <- A.unsafeFreeze dst
+            return (Text arr 0 dstOff)
+          | dstOff + 12 > dstLen = do
+            -- Ensure to extend the buffer by at least 12 bytes.
+            let !dstLen' = dstLen + max 12 (l + o - srcOff)
+            dst' <- A.resizeM dst dstLen'
+            outer dst' dstLen' srcOff dstOff
+          -- If a character is to remain unchanged, no need to decode Char back into UTF8,
+          -- just copy bytes from input.
+          | otherwise = do
+            let m0 = A.unsafeIndex src srcOff
+                m1 = A.unsafeIndex src (srcOff + 1)
+                m2 = A.unsafeIndex src (srcOff + 2)
+                m3 = A.unsafeIndex src (srcOff + 3)
+                !d = utf8LengthByLeader m0
+            case d of
+              1 -> do
+                A.unsafeWrite dst dstOff (ascii m0)
+                inner (srcOff + 1) (dstOff + 1)
+              2 -> do
+                let !(Exts.C# c) = chr2 m0 m1
+                dstOff' <- case I64# (remap c) of
+                  0 -> do
+                    A.unsafeWrite dst dstOff m0
+                    A.unsafeWrite dst (dstOff + 1) m1
+                    pure $ dstOff + 2
+                  i -> writeMapping i dstOff
+                inner (srcOff + 2) dstOff'
+              3 -> do
+                let !(Exts.C# c) = chr3 m0 m1 m2
+                dstOff' <- case I64# (remap c) of
+                  0 -> do
+                    A.unsafeWrite dst dstOff m0
+                    A.unsafeWrite dst (dstOff + 1) m1
+                    A.unsafeWrite dst (dstOff + 2) m2
+                    pure $ dstOff + 3
+                  i -> writeMapping i dstOff
+                inner (srcOff + 3) dstOff'
+              _ -> do
+                let !(Exts.C# c) = chr4 m0 m1 m2 m3
+                dstOff' <- case I64# (remap c) of
+                  0 -> do
+                    A.unsafeWrite dst dstOff m0
+                    A.unsafeWrite dst (dstOff + 1) m1
+                    A.unsafeWrite dst (dstOff + 2) m2
+                    A.unsafeWrite dst (dstOff + 3) m3
+                    pure $ dstOff + 4
+                  i -> writeMapping i dstOff
+                inner (srcOff + 4) dstOff'
+
+        writeMapping :: Int64 -> Int -> ST s Int
+        writeMapping 0 dstOff = pure dstOff
+        writeMapping i dstOff = do
+          let (ch, j) = chopOffChar i
+          d <- unsafeWrite dst dstOff ch
+          writeMapping j (dstOff + d)
+
+        chopOffChar :: Int64 -> (Char, Int64)
+        chopOffChar ab = (chr a, ab `shiftR` 21)
+          where
+            chr (Exts.I# n) = Exts.C# (Exts.chr# n)
+            mask = (1 `shiftL` 21) - 1
+            a = P.fromIntegral $ ab .&. mask
+{-# INLINE caseConvert #-}
+
 -- | /O(n)/ Convert a string to folded case.
 --
 -- This function is mainly useful for performing caseless (also known
@@ -865,7 +945,7 @@ replace needle@(Text _      _      neeLen)
 -- U+00B5) is case folded to \"&#x3bc;\" (small letter mu, U+03BC)
 -- instead of itself.
 toCaseFold :: Text -> Text
-toCaseFold t = unstream (S.toCaseFold (stream t))
+toCaseFold = caseConvert (\w -> if w - 65 <= 25 then w + 32 else w) foldMapping
 {-# INLINE toCaseFold #-}
 
 -- | /O(n)/ Convert a string to lower case, using simple case
@@ -876,7 +956,7 @@ toCaseFold t = unstream (S.toCaseFold (stream t))
 -- U+0130) maps to the sequence \"i\" (Latin small letter i, U+0069)
 -- followed by \" &#x307;\" (combining dot above, U+0307).
 toLower :: Text -> Text
-toLower t = unstream (S.toLower (stream t))
+toLower = caseConvert (\w -> if w - 65 <= 25 then w + 32 else w) lowerMapping
 {-# INLINE toLower #-}
 
 -- | /O(n)/ Convert a string to upper case, using simple case
@@ -886,7 +966,7 @@ toLower t = unstream (S.toLower (stream t))
 -- instance, the German \"&#xdf;\" (eszett, U+00DF) maps to the
 -- two-letter sequence \"SS\".
 toUpper :: Text -> Text
-toUpper t = unstream (S.toUpper (stream t))
+toUpper = caseConvert (\w -> if w - 97 <= 25 then w - 32 else w) upperMapping
 {-# INLINE toUpper #-}
 
 -- | /O(n)/ Convert a string to title case, using simple case
