@@ -100,17 +100,34 @@ sf_toCaseFold_length (applyFun -> p) xs =
     (S.length . S.toCaseFold . S.filter p $ s) >= (length . L.filter p $ xs)
     where s = S.streamList xs
 t_toCaseFold_length t = T.length (T.toCaseFold t) >= T.length t
+
 tl_toCaseFold_length t = TL.length (TL.toCaseFold t) >= TL.length t
+t_toCaseFold_char c = c `notElem` toUpperExceptions ==>
+    T.toCaseFold (T.singleton c) === T.singleton (C.toLower c)
+t_toCaseFold_exceptions = T.unpack (T.toCaseFold (T.pack toCaseFoldExceptions)) === "ssi\775\700nj\780\953\776\769\965\776\769\1381\1410h\817t\776w\778y\778a\702ss\965\787\965\787\768\965\787\769\965\787\834\7936\953\7937\953\7938\953\7939\953\7940\953\7941\953\7942\953\7943\953\7936\953\7937\953\7938\953\7939\953\7940\953\7941\953\7942\953\7943\953\7968\953\7969\953\7970\953\7971\953\7972\953\7973\953\7974\953\7975\953\7968\953\7969\953\7970\953\7971\953\7972\953\7973\953\7974\953\7975\953\8032\953\8033\953\8034\953\8035\953\8036\953\8037\953\8038\953\8039\953\8032\953\8033\953\8034\953\8035\953\8036\953\8037\953\8038\953\8039\953\8048\953\945\953\940\953\945\834\945\834\953\945\953\8052\953\951\953\942\953\951\834\951\834\953\951\953\953\776\768\953\776\769\953\834\953\776\834\965\776\768\965\776\769\961\787\965\834\965\776\834\8060\953\969\953\974\953\969\834\969\834\953\969\953fffiflffifflstst\1396\1398\1396\1381\1396\1387\1406\1398\1396\1389"
+
+toCaseFoldExceptions = "\223\304\329\496\912\944\1415\7830\7831\7832\7833\7834\7838\8016\8018\8020\8022\8064\8065\8066\8067\8068\8069\8070\8071\8072\8073\8074\8075\8076\8077\8078\8079\8080\8081\8082\8083\8084\8085\8086\8087\8088\8089\8090\8091\8092\8093\8094\8095\8096\8097\8098\8099\8100\8101\8102\8103\8104\8105\8106\8107\8108\8109\8110\8111\8114\8115\8116\8118\8119\8124\8130\8131\8132\8134\8135\8140\8146\8147\8150\8151\8162\8163\8164\8166\8167\8178\8179\8180\8182\8183\8188\64256\64257\64258\64259\64260\64261\64262\64275\64276\64277\64278\64279"
+
 t_toLower_length t = T.length (T.toLower t) >= T.length t
 t_toLower_lower t = p (T.toLower t) >= p t
     where p = T.length . T.filter isLower
 tl_toLower_lower t = p (TL.toLower t) >= p t
     where p = TL.length . TL.filter isLower
+t_toLower_char c = c /= '\304' ==>
+    T.toLower (T.singleton c) === T.singleton (C.toLower c)
+t_toLower_dotted_i = T.unpack (T.toLower (T.singleton '\304')) === "i\775"
+
 t_toUpper_length t = T.length (T.toUpper t) >= T.length t
 t_toUpper_upper t = p (T.toUpper t) >= p t
     where p = T.length . T.filter isUpper
 tl_toUpper_upper t = p (TL.toUpper t) >= p t
     where p = TL.length . TL.filter isUpper
+t_toUpper_char c = c `notElem` toUpperExceptions ==>
+    T.toUpper (T.singleton c) === T.singleton (C.toUpper c)
+t_toUpper_exceptions = T.unpack (T.toUpper (T.pack toUpperExceptions)) === "SS\700NJ\780\921\776\769\933\776\769\1333\1362H\817T\776W\778Y\778A\702\933\787\933\787\768\933\787\769\933\787\834\7944\921\7945\921\7946\921\7947\921\7948\921\7949\921\7950\921\7951\921\7944\921\7945\921\7946\921\7947\921\7948\921\7949\921\7950\921\7951\921\7976\921\7977\921\7978\921\7979\921\7980\921\7981\921\7982\921\7983\921\7976\921\7977\921\7978\921\7979\921\7980\921\7981\921\7982\921\7983\921\8040\921\8041\921\8042\921\8043\921\8044\921\8045\921\8046\921\8047\921\8040\921\8041\921\8042\921\8043\921\8044\921\8045\921\8046\921\8047\921\8122\921\913\921\902\921\913\834\913\834\921\913\921\8138\921\919\921\905\921\919\834\919\834\921\919\921\921\776\768\921\776\769\921\834\921\776\834\933\776\768\933\776\769\929\787\933\834\933\776\834\8186\921\937\921\911\921\937\834\937\834\921\937\921FFFIFLFFIFFLSTST\1348\1350\1348\1333\1348\1339\1358\1350\1348\1341"
+
+toUpperExceptions = "\223\329\496\912\944\1415\7830\7831\7832\7833\7834\8016\8018\8020\8022\8064\8065\8066\8067\8068\8069\8070\8071\8072\8073\8074\8075\8076\8077\8078\8079\8080\8081\8082\8083\8084\8085\8086\8087\8088\8089\8090\8091\8092\8093\8094\8095\8096\8097\8098\8099\8100\8101\8102\8103\8104\8105\8106\8107\8108\8109\8110\8111\8114\8115\8116\8118\8119\8124\8130\8131\8132\8134\8135\8140\8146\8147\8150\8151\8162\8163\8164\8166\8167\8178\8179\8180\8182\8183\8188\64256\64257\64258\64259\64260\64261\64262\64275\64276\64277\64278\64279"
+
 t_toTitle_title t = all (<= 1) (caps w)
     where caps = fmap (T.length . T.filter isUpper) . T.words . T.toTitle
           -- TIL: there exist uppercase-only letters
@@ -127,6 +144,11 @@ t_toTitle_1stNotLower = and . notLow . T.toTitle . T.filter stable . T.filter (n
           -- Georgian text does not have a concept of title case
           -- https://en.wikipedia.org/wiki/Georgian_Extended
           isGeorgian c = c >= '\4256' && c < '\4352'
+t_toTitle_char c = c `notElem` toTitleExceptions ==>
+    T.toTitle (T.singleton c) === T.singleton (C.toUpper c)
+t_toTitle_exceptions = T.unpack (T.concatMap (T.toTitle . T.singleton) (T.pack toTitleExceptions)) === "Ss\700NJ\780\921\776\769\933\776\769\1333\1410H\817T\776W\778Y\778A\702\933\787\933\787\768\933\787\769\933\787\834\8122\837\902\837\913\834\913\834\837\8138\837\905\837\919\834\919\834\837\921\776\768\921\776\769\921\834\921\776\834\933\776\768\933\776\769\929\787\933\834\933\776\834\8186\837\911\837\937\834\937\834\837FfFiFlFfiFflStSt\1348\1398\1348\1381\1348\1387\1358\1398\1348\1389"
+
+toTitleExceptions = "\223\329\496\912\944\1415\7830\7831\7832\7833\7834\8016\8018\8020\8022\8114\8116\8118\8119\8130\8132\8134\8135\8146\8147\8150\8151\8162\8163\8164\8166\8167\8178\8180\8182\8183\64256\64257\64258\64259\64260\64261\64262\64275\64276\64277\64278\64279"
 
 t_toUpper_idempotent t = T.toUpper (T.toUpper t) === T.toUpper t
 t_toLower_idempotent t = T.toLower (T.toLower t) === T.toLower t
@@ -328,18 +350,31 @@ testText =
         testProperty "sf_toCaseFold_length" sf_toCaseFold_length,
         testProperty "t_toCaseFold_length" t_toCaseFold_length,
         testProperty "tl_toCaseFold_length" tl_toCaseFold_length,
+        testProperty "t_toCaseFold_char" t_toCaseFold_char,
+        testProperty "t_toCaseFold_exceptions" t_toCaseFold_exceptions,
+
         testProperty "t_toLower_length" t_toLower_length,
         testProperty "t_toLower_lower" t_toLower_lower,
         testProperty "tl_toLower_lower" tl_toLower_lower,
+        testProperty "t_toLower_char" t_toLower_char,
+        testProperty "t_toLower_dotted_i" t_toLower_dotted_i,
+
         testProperty "t_toUpper_length" t_toUpper_length,
         testProperty "t_toUpper_upper" t_toUpper_upper,
         testProperty "tl_toUpper_upper" tl_toUpper_upper,
+        testProperty "t_toUpper_char" t_toUpper_char,
+        testProperty "t_toUpper_exceptions" t_toUpper_exceptions,
+
         testProperty "t_toTitle_title" t_toTitle_title,
         testProperty "t_toTitle_1stNotLower" t_toTitle_1stNotLower,
+        testProperty "t_toTitle_char" t_toTitle_char,
+        testProperty "t_toTitle_exceptions" t_toTitle_exceptions,
+
         testProperty "t_toUpper_idempotent" t_toUpper_idempotent,
         testProperty "t_toLower_idempotent" t_toLower_idempotent,
         testProperty "t_toTitle_idempotent" t_toTitle_idempotent,
         testProperty "t_toCaseFold_idempotent" t_toCaseFold_idempotent,
+
         testProperty "ascii_toLower" ascii_toLower,
         testProperty "ascii_toUpper" ascii_toUpper,
         testProperty "ascii_toTitle" ascii_toTitle,
