@@ -206,6 +206,33 @@ genInvalidUTF8 = B.pack <$> oneof [
     ord3_ n = map fromIntegral [(n `shiftR` 12) + 0xE0, ((n `shiftR` 6) .&. 0x3F) + 0x80, (n .&. 0x3F) + 0x80]
     ord4_ n = map fromIntegral [(n `shiftR` 18) + 0xF0, ((n `shiftR` 12) .&. 0x3F) + 0x80, ((n `shiftR` 6) .&. 0x3F) + 0x80, (n .&. 0x3F) + 0x80]
 
+t_prefix_decode_ascii_1 =
+  let g bs es is =
+        case es of
+          expected : es' -> whenEqProp (E.decodeAsciiPrefix bs) expected $
+            case expected of
+              (_, Just (_, bs')) -> g bs' es' is
+              _ -> f (is, es')
+          _ -> counterexample ("More input than expected: " ++ show is) False
+      f s = case s of
+        (input : is, es) -> g input es is
+        (_, es@(_ : _)) -> counterexample ("More expected output than input: " ++ show es) False
+        _ -> counterexample "" True
+  in
+  f ( [ B.pack [0x68, 0x69, 0x2c, 0x20, 0x83, 0x68, 0x65, 0x6c, 0x6c]
+      , B.pack [0x6f, 0x2c, 0x20, 0x94,
+            0x68, 0x6f, 0x77, 0x20, 0xcc,
+            0x61, 0x72, 0x65, 0x20, 0x79, 0x61, 0x3f]
+      ]
+    , [ ("hi, ", Just (0x83, B.pack [0x68, 0x65, 0x6c, 0x6c]))
+      , ("hell", Nothing)
+      , ("o, ", Just (0x94, B.pack [0x68, 0x6f, 0x77, 0x20, 0xcc,
+              0x61, 0x72, 0x65, 0x20, 0x79, 0x61, 0x3f]))
+      , ("how ", Just (0xcc, B.pack [0x61, 0x72, 0x65, 0x20, 0x79, 0x61, 0x3f]))
+      , ("are ya?", Nothing)
+      ]
+    )
+
 -- test multi-word code points split across bytestring chunks
 chunksTests decodeF insExpectedOuts =
   f mempty insExpectedOuts
@@ -216,24 +243,6 @@ chunksTests decodeF insExpectedOuts =
           case expected of
             E.DecodeResult _ _ bs' _ -> f bs' s'
         _ -> counterexample "" True
-
-t_chunk_decode_ascii_1 = chunksTests E.decodeAsciiChunks
-  [ ( B.pack [0x68, 0x69, 0x2c, 0x20, 0x83, 0x68, 0x65, 0x6c, 0x6c]
-    , E.DecodeResult "hi, " (Just 0x83) (B.pack [0x68, 0x65, 0x6c, 0x6c]) 5
-    )
-  , ( B.pack [0x6f, 0x2c, 0x20, 0x94,
-        0x68, 0x6f, 0x77, 0x20, 0xcc,
-        0x61, 0x72, 0x65, 0x20, 0x79, 0x61, 0x3f]
-    , E.DecodeResult "hello, " (Just 0x94) (B.pack [0x68, 0x6f, 0x77, 0x20, 0xcc,
-          0x61, 0x72, 0x65, 0x20, 0x79, 0x61, 0x3f]) 8
-    )
-  , ( mempty
-    , E.DecodeResult "how " (Just 0xcc) (B.pack [0x61, 0x72, 0x65, 0x20, 0x79, 0x61, 0x3f]) 5
-    )
-  , ( mempty
-    , E.DecodeResult "are ya?" Nothing mempty 7
-    )
-  ]
 
 t_chunk_decode_utf8_1 = chunksTests E.decodeUtf8Chunks
   [ ( B.pack [0x68, 0x69, 0x2C, 0x20, 0xC4, 0x89, 0x2C, 0x20,
@@ -411,7 +420,7 @@ testTranscoding =
       testProperty "t_chunk_decode_utf8_2" t_chunk_decode_utf8_2,
       testProperty "t_chunk_decode_utf8_3" t_chunk_decode_utf8_3,
       testProperty "t_chunk_decode_utf8_4" t_chunk_decode_utf8_4,
-      testProperty "t_chunk_decode_ascii_1" t_chunk_decode_ascii_1,
+      testProperty "t_prefix_decode_ascii_1" t_prefix_decode_ascii_1,
       testProperty "t_chunk_decode_utf16BE" t_chunk_decode_utf16BE,
       testProperty "t_chunk_decode_utf16LE" t_chunk_decode_utf16LE,
       testProperty "t_chunk_decode_utf32BE" t_chunk_decode_utf32BE,

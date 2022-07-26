@@ -34,7 +34,7 @@ module Data.Text.Internal.Encoding.Utf8
     , validate3
     , validate4
     -- * Naive decoding
-    , DecoderResult(..)
+    , DetectUtf8Result(..)
     , DecoderState(..)
     , CodePoint(..)
     , utf8DecodeStart
@@ -46,7 +46,7 @@ import Control.Exception (assert)
 import GHC.Stack (HasCallStack)
 #endif
 import Data.Bits (Bits(..), FiniteBits(..))
-import Data.Char (ord, chr)
+import Data.Char (ord)
 import GHC.Exts
 import GHC.Word (Word8(..))
 
@@ -264,29 +264,27 @@ updateState (ByteClass c) (DecoderState s) = DecoderState (W8# el#)
 newtype CodePoint = CodePoint Int
 
 -- | @since 2.0
-data DecoderResult
-  = Accept !Char
-  | Incomplete !DecoderState !CodePoint
+data DetectUtf8Result
+  = Accept
+  | Incomplete !DecoderState
   | Reject
 
 -- | @since 2.0
-utf8DecodeStart :: Word8 -> DecoderResult
+utf8DecodeStart :: Word8 -> DetectUtf8Result
 utf8DecodeStart !w
-  | st == utf8AcceptState = Accept (chr (word8ToInt w))
+  | st == utf8AcceptState = Accept
   | st == utf8RejectState = Reject
-  | otherwise             = Incomplete st (CodePoint cp)
+  | otherwise             = Incomplete st
   where
-    cl@(ByteClass cl') = byteToClass w
+    cl = byteToClass w
     st = updateState cl utf8AcceptState
-    cp = word8ToInt $ (0xff `unsafeShiftR` word8ToInt cl') .&. w
 
 -- | @since 2.0
-utf8DecodeContinue :: Word8 -> DecoderState -> CodePoint -> DecoderResult
-utf8DecodeContinue !w !st (CodePoint !cp)
-  | st' == utf8AcceptState = Accept (chr cp')
+utf8DecodeContinue :: Word8 -> DecoderState -> DetectUtf8Result
+utf8DecodeContinue !w !st
+  | st' == utf8AcceptState = Accept
   | st' == utf8RejectState = Reject
-  | otherwise              = Incomplete st' (CodePoint cp')
+  | otherwise              = Incomplete st'
   where
     cl  = byteToClass w
     st' = updateState cl st
-    cp' = (cp `shiftL` 6) .|. word8ToInt (w .&. 0x3f)

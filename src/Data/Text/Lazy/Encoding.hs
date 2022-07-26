@@ -23,8 +23,8 @@ module Data.Text.Lazy.Encoding
     -- ** Total Functions #total#
     -- $total
       decodeLatin1
+    , decodeAsciiPrefix
     , DecodeResult(..)
-    , decodeAsciiChunks
     , decodeUtf8Chunks
     , decodeUtf16Chunks
     , decodeUtf32Chunks
@@ -100,14 +100,34 @@ import Data.Text.Unsafe (unsafeDupablePerformIO)
 -- (preferably not at all). See "Data.Text.Lazy.Encoding#g:total" for better
 -- solutions.
 
--- | Decode a 'ByteString' containing 7-bit ASCII
+-- | Decode a 'B.ByteString' containing 7-bit ASCII
 -- encoded text.
 decodeASCII :: B.ByteString -> Text
 decodeASCII = foldr (chunk . TE.decodeASCII) empty . B.toChunks
 
--- | Decode a 'ByteString' containing Latin-1 (aka ISO-8859-1) encoded text.
+-- | Decode a 'B.ByteString' containing Latin-1 (aka ISO-8859-1) encoded text.
 decodeLatin1 :: B.ByteString -> Text
 decodeLatin1 = foldr (chunk . TE.decodeLatin1) empty . B.toChunks
+
+-- | Decode a 'B.ByteString' containing ASCII.
+--
+-- This is a total function. The 'B.ByteString' is decoded until either
+-- the end is reached or it errors with the first non-ASCII 'Word8' is
+-- encountered. In either case the function will return what 'Text' was
+-- decoded. On error, the non-ASCII 'Word8' is also returned followed
+-- by the rest of the undecoded 'B.ByteString'.
+--
+-- @since 2.0.2
+decodeAsciiPrefix
+  :: B.ByteString
+  -> (Text, Maybe (Word8, B.ByteString))
+decodeAsciiPrefix = g id
+  where
+    g tDiff (B.Chunk sb lb) =
+      case TE.decodeAsciiPrefix sb of
+        (t, Nothing) -> g (tDiff . chunk t) lb
+        (t, Just (w, sb')) -> (tDiff $ chunk t Empty, Just (w, B.chunk sb' lb))
+    g tDiff _ = (tDiff Empty, Nothing)
 
 decodeChunks :: (S.ByteString -> S.ByteString -> DecodeResult T.Text S.ByteString w)
   -> B.ByteString
@@ -125,22 +145,12 @@ decodeChunks decoder = g id 0 mempty
     g tDiff pos sb0 _ (B.Chunk sb1 lb1) = g tDiff pos sb0 (B.Chunk sb1 lb1) mempty
     g tDiff pos sb0 _ _ = DecodeResult (tDiff Empty) Nothing (B.chunk sb0 mempty) pos
 
--- | Decode two 'ByteString's containing ASCII as though they were one
--- continuous 'ByteString' returning a 'DecodeResult'.
---
--- @since 2.0.2
-decodeAsciiChunks
-  :: B.ByteString -- ^ The first 'B.ByteString' chunk to decode. Typically this is the unencoded data from the previous call of this function.
-  -> B.ByteString -- ^ The second 'B.ByteString' chunk to decode.
-  -> DecodeResult Text B.ByteString Word8
-decodeAsciiChunks = decodeChunks TE.decodeAsciiChunks
-
 -- | Decode two 'B.ByteString's containing UTF-8-encoded text as though
 -- they were one continuous 'B.ByteString' returning a 'DecodeResult'.
 --
 -- @since 2.0.2
 decodeUtf8Chunks
-  :: B.ByteString -- ^ The first 'B.ByteString' chunk to decode. Typically this is the unencoded data from the previous call of this function.
+  :: B.ByteString -- ^ The first 'B.ByteString' chunk to decode. Typically this is the undecoded data from the previous call of this function.
   -> B.ByteString -- ^ The second 'B.ByteString' chunk to decode.
   -> DecodeResult Text B.ByteString Word8
 decodeUtf8Chunks = decodeChunks TE.decodeUtf8Chunks
@@ -151,7 +161,7 @@ decodeUtf8Chunks = decodeChunks TE.decodeUtf8Chunks
 -- @since 2.0.2
 decodeUtf16Chunks
   :: Bool         -- ^ Indicates whether the encoding is big-endian ('True') or little-endian ('False')
-  -> B.ByteString -- ^ The first 'B.ByteString' chunk to decode. Typically this is the unencoded data from the previous call of this function.
+  -> B.ByteString -- ^ The first 'B.ByteString' chunk to decode. Typically this is the undecoded data from the previous call of this function.
   -> B.ByteString -- ^ The second 'B.ByteString' chunk to decode.
   -> DecodeResult Text B.ByteString Word16
 decodeUtf16Chunks = decodeChunks . TE.decodeUtf16Chunks
@@ -162,12 +172,12 @@ decodeUtf16Chunks = decodeChunks . TE.decodeUtf16Chunks
 -- @since 2.0.2
 decodeUtf32Chunks
   :: Bool         -- ^ Indicates whether the encoding is big-endian ('True') or little-endian ('False')
-  -> B.ByteString -- ^ The first 'B.ByteString' chunk to decode. Typically this is the unencoded data from the previous call of this function.
+  -> B.ByteString -- ^ The first 'B.ByteString' chunk to decode. Typically this is the undecoded data from the previous call of this function.
   -> B.ByteString -- ^ The second 'B.ByteString' chunk to decode.
   -> DecodeResult Text B.ByteString Word32
 decodeUtf32Chunks = decodeChunks . TE.decodeUtf32Chunks
 
--- | Decode a 'ByteString' containing UTF-8 encoded text.
+-- | Decode a 'B.ByteString' containing UTF-8 encoded text.
 decodeUtf8With :: OnDecodeError -> B.ByteString -> Text
 decodeUtf8With onErr (B.Chunk b0 bs0) =
     case TE.streamDecodeUtf8With onErr b0 of
@@ -188,7 +198,7 @@ decodeUtf8With onErr (B.Chunk b0 bs0) =
     desc = "Data.Text.Lazy.Encoding.decodeUtf8With: Invalid UTF-8 stream"
 decodeUtf8With _ _ = empty
 
--- | Decode a 'ByteString' containing UTF-8 encoded text that is known
+-- | Decode a 'B.ByteString' containing UTF-8 encoded text that is known
 -- to be valid.
 --
 -- If the input contains any invalid UTF-8 data, an exception will be
@@ -199,7 +209,7 @@ decodeUtf8 :: B.ByteString -> Text
 decodeUtf8 = decodeUtf8With strictDecode
 {-# INLINE[0] decodeUtf8 #-}
 
--- | Decode a 'ByteString' containing UTF-8 encoded text..
+-- | Decode a 'B.ByteString' containing UTF-8 encoded text..
 --
 -- If the input contains any invalid UTF-8 data, the relevant
 -- exception will be returned, otherwise the decoded text.
