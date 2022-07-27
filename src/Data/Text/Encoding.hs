@@ -98,7 +98,7 @@ import qualified Data.ByteString.Builder as B
 import qualified Data.ByteString.Builder.Internal as B hiding (empty, append)
 import qualified Data.ByteString.Builder.Prim as BP
 import qualified Data.ByteString.Builder.Prim.Internal as BP
-import Data.Text.Internal.Encoding.Utf8 (utf8DecodeStart, utf8DecodeContinue, DetectUtf8Result(..))
+import Data.Text.Internal.Encoding.Utf8 (utf8DetectStart, utf8DetectContinue, DetectUtf8Result(..))
 import Data.Text.Internal.Encoding.Utf16 (Utf16Result(..), queryUtf16Bytes)
 import Data.Text.Internal.Encoding.Utf32 (queryUtf32Bytes)
 import qualified Data.Text.Array as A
@@ -161,24 +161,22 @@ decodeLatin1 ::
   ByteString -> Text
 decodeLatin1 bs = withBS bs $ \fp len -> runST $ do
   dst <- A.new (2 * len)
-  let inner srcOff dstOff = if srcOff >= len then return dstOff else do
-        asciiPrefixLen <- fmap fromIntegral . unsafeIOToST . unsafeWithForeignPtr fp $ \src ->
-          c_is_ascii (src `plusPtr` srcOff) (src `plusPtr` len)
-        if asciiPrefixLen == 0
-        then do
-          byte <- unsafeIOToST $ unsafeWithForeignPtr fp $ \src -> peekByteOff src srcOff
-          A.unsafeWrite dst dstOff (0xC0 + (byte `shiftR` 6))
-          A.unsafeWrite dst (dstOff + 1) (0x80 + (byte .&. 0x3F))
-          inner (srcOff + 1) (dstOff + 2)
-        else do
-          unsafeIOToST $ unsafeWithForeignPtr fp $ \src ->
-            unsafeSTToIO $ A.copyFromPointer dst dstOff (src `plusPtr` srcOff) asciiPrefixLen
-          inner (srcOff + asciiPrefixLen) (dstOff + asciiPrefixLen)
-
-  actualLen <- inner 0 0
-  dst' <- A.resizeM dst actualLen
-  arr <- A.unsafeFreeze dst'
-  return $ Text arr 0 actualLen
+  unsafeIOToST . unsafeWithForeignPtr fp $ \ src -> do
+    let inner srcOff dstOff = if srcOff >= len then pure dstOff else do
+          let src' = src `plusPtr` srcOff
+          asciiPrefixLen <- fmap fromIntegral . c_is_ascii src' $ src `plusPtr` len
+          if asciiPrefixLen == 0
+          then do
+            byte <- peekByteOff src srcOff
+            unsafeSTToIO $ A.unsafeWrite dst dstOff (0xC0 + (byte `shiftR` 6)) *>
+              A.unsafeWrite dst (dstOff + 1) (0x80 + (byte .&. 0x3F))
+            inner (srcOff + 1) (dstOff + 2)
+          else do
+            unsafeSTToIO $ A.copyFromPointer dst dstOff src' asciiPrefixLen
+            inner (srcOff + asciiPrefixLen) (dstOff + asciiPrefixLen)
+    actualLen <- inner 0 0
+    arr <- unsafeSTToIO $ A.resizeM dst actualLen >>= A.unsafeFreeze
+    pure $ Text arr 0 actualLen
 
 foreign import ccall unsafe "_hs_text_is_ascii" c_is_ascii
     :: Ptr Word8 -> Ptr Word8 -> IO CSize
@@ -229,13 +227,13 @@ decodeUtf8Chunks bs1@(B.length -> len1) bs2@(B.length -> len2) =
           step i _ Reject = (Reject, i)
           step i i' (Incomplete a) =
             if i' < len
-              then step i (i' + 1) $ utf8DecodeContinue (index i') a
+              then step i (i' + 1) $ utf8DetectContinue (index i') a
               else (Incomplete a, i)
           step _ i' st@_ =
             if i' < len
-              then step i' (i' + 1) . utf8DecodeStart $ index i'
+              then step i' (i' + 1) . utf8DetectStart $ index i'
               else (st, i')
-          (st', t) = case step 0 1 . utf8DecodeStart $ index 0 of
+          (st', t) = case step 0 1 . utf8DetectStart $ index 0 of
             (st, count) ->
               (st, ) $ if count > 0
                 then runST $ do

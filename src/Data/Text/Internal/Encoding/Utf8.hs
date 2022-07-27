@@ -35,10 +35,10 @@ module Data.Text.Internal.Encoding.Utf8
     , validate4
     -- * Naive decoding
     , DetectUtf8Result(..)
-    , DecoderState(..)
+    , DetectState(..)
     , CodePoint(..)
-    , utf8DecodeStart
-    , utf8DecodeContinue
+    , utf8DetectStart
+    , utf8DetectContinue
     ) where
 
 #if defined(ASSERTS)
@@ -243,17 +243,17 @@ byteToClass n = ByteClass (W8# el#)
     table# :: Addr#
     table# = "\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\SOH\SOH\SOH\SOH\SOH\SOH\SOH\SOH\SOH\SOH\SOH\SOH\SOH\SOH\SOH\SOH\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\b\b\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\n\ETX\ETX\ETX\ETX\ETX\ETX\ETX\ETX\ETX\ETX\ETX\ETX\EOT\ETX\ETX\v\ACK\ACK\ACK\ENQ\b\b\b\b\b\b\b\b\b\b\b"#
 
-newtype DecoderState = DecoderState Word8
+newtype DetectState = DetectState Word8
   deriving (Eq)
 
-utf8AcceptState :: DecoderState
-utf8AcceptState = DecoderState 0
+utf8AcceptState :: DetectState
+utf8AcceptState = DetectState 0
 
-utf8RejectState :: DecoderState
-utf8RejectState = DecoderState 12
+utf8RejectState :: DetectState
+utf8RejectState = DetectState 12
 
-updateState :: ByteClass -> DecoderState -> DecoderState
-updateState (ByteClass c) (DecoderState s) = DecoderState (W8# el#)
+updateState :: ByteClass -> DetectState -> DetectState
+updateState (ByteClass c) (DetectState s) = DetectState (W8# el#)
   where
     !(I# n#) = word8ToInt (c + s)
     el# = indexWord8OffAddr# table# n#
@@ -266,12 +266,12 @@ newtype CodePoint = CodePoint Int
 -- | @since 2.0
 data DetectUtf8Result
   = Accept
-  | Incomplete !DecoderState
+  | Incomplete !DetectState
   | Reject
 
 -- | @since 2.0
-utf8DecodeStart :: Word8 -> DetectUtf8Result
-utf8DecodeStart !w
+utf8DetectStart :: Word8 -> DetectUtf8Result
+utf8DetectStart !w
   | st == utf8AcceptState = Accept
   | st == utf8RejectState = Reject
   | otherwise             = Incomplete st
@@ -280,8 +280,8 @@ utf8DecodeStart !w
     st = updateState cl utf8AcceptState
 
 -- | @since 2.0
-utf8DecodeContinue :: Word8 -> DecoderState -> DetectUtf8Result
-utf8DecodeContinue !w !st
+utf8DetectContinue :: Word8 -> DetectState -> DetectUtf8Result
+utf8DetectContinue !w !st
   | st' == utf8AcceptState = Accept
   | st' == utf8RejectState = Reject
   | otherwise              = Incomplete st'
