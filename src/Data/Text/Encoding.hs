@@ -219,44 +219,42 @@ decodeUtf8Chunks
 decodeUtf8Chunks bs1@(B.length -> len1) bs2@(B.length -> len2) =
   let len = len1 + len2 in
   if len == 0
-    then DecodeResult empty Nothing bs1 0
-    else
-      let index i
-            | i < len1  = B.index bs1 i
-            | otherwise = B.index bs2 $ i - len1
-          step i _ Reject = (Reject, i)
-          step i i' (Incomplete a) =
-            if i' < len
-              then step i (i' + 1) $ utf8DetectContinue (index i') a
-              else (Incomplete a, i)
-          step _ i' st@_ =
-            if i' < len
-              then step i' (i' + 1) . utf8DetectStart $ index i'
-              else (st, i')
-          (st', t) = case step 0 1 . utf8DetectStart $ index 0 of
-            (st, count) ->
-              (st, ) $ if count > 0
-                then runST $ do
-                  dst <- A.new count
-                  let crossesBSBoundary = count > len1
-                      copyBSRange bs count' dst' dstOff' = withBS bs $ \ fp _ ->
-                        unsafeIOToST . unsafeWithForeignPtr fp $ \ src ->
-                          unsafeSTToIO $ A.copyFromPointer dst' dstOff' src count'
-                  copyBSRange bs1 (if crossesBSBoundary then len1 else count) dst 0
-                  when crossesBSBoundary $ copyBSRange bs2 (count - len1) dst len1
-                  arr <- A.unsafeFreeze dst
-                  pure $ Text arr 0 count
-                else empty
-          decodeResult off mErr = DecodeResult t mErr (if off >= len1
-              then B.drop (off - len1) bs2
-              else B.drop off bs1 `B.append` bs2) off
-          tLen = case t of Text _ _ len' -> len'
-      in
-      case st' of
-        Reject ->
-          let tLen' = tLen + 1 in
-          decodeResult tLen' . Just $ index tLen
-        _ -> decodeResult tLen Nothing
+  then DecodeResult empty Nothing bs1 0
+  else
+    let index i
+          | i < len1  = B.index bs1 i
+          | otherwise = B.index bs2 $ i - len1
+        step i _ Reject = (Reject, i)
+        step i i' (Incomplete a)
+          | i' < len = step i (i' + 1) $ utf8DetectContinue (index i') a
+          | otherwise = (Incomplete a, i)
+        step _ i' _
+          | i' < len = step i' (i' + 1) . utf8DetectStart $ index i'
+          | otherwise = (Accept, i')
+        (st', t) = case step 0 1 . utf8DetectStart $ index 0 of
+          (st, count) ->
+            (st, ) $ if count > 0
+              then runST $ do
+                dst <- A.new count
+                let crossesBSBoundary = count > len1
+                    copyBSRange bs count' dst' dstOff' = withBS bs $ \ fp _ ->
+                      unsafeIOToST . unsafeWithForeignPtr fp $ \ src ->
+                        unsafeSTToIO $ A.copyFromPointer dst' dstOff' src count'
+                copyBSRange bs1 (if crossesBSBoundary then len1 else count) dst 0
+                when crossesBSBoundary $ copyBSRange bs2 (count - len1) dst len1
+                arr <- A.unsafeFreeze dst
+                pure $ Text arr 0 count
+              else empty
+        decodeResult off mErr = DecodeResult t mErr (if off >= len1
+            then B.drop (off - len1) bs2
+            else B.drop off bs1 `B.append` bs2) off
+        tLen = case t of Text _ _ len' -> len'
+    in
+    case st' of
+      Reject ->
+        let tLen' = tLen + 1 in
+        decodeResult tLen' . Just $ index tLen
+      _ -> decodeResult tLen Nothing
 
 data Progression
   = WriteAndAdvance Char Int
@@ -295,24 +293,24 @@ decodeChunks w transcodeF bs1@(B.length -> len1) bs2@(B.length -> len2) = runST 
           | srcOff < len
           , len >= srcOff + wordByteSize =
             if dstOff + 4 > dstLen
-              -- need more space in destination
-              then do
-                let dstLen' = dstLen + 4
-                dst' <- A.resizeM dst dstLen'
-                outer dst' dstLen' srcOff dstOff
-              else
-                case transcodeF index len srcOff of
-                  WriteAndAdvance c srcOff' -> do
-                    d <- unsafeWrite dst dstOff c
-                    inner srcOff' $ dstOff + d
-                  NeedMore -> goodSoFar
-                  Invalid ->
-                    let srcOff' = srcOff + wordByteSize
-                        bytesToWord n word
-                          | n > 0 = bytesToWord (n - 1) $ (fromIntegral . index $ srcOff + wordByteSize - n) .|. (word `shiftL` 8)
-                          | otherwise = word
-                    in
-                    wrapUp srcOff' . Just $ bytesToWord wordByteSize 0
+            -- need more space in destination
+            then do
+              let dstLen' = dstLen + 4
+              dst' <- A.resizeM dst dstLen'
+              outer dst' dstLen' srcOff dstOff
+            else
+              case transcodeF index len srcOff of
+                WriteAndAdvance c srcOff' -> do
+                  d <- unsafeWrite dst dstOff c
+                  inner srcOff' $ dstOff + d
+                NeedMore -> goodSoFar
+                Invalid ->
+                  let srcOff' = srcOff + wordByteSize
+                      bytesToWord n word
+                        | n > 0 = bytesToWord (n - 1) $ (fromIntegral . index $ srcOff + wordByteSize - n) .|. (word `shiftL` 8)
+                        | otherwise = word
+                  in
+                  wrapUp srcOff' . Just $ bytesToWord wordByteSize 0
           -- finished (for now)
           | otherwise = goodSoFar
           where
@@ -354,15 +352,15 @@ decodeUtf16Chunks isBE bs1 bs2 = decodeChunksProxy (\ index len srcOff ->
     OneWord16 c -> writeAndAdvance c 2
     TwoWord16 g ->
       if len - srcOff < 4
-        -- not enough Word8s to finish the code point
-        then NeedMore
-        else
-          let b2 = index $ srcOff + (if isBE then 2 else 3)
-              b3 = index $ srcOff + (if isBE then 3 else 2)
-          in
-          case g b2 b3 of
-            Just c -> writeAndAdvance c 4
-            _ -> Invalid
+      -- not enough Word8s to finish the code point
+      then NeedMore
+      else
+        let b2 = index $ srcOff + (if isBE then 2 else 3)
+            b3 = index $ srcOff + (if isBE then 3 else 2)
+        in
+        case g b2 b3 of
+          Just c -> writeAndAdvance c 4
+          _ -> Invalid
     _ -> Invalid) bs1 bs2
 
 -- | Decode two 'ByteString's containing UTF-16-encoded text as though
@@ -497,15 +495,15 @@ streamDecodeUtf8With ::
 streamDecodeUtf8With onErr = g empty mempty
   where
     g t bs0 bs1 =
-      let DecodeResult t' mW bs1' _ = decodeUtf8Chunks bs0 bs1
-          txt = t `append` t'
-      in
-      (case (mW :: Maybe Word8) of
-        Just _ ->
-          g (case onErr "" mW of
-            Just c -> txt `append` T.singleton c
-            _ -> txt) mempty
-        _ -> Some txt bs1' . g empty) bs1'
+      case decodeUtf8Chunks bs0 bs1 of
+        DecodeResult t' mW bs1' _ ->
+          case t `append` t' of
+            txt -> (case mW of
+              Just _ ->
+                g (case onErr "Data.Text.Internal.Encoding: Invalid UTF-8 stream" mW of
+                  Just c -> txt `append` T.singleton c
+                  _ -> txt) mempty
+              _ -> Some txt bs1' . g empty) bs1'
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text that is known
 -- to be valid.
