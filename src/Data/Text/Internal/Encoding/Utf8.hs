@@ -36,7 +36,6 @@ module Data.Text.Internal.Encoding.Utf8
     -- * Naive decoding
     , DetectUtf8Result(..)
     , DetectState(..)
-    , CodePoint(..)
     , utf8DetectStart
     , utf8DetectContinue
     ) where
@@ -260,8 +259,6 @@ updateState (ByteClass c) (DetectState s) = DetectState (W8# el#)
 
     table# :: Addr#
     table# = "\NUL\f\CAN$<`T\f\f\f0H\f\f\f\f\f\f\f\f\f\f\f\f\f\NUL\f\f\f\f\f\NUL\f\NUL\f\f\f\CAN\f\f\f\f\f\CAN\f\CAN\f\f\f\f\f\f\f\f\f\CAN\f\f\f\f\f\CAN\f\f\f\f\f\f\f\CAN\f\f\f\f\f\f\f\f\f$\f$\f\f\f$\f\f\f\f\f$\f$\f\f\f$\f\f\f\f\f\f\f\f\f\f"#
-
-newtype CodePoint = CodePoint Int
 
 -- | @since 2.0
 data DetectUtf8Result
