@@ -110,6 +110,12 @@ import Numeric (showHex)
 import GHC.Stack (HasCallStack)
 #endif
 
+#ifdef SIMDUTF
+import Foreign.C.Types (CInt(..))
+#elif !MIN_VERSION_bytestring(0,11,2)
+import qualified Data.ByteString.Unsafe as B
+#endif
+
 -- $strict
 --
 -- All of the single-parameter functions for decoding bytestrings
@@ -208,53 +214,120 @@ decodeAsciiPrefix bs = if B.null bs
             arr <- A.unsafeFreeze dst
             pure $ Text arr 0 asciiPrefixLen
 
+#ifdef SIMDUTF
+foreign import ccall unsafe "_hs_text_is_valid_utf8" c_is_valid_utf8
+    :: Ptr Word8 -> CSize -> IO CInt
+#endif
+
 -- | Decode two 'ByteString's containing UTF-8-encoded text as though
 -- they were one continuous 'ByteString' returning a 'DecodeResult'.
 --
 -- @since 2.0.2
-decodeUtf8Chunks
-  :: ByteString -- ^ The first 'ByteString' chunk to decode. Typically this is the undecoded data from the previous call of this function.
+decodeUtf8Chunks ::
+#if defined(ASSERTS)
+  HasCallStack =>
+#endif
+     ByteString -- ^ The first 'ByteString' chunk to decode. Typically this is the undecoded data from the previous call of this function.
   -> ByteString -- ^ The second 'ByteString' chunk to decode.
   -> DecodeResult Text ByteString Word8
 decodeUtf8Chunks bs1@(B.length -> len1) bs2@(B.length -> len2) =
-  let len = len1 + len2 in
-  if len == 0
-  then DecodeResult empty Nothing bs1 0
+  let len = len1 + len2
+      index i
+        | i < len1  = B.index bs1 i
+        | otherwise = B.index bs2 $ i - len1
+      guessUtf8Boundary len'
+        | wi 3 0xf0 = len' - 3  -- third to last char starts a four-byte code point
+        | wi 2 0xe0 = len' - 2  -- pre-last char starts a three-or-four-byte code point
+        | wi 1 0xc0 = len' - 1  -- last char starts a two-(or more-)byte code point
+        | wc 4 0xf8 0xf0 ||     -- last four bytes are a four-byte code point
+          wc 3 0xf0 0xe0 ||     -- last three bytes are a three-byte code point
+          wc 2 0xe0 0xc0 ||     -- last two bytes are a two-byte code point
+          w 1 (< 0x80) = len'   -- last char is ASCII
+        | otherwise = 0
+        where
+          w n test = len' >= n && test (index $ len' - n)
+          wc n mask word8 = w n $ (word8 ==) . (mask .&.)
+          wi n word8 = w n (>= word8)
+      bs1Utf8Boundary = guessUtf8Boundary len1
+      bs2Utf8Boundary = guessUtf8Boundary len
+      isValidBS :: Int -> Int -> ByteString -> Bool
+#ifdef SIMDUTF
+      isValidBS off bLen bs = withBS bs $ \ fp _ -> unsafeDupablePerformIO $
+        unsafeWithForeignPtr fp $ \ptr -> (/= 0) <$> c_is_valid_utf8 (ptr `plusPtr` off) (fromIntegral bLen)
+#else
+#if MIN_VERSION_bytestring(0,11,2)
+      isValidBS off bLen = B.isValidUtf8 . B.take bLen . B.drop off
+#else
+      isValidBS off bLen bs = start off
+        where
+          start ix
+            | ix >= off + bLen = True
+            | otherwise = case utf8DetectStart (B.unsafeIndex bs ix) of
+              Accept -> start (ix + 1)
+              Reject -> False
+              Incomplete st -> step (ix + 1) st
+          step ix st
+            | ix >= off + bLen = False
+            | otherwise = case utf8DetectContinue (B.unsafeIndex bs ix) st of
+              Accept -> start (ix + 1)
+              Reject -> False
+              Incomplete st' -> step (ix + 1) st'
+#endif
+#endif
+      bsToText bs count dst dstOff =
+        when (count > 0) . withBS bs $ \ fp _ ->
+          unsafeIOToST . unsafeWithForeignPtr fp $ \ src ->
+            unsafeSTToIO $ A.copyFromPointer dst dstOff src count
+      chunksToText utf8Len
+        | utf8Len > 0 = runST $ do
+          dst <- A.new utf8Len
+          let crossesBsBoundary = utf8Len > len1
+          bsToText bs1 (if crossesBsBoundary then len1 else utf8Len) dst 0
+          when crossesBsBoundary $ bsToText bs2 (utf8Len - len1) dst len1
+          arr <- A.unsafeFreeze dst
+          pure $ Text arr 0 utf8Len
+        | otherwise = empty
+      decodeResult isErr off =
+        let off' = if isErr then off + 1 else off in
+        DecodeResult
+          (chunksToText off)
+          (if isErr then Just $ index off else Nothing)
+          (if off' < len1
+            then B.drop off' bs1 `B.append` bs2
+            else B.drop (off' - len1) bs2)
+          off'
+      countValidUtf8 i _ Reject = decodeResult True i
+      countValidUtf8 i i' (Incomplete a)
+        | i' < len = countValidUtf8 i (i' + 1) $ utf8DetectContinue (index i') a
+        | otherwise = decodeResult False i
+      countValidUtf8 _ i' _
+        | i' < len = countValidUtf8 i' (i' + 1) . utf8DetectStart $ index i'
+        | otherwise = decodeResult False i'
+      wrapUpBs1 off = countValidUtf8 off off Accept
+      wrapUpBs2 off =
+        wrapUpBs1 $ if bs2Utf8Boundary > off && isValidBS (off - len1) (bs2Utf8Boundary - off) bs2
+          then bs2Utf8Boundary
+          else off
+  in
+  if bs1Utf8Boundary > 0
+  then
+    if isValidBS 0 bs1Utf8Boundary bs1
+    then
+      if bs1Utf8Boundary < len1
+      then
+        let checkCodePointAccrossBoundary Reject _ = decodeResult True bs1Utf8Boundary
+            checkCodePointAccrossBoundary (Incomplete a) off = if off < len
+              then checkCodePointAccrossBoundary (utf8DetectContinue (index off) a) $ off + 1
+              else decodeResult False bs1Utf8Boundary
+            checkCodePointAccrossBoundary Accept off = wrapUpBs2 off
+        in
+        checkCodePointAccrossBoundary (utf8DetectStart $ index bs1Utf8Boundary) $ bs1Utf8Boundary + 1
+      else wrapUpBs2 len1
+    else wrapUpBs1 0
   else
-    let index i
-          | i < len1  = B.index bs1 i
-          | otherwise = B.index bs2 $ i - len1
-        step i _ Reject = (Reject, i)
-        step i i' (Incomplete a)
-          | i' < len = step i (i' + 1) $ utf8DetectContinue (index i') a
-          | otherwise = (Incomplete a, i)
-        step _ i' _
-          | i' < len = step i' (i' + 1) . utf8DetectStart $ index i'
-          | otherwise = (Accept, i')
-        (st', t) = case step 0 1 . utf8DetectStart $ index 0 of
-          (st, count) ->
-            (st, ) $ if count > 0
-              then runST $ do
-                dst <- A.new count
-                let crossesBSBoundary = count > len1
-                    copyBSRange bs count' dst' dstOff' = withBS bs $ \ fp _ ->
-                      unsafeIOToST . unsafeWithForeignPtr fp $ \ src ->
-                        unsafeSTToIO $ A.copyFromPointer dst' dstOff' src count'
-                copyBSRange bs1 (if crossesBSBoundary then len1 else count) dst 0
-                when crossesBSBoundary $ copyBSRange bs2 (count - len1) dst len1
-                arr <- A.unsafeFreeze dst
-                pure $ Text arr 0 count
-              else empty
-        decodeResult off mErr = DecodeResult t mErr (if off >= len1
-            then B.drop (off - len1) bs2
-            else B.drop off bs1 `B.append` bs2) off
-        tLen = case t of Text _ _ len' -> len'
-    in
-    case st' of
-      Reject ->
-        let tLen' = tLen + 1 in
-        decodeResult tLen' . Just $ index tLen
-      _ -> decodeResult tLen Nothing
+    (if len1 > 0
+    then wrapUpBs1
+    else wrapUpBs2) 0
 
 data Progression
   = WriteAndAdvance Char Int
