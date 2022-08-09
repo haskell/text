@@ -236,14 +236,14 @@ decodeUtf8Chunks bs1@(B.length -> len1) bs2@(B.length -> len2) =
         | i < len1  = B.index bs1 i
         | otherwise = B.index bs2 $ i - len1
       guessUtf8Boundary len'
-        | wi 3 0xf0 = len' - 3  -- third to last char starts a four-byte code point
-        | wi 2 0xe0 = len' - 2  -- pre-last char starts a three-or-four-byte code point
-        | wi 1 0xc0 = len' - 1  -- last char starts a two-(or more-)byte code point
-        | wc 4 0xf8 0xf0 ||     -- last four bytes are a four-byte code point
-          wc 3 0xf0 0xe0 ||     -- last three bytes are a three-byte code point
-          wc 2 0xe0 0xc0 ||     -- last two bytes are a two-byte code point
-          w 1 (< 0x80) = len'   -- last char is ASCII
-        | otherwise = 0
+        | wi 3 0xf0 = Just $ len' - 3 -- third to last char starts a four-byte code point
+        | wi 2 0xe0 = Just $ len' - 2 -- pre-last char starts a three-or-four-byte code point
+        | wi 1 0xc0 = Just $ len' - 1 -- last char starts a two-(or more-)byte code point
+        | wc 4 0xf8 0xf0 ||           -- last four bytes are a four-byte code point
+          wc 3 0xf0 0xe0 ||           -- last three bytes are a three-byte code point
+          wc 2 0xe0 0xc0 ||           -- last two bytes are a two-byte code point
+          w 1 (< 0x80) = Just $ len'  -- last char is ASCII
+        | otherwise = Nothing         -- no clue
         where
           w n test = len' >= n && test (index $ len' - n)
           wc n mask word8 = w n $ (word8 ==) . (mask .&.)
@@ -254,8 +254,7 @@ decodeUtf8Chunks bs1@(B.length -> len1) bs2@(B.length -> len2) =
 #ifdef SIMDUTF
       isValidBS off bLen bs = withBS bs $ \ fp _ -> unsafeDupablePerformIO $
         unsafeWithForeignPtr fp $ \ptr -> (/= 0) <$> c_is_valid_utf8 (ptr `plusPtr` off) (fromIntegral bLen)
-#else
-#if MIN_VERSION_bytestring(0,11,2)
+#elif MIN_VERSION_bytestring(0,11,2)
       isValidBS off bLen = B.isValidUtf8 . B.take bLen . B.drop off
 #else
       isValidBS off bLen bs = start off
@@ -272,7 +271,6 @@ decodeUtf8Chunks bs1@(B.length -> len1) bs2@(B.length -> len2) =
               Accept -> start (ix + 1)
               Reject -> False
               Incomplete st' -> step (ix + 1) st'
-#endif
 #endif
       bsToText bs count dst dstOff =
         when (count > 0) . withBS bs $ \ fp _ ->
@@ -304,27 +302,33 @@ decodeUtf8Chunks bs1@(B.length -> len1) bs2@(B.length -> len2) =
         | i' < len = countValidUtf8 i' (i' + 1) . utf8DetectStart $ index i'
         | otherwise = decodeResult False i'
       wrapUpBs1 off = countValidUtf8 off off Accept
-      wrapUpBs2 off =
-        wrapUpBs1 $ if bs2Utf8Boundary > off && isValidBS (off - len1) (bs2Utf8Boundary - off) bs2
-          then bs2Utf8Boundary
+      wrapUpBs2 off = wrapUpBs1 $
+        case bs2Utf8Boundary of
+        Just n -> if n > off && isValidBS (off - len1) (n - off) bs2
+          then n
           else off
+        _ -> off
   in
-  if bs1Utf8Boundary > 0
-  then
-    if isValidBS 0 bs1Utf8Boundary bs1
+  case bs1Utf8Boundary of
+  Just n ->
+    let checkCodePointAccrossBoundary Reject _ = decodeResult True n
+        checkCodePointAccrossBoundary (Incomplete a) off
+          | off < len =
+            checkCodePointAccrossBoundary (utf8DetectContinue (index off) a) $ off + 1
+          | otherwise = decodeResult False n
+        checkCodePointAccrossBoundary Accept off = wrapUpBs2 off
+        spanChunks
+          | n < len1 =
+            checkCodePointAccrossBoundary (utf8DetectStart $ index n) $ n + 1
+          | otherwise = wrapUpBs2 len1
+    in
+    if n > 0
     then
-      if bs1Utf8Boundary < len1
-      then
-        let checkCodePointAccrossBoundary Reject _ = decodeResult True bs1Utf8Boundary
-            checkCodePointAccrossBoundary (Incomplete a) off = if off < len
-              then checkCodePointAccrossBoundary (utf8DetectContinue (index off) a) $ off + 1
-              else decodeResult False bs1Utf8Boundary
-            checkCodePointAccrossBoundary Accept off = wrapUpBs2 off
-        in
-        checkCodePointAccrossBoundary (utf8DetectStart $ index bs1Utf8Boundary) $ bs1Utf8Boundary + 1
-      else wrapUpBs2 len1
-    else wrapUpBs1 0
-  else
+      if isValidBS 0 n bs1
+      then spanChunks
+      else wrapUpBs1 0
+    else spanChunks
+  _ ->
     (if len1 > 0
     then wrapUpBs1
     else wrapUpBs2) 0
