@@ -242,14 +242,12 @@ decodeUtf8Chunks bs1@(B.length -> len1) bs2@(B.length -> len2) =
         | wc 4 0xf8 0xf0 ||           -- last four bytes are a four-byte code point
           wc 3 0xf0 0xe0 ||           -- last three bytes are a three-byte code point
           wc 2 0xe0 0xc0 ||           -- last two bytes are a two-byte code point
-          w 1 (< 0x80) = Just $ len'  -- last char is ASCII
+          w 1 (< 0x80) = Just len'    -- last char is ASCII
         | otherwise = Nothing         -- no clue
         where
           w n test = len' >= n && test (index $ len' - n)
           wc n mask word8 = w n $ (word8 ==) . (mask .&.)
           wi n word8 = w n (>= word8)
-      bs1Utf8Boundary = guessUtf8Boundary len1
-      bs2Utf8Boundary = guessUtf8Boundary len
       isValidBS :: Int -> Int -> ByteString -> Bool
 #ifdef SIMDUTF
       isValidBS off bLen bs = withBS bs $ \ fp _ -> unsafeDupablePerformIO $
@@ -303,13 +301,13 @@ decodeUtf8Chunks bs1@(B.length -> len1) bs2@(B.length -> len2) =
         | otherwise = decodeResult False i'
       wrapUpBs1 off = countValidUtf8 off off Accept
       wrapUpBs2 off = wrapUpBs1 $
-        case bs2Utf8Boundary of
+        case guessUtf8Boundary len of
         Just n -> if n > off && isValidBS (off - len1) (n - off) bs2
           then n
           else off
         _ -> off
   in
-  case bs1Utf8Boundary of
+  case guessUtf8Boundary len1 of
   Just n ->
     let checkCodePointAccrossBoundary Reject _ = decodeResult True n
         checkCodePointAccrossBoundary (Incomplete a) off
@@ -338,11 +336,7 @@ data Progression
   | NeedMore
   | Invalid
 
-decodeChunks ::
-#if defined(ASSERTS)
-  HasCallStack =>
-#endif
-  (Bits w, Num w, Storable w)
+decodeChunks :: (Bits w, Num w, Storable w)
   => w
   -> ((Int -> Word8) -> Int -> Int -> Progression)
   -> ByteString
@@ -414,8 +408,11 @@ decodeChunksProxy = decodeChunks undefined -- This allows Haskell to
 -- they were one continuous 'ByteString' returning a 'DecodeResult'.
 --
 -- @since 2.0.2
-decodeUtf16Chunks
-  :: Bool       -- ^ Indicates whether the encoding is big-endian ('True') or little-endian ('False')
+decodeUtf16Chunks ::
+#if defined(ASSERTS)
+  HasCallStack =>
+#endif
+  Bool          -- ^ Indicates whether the encoding is big-endian ('True') or little-endian ('False')
   -> ByteString -- ^ The first 'ByteString' chunk to decode. Typically this is the undecoded data from the previous call of this function.
   -> ByteString -- ^ The second 'ByteString' chunk to decode.
   -> DecodeResult Text ByteString Word16
@@ -444,8 +441,11 @@ decodeUtf16Chunks isBE bs1 bs2 = decodeChunksProxy (\ index len srcOff ->
 -- they were one continuous 'ByteString' returning a 'DecodeResult'.
 --
 -- @since 2.0.2
-decodeUtf32Chunks
-  :: Bool       -- ^ Indicates whether the encoding is big-endian ('True') or little-endian ('False')
+decodeUtf32Chunks ::
+#if defined(ASSERTS)
+  HasCallStack =>
+#endif
+  Bool          -- ^ Indicates whether the encoding is big-endian ('True') or little-endian ('False')
   -> ByteString -- ^ The first 'ByteString' chunk to decode. Typically this is the undecoded data from the previous call of this function.
   -> ByteString -- ^ The second 'ByteString' chunk to decode.
   -> DecodeResult Text ByteString Word32
