@@ -35,10 +35,6 @@ tl_ascii t   = EL.decodeASCII (EL.encodeUtf8 a) === a
 t_latin1     = E.decodeLatin1 `eq` (T.pack . BC.unpack)
 tl_latin1    = EL.decodeLatin1 `eq` (TL.pack . BLC.unpack)
 
-whenEqProp a b next = if a == b
-  then next
-  else a === b
-
 t_utf8       = (E.decodeUtf8 . E.encodeUtf8) `eq` id
 t_utf8'      = (E.decodeUtf8' . E.encodeUtf8) `eq` (id . Right)
 t_utf8_c     = (\ t ->
