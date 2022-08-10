@@ -27,6 +27,10 @@ module Tests.QuickCheckUtils
     , eqPSqrt
 
     , write_read
+<<<<<<< HEAD
+=======
+
+>>>>>>> 06137ca (move test utility function whenEqProp)
     , whenEqProp
     ) where
 
@@ -286,7 +290,7 @@ newtype SkewedBool = Skewed { getSkewed :: Bool }
 instance Arbitrary SkewedBool where
   arbitrary = Skewed <$> frequency [(1, pure False), (5, pure True)]
 
--- like 'when' but with 'Property' instead of a monad.
+-- like Control.Monad.when, but with properties instead of monad values
 whenEqProp :: (Eq a, Show a) => a -> a -> Property -> Property
 whenEqProp a b next = if a == b
   then next
