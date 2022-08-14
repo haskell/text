@@ -152,7 +152,6 @@ toTitleExceptions = "\223\329\496\912\944\1415\7830\7831\7832\7833\7834\8016\801
 
 t_toUpper_idempotent t = T.toUpper (T.toUpper t) === T.toUpper t
 t_toLower_idempotent t = T.toLower (T.toLower t) === T.toLower t
-t_toTitle_idempotent t = T.toTitle (T.toTitle t) === T.toTitle t
 t_toCaseFold_idempotent t = T.toCaseFold (T.toCaseFold t) === T.toCaseFold t
 
 ascii_toLower (ASCIIString xs) = map C.toLower xs === T.unpack (T.toLower (T.pack xs))
@@ -372,7 +371,6 @@ testText =
 
         testProperty "t_toUpper_idempotent" t_toUpper_idempotent,
         testProperty "t_toLower_idempotent" t_toLower_idempotent,
-        testProperty "t_toTitle_idempotent" t_toTitle_idempotent,
         testProperty "t_toCaseFold_idempotent" t_toCaseFold_idempotent,
 
         testProperty "ascii_toLower" ascii_toLower,
