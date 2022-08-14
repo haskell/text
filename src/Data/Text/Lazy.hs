@@ -755,7 +755,8 @@ toUpper = foldrChunks (\chnk acc -> Chunk (T.toUpper chnk) acc) Empty
 -- | /O(n)/ Convert a string to title case, using simple case
 -- conversion.
 --
--- The first letter of the input is converted to title case, as is
+-- The first letter (as determined by 'Data.Char.isLetter')
+-- of the input is converted to title case, as is
 -- every subsequent letter that immediately follows a non-letter.
 -- Every letter that immediately follows another letter is converted
 -- to lower case.
@@ -764,6 +765,14 @@ toUpper = foldrChunks (\chnk acc -> Chunk (T.toUpper chnk) acc) Empty
 -- the Latin small ligature &#xfb02; (U+FB02) is converted to the
 -- sequence Latin capital letter F (U+0046) followed by Latin small
 -- letter l (U+006C).
+--
+-- This function is not idempotent.
+-- Consider lower-case letter @ŉ@ (U+0149 LATIN SMALL LETTER N PRECEDED BY APOSTROPHE).
+-- Then 'T.toTitle' @"ŉ"@ = @"ʼN"@: the first (and the only) letter of the input
+-- is converted to title case, becoming two letters.
+-- Now @ʼ@ (U+02BC MODIFIER LETTER APOSTROPHE) is a modifier letter
+-- and as such is recognised as a letter by 'Data.Char.isLetter',
+-- so 'T.toTitle' @"ʼN"@ = @"'n"@.
 --
 -- /Note/: this function does not take language or culture specific
 -- rules into account. For instance, in English, different style
