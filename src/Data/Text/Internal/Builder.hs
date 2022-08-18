@@ -54,6 +54,7 @@ module Data.Text.Internal.Builder
      -- * Internal functions
    , append'
    , ensureFree
+   , writeAtMost
    , writeN
    ) where
 
