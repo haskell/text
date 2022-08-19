@@ -237,7 +237,7 @@ import qualified Data.Text.Internal.Fusion.Common as S
 import Data.Text.Encoding (decodeUtf8', encodeUtf8)
 import Data.Text.Internal.Fusion (stream, reverseStream, unstream)
 import Data.Text.Internal.Private (span_)
-import Data.Text.Internal (Text(..), empty, firstf, mul, safe, text, append)
+import Data.Text.Internal (Text(..), empty, firstf, mul, safe, text, append, pack)
 import Data.Text.Internal.Unsafe.Char (unsafeWrite, unsafeChr8)
 import Data.Text.Show (singleton, unpack, unpackCString#, unpackCStringAscii#)
 import qualified Prelude as P
@@ -451,18 +451,6 @@ compareText (Text arrA offA lenA) (Text arrB offB lenB) =
 -- This is not a mistake: on contrary to UTF-16 (https://github.com/haskell/text/pull/208),
 -- lexicographic ordering of UTF-8 encoded strings matches lexicographic ordering
 -- of underlying bytearrays, no decoding is needed.
-
--- -----------------------------------------------------------------------------
--- * Conversion to/from 'Text'
-
--- | /O(n)/ Convert a 'String' into a 'Text'.
--- Performs replacement on invalid scalar values, so @'unpack' . 'pack'@ is not 'id':
---
--- >>> unpack (pack "\55555")
--- "\65533"
-pack :: String -> Text
-pack = unstream . S.map safe . S.streamList
-{-# INLINE [1] pack #-}
 
 -- -----------------------------------------------------------------------------
 -- * Basic functions
