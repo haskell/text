@@ -42,16 +42,18 @@ module Data.Text.Internal
     , mul64
     -- * Debugging
     , showText
+    -- * Conversions
+    , pack
     ) where
 
 #if defined(ASSERTS)
 import Control.Exception (assert)
 import GHC.Stack (HasCallStack)
 #endif
-import Control.Monad.ST (ST)
+import Control.Monad.ST (ST, runST)
 import Data.Bits
 import Data.Int (Int32, Int64)
-import Data.Text.Internal.Unsafe.Char (ord)
+import Data.Text.Internal.Unsafe.Char (ord, unsafeWrite)
 import Data.Typeable (Typeable)
 import qualified Data.Text.Array as A
 
@@ -231,3 +233,25 @@ int64ToInt32 = fromIntegral
 --
 -- * Offset and length must point to a valid UTF-8 sequence of bytes.
 --   Violation of this may cause memory access violation and divergence.
+
+-- -----------------------------------------------------------------------------
+-- * Conversion to/from 'Text'
+
+-- | /O(n)/ Convert a 'String' into a 'Text'.
+-- Performs replacement on invalid scalar values, so @'Data.Text.unpack' . 'pack'@ is not 'id':
+--
+-- >>> Data.Text.unpack (pack "\55555")
+-- "\65533"
+pack :: String -> Text
+pack xs = runST $ do
+  -- Each 'Char' takes up to 4 bytes
+  marr <- A.new (length xs `shiftL` 2)
+  let go off [] = pure off
+      go off (c : cs) = do
+        d <- unsafeWrite marr off (safe c)
+        go (off + d) cs
+  len <- go 0 xs
+  arr <- A.unsafeFreeze marr
+  return (Text arr 0 len)
+{-# NOINLINE [0] pack #-}
+-- TODO Do not calculate length xs upfront
