@@ -1,8 +1,11 @@
 -- | Tests for operations that don't fit in the other @Test.Properties.*@ modules.
 
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE CPP          #-}
 {-# LANGUAGE ViewPatterns #-}
+
 {-# OPTIONS_GHC  -fno-warn-missing-signatures #-}
+
 module Tests.Properties.Text
     ( testText
     ) where
@@ -124,8 +127,10 @@ t_toLower_lower t = p (T.toLower t) >= p t
     where p = T.length . T.filter isLower
 tl_toLower_lower t = p (TL.toLower t) >= p t
     where p = TL.length . TL.filter isLower
+#if MIN_VERSION_base(4,13,0)
 t_toLower_char c = c /= '\304' ==>
     T.toLower (T.singleton c) === T.singleton (C.toLower c)
+#endif
 t_toLower_dotted_i = T.unpack (T.toLower (T.singleton '\304')) === "i\775"
 
 t_toUpper_length t = T.length (T.toUpper t) >= T.length t
@@ -133,8 +138,10 @@ t_toUpper_upper t = p (T.toUpper t) >= p t
     where p = T.length . T.filter isUpper
 tl_toUpper_upper t = p (TL.toUpper t) >= p t
     where p = TL.length . TL.filter isUpper
+#if MIN_VERSION_base(4,13,0)
 t_toUpper_char c = c `notElem` toUpperExceptions ==>
     T.toUpper (T.singleton c) === T.singleton (C.toUpper c)
+#endif
 
 -- | Baseline generated with GHC 9.2 + text-1.2.5.0,
 t_toUpper_exceptions = T.unpack (T.toUpper (T.pack toUpperExceptions)) === "SS\700NJ\780\921\776\769\933\776\769\1333\1362H\817T\776W\778Y\778A\702\933\787\933\787\768\933\787\769\933\787\834\7944\921\7945\921\7946\921\7947\921\7948\921\7949\921\7950\921\7951\921\7944\921\7945\921\7946\921\7947\921\7948\921\7949\921\7950\921\7951\921\7976\921\7977\921\7978\921\7979\921\7980\921\7981\921\7982\921\7983\921\7976\921\7977\921\7978\921\7979\921\7980\921\7981\921\7982\921\7983\921\8040\921\8041\921\8042\921\8043\921\8044\921\8045\921\8046\921\8047\921\8040\921\8041\921\8042\921\8043\921\8044\921\8045\921\8046\921\8047\921\8122\921\913\921\902\921\913\834\913\834\921\913\921\8138\921\919\921\905\921\919\834\919\834\921\919\921\921\776\768\921\776\769\921\834\921\776\834\933\776\768\933\776\769\929\787\933\834\933\776\834\8186\921\937\921\911\921\937\834\937\834\921\937\921FFFIFLFFIFFLSTST\1348\1350\1348\1333\1348\1339\1358\1350\1348\1341"
@@ -160,8 +167,10 @@ t_toTitle_1stNotLower = and . notLow . T.toTitle . T.filter stable . T.filter (n
           -- Georgian text does not have a concept of title case
           -- https://en.wikipedia.org/wiki/Georgian_Extended
           isGeorgian c = c >= '\4256' && c < '\4352'
+#if MIN_VERSION_base(4,13,0)
 t_toTitle_char c = c `notElem` toTitleExceptions ==>
     T.toTitle (T.singleton c) === T.singleton (C.toUpper c)
+#endif
 
 -- | Baseline generated with GHC 9.2 + text-1.2.5.0,
 t_toTitle_exceptions = T.unpack (T.concatMap (T.toTitle . T.singleton) (T.pack toTitleExceptions)) === "Ss\700N\453\453\453\456\456\456\459\459\459J\780\498\498\498\921\776\769\933\776\769\1333\1410\4304\4305\4306\4307\4308\4309\4310\4311\4312\4313\4314\4315\4316\4317\4318\4319\4320\4321\4322\4323\4324\4325\4326\4327\4328\4329\4330\4331\4332\4333\4334\4335\4336\4337\4338\4339\4340\4341\4342\4343\4344\4345\4346\4349\4350\4351H\817T\776W\778Y\778A\702\933\787\933\787\768\933\787\769\933\787\834\8122\837\902\837\913\834\913\834\837\8138\837\905\837\919\834\919\834\837\921\776\768\921\776\769\921\834\921\776\834\933\776\768\933\776\769\929\787\933\834\933\776\834\8186\837\911\837\937\834\937\834\837FfFiFlFfiFflStSt\1348\1398\1348\1381\1348\1387\1358\1398\1348\1389"
@@ -378,19 +387,23 @@ testText =
         testProperty "t_toLower_length" t_toLower_length,
         testProperty "t_toLower_lower" t_toLower_lower,
         testProperty "tl_toLower_lower" tl_toLower_lower,
-        testProperty "t_toLower_char" t_toLower_char,
         testProperty "t_toLower_dotted_i" t_toLower_dotted_i,
 
         testProperty "t_toUpper_length" t_toUpper_length,
         testProperty "t_toUpper_upper" t_toUpper_upper,
         testProperty "tl_toUpper_upper" tl_toUpper_upper,
-        testProperty "t_toUpper_char" t_toUpper_char,
         testProperty "t_toUpper_exceptions" t_toUpper_exceptions,
 
         testProperty "t_toTitle_title" t_toTitle_title,
         testProperty "t_toTitle_1stNotLower" t_toTitle_1stNotLower,
-        testProperty "t_toTitle_char" t_toTitle_char,
         testProperty "t_toTitle_exceptions" t_toTitle_exceptions,
+
+#if MIN_VERSION_base(4,13,0)
+        -- Requires base compliant with Unicode 12.0
+        testProperty "t_toLower_char" t_toLower_char,
+        testProperty "t_toUpper_char" t_toUpper_char,
+        testProperty "t_toTitle_char" t_toTitle_char,
+#endif
 
         testProperty "t_toUpper_idempotent" t_toUpper_idempotent,
         testProperty "t_toLower_idempotent" t_toLower_idempotent,
