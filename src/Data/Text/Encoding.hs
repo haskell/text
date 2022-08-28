@@ -279,9 +279,11 @@ decodeUtf8Chunks bs1@(B.length -> len1) bs2@(B.length -> len2) =
       chunksToText utf8Len
         | utf8Len > 0 = runST $ do
           dst <- A.new utf8Len
-          let crossesBsBoundary = utf8Len > len1
-          bsToText bs1 (if crossesBsBoundary then len1 else utf8Len) dst 0
-          when crossesBsBoundary $ bsToText bs2 (utf8Len - len1) dst len1
+          if utf8Len > len1 then do
+            bsToText bs1 len1 dst 0
+            bsToText bs2 (utf8Len - len1) dst len1
+          else
+            bsToText bs1 utf8Len dst 0
           arr <- A.unsafeFreeze dst
           pure $ Text arr 0 utf8Len
         | otherwise = empty
@@ -298,7 +300,7 @@ decodeUtf8Chunks bs1@(B.length -> len1) bs2@(B.length -> len2) =
       countValidUtf8 i i' (Incomplete a)
         | i' < len = countValidUtf8 i (i' + 1) $ utf8DetectContinue (index i') a
         | otherwise = decodeResult False i
-      countValidUtf8 _ i' _
+      countValidUtf8 _ i' Accept
         | i' < len = countValidUtf8 i' (i' + 1) . utf8DetectStart $ index i'
         | otherwise = decodeResult False i'
       wrapUpBs1 off = countValidUtf8 off off Accept
@@ -322,12 +324,9 @@ decodeUtf8Chunks bs1@(B.length -> len1) bs2@(B.length -> len2) =
             checkCodePointAccrossBoundary (utf8DetectStart $ index n) $ n + 1
           | otherwise = wrapUpBs2 len1
     in
-    if n > 0
-    then
-      if isValidBS 0 n bs1
-      then spanChunks
-      else wrapUpBs1 0
-    else spanChunks
+    if n == 0 || isValidBS 0 n bs1
+    then spanChunks
+    else wrapUpBs1 0
   _ ->
     (if len1 > 0
     then wrapUpBs1
