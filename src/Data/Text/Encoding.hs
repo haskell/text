@@ -201,18 +201,20 @@ decodeAsciiPrefix
   -> (Text, Maybe (Word8, ByteString))
 decodeAsciiPrefix bs = if B.null bs
   then (empty, Nothing)
-  else runST $ withBS bs $ \ fp len ->
-    unsafeIOToST . unsafeWithForeignPtr fp $ \src -> do
+  else unsafeDupablePerformIO $ withBS bs $ \ fp len ->
+    unsafeWithForeignPtr fp $ \src -> do
       asciiPrefixLen <- fmap fromIntegral . c_is_ascii src $ src `plusPtr` len
-      (, if asciiPrefixLen < len
-        then Just (B.index bs asciiPrefixLen, B.drop (asciiPrefixLen + 1) bs)
-        else Nothing) <$> if asciiPrefixLen == 0
-          then pure empty
-          else unsafeSTToIO $ do
-            dst <- A.new asciiPrefixLen
-            A.copyFromPointer dst 0 src asciiPrefixLen
-            arr <- A.unsafeFreeze dst
-            pure $ Text arr 0 asciiPrefixLen
+      let !prefix = if asciiPrefixLen == 0
+            then empty
+            else runST $ do
+              dst <- A.new asciiPrefixLen
+              A.copyFromPointer dst 0 src asciiPrefixLen
+              arr <- A.unsafeFreeze dst
+              pure $ Text arr 0 asciiPrefixLen
+      let suffix = if asciiPrefixLen < len
+            then Just (B.index bs asciiPrefixLen, B.drop (asciiPrefixLen + 1) bs)
+            else Nothing
+      pure (prefix, suffix)
 
 #ifdef SIMDUTF
 foreign import ccall unsafe "_hs_text_is_valid_utf8" c_is_valid_utf8
