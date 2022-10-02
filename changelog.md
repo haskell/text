@@ -1,12 +1,13 @@
 ### 2.0.2
 
 * A new suite of total decoders have been added in `Data.Text.Encoding`
-  and `Data.Text.Lazy.Encoding` that allow decoding to be aborted on
-  errors without the need to raise an `error` and `catch` it elsewhere:
+  that allow decoding to be aborted on errors without the need to raise
+  an `error` and `catch` it elsewhere:
   * `decodeAsciiPrefix`
-  * `decodeUtf8Chunks`
-  * `decodeUtf16Chunks`
-  * `decodeUtf32Chunks`
+  * `decodeUtf8Chunk`
+  * `decodeNextUtf8Chunk`
+  * `recoverFromUtf8Error`
+  * `outAvailableUtf8Text`
 
 ### 2.0.1
 
