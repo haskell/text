@@ -34,10 +34,10 @@ module Data.Text.Internal.Encoding.Utf8
     , validate3
     , validate4
     -- * Naive decoding
-    , DetectUtf8Result(..)
-    , DetectState(..)
-    , utf8DetectStart
-    , utf8DetectContinue
+    , Utf8CodePointState
+    , utf8StartState
+    , updateUtf8State
+    , isUtf8StateIsComplete
     ) where
 
 #if defined(ASSERTS)
@@ -242,17 +242,14 @@ byteToClass n = ByteClass (W8# el#)
     table# :: Addr#
     table# = "\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\SOH\SOH\SOH\SOH\SOH\SOH\SOH\SOH\SOH\SOH\SOH\SOH\SOH\SOH\SOH\SOH\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\b\b\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\n\ETX\ETX\ETX\ETX\ETX\ETX\ETX\ETX\ETX\ETX\ETX\ETX\EOT\ETX\ETX\v\ACK\ACK\ACK\ENQ\b\b\b\b\b\b\b\b\b\b\b"#
 
-newtype DetectState = DetectState Word8
+newtype Utf8CodePointState = Utf8CodePointState Word8
   deriving (Eq, Ord, Show, Read)
 
-utf8AcceptState :: DetectState
-utf8AcceptState = DetectState 0
+utf8StartState :: Utf8CodePointState
+utf8StartState = Utf8CodePointState 0
 
-utf8RejectState :: DetectState
-utf8RejectState = DetectState 12
-
-updateState :: ByteClass -> DetectState -> DetectState
-updateState (ByteClass c) (DetectState s) = DetectState (W8# el#)
+transitionUtf8State :: ByteClass -> Utf8CodePointState -> Utf8CodePointState
+transitionUtf8State (ByteClass c) (Utf8CodePointState s) = Utf8CodePointState (W8# el#)
   where
     !(I# n#) = word8ToInt (c + s)
     el# = indexWord8OffAddr# table# n#
@@ -260,29 +257,12 @@ updateState (ByteClass c) (DetectState s) = DetectState (W8# el#)
     table# :: Addr#
     table# = "\NUL\f\CAN$<`T\f\f\f0H\f\f\f\f\f\f\f\f\f\f\f\f\f\NUL\f\f\f\f\f\NUL\f\NUL\f\f\f\CAN\f\f\f\f\f\CAN\f\CAN\f\f\f\f\f\f\f\f\f\CAN\f\f\f\f\f\CAN\f\f\f\f\f\f\f\CAN\f\f\f\f\f\f\f\f\f$\f$\f\f\f$\f\f\f\f\f$\f$\f\f\f$\f\f\f\f\f\f\f\f\f\f"#
 
--- | @since 2.0
-data DetectUtf8Result
-  = Accept
-  | Incomplete !DetectState
-  | Reject
-  deriving (Eq, Ord, Show, Read)
+updateUtf8State :: Word8 -> Utf8CodePointState -> Maybe Utf8CodePointState
+updateUtf8State w st = case transitionUtf8State (byteToClass w) st of
+  Utf8CodePointState 12 -> Nothing
+  st' -> Just st'
 
--- | @since 2.0
-utf8DetectStart :: Word8 -> DetectUtf8Result
-utf8DetectStart !w
-  | st == utf8AcceptState = Accept
-  | st == utf8RejectState = Reject
-  | otherwise             = Incomplete st
-  where
-    cl = byteToClass w
-    st = updateState cl utf8AcceptState
-
--- | @since 2.0
-utf8DetectContinue :: Word8 -> DetectState -> DetectUtf8Result
-utf8DetectContinue !w !st
-  | st' == utf8AcceptState = Accept
-  | st' == utf8RejectState = Reject
-  | otherwise              = Incomplete st'
-  where
-    cl  = byteToClass w
-    st' = updateState cl st
+isUtf8StateIsComplete :: Utf8CodePointState -> Bool
+isUtf8StateIsComplete (Utf8CodePointState s)
+  | s == 0 = True
+  | otherwise = False

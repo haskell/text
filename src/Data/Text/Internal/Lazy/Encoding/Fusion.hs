@@ -38,7 +38,7 @@ import qualified Data.ByteString as B
 import qualified Data.ByteString.Unsafe as B
 import Data.Text.Internal.ByteStringCompat
 import Data.Text.Internal.Encoding.Fusion.Common
-import Data.Text.Encoding.Common
+import Data.Text.Encoding.Error
 import Data.Text.Internal.Fusion (Step(..), Stream(..))
 import Data.Text.Internal.Fusion.Size
 import Data.Text.Internal.Unsafe.Char (unsafeChr8, unsafeChr16, unsafeChr32)

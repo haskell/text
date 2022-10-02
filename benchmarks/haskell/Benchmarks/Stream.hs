@@ -21,7 +21,7 @@ import qualified Data.Text.Lazy as TL
 import qualified Data.ByteString.Lazy as BL
 import Data.Text.Internal.Fusion.Types (Step (..), Stream (..))
 import qualified Data.Text.Encoding as T
-import qualified Data.Text.Encoding.Common as E
+import qualified Data.Text.Encoding.Error as E
 import qualified Data.Text.Internal.Encoding.Fusion as T
 import qualified Data.Text.Internal.Encoding.Fusion.Common as F
 import qualified Data.Text.Internal.Fusion as T

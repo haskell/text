@@ -23,17 +23,14 @@ module Data.Text.Internal.Encoding.Utf16
       chr2
     , validate1
     , validate2
-    , Utf16Result(..)
-    , queryUtf16Bytes
     ) where
 
-import Data.Bits ((.&.))
 import GHC.Exts
-import GHC.Word (Word16(..), Word8(..))
+import GHC.Word (Word16(..))
 
 #if !MIN_VERSION_base(4,16,0)
 -- harmless to import, except for warnings that it is unused.
-import Data.Text.Internal.PrimCompat ( word16ToWord#, word8ToWord# )
+import Data.Text.Internal.PrimCompat ( word16ToWord# )
 #endif
 
 chr2 :: Word16 -> Word16 -> Char
@@ -53,30 +50,3 @@ validate2       ::  Word16 -> Word16 -> Bool
 validate2 x1 x2 = x1 >= 0xD800 && x1 <= 0xDBFF &&
                   x2 >= 0xDC00 && x2 <= 0xDFFF
 {-# INLINE validate2 #-}
-
-data Utf16Result
-  = OneWord16 Char
-  | TwoWord16 (Word8 -> Word8 -> Maybe Char)
-  | Invalid16
-
-queryUtf16Bytes :: Word8 -> Word8 -> Utf16Result
-queryUtf16Bytes b0@(W8# w0#) (W8# w1#)
-  | b0 < 0xD8 || b0 >= 0xE0 = OneWord16 $ C# (chr# (orI# (word2Int# (shiftL# (word8ToWord# w0#) 8#)) (word2Int# (word8ToWord# w1#))))
-  -- 110110xx: start of surrogate pair
-  | b0 .&. 0xFC == 0xD8 = TwoWord16 $ \ b2@(W8# w2#) (W8# w3#) ->
-    if b2 .&. 0xFC == 0xDC
-      -- valid surrogate
-      then Just $
-        C# (chr# (
-          (orI#
-            (orI#
-              (orI#
-                (word2Int# (shiftL# (int2Word# (andI# 0x3# (word2Int# (word8ToWord# w0#)))) 18#))
-                (word2Int# (shiftL# (word8ToWord# w1#) 10#))
-              )
-              (word2Int# (shiftL# (int2Word# (andI# 0x3# (word2Int# (word8ToWord# w2#)))) 8#)))
-            (word2Int# (word8ToWord# w3#))) +# 0x10000#
-        ))
-      else Nothing
-  | otherwise = Invalid16
-{-# INLINE queryUtf16Bytes #-}

@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP, DeriveDataTypeable #-}
 {-# LANGUAGE Safe #-}
 -- |
 -- Module      : Data.Text.Encoding.Error
@@ -33,14 +34,87 @@ module Data.Text.Encoding.Error
     , replace
     ) where
 
-import Data.Text.Encoding.Common
-  ( UnicodeException(..)
-  , OnError
-  , OnDecodeError
-  , OnEncodeError
-  , lenientDecode
-  , strictDecode
-  , strictEncode
-  , ignore
-  , replace
-  )
+import Control.DeepSeq (NFData (..))
+import Control.Exception (Exception, throw)
+import Data.Typeable (Typeable)
+import Data.Word (Word8)
+import Numeric (showHex)
+
+-- | Function type for handling a coding error.  It is supplied with
+-- two inputs:
+--
+-- * A 'String' that describes the error.
+--
+-- * The input value that caused the error.  If the error arose
+--   because the end of input was reached or could not be identified
+--   precisely, this value will be 'Nothing'.
+--
+-- If the handler returns a value wrapped with 'Just', that value will
+-- be used in the output as the replacement for the invalid input.  If
+-- it returns 'Nothing', no value will be used in the output.
+--
+-- Should the handler need to abort processing, it should use 'error'
+-- or 'throw' an exception (preferably a 'UnicodeException').  It may
+-- use the description provided to construct a more helpful error
+-- report.
+type OnError a b = String -> Maybe a -> Maybe b
+
+-- | A handler for a decoding error.
+type OnDecodeError = OnError Word8 Char
+
+-- | A handler for an encoding error.
+{-# DEPRECATED OnEncodeError "This exception is never used in practice, and will be removed." #-}
+type OnEncodeError = OnError Char Word8
+
+-- | An exception type for representing Unicode encoding errors.
+data UnicodeException =
+    DecodeError String (Maybe Word8)
+    -- ^ Could not decode a byte sequence because it was invalid under
+    -- the given encoding, or ran out of input in mid-decode.
+  | EncodeError String (Maybe Char)
+    -- ^ Tried to encode a character that could not be represented
+    -- under the given encoding, or ran out of input in mid-encode.
+    deriving (Eq, Typeable)
+
+{-# DEPRECATED EncodeError "This constructor is never used, and will be removed." #-}
+
+showUnicodeException :: UnicodeException -> String
+showUnicodeException (DecodeError desc (Just w))
+    = "Cannot decode byte '\\x" ++ showHex w ("': " ++ desc)
+showUnicodeException (DecodeError desc Nothing)
+    = "Cannot decode input: " ++ desc
+showUnicodeException (EncodeError desc (Just c))
+    = "Cannot encode character '\\x" ++ showHex (fromEnum c) ("': " ++ desc)
+showUnicodeException (EncodeError desc Nothing)
+    = "Cannot encode input: " ++ desc
+
+instance Show UnicodeException where
+    show = showUnicodeException
+
+instance Exception UnicodeException
+
+instance NFData UnicodeException where
+    rnf (DecodeError desc w) = rnf desc `seq` rnf w `seq` ()
+    rnf (EncodeError desc c) = rnf desc `seq` rnf c `seq` ()
+
+-- | Throw a 'UnicodeException' if decoding fails.
+strictDecode :: OnDecodeError
+strictDecode desc c = throw (DecodeError desc c)
+
+-- | Replace an invalid input byte with the Unicode replacement
+-- character U+FFFD.
+lenientDecode :: OnDecodeError
+lenientDecode _ _ = Just '\xfffd'
+
+-- | Throw a 'UnicodeException' if encoding fails.
+{-# DEPRECATED strictEncode "This function always throws an exception, and will be removed." #-}
+strictEncode :: OnEncodeError
+strictEncode desc c = throw (EncodeError desc c)
+
+-- | Ignore an invalid input, substituting nothing in the output.
+ignore :: OnError a b
+ignore _ _ = Nothing
+
+-- | Replace an invalid input with a valid output.
+replace :: b -> OnError a b
+replace c _ _ = Just c
