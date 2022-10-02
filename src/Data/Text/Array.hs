@@ -1,5 +1,12 @@
-{-# LANGUAGE BangPatterns, CPP, MagicHash, RankNTypes,
-    RecordWildCards, UnboxedTuples, UnliftedFFITypes #-}
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE CPP #-}
+{-# LANGUAGE MagicHash #-}
+{-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE UnboxedTuples #-}
+{-# LANGUAGE UnliftedFFITypes #-}
+
 {-# OPTIONS_GHC -fno-warn-unused-matches #-}
 -- |
 -- Module      : Data.Text.Array
@@ -24,8 +31,10 @@
 module Data.Text.Array
     (
     -- * Types
-      Array(..)
-    , MArray(..)
+      Array
+    , pattern ByteArray
+    , MArray
+    , pattern MutableByteArray
     -- * Functions
     , resizeM
     , shrinkM
@@ -60,12 +69,13 @@ import GHC.ST (ST(..), runST)
 import GHC.Word (Word8(..))
 import qualified Prelude
 import Prelude hiding (length, read, compare)
+import Data.Array.Byte (ByteArray(..), MutableByteArray(..))
 
 -- | Immutable array type.
-data Array = ByteArray ByteArray#
+type Array = ByteArray
 
 -- | Mutable array type, for use in the ST monad.
-data MArray s = MutableByteArray (MutableByteArray# s)
+type MArray = MutableByteArray
 
 -- | Create an uninitialized mutable array.
 new :: forall s. Int -> ST s (MArray s)
