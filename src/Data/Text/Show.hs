@@ -24,9 +24,9 @@ module Data.Text.Show
     ) where
 
 import Control.Monad.ST (ST, runST)
-import Data.Text.Internal (Text(..), empty_, safe)
+import Data.Text.Internal (Text(..), empty_, safe, pack)
 import Data.Text.Internal.Encoding.Utf8 (utf8Length)
-import Data.Text.Internal.Fusion (stream, unstream)
+import Data.Text.Internal.Fusion (stream)
 import Data.Text.Internal.Unsafe.Char (unsafeWrite)
 import GHC.Exts (Ptr(..), Int(..), Addr#, indexWord8OffAddr#)
 import GHC.Word (Word8(..))
@@ -87,7 +87,11 @@ unpackCString# addr# = runST $ do
   A.shrinkM marr actualLen
   arr <- A.unsafeFreeze marr
   return $ Text arr 0 actualLen
-{-# INLINE unpackCString# #-}
+
+-- When a module contains many literal strings, 'unpackCString#' can easily
+-- bloat generated code to insane size. There is also very little to gain
+-- from inlining. Thus explicit NOINLINE is desired.
+{-# NOINLINE unpackCString# #-}
 
 -- | /O(n)/ Convert a null-terminated ASCII string to a 'Text'.
 -- Counterpart to 'GHC.unpackCString#'.
@@ -102,7 +106,7 @@ unpackCStringAscii# addr# = Text ba 0 l
       marr <- A.new l
       A.copyFromPointer marr 0 (Ptr addr#) l
       A.unsafeFreeze marr
-{-# INLINE unpackCStringAscii# #-}
+{-# NOINLINE unpackCStringAscii# #-}
 
 addrLen :: Addr# -> Int
 #if MIN_VERSION_ghc_prim(0,7,0)
@@ -113,21 +117,17 @@ addrLen addr# = fromIntegral (inlinePerformIO (c_strlen (Ptr addr#)))
 foreign import capi unsafe "string.h strlen" c_strlen :: CString -> IO CSize
 #endif
 
-{-# RULES "TEXT literal" [1] forall a.
-    unstream (S.map safe (S.streamList (GHC.unpackCString# a)))
-      = unpackCStringAscii# a #-}
+{-# RULES "TEXT literal" forall a.
+    pack (GHC.unpackCString# a) = unpackCStringAscii# a #-}
 
-{-# RULES "TEXT literal UTF8" [1] forall a.
-    unstream (S.map safe (S.streamList (GHC.unpackCStringUtf8# a)))
-      = unpackCString# a #-}
+{-# RULES "TEXT literal UTF8" forall a.
+    pack (GHC.unpackCStringUtf8# a) = unpackCString# a #-}
 
-{-# RULES "TEXT empty literal" [1]
-    unstream (S.map safe (S.streamList []))
-      = empty_ #-}
+{-# RULES "TEXT empty literal"
+    pack [] = empty_ #-}
 
-{-# RULES "TEXT singleton literal" [1] forall a.
-    unstream (S.map safe (S.streamList [a]))
-      = singleton_ a #-}
+{-# RULES "TEXT singleton literal" forall a.
+    pack [a] = singleton a #-}
 
 -- | /O(1)/ Convert a character into a Text.
 -- Performs replacement on invalid scalar values.
@@ -136,24 +136,11 @@ singleton ::
   HasCallStack =>
 #endif
   Char -> Text
-singleton = unstream . S.singleton . safe
-{-# INLINE [1] singleton #-}
-
-{-# RULES "TEXT singleton" forall a.
-    unstream (S.singleton (safe a))
-      = singleton_ a #-}
-
--- This is intended to reduce inlining bloat.
-singleton_ ::
-#if defined(ASSERTS)
-  HasCallStack =>
-#endif
-  Char -> Text
-singleton_ c = Text (A.run x) 0 len
+singleton c = Text (A.run x) 0 len
   where x :: ST s (A.MArray s)
         x = do arr <- A.new len
                _ <- unsafeWrite arr 0 d
                return arr
         len = utf8Length d
         d = safe c
-{-# NOINLINE singleton_ #-}
+{-# NOINLINE singleton #-}
