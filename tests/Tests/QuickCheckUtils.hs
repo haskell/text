@@ -27,6 +27,7 @@ module Tests.QuickCheckUtils
     , eqPSqrt
 
     , write_read
+    , whenEqProp
     ) where
 
 import Control.Arrow ((***))
@@ -284,3 +285,9 @@ newtype SkewedBool = Skewed { getSkewed :: Bool }
 
 instance Arbitrary SkewedBool where
   arbitrary = Skewed <$> frequency [(1, pure False), (5, pure True)]
+
+-- like 'when' but with 'Property' instead of a monad.
+whenEqProp :: (Eq a, Show a) => a -> a -> Property -> Property
+whenEqProp a b next = if a == b
+  then next
+  else a === b

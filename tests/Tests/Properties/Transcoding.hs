@@ -35,6 +35,7 @@ tl_ascii t   = EL.decodeASCII (EL.encodeUtf8 a) === a
 t_latin1     = E.decodeLatin1 `eq` (T.pack . BC.unpack)
 tl_latin1    = EL.decodeLatin1 `eq` (TL.pack . BLC.unpack)
 
+t_utf8_c     = (fst . E.outAvailableUtf8Text . snd . E.decodeUtf8Chunk . E.encodeUtf8) `eq` id
 t_utf8       = (E.decodeUtf8 . E.encodeUtf8) `eq` id
 t_utf8'      = (E.decodeUtf8' . E.encodeUtf8) `eq` (id . Right)
 tl_utf8      = (EL.decodeUtf8 . EL.encodeUtf8) `eq` id
@@ -205,9 +206,21 @@ t_decode_with_error5' = ioProperty $ do
     Left (_ :: E.UnicodeException) -> True
     Right{} -> False
 
-whenEqProp a b next = if a == b
-  then next
-  else a === b
+t_decode_chunk =
+  case E.decodeUtf8Chunk $ B.pack [0xC2, 97] of
+    (result, st) -> whenEqProp result (Left 0) $
+      case E.decodeNextUtf8Chunk (B.pack [0x63, 0x63, 0x63, 0x63, 0x63, 0x63]) st of
+        (result', st') -> whenEqProp result' result $
+          case E.recoverFromUtf8Error "bbbb" st' of
+            (result'', st'') -> whenEqProp result'' (Right 0) $
+              case E.decodeNextUtf8Chunk (B.pack [0x64, 0x64, 0x64, 0x64, 0x64, 0x64, 0xc2]) st'' of
+                (result''', st''') -> whenEqProp result''' (Right 1) $
+                  case E.outAvailableUtf8Text st''' of
+                    (t, st'''') -> whenEqProp t "bbbbadddddd" $
+                      case E.decodeNextUtf8Chunk (B.singleton 0x80) st'''' of
+                        (result'''', st''''') -> whenEqProp result'''' (Right 0) $
+                          case E.outAvailableUtf8Text st''''' of
+                            (t', _) -> t' === "\x80"
 
 t_infix_concat bs1 text bs2 =
   forAll (Blind <$> genDecodeErr Replace) $ \(Blind onErr) ->
@@ -221,6 +234,7 @@ testTranscoding =
     testProperty "tl_ascii" tl_ascii,
     testProperty "t_latin1" t_latin1,
     testProperty "tl_latin1" tl_latin1,
+    testProperty "t_utf8_c" t_utf8_c,
     testProperty "t_utf8" t_utf8,
     testProperty "t_utf8'" t_utf8',
     testProperty "t_utf8_incr" t_utf8_incr,
@@ -255,6 +269,7 @@ testTranscoding =
       testProperty "t_decode_with_error3'" t_decode_with_error3',
       testProperty "t_decode_with_error4'" t_decode_with_error4',
       testProperty "t_decode_with_error5'" t_decode_with_error5',
+      testProperty "t_decode_chunk" t_decode_chunk,
       testProperty "t_infix_concat" t_infix_concat
     ]
   ]
