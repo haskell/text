@@ -263,6 +263,4 @@ updateUtf8State w st = case transitionUtf8State (byteToClass w) st of
   st' -> Just st'
 
 isUtf8StateIsComplete :: Utf8CodePointState -> Bool
-isUtf8StateIsComplete (Utf8CodePointState s)
-  | s == 0 = True
-  | otherwise = False
+isUtf8StateIsComplete (Utf8CodePointState s) = s == 0

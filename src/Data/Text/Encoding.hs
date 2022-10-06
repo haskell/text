@@ -80,6 +80,7 @@ module Data.Text.Encoding
 import Control.Monad.ST.Unsafe (unsafeIOToST, unsafeSTToIO)
 
 import Control.Exception (evaluate, try)
+import Control.Monad (when)
 import Control.Monad.ST (runST)
 import Data.Bits (shiftR, (.&.))
 import Data.ByteString (ByteString)
@@ -226,10 +227,24 @@ foreign import ccall unsafe "_hs_text_is_valid_utf8" c_is_valid_utf8
 --
 -- @since 2.0.2
 data Utf8DecodeState = Utf8DecodeState
-  (Maybe (Utf8CodePointState, Int))
+  -- Code point decode state or error
+  (Maybe
+      -- self-explanatory (I hope)
+    ( Utf8CodePointState
+      -- Count of Word8s that have been evaluated so far for this code point.
+      -- The first word is specified by Position indicator below
+    , Int
+    ))
+  -- ByteStrings containing data whose evaluations are unfinished
   [ByteString]
+  -- Postion within the lead ByteString of either unfinished evaluated data or
+  -- the first word of an invalid code point.
   Int
-  [Either (Text, Int) (ByteString, Int, Int, Int)]
+  -- the first non-listed Word8 in the lead ByteString.
+  Int
+  -- Queued text data.
+  [Either Text (ByteString, Int, Int)]
+  -- Word8 length of listed data.
   Int
   deriving (Show)
 
@@ -237,7 +252,7 @@ data Utf8DecodeState = Utf8DecodeState
 --
 -- @since 2.0.2
 startUtf8State :: Utf8DecodeState
-startUtf8State = Utf8DecodeState (Just (utf8StartState, 0)) [] 0 [] 0
+startUtf8State = Utf8DecodeState (Just (utf8StartState, 0)) [] 0 0 [] 0
 
 -- | Takes whatever data has been decoded thus far and spits it out as a `Text`
 -- value and a `Utf8DecodeState` value that no longer references the decoded
@@ -246,24 +261,36 @@ startUtf8State = Utf8DecodeState (Just (utf8StartState, 0)) [] 0 [] 0
 --
 -- @since 2.0.2
 outAvailableUtf8Text :: Utf8DecodeState -> (Text, Utf8DecodeState)
-outAvailableUtf8Text (Utf8DecodeState mCpSt bss bs1Off dataStack tLen) =
-  if tLen > 0
+outAvailableUtf8Text st@(Utf8DecodeState mCpSt bss bs1Off tbpPos dataStack tLen) =
+  let tbpLen = bs1Off - tbpPos
+      totalLen = tLen + tbpLen
+  in
+  if totalLen > 0
   then runST $ do
-    dst <- A.new tLen
-    mapM_ (\ dat ->
-      case dat of
-        Left ((Text arr0 off utf8Len), dstOff) -> A.copyI utf8Len dst dstOff arr0 off
-        Right (bs, bsOff, utf8Len, dstOff) ->
-          withBS bs $ \ fp _ ->
-            unsafeIOToST . unsafeWithForeignPtr fp $ \ src ->
-              unsafeSTToIO $ A.copyFromPointer dst dstOff (src `plusPtr` bsOff) utf8Len
-      ) dataStack
+    dst <- A.new totalLen
+    when (tbpLen > 0) . withBS (head bss) $ \ fp _ ->
+      unsafeIOToST . unsafeWithForeignPtr fp $ \ src ->
+        unsafeSTToIO $ A.copyFromPointer dst tLen (src `plusPtr` tbpPos) tbpLen
+    let g (dat : dataStack') tLen' =
+            (case dat of
+              Left (Text arr0 off utf8Len) -> do
+                let dstOff = tLen' - utf8Len
+                A.copyI utf8Len dst dstOff arr0 off
+                pure dstOff
+              Right (bs, bsOff, utf8Len) -> do
+                let dstOff = tLen' - utf8Len
+                withBS bs $ \ fp _ ->
+                  unsafeIOToST . unsafeWithForeignPtr fp $ \ src ->
+                    unsafeSTToIO $ A.copyFromPointer dst dstOff (src `plusPtr` bsOff) utf8Len
+                pure dstOff) >>= g dataStack'
+        g _ _ = pure ()
+    g dataStack tLen
     arr <- A.unsafeFreeze dst
-    pure (Text arr 0 tLen, Utf8DecodeState mCpSt bss bs1Off [] 0)
-  else (empty, Utf8DecodeState mCpSt bss bs1Off dataStack tLen)
+    pure (Text arr 0 totalLen, Utf8DecodeState mCpSt bss bs1Off bs1Off [] 0)
+  else (empty, st)
 
 getCodePointStateOrError :: Utf8DecodeState -> Either Int Int
-getCodePointStateOrError (Utf8DecodeState mCpSt (bs1@(B.length -> len1) : bss') bs1Off _ _) =
+getCodePointStateOrError (Utf8DecodeState mCpSt (bs1@(B.length -> len1) : bss') bs1Off _ _ _) =
   case mCpSt of
     Nothing ->
       let (lenInit, _) = foldr
@@ -275,13 +302,14 @@ getCodePointStateOrError (Utf8DecodeState mCpSt (bs1@(B.length -> len1) : bss') 
 getCodePointStateOrError _ = Right 0
 
 decodeUtf8Chunks :: Utf8DecodeState -> (Either Int Int, Utf8DecodeState)
-decodeUtf8Chunks st@(Utf8DecodeState _ [] _ _ _) = (getCodePointStateOrError st, st)
-decodeUtf8Chunks st@(Utf8DecodeState Nothing _ _ _ _) = (getCodePointStateOrError st, st)
+decodeUtf8Chunks st@(Utf8DecodeState _ [] _ _ _ _) = (getCodePointStateOrError st, st)
+decodeUtf8Chunks st@(Utf8DecodeState Nothing _ _ _ _ _) = (getCodePointStateOrError st, st)
 decodeUtf8Chunks
   st@(Utf8DecodeState
     (Just (cpSt, cpPos))
     bss@(bs1@(B.length -> len1) : bss')
     bs1Off
+    tbpPos
     dataStack
     tLen
   )
@@ -300,7 +328,7 @@ bs1Off = 0  cpPos = Δbs1Off
           ^---------------------^
                 len
   --}
-  let len1_ = len1 - bs1Off -- the length of the trailing portion of the first bytesting that's to be evaluated.
+  let len1_ = len1 - bs1Off -- the length of the trailing portion of the first bytestring that's to be evaluated.
       (lenInit, (lenN, bsN)) = foldr
         (\ bs@(B.length -> len') (lenInit', (lenN', _)) ->
           (lenInit' + lenN', (len', bs))) (0, (len1_, bs1)) bss'
@@ -333,21 +361,22 @@ bs1Off = 0  cpPos = Δbs1Off
             w n test = len >= n && test (index $ len - n)
             wc n mask word8 = w n $ (word8 ==) . (mask .&.)
             wi n word8 = w n (>= word8)
-        -- queue the available valid data, trim the fat, and leave a spot for the code point state/error.
-        stackValidUtf8 wordCount mCps =
+        -- push the available valid data on to the list, and remove completely evaulated bytestrings.
+        pushValidUtf8 wordCount mCps =
           let bs1Off' = bs1Off + wordCount
-              (bs1Off''', bss'''', dataStack'') =
+              (bss'''', bs1Off''', tbpPos'', dataStack'', tLen'') =
                 if wordCount < len1_
-                then (bs1Off', bss, Right (bs1, bs1Off, wordCount, tLen) : dataStack)
+                then (bss, bs1Off', tbpPos, dataStack, tLen)
                 else
-                  let stackValidUtf8' wordCount' bs1Off'' tLen' bss''@(bs'@(B.length -> len') : bss''') dataStack' =
+                  let pushValidUtf8' wordCount' bss''@(bs'@(B.length -> len') : bss''') bs1Off'' tbpPos' dataStack' tLen' =
                         if wordCount' < len'
-                        then (bs1Off'', bss'', Right (bs', 0, wordCount', tLen') : dataStack')
-                        else stackValidUtf8' (wordCount' - len') (bs1Off'' - len') (tLen' + len') bss''' (Right (bs', 0, len', tLen') : dataStack')
-                      stackValidUtf8' _ _ _ _ dataStack' = (0, [], dataStack')
+                        then (bss'', bs1Off'', tbpPos', dataStack', tLen')
+                        else pushValidUtf8' (wordCount' - len') bss''' (bs1Off'' - len') 0 (Right (bs', 0, len') : dataStack') (tLen' + len')
+                      pushValidUtf8' _ _ bs1Off'' tbpPos' dataStack' tLen' = ([], bs1Off'', tbpPos', dataStack', tLen')
+                      bs1WordCount = bs1Off - tbpPos + len1_
                   in
-                  stackValidUtf8' (wordCount - len1_) (bs1Off' - len1) (tLen + len1_) bss' (Right (bs1, bs1Off, len1_, tLen) : dataStack)
-              st' = Utf8DecodeState mCps bss'''' bs1Off''' dataStack'' $ tLen + wordCount
+                  pushValidUtf8' (wordCount - len1_) bss' (bs1Off' - len1) 0 (Right (bs1, tbpPos, bs1WordCount) : dataStack) (tLen + bs1WordCount)
+              st' = Utf8DecodeState mCps bss'''' bs1Off''' tbpPos'' dataStack'' tLen''
           in
           (getCodePointStateOrError st', st')
         huntDownError off ndx cps =
@@ -361,8 +390,8 @@ bs1Off = 0  cpPos = Δbs1Off
                   then ndx'
                   else off
                 ) ndx' cps'
-              Nothing -> stackValidUtf8 off Nothing
-          else stackValidUtf8 off $ Just (cps, ndx - off)
+              Nothing -> pushValidUtf8 off Nothing
+          else pushValidUtf8 off $ Just (cps, ndx - off)
     in
     -- did we find the boundary?
     case guessUtf8Boundary of
@@ -382,7 +411,7 @@ bs1Off = 0  cpPos = Δbs1Off
                             Just cpSt''' -> getEndState (ndx + 1) cpSt'''
                         | otherwise = Just (cpSt'', ndx - boundary)
                       soFarSoGood =
-                        stackValidUtf8 boundary $ getEndState boundary cpSt'
+                        pushValidUtf8 boundary $ getEndState boundary cpSt'
                   in
                   -- are we at the boundary?
                   if boundary == cpPos'
@@ -397,7 +426,7 @@ bs1Off = 0  cpPos = Δbs1Off
                       -- keep walking the data until we get to bsN or an error
                       case updateUtf8State (index cpPos') cpSt' of
                         Just cpSt'' -> checkIncompleteCodePoint cpSt'' (cpPos' + 1)
-                        Nothing -> (Left (-lenInit), Utf8DecodeState Nothing bss bs1Off dataStack tLen)
+                        Nothing -> (Left (-lenInit), Utf8DecodeState Nothing bss bs1Off tbpPos dataStack tLen)
                     -- no: we're in bsN
                     else let
                           off = (if lenInit > 0
@@ -436,10 +465,10 @@ bs1Off = 0  cpPos = Δbs1Off
                     case updateUtf8State (index cpPos') cpSt' of
                       Just cpSt'' -> checkIncompleteCodePoint cpSt'' (cpPos' + 1)
                       -- just enough additional data to find an error with the code point
-                      Nothing -> (Left (-lenInit), Utf8DecodeState Nothing bss bs1Off dataStack tLen)
+                      Nothing -> (Left (-lenInit), Utf8DecodeState Nothing bss bs1Off tbpPos dataStack tLen)
                   else
                     -- didn't get enough additional data to complete the code point
-                    (Right cpPos', Utf8DecodeState (Just (cpSt', cpPos')) bss bs1Off dataStack tLen)
+                    (Right cpPos', Utf8DecodeState (Just (cpSt', cpPos')) bss bs1Off tbpPos dataStack tLen)
           in
           checkIncompleteCodePoint cpSt cpPos
         -- no, we're past the boundary
@@ -456,7 +485,7 @@ bs1Off = 0  cpPos = Δbs1Off
           ( case mCpStLen of
             Nothing -> Left (-lenInit)
             Just _ -> Right len
-          , Utf8DecodeState mCpStLen bss bs1Off dataStack tLen
+          , Utf8DecodeState mCpStLen bss bs1Off tbpPos dataStack tLen
           )
       -- no: there's an error
       Nothing -> huntDownError 0 cpPos cpSt
@@ -484,10 +513,10 @@ decodeNextUtf8Chunk ::
   HasCallStack =>
 #endif
  ByteString -> Utf8DecodeState -> (Either Int Int, Utf8DecodeState)
-decodeNextUtf8Chunk _ st@(Utf8DecodeState Nothing _ _ _ _) = (getCodePointStateOrError st, st)
-decodeNextUtf8Chunk bs@(B.length -> len) st@(Utf8DecodeState mCpSt bss bs1Off dataStack tLen)
+decodeNextUtf8Chunk _ st@(Utf8DecodeState Nothing _ _ _ _ _) = (getCodePointStateOrError st, st)
+decodeNextUtf8Chunk bs@(B.length -> len) st@(Utf8DecodeState mCpSt bss bs1Off tbpPos dataStack tLen)
   | len == 0 = (getCodePointStateOrError st, st)
-  | otherwise = decodeUtf8Chunks $ Utf8DecodeState mCpSt (bss ++ [bs]) bs1Off dataStack tLen
+  | otherwise = decodeUtf8Chunks $ Utf8DecodeState mCpSt (bss ++ [bs]) bs1Off tbpPos dataStack tLen
 
 -- | Decodes a 'ByteString' from a clean state.
 --
@@ -511,29 +540,36 @@ recoverFromUtf8Error ::
   HasCallStack =>
 #endif
  Text -> Utf8DecodeState -> (Either Int Int, Utf8DecodeState)
-recoverFromUtf8Error t@(Text _ _ utf8Len) (Utf8DecodeState mCpSt bss@((B.length -> len) : bss') bs1Off dataStack tLen) =
-  let dammit mCpSt' bss'' bs1Off' = decodeUtf8Chunks . Utf8DecodeState mCpSt' bss'' bs1Off'
-        ( if utf8Len > 0
-          then Left (t, tLen) : dataStack
-          else dataStack
-        ) $ tLen + utf8Len
+recoverFromUtf8Error t@(Text _ _ utf8Len) (Utf8DecodeState mCpSt bss@(bs1@(B.length -> len) : bss') bs1Off tbpPos dataStack tLen) =
+  let tbpLen = bs1Off - tbpPos
+      (dataStack', tLen') =
+        if tbpLen > 0
+        then (Right (bs1, tbpPos, tbpLen) : dataStack, tLen + tbpLen)
+        else (dataStack, tLen)
+      (dataStack'', tLen'') =
+        if utf8Len > 0
+        then (Left t : dataStack', tLen' + utf8Len)
+        else (dataStack', tLen')
+      (mCpSt'', bss'', bs1Off'') =
+        case mCpSt of
+          Just _ -> (mCpSt, bss, bs1Off)
+          Nothing ->
+            let bs1Off' = bs1Off + 1
+                mCpSt' = Just (utf8StartState, 0)
+            in
+            if bs1Off' == len
+            then (mCpSt', bss', 0)
+            else (mCpSt', bss, bs1Off')
   in
-  case mCpSt of
-    Nothing ->
-      let g = dammit (Just (utf8StartState, 0))
-          bs1Off' = bs1Off + 1
-      in
-      if bs1Off' == len
-      then g bss' 0
-      else g bss bs1Off'
-    Just _ -> dammit mCpSt bss bs1Off
-recoverFromUtf8Error t@(Text _ _ utf8Len) (Utf8DecodeState _ _ _ dataStack tLen) =
+  decodeUtf8Chunks $ Utf8DecodeState mCpSt'' bss'' bs1Off'' bs1Off'' dataStack'' tLen''
+recoverFromUtf8Error t@(Text _ _ utf8Len) (Utf8DecodeState _ _ _ _ dataStack tLen) =
   decodeUtf8Chunks $ Utf8DecodeState
     (Just (utf8StartState, 0))
     []
     0
+    0
     (if utf8Len > 0
-      then Left (t, tLen) : dataStack
+      then Left t : dataStack
       else dataStack
     ) $ tLen + utf8Len
 

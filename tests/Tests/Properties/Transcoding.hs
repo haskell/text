@@ -205,6 +205,10 @@ t_decode_with_error5' = ioProperty $ do
     Left (_ :: E.UnicodeException) -> True
     Right{} -> False
 
+whenEqProp a b next = if a == b
+  then next
+  else a === b
+
 t_infix_concat bs1 text bs2 =
   forAll (Blind <$> genDecodeErr Replace) $ \(Blind onErr) ->
   text `T.isInfixOf`
