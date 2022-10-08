@@ -1,8 +1,9 @@
 freebsd_instance:
-  image_family: freebsd-13-0
+  image_family: freebsd-13-1
 
 task:
-  install_script: pkg install -y ghc hs-cabal-install git
+  # See https://github.com/haskell/text/pull/475#issuecomment-1272359694
+  install_script: pkg install -y ghc hs-cabal-install git llvm14
   script:
     - cabal update
-    - cabal test --test-show-details=direct
+    - cabal test --test-show-details=direct --ghc-options='-pgmc clang++14'
