@@ -302,10 +302,9 @@ foreign import ccall unsafe "_hs_text_is_valid_utf8" c_is_valid_utf8
 #endif
 
 {-
-parseUtf8ChunkFrom chunk from = (n, ms)
+parseUtf8Chunk chunk = (n, ms)
 
-n is the end index of the longest prefix of chunk that is valid UTF-8 starting
-from index 'from' where the length of the prefix = n - from
+n is the end index of the longest prefix of chunk that is valid UTF-8
 
 ms
 * When ms = Nothing, there is an error: the bytes from index n and beyond are
@@ -313,76 +312,52 @@ ms
 * When ms = Just s, all of the remaining bytes from index n and beyond are the
   beginning of an incomplete UTF-8 code point, and s is the corresponding
   intermediate decoding state, which can be used to parse the next chunk with
-  `parseUtf8Chunk`
+  `parseUtf8NextChunk`
 -}
-parseUtf8ChunkFrom :: ByteString -> Int -> (Int, Maybe Utf8CodePointState)
-parseUtf8ChunkFrom bs@(B.length -> len) pos =
-  let w n test = (len - pos) >= n && test (B.index bs $ len - n)
-      wi n word8 = w n (>= word8)
-      wc n mask word8 = w n $ (word8 ==) . (mask .&.)
+parseUtf8Chunk :: ByteString -> (Int, Maybe Utf8CodePointState)
+parseUtf8Chunk bs@(B.length -> len)
+#if defined(SIMDUTF) || MIN_VERSION_bytestring(0,11,2)
+  | guessUtf8Boundary > 0 &&
+    -- the rest of the bytestring valid utf-8 up to the boundary
+    (
+#ifdef SIMDUTF
+      withBS bs $ \ fp _ -> unsafeDupablePerformIO $
+        unsafeWithForeignPtr fp $ \ptr -> (/= 0) <$>
+          c_is_valid_utf8 ptr (fromIntegral guessUtf8Boundary)
+#else
+      B.isValidUtf8 $ B.take guessUtf8Boundary bs
+#endif
+    ) = getEndState guessUtf8Boundary
+    -- No
+  | otherwise = getEndState 0
+    where
+      getEndState ndx = parseUtf8 ndx ndx utf8StartState
+      w n word8 = len >= n && word8 <= (B.index bs $ len - n)
       guessUtf8Boundary
-        | wi 3 0xf0 = Just $ len - 3  -- third to last char starts a four-byte code point
-        | wi 2 0xe0 = Just $ len - 2  -- pre-last char starts a three-or-four-byte code point
-        | wi 1 0xc2 = Just $ len - 1  -- last char starts a two-(or more-)byte code point
-        | wc 4 0xf8 0xf0 ||           -- last four bytes are a four-byte code point
-          wc 3 0xf0 0xe0 ||           -- last three bytes are a three-byte code point
-          wc 2 0xe0 0xc0 ||           -- last two bytes are a two-byte code point
-          w 1 (< 0x80) = Just len     -- last char is ASCII
-        | otherwise = Nothing         -- no clue
-      huntDownError ndx0 ndx s =
-        -- if ndx < len
-        -- then
+        | w 3 0xf0 = len - 3  -- third to last char starts a four-byte code point
+        | w 2 0xe0 = len - 2  -- pre-last char starts a three-or-four-byte code point
+        | w 1 0xc2 = len - 1  -- last char starts a two-(or more-)byte code point
+        | otherwise = len
+#else
+  = parseUtf8 0 0 utf8StartState
+    where
+#endif
+      parseUtf8 ndx0 ndx s =
+        if ndx < len
+        then
           case updateUtf8State (B.index bs ndx) s of
             Just s' ->
               let ndx' = ndx + 1 in
-              huntDownError (
+              parseUtf8 (
                 if isUtf8StateIsComplete s'
                 then ndx'
                 else ndx0
               ) ndx' s'
             Nothing -> (ndx0, Nothing)
-        -- else (ndx0, Just s)
-  in
-  case guessUtf8Boundary of
-    Just boundary ->
-      let getEndState ndx s
-            | ndx < len =
-              case updateUtf8State (B.index bs ndx) s of
-                Nothing -> Nothing
-                Just s' -> getEndState (ndx + 1) s'
-            | otherwise = Just s
-      in
-      if pos < boundary
-      then
-        -- is the rest of the bytestring valid utf-8 up to the boundary?
-        if (
-#ifdef SIMDUTF
-            withBS bs $ \ fp _ -> unsafeDupablePerformIO $
-              unsafeWithForeignPtr fp $ \ptr -> (/= 0) <$>
-                c_is_valid_utf8 (plusPtr ptr pos) (fromIntegral $ boundary - pos)
-#elif MIN_VERSION_bytestring(0,11,2)
-            B.isValidUtf8 . B.take (boundary - pos) $ B.drop pos bs
-#else
-            let bLen = boundary - pos
-                step ndx s
-                  | ndx < pos + bLen =
-                    case updateUtf8State (B.unsafeIndex bs ndx) s of
-                    Just s' -> step (ndx + 1) s'
-                    Nothing -> False
-                  | otherwise = isUtf8StateIsComplete s
-            in
-            step pos utf8StartState
-#endif
-          )
-        -- Yes
-        then (pos, getEndState pos utf8StartState)
-        -- No
-        else huntDownError pos pos utf8StartState
-      else (pos, getEndState pos utf8StartState)
-    Nothing -> huntDownError pos pos utf8StartState
-
+        else (ndx0, Just s)
+  
 {-
-parseUtf8Chunk chunk s = (n, ms)
+parseUtf8NextChunk chunk s = (n, ms)
 
 n
 * When n >= 0, n is the length of the longest prefix of chunk that is valid
@@ -397,15 +372,16 @@ ms
 * When ms = Just s', all of the remaining bytes from index n and beyond are the
   beginning of an incomplete UTF-8 code point, and s' is the corresponding
   intermediate decoding state, which can be used to parse the next chunk with
-  `parseUtf8Chunk`
+  `parseUtf8NextChunk`
 -}
-parseUtf8Chunk :: ByteString -> Utf8CodePointState -> (Int, Maybe Utf8CodePointState)
-parseUtf8Chunk bs@(B.length -> len) s =
+parseUtf8NextChunk :: ByteString -> Utf8CodePointState -> (Int, Maybe Utf8CodePointState)
+parseUtf8NextChunk bs@(B.length -> len) s =
   let g pos s' =
         -- first things first. let's try to get to the start of the next code point
         if isUtf8StateIsComplete s'
         -- found the beginning of the next code point, hand this off to someone else
-        then parseUtf8ChunkFrom bs pos
+        then case parseUtf8Chunk $ B.drop pos bs of
+          (len', s'') -> (pos + len', s'')
         -- no, code point is not complete yet
         else
           -- walk the rest of the code point until error, complete, or no more data
