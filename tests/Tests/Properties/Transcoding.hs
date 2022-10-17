@@ -8,6 +8,7 @@ module Tests.Properties.Transcoding
 
 import Data.Bits ((.&.), shiftR)
 import Data.Char (chr, ord)
+import Data.Either (isLeft, isRight)
 import Test.QuickCheck hiding ((.&.))
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.QuickCheck (testProperty)
@@ -34,6 +35,62 @@ tl_ascii t   = EL.decodeASCII (EL.encodeUtf8 a) === a
 
 t_latin1     = E.decodeLatin1 `eq` (T.pack . BC.unpack)
 tl_latin1    = EL.decodeLatin1 `eq` (TL.pack . BLC.unpack)
+
+t_p_utf8_1   = case E.parseUtf8Chunk (B.pack [0x63]) of
+  (result, st) -> whenEqProp result 1 . property $ isRight st
+t_p_utf8_2   = case E.parseUtf8Chunk (B.pack [0x63, 0x63, 0x63]) of
+  (result, st) -> whenEqProp result 3 . property $ isRight st
+t_p_utf8_3   = case E.parseUtf8Chunk (B.pack [0x63, 0x63, 0xc2, 0x80, 0x63]) of
+  (result, st) -> whenEqProp result 5 . property $ isRight st
+t_p_utf8_4   = case E.parseUtf8Chunk (B.pack [0x63, 0xe1, 0x80, 0x80, 0x63]) of
+  (result, st) -> whenEqProp result 5 . property $ isRight st
+t_p_utf8_5   = case E.parseUtf8Chunk (B.pack [0xF0, 0x90, 0x80, 0x80, 0x63]) of
+  (result, st) -> whenEqProp result 5 . property $ isRight st
+t_p_utf8_6   = case E.parseUtf8Chunk (B.pack [0x63, 0x63, 0xF0, 0x90, 0x80]) of
+  (result, st) -> whenEqProp result 2 . property $ isRight st
+t_p_utf8_7   = case E.parseUtf8Chunk (B.pack [0x63, 0x63, 0x63, 0xF0, 0x90]) of
+  (result, st) -> whenEqProp result 3 . property $ isRight st
+t_p_utf8_8   = case E.parseUtf8Chunk (B.pack [0xF0, 0x90, 0x80, 0x63, 0x63]) of
+  (result, st) -> whenEqProp result 0 $ st === Left 3
+t_p_utf8_9   = case E.parseUtf8Chunk (B.pack [0x63, 0x63, 0x80, 0x63, 0x63]) of
+  (result, st) -> whenEqProp result 2 $ st === Left 3
+t_p_utf8_0   = case E.parseUtf8Chunk (B.pack [0x63, 0x63, 0xe1, 0x63, 0x63]) of
+  (result, st) -> whenEqProp result 2 $ st === Left 3
+
+t_pn_utf8_1   = case E.parseUtf8Chunk (B.pack [0xF0, 0x90, 0x80]) of
+  (result0, mS) -> whenEqProp result0 0 $
+    case mS of
+      Left _ -> counterexample (show mS) False
+      Right s -> case E.parseUtf8NextChunk (B.pack [0x80]) s of
+        (result1, mS1) -> whenEqProp result1 1 $
+          if isLeft mS1
+          then counterexample (show mS1) False
+          else case E.parseUtf8NextChunk (B.pack [0x7f]) s of
+            (result2, mS2) -> whenEqProp result2 (-3) $ mS2 === Left 0
+t_pn_utf8_2   = case E.parseUtf8Chunk (B.pack [0xF0]) of
+  (result0, mS0) -> whenEqProp result0 0 $
+    case mS0 of
+      Left _ -> counterexample (show mS0) False
+      Right s0 -> case E.parseUtf8NextChunk (B.pack [0x7f]) s0 of
+        (result1, mS1) -> whenEqProp result1 (-1) .
+          whenEqProp mS1 (Left 0) $
+          case E.parseUtf8NextChunk (B.pack [0x90]) s0 of
+            (result2, mS2) -> whenEqProp result2 (-1) $
+              case mS2 of
+                Left _ -> counterexample (show mS2) False
+                Right s1 -> case E.parseUtf8NextChunk (B.pack [0x7f]) s1 of
+                  (result3, mS3) -> whenEqProp result3 (-2) .
+                    whenEqProp mS3 (Left 0) $
+                    case E.parseUtf8NextChunk (B.pack [0x80]) s1 of
+                      (result4, mS4) -> whenEqProp result4 (-2) $
+                        case mS4 of
+                          Left _ -> counterexample (show mS3) False
+                          Right s2 -> case E.parseUtf8NextChunk (B.pack [0x7f]) s2 of
+                            (result5, mS5) -> whenEqProp result5 (-3) .
+                              whenEqProp mS5 (Left 0) $
+                              case E.parseUtf8NextChunk (B.pack [0x80]) s2 of
+                                (result6, mS6) -> whenEqProp result6 1 $
+                                  property $ isRight mS6
 
 t_utf8_c     = (fst . E.outAvailableUtf8Text . snd . E.decodeUtf8Chunk . E.encodeUtf8) `eq` id
 t_utf8       = (E.decodeUtf8 . E.encodeUtf8) `eq` id
@@ -234,6 +291,19 @@ testTranscoding =
     testProperty "tl_ascii" tl_ascii,
     testProperty "t_latin1" t_latin1,
     testProperty "tl_latin1" tl_latin1,
+    testProperty "t_p_utf8_1" t_p_utf8_1,
+    testProperty "t_p_utf8_2" t_p_utf8_2,
+    testProperty "t_p_utf8_3" t_p_utf8_3,
+    testProperty "t_p_utf8_4" t_p_utf8_4,
+    testProperty "t_p_utf8_5" t_p_utf8_5,
+    testProperty "t_p_utf8_6" t_p_utf8_6,
+    testProperty "t_p_utf8_7" t_p_utf8_7,
+    testProperty "t_p_utf8_8" t_p_utf8_8,
+    testProperty "t_p_utf8_9" t_p_utf8_9,
+    testProperty "t_p_utf8_0" t_p_utf8_0,
+    testProperty "t_pn_utf8_1" t_pn_utf8_1,
+    testProperty "t_pn_utf8_2" t_pn_utf8_2,
+    -- testProperty "t_pn_utf8_3" t_pn_utf8_3,
     testProperty "t_utf8_c" t_utf8_c,
     testProperty "t_utf8" t_utf8,
     testProperty "t_utf8'" t_utf8',

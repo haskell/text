@@ -22,13 +22,15 @@
 -- <http://hackage.haskell.org/package/text-icu text-icu package>.
 
 module Data.Text.Encoding
-    (
+    ( Utf8ParseState
+    , parseUtf8Chunk
+    , parseUtf8NextChunk
     -- * Decoding ByteStrings to Text
     -- $strict
 
     -- ** Total Functions #total#
     -- $total
-      decodeLatin1
+    , decodeLatin1
     , decodeUtf8Lenient
     , decodeAsciiPrefix
     , Utf8DecodeState
@@ -217,6 +219,114 @@ decodeAsciiPrefix bs = if B.null bs
             else Nothing
       pure (prefix, suffix)
 
+#ifdef SIMDUTF
+foreign import ccall unsafe "_hs_text_is_valid_utf8" c_is_valid_utf8
+    :: Ptr Word8 -> CSize -> IO CInt
+#endif
+
+data Utf8ParseState = Utf8ParseState [ByteString] Utf8CodePointState
+  deriving (Eq, Ord, Show, Read)
+
+{-
+`parseUtf8Chunk chunk = (n, es)`
+
+n is the end index of the longest prefix of chunk that is valid UTF-8
+
+es
+* When `es = Left p`, there is an error: the bytes from index n and beyond are
+  not part of a valid UTF-8 code point, and is the index of the start of the
+  next (possibly valid) code point. `p - n` is the number of invalid bytes.
+* When `es = Right s`, all of the remaining bytes from index n and beyond are the
+  beginning of an incomplete UTF-8 code point, and s is the corresponding
+  intermediate decoding state, which can be used to parse the next chunk with
+  `parseUtf8NextChunk`
+-}
+parseUtf8Chunk :: ByteString -> (Int, Either Int Utf8ParseState)
+parseUtf8Chunk bs@(B.length -> len)
+#if defined(SIMDUTF) || MIN_VERSION_bytestring(0,11,2)
+  | guessUtf8Boundary > 0 &&
+    -- the rest of the bytestring valid utf-8 up to the boundary
+    (
+#ifdef SIMDUTF
+      withBS bs $ \ fp _ -> unsafeDupablePerformIO $
+        unsafeWithForeignPtr fp $ \ptr -> (/= 0) <$>
+          c_is_valid_utf8 ptr (fromIntegral guessUtf8Boundary)
+#else
+      B.isValidUtf8 $ B.take guessUtf8Boundary bs
+#endif
+    ) = getEndState guessUtf8Boundary
+    -- No
+  | otherwise = getEndState 0
+    where
+      getEndState ndx = parseUtf8 ndx ndx utf8StartState
+      w n word8 = len >= n && word8 <= (B.index bs $ len - n)
+      guessUtf8Boundary
+        | w 3 0xf0 = len - 3  -- third to last char starts a four-byte code point
+        | w 2 0xe0 = len - 2  -- pre-last char starts a three-or-four-byte code point
+        | w 1 0xc2 = len - 1  -- last char starts a two-(or more-)byte code point
+        | otherwise = len
+#else
+  = parseUtf8 0 0 utf8StartState
+    where
+#endif
+      parseUtf8 ndx0 ndx s =
+        if ndx < len
+        then
+          let ndx' = ndx + 1 in
+          case updateUtf8State (B.index bs ndx) s of
+            Just s' ->
+              parseUtf8 (
+                if isUtf8StateIsComplete s'
+                then ndx'
+                else ndx0
+              ) ndx' s'
+            Nothing -> (ndx0, Left $ if ndx == ndx0 then ndx' else ndx)
+        else (ndx0, Right $ Utf8ParseState [B.drop ndx0 bs] s)
+
+{-
+parseUtf8NextChunk chunk s = (n, es)
+
+n
+* When n >= 0, n is the length of the longest prefix of chunk that is valid
+  UTF-8 starting from state s (i.e., n points after the end of a full codepoint,
+  to the beginning of an incomplete codepoint).
+* When n > 0, the starting code point from the previous input is either still
+  incomplete with the additonal chunk or in error.
+
+es
+* When es = Left p, there is an error: the bytes from index n and beyond are
+  not part of a valid UTF-8 code point, and is the index of the start of the
+  next (possibly valid) code point. `p - n` is the number of invalid bytes.
+* When es = Right s', all of the remaining bytes from index n and beyond are the
+  beginning of an incomplete UTF-8 code point, and s' is the corresponding
+  intermediate decoding state, which can be used to parse the next chunk with
+  `parseUtf8NextChunk`
+-}
+parseUtf8NextChunk :: ByteString -> Utf8ParseState -> (Int, Either Int Utf8ParseState)
+parseUtf8NextChunk bs@(B.length -> len) st@(Utf8ParseState lead s)
+  | len > 0 =
+    let g pos s' =
+          -- first things first. let's try to get to the start of the next code point
+          if isUtf8StateIsComplete s'
+          -- found the beginning of the next code point, hand this off to someone else
+          then case parseUtf8Chunk $ B.drop pos bs of
+            (len', mS) -> (pos + len', mS)
+          -- no, code point is not complete yet
+          else
+            -- walk the rest of the code point until error, complete, or no more data
+            if pos < len
+            then
+              case updateUtf8State (B.index bs pos) s' of
+                -- error
+                Nothing -> (leadPos, Left pos)
+                -- keep going
+                Just s'' -> g (pos + 1) s''
+            -- no more data
+            else (leadPos, Right $ Utf8ParseState (lead ++ [bs]) s')
+    in g 0 s
+  | otherwise = (leadPos, Right st)
+    where leadPos = -(foldr (\ bs' len' -> len' + B.length bs') 0 lead)
+
 -- | A value that represents the state of a UTF-8 decoding process potentionally
 -- across multiple 'ByteString's.
 --
@@ -295,107 +405,6 @@ getCodePointStateOrError (Utf8DecodeState mCpSt (bs1@(B.length -> len1) : bss') 
       Left (bs1Off - lenInit)
     Just (_, cpLen) -> Right cpLen
 getCodePointStateOrError _ = Right 0
-
-#ifdef SIMDUTF
-foreign import ccall unsafe "_hs_text_is_valid_utf8" c_is_valid_utf8
-    :: Ptr Word8 -> CSize -> IO CInt
-#endif
-
-{-
-parseUtf8Chunk chunk = (n, ms)
-
-n is the end index of the longest prefix of chunk that is valid UTF-8
-
-ms
-* When ms = Nothing, there is an error: the bytes from index n and beyond are
-  not part of a valid UTF-8 code point.
-* When ms = Just s, all of the remaining bytes from index n and beyond are the
-  beginning of an incomplete UTF-8 code point, and s is the corresponding
-  intermediate decoding state, which can be used to parse the next chunk with
-  `parseUtf8NextChunk`
--}
-parseUtf8Chunk :: ByteString -> (Int, Maybe Utf8CodePointState)
-parseUtf8Chunk bs@(B.length -> len)
-#if defined(SIMDUTF) || MIN_VERSION_bytestring(0,11,2)
-  | guessUtf8Boundary > 0 &&
-    -- the rest of the bytestring valid utf-8 up to the boundary
-    (
-#ifdef SIMDUTF
-      withBS bs $ \ fp _ -> unsafeDupablePerformIO $
-        unsafeWithForeignPtr fp $ \ptr -> (/= 0) <$>
-          c_is_valid_utf8 ptr (fromIntegral guessUtf8Boundary)
-#else
-      B.isValidUtf8 $ B.take guessUtf8Boundary bs
-#endif
-    ) = getEndState guessUtf8Boundary
-    -- No
-  | otherwise = getEndState 0
-    where
-      getEndState ndx = parseUtf8 ndx ndx utf8StartState
-      w n word8 = len >= n && word8 <= (B.index bs $ len - n)
-      guessUtf8Boundary
-        | w 3 0xf0 = len - 3  -- third to last char starts a four-byte code point
-        | w 2 0xe0 = len - 2  -- pre-last char starts a three-or-four-byte code point
-        | w 1 0xc2 = len - 1  -- last char starts a two-(or more-)byte code point
-        | otherwise = len
-#else
-  = parseUtf8 0 0 utf8StartState
-    where
-#endif
-      parseUtf8 ndx0 ndx s =
-        if ndx < len
-        then
-          case updateUtf8State (B.index bs ndx) s of
-            Just s' ->
-              let ndx' = ndx + 1 in
-              parseUtf8 (
-                if isUtf8StateIsComplete s'
-                then ndx'
-                else ndx0
-              ) ndx' s'
-            Nothing -> (ndx0, Nothing)
-        else (ndx0, Just s)
-  
-{-
-parseUtf8NextChunk chunk s = (n, ms)
-
-n
-* When n >= 0, n is the length of the longest prefix of chunk that is valid
-  UTF-8 starting from state s (i.e., n points after the end of a full codepoint,
-  to the beginning of an incomplete codepoint).
-* When n > 0, the starting code point from the previous input is either still
-  incomplete with the additonal chunk or in error.
-
-ms
-* When ms = Nothing, there is an error: the bytes from index n and beyond are
-  not part of a valid UTF-8 code point.
-* When ms = Just s', all of the remaining bytes from index n and beyond are the
-  beginning of an incomplete UTF-8 code point, and s' is the corresponding
-  intermediate decoding state, which can be used to parse the next chunk with
-  `parseUtf8NextChunk`
--}
-parseUtf8NextChunk :: ByteString -> Utf8CodePointState -> (Int, Maybe Utf8CodePointState)
-parseUtf8NextChunk bs@(B.length -> len) s =
-  let g pos s' =
-        -- first things first. let's try to get to the start of the next code point
-        if isUtf8StateIsComplete s'
-        -- found the beginning of the next code point, hand this off to someone else
-        then case parseUtf8Chunk $ B.drop pos bs of
-          (len', s'') -> (pos + len', s'')
-        -- no, code point is not complete yet
-        else
-          -- walk the rest of the code point until error, complete, or no more data
-          if pos < len
-          then
-            case updateUtf8State (B.index bs pos) s' of
-              -- error
-              Nothing -> (-1, Nothing)
-              -- keep going
-              Just s'' -> g (pos + 1) s''
-          -- no more data
-          else (-1, Just s')
-  in
-  g 0 s
 
 decodeUtf8Chunks :: Utf8DecodeState -> (Either Int Int, Utf8DecodeState)
 decodeUtf8Chunks st@(Utf8DecodeState _ [] _ _ _ _) = (getCodePointStateOrError st, st)
@@ -587,7 +596,7 @@ bs1Off = 0  cpPos = Δbs1Off
       Nothing -> huntDownError 0 cpPos cpSt
 
 -- | Decodes a UTF-8 'ByteString' in the context of what has already been
--- decoded which is represented by the 'Utf8DecodeState' value. Returned is the
+-- decoded which is represented by the 'Utf8ParseState value. Returned is the
 -- new decode state and either ('Right') the number of 'Word8's that make up the
 -- incomplete code point at the end of the input, or ('Left') the start position
 -- of an invalid code point that was encountered. The position is relative to
@@ -622,7 +631,7 @@ decodeNextUtf8Chunk bs@(B.length -> len) st@(Utf8DecodeState mCpSt bss bs1Off tb
 decodeUtf8Chunk :: ByteString -> (Either Int Int, Utf8DecodeState)
 decodeUtf8Chunk = flip decodeNextUtf8Chunk startUtf8State
 
--- | If the 'Utf8DecodeState' value indicates an error state, the 'Word8' that
+-- | If the 'Utf8ParseState value indicates an error state, the 'Word8' that
 -- the state value point to is replaced with the input 'Text' value which may
 -- be empty. Decoding resumes after the text is inserted and produces the result
 -- described by 'decodeNextUtf8Chunk'.
