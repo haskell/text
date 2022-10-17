@@ -23,8 +23,17 @@
 
 module Data.Text.Encoding
     ( Utf8ParseState
+    , partialCodePoint
+    , codePointState
     , parseUtf8Chunk
     , parseUtf8NextChunk
+    , TextDataStack
+    , dataStack
+    , stackLen
+    , startUtf8ParseState
+    , injectText
+    , stackToText
+
     -- * Decoding ByteStrings to Text
     -- $strict
 
@@ -224,8 +233,14 @@ foreign import ccall unsafe "_hs_text_is_valid_utf8" c_is_valid_utf8
     :: Ptr Word8 -> CSize -> IO CInt
 #endif
 
-data Utf8ParseState = Utf8ParseState [ByteString] Utf8CodePointState
+data Utf8ParseState = Utf8ParseState
+  { partialCodePoint :: [ByteString]
+  , codePointState :: Utf8CodePointState
+  }
   deriving (Eq, Ord, Show, Read)
+
+startUtf8ParseState ::Utf8ParseState 
+startUtf8ParseState = Utf8ParseState [] utf8StartState
 
 {-
 `parseUtf8Chunk chunk = (n, es)`
@@ -269,9 +284,8 @@ parseUtf8Chunk bs@(B.length -> len)
   = parseUtf8 0 0 utf8StartState
     where
 #endif
-      parseUtf8 ndx0 ndx s =
-        if ndx < len
-        then
+      parseUtf8 ndx0 ndx s
+        | ndx < len =
           let ndx' = ndx + 1 in
           case updateUtf8State (B.index bs ndx) s of
             Just s' ->
@@ -281,7 +295,7 @@ parseUtf8Chunk bs@(B.length -> len)
                 else ndx0
               ) ndx' s'
             Nothing -> (ndx0, Left $ if ndx == ndx0 then ndx' else ndx)
-        else (ndx0, Right $ Utf8ParseState [B.drop ndx0 bs] s)
+        | otherwise = (ndx0, Right $ Utf8ParseState [B.drop ndx0 bs] s)
 
 {-
 parseUtf8NextChunk chunk s = (n, es)
@@ -305,27 +319,86 @@ es
 parseUtf8NextChunk :: ByteString -> Utf8ParseState -> (Int, Either Int Utf8ParseState)
 parseUtf8NextChunk bs@(B.length -> len) st@(Utf8ParseState lead s)
   | len > 0 =
-    let g pos s' =
+    let g pos s'
           -- first things first. let's try to get to the start of the next code point
-          if isUtf8StateIsComplete s'
-          -- found the beginning of the next code point, hand this off to someone else
-          then case parseUtf8Chunk $ B.drop pos bs of
-            (len', mS) -> (pos + len', mS)
-          -- no, code point is not complete yet
-          else
-            -- walk the rest of the code point until error, complete, or no more data
-            if pos < len
-            then
-              case updateUtf8State (B.index bs pos) s' of
-                -- error
-                Nothing -> (leadPos, Left pos)
-                -- keep going
-                Just s'' -> g (pos + 1) s''
-            -- no more data
-            else (leadPos, Right $ Utf8ParseState (lead ++ [bs]) s')
+          | isUtf8StateIsComplete s' =
+            -- found the beginning of the next code point, hand this off to someone else
+            case parseUtf8Chunk $ B.drop pos bs of
+              (len', mS) -> (pos + len', mS)
+          -- code point is not complete yet
+          -- walk the rest of the code point until error, complete, or no more data
+          | pos < len =
+            case updateUtf8State (B.index bs pos) s' of
+              -- error
+              Nothing -> (leadPos, Left pos)
+              -- keep going
+              Just s'' -> g (pos + 1) s''
+          -- no more data
+          | otherwise = (leadPos, Right $ Utf8ParseState (lead ++ [bs]) s')
     in g 0 s
   | otherwise = (leadPos, Right st)
     where leadPos = -(foldr (\ bs' len' -> len' + B.length bs') 0 lead)
+
+data TextDataStack = TextDataStack
+  { dataStack :: [Either Text ByteString]
+  , stackLen :: Int
+  }
+  deriving Show
+
+injectText :: Text -> TextDataStack -> TextDataStack
+injectText t@(Text _ _ tLen) tds@(TextDataStack stack sLen) =
+  if tLen > 0
+  then TextDataStack (Left t : stack) $ sLen + tLen
+  else tds
+
+stackToText :: TextDataStack -> Text
+stackToText (TextDataStack stack sLen)
+  | sLen > 0 = runST $
+    do
+      dst <- A.new sLen
+      let g (dat : dataStack') tLen' =
+              (case dat of
+                Left (Text arr0 off utf8Len) -> do
+                  let dstOff = tLen' - utf8Len
+                  A.copyI utf8Len dst dstOff arr0 off
+                  pure dstOff
+                Right bs@(B.length -> utf8Len) -> do
+                  let dstOff = tLen' - utf8Len
+                  withBS bs $ \ fp _ ->
+                    unsafeIOToST . unsafeWithForeignPtr fp $ \ src ->
+                      unsafeSTToIO $ A.copyFromPointer dst dstOff src utf8Len
+                  pure dstOff) >>= g dataStack'
+          g _ _ = pure ()
+      g stack sLen
+      arr <- A.unsafeFreeze dst
+      pure $ Text arr 0 sLen
+  | otherwise = empty
+
+decodeNextUtf8Chunk'
+  :: ByteString
+  -> Utf8ParseState
+  -> TextDataStack
+  -> (Either (Int, ByteString) Utf8ParseState, TextDataStack)
+decodeNextUtf8Chunk' bs s tds =
+  case parseUtf8NextChunk bs s of
+    (len, res) ->
+      let stackedData'
+            | len >= 0 =
+              let stackedData@(TextDataStack stack' sLen') =
+                    foldr (\ bs'@(B.length -> bLen) (TextDataStack stack sLen) ->
+                      TextDataStack (Right bs' : stack) $ sLen + bLen) tds $ partialCodePoint s
+              in
+              if len > 0
+              then TextDataStack (Right (B.take len bs) : stack') $ sLen' + len
+              else stackedData
+            | otherwise = tds
+      in
+      case res of
+        Left pos -> (Left (pos, B.drop pos bs), stackedData')
+        Right s' -> (Right s', stackedData')
+
+decodeUtf8Chunk' :: ByteString -> (Either (Int, ByteString) Utf8ParseState, TextDataStack)
+decodeUtf8Chunk' bs = decodeNextUtf8Chunk' bs startUtf8ParseState $ TextDataStack [] 0
 
 -- | A value that represents the state of a UTF-8 decoding process potentionally
 -- across multiple 'ByteString's.
