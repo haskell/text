@@ -26,12 +26,13 @@ module Data.Text.Encoding
     , partialCodePoint
     , codePointState
     , parseUtf8Chunk
-    , parseUtf8NextChunk
+    , parseNextUtf8Chunk
+    , startUtf8ParseState
     , TextDataStack
     , dataStack
     , stackLen
-    , startUtf8ParseState
-    , injectText
+    , emptyStack
+    , pushText
     , stackToText
 
     -- * Decoding ByteStrings to Text
@@ -42,12 +43,8 @@ module Data.Text.Encoding
     , decodeLatin1
     , decodeUtf8Lenient
     , decodeAsciiPrefix
-    , Utf8DecodeState
-    , startUtf8State
-    , outAvailableUtf8Text
     , decodeNextUtf8Chunk
     , decodeUtf8Chunk
-    , recoverFromUtf8Error
 
     -- *** Catchable failure
     , decodeUtf8'
@@ -91,14 +88,13 @@ module Data.Text.Encoding
 import Control.Monad.ST.Unsafe (unsafeIOToST, unsafeSTToIO)
 
 import Control.Exception (evaluate, try)
-import Control.Monad (when)
 import Control.Monad.ST (runST)
 import Data.Bits (shiftR, (.&.))
 import Data.ByteString (ByteString)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Internal as B
 import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode, lenientDecode)
-import Data.Text.Internal (Text(..), empty, append)
+import Data.Text.Internal (Text(..), empty)
 import Data.Text.Internal.Unsafe (unsafeWithForeignPtr)
 import Data.Text.Show as T (singleton)
 import Data.Text.Unsafe (unsafeDupablePerformIO)
@@ -254,7 +250,7 @@ es
 * When `es = Right s`, all of the remaining bytes from index n and beyond are the
   beginning of an incomplete UTF-8 code point, and s is the corresponding
   intermediate decoding state, which can be used to parse the next chunk with
-  `parseUtf8NextChunk`
+  `parseNextUtf8Chunk`
 -}
 parseUtf8Chunk :: ByteString -> (Int, Either Int Utf8ParseState)
 parseUtf8Chunk bs@(B.length -> len)
@@ -295,10 +291,10 @@ parseUtf8Chunk bs@(B.length -> len)
                 else ndx0
               ) ndx' s'
             Nothing -> (ndx0, Left $ if ndx == ndx0 then ndx' else ndx)
-        | otherwise = (ndx0, Right $ Utf8ParseState [B.drop ndx0 bs] s)
+        | otherwise = (ndx0, Right $ Utf8ParseState (if ndx0 < len then [B.drop ndx0 bs] else []) s)
 
 {-
-parseUtf8NextChunk chunk s = (n, es)
+parseNextUtf8Chunk chunk s = (n, es)
 
 n
 * When n >= 0, n is the length of the longest prefix of chunk that is valid
@@ -314,17 +310,17 @@ es
 * When es = Right s', all of the remaining bytes from index n and beyond are the
   beginning of an incomplete UTF-8 code point, and s' is the corresponding
   intermediate decoding state, which can be used to parse the next chunk with
-  `parseUtf8NextChunk`
+  `parseNextUtf8Chunk`
 -}
-parseUtf8NextChunk :: ByteString -> Utf8ParseState -> (Int, Either Int Utf8ParseState)
-parseUtf8NextChunk bs@(B.length -> len) st@(Utf8ParseState lead s)
+parseNextUtf8Chunk :: ByteString -> Utf8ParseState -> (Int, Either Int Utf8ParseState)
+parseNextUtf8Chunk bs@(B.length -> len) st@(Utf8ParseState lead s)
   | len > 0 =
     let g pos s'
           -- first things first. let's try to get to the start of the next code point
           | isUtf8StateIsComplete s' =
             -- found the beginning of the next code point, hand this off to someone else
             case parseUtf8Chunk $ B.drop pos bs of
-              (len', mS) -> (pos + len', mS)
+              (len', mS) -> (pos + len', case mS of Left p -> Left (p + pos); _ -> mS)
           -- code point is not complete yet
           -- walk the rest of the code point until error, complete, or no more data
           | pos < len =
@@ -345,8 +341,11 @@ data TextDataStack = TextDataStack
   }
   deriving Show
 
-injectText :: Text -> TextDataStack -> TextDataStack
-injectText t@(Text _ _ tLen) tds@(TextDataStack stack sLen) =
+emptyStack :: TextDataStack
+emptyStack = TextDataStack [] 0
+
+pushText :: Text -> TextDataStack -> TextDataStack
+pushText t@(Text _ _ tLen) tds@(TextDataStack stack sLen) =
   if tLen > 0
   then TextDataStack (Left t : stack) $ sLen + tLen
   else tds
@@ -374,382 +373,37 @@ stackToText (TextDataStack stack sLen)
       pure $ Text arr 0 sLen
   | otherwise = empty
 
-decodeNextUtf8Chunk'
+decodeNextUtf8Chunk
   :: ByteString
   -> Utf8ParseState
   -> TextDataStack
-  -> (Either (Int, ByteString) Utf8ParseState, TextDataStack)
-decodeNextUtf8Chunk' bs s tds =
-  case parseUtf8NextChunk bs s of
+  -> ((Int, Either (Int, ByteString) Utf8ParseState), TextDataStack)
+decodeNextUtf8Chunk bs s tds =
+  case parseNextUtf8Chunk bs s of
     (len, res) ->
       let stackedData'
             | len >= 0 =
               let stackedData@(TextDataStack stack' sLen') =
-                    foldr (\ bs'@(B.length -> bLen) (TextDataStack stack sLen) ->
-                      TextDataStack (Right bs' : stack) $ sLen + bLen) tds $ partialCodePoint s
+                    foldl (\ tds'@(TextDataStack stack sLen) bs'@(B.length -> bLen) ->
+                      if bLen > 0
+                      then TextDataStack (Right bs' : stack) $ sLen + bLen
+                      else tds'
+                      ) tds $ partialCodePoint s
               in
               if len > 0
               then TextDataStack (Right (B.take len bs) : stack') $ sLen' + len
               else stackedData
             | otherwise = tds
       in
-      case res of
-        Left pos -> (Left (pos, B.drop pos bs), stackedData')
-        Right s' -> (Right s', stackedData')
+      ( ( len
+        , case res of
+            Left pos -> Left (pos, B.drop pos bs)
+            Right s' -> Right s'
+        )
+      , stackedData')
 
-decodeUtf8Chunk' :: ByteString -> (Either (Int, ByteString) Utf8ParseState, TextDataStack)
-decodeUtf8Chunk' bs = decodeNextUtf8Chunk' bs startUtf8ParseState $ TextDataStack [] 0
-
--- | A value that represents the state of a UTF-8 decoding process potentionally
--- across multiple 'ByteString's.
---
--- @since 2.0.2
-data Utf8DecodeState = Utf8DecodeState
-  -- Code point decode state or error
-  (Maybe
-      -- self-explanatory (I hope)
-    ( Utf8CodePointState
-      -- Count of Word8s that have been evaluated so far for this code point.
-      -- The first word is specified by Position indicator below
-    , Int
-    ))
-  -- ByteStrings containing data whose evaluations are unfinished
-  [ByteString]
-  -- Postion within the lead ByteString of either unfinished evaluated data or
-  -- the first word of an invalid code point.
-  Int
-  -- the first non-listed Word8 in the lead ByteString.
-  Int
-  -- Queued text data.
-  [Either Text (ByteString, Int, Int)]
-  -- Word8 length of listed data.
-  Int
-  deriving (Show)
-
--- | This represents the begining state of a UTF-8 decoding process.
---
--- @since 2.0.2
-startUtf8State :: Utf8DecodeState
-startUtf8State = Utf8DecodeState (Just (utf8StartState, 0)) [] 0 0 [] 0
-
--- | Takes whatever data has been decoded thus far and spits it out as a `Text`
--- value and a `Utf8DecodeState` value that no longer references the decoded
--- data. This function operates on error states, but does not clear the error.
--- (See 'recoverFromUtf8Error'.)
---
--- @since 2.0.2
-outAvailableUtf8Text :: Utf8DecodeState -> (Text, Utf8DecodeState)
-outAvailableUtf8Text st@(Utf8DecodeState mCpSt bss bs1Off tbpPos dataStack tLen) =
-  let tbpLen = bs1Off - tbpPos
-      totalLen = tLen + tbpLen
-  in
-  if totalLen > 0
-  then runST $ do
-    dst <- A.new totalLen
-    when (tbpLen > 0) . withBS (head bss) $ \ fp _ ->
-      unsafeIOToST . unsafeWithForeignPtr fp $ \ src ->
-        unsafeSTToIO $ A.copyFromPointer dst tLen (src `plusPtr` tbpPos) tbpLen
-    let g (dat : dataStack') tLen' =
-            (case dat of
-              Left (Text arr0 off utf8Len) -> do
-                let dstOff = tLen' - utf8Len
-                A.copyI utf8Len dst dstOff arr0 off
-                pure dstOff
-              Right (bs, bsOff, utf8Len) -> do
-                let dstOff = tLen' - utf8Len
-                withBS bs $ \ fp _ ->
-                  unsafeIOToST . unsafeWithForeignPtr fp $ \ src ->
-                    unsafeSTToIO $ A.copyFromPointer dst dstOff (src `plusPtr` bsOff) utf8Len
-                pure dstOff) >>= g dataStack'
-        g _ _ = pure ()
-    g dataStack tLen
-    arr <- A.unsafeFreeze dst
-    pure (Text arr 0 totalLen, Utf8DecodeState mCpSt bss bs1Off bs1Off [] 0)
-  else (empty, st)
-
-getCodePointStateOrError :: Utf8DecodeState -> Either Int Int
-getCodePointStateOrError (Utf8DecodeState mCpSt (bs1@(B.length -> len1) : bss') bs1Off _ _ _) =
-  case mCpSt of
-    Nothing ->
-      let (lenInit, _) = foldr
-            (\ bs@(B.length -> len') (lenInit', (lenN', _)) ->
-              (lenInit' + lenN', (len', bs))) (0, (len1 - bs1Off, bs1)) bss'
-      in
-      Left (bs1Off - lenInit)
-    Just (_, cpLen) -> Right cpLen
-getCodePointStateOrError _ = Right 0
-
-decodeUtf8Chunks :: Utf8DecodeState -> (Either Int Int, Utf8DecodeState)
-decodeUtf8Chunks st@(Utf8DecodeState _ [] _ _ _ _) = (getCodePointStateOrError st, st)
-decodeUtf8Chunks st@(Utf8DecodeState Nothing _ _ _ _ _) = (getCodePointStateOrError st, st)
-decodeUtf8Chunks
-  st@(Utf8DecodeState
-    (Just (cpSt, cpPos))
-    bss@(bs1@(B.length -> len1) : bss')
-    bs1Off
-    tbpPos
-    dataStack
-    tLen
-  )
-  =
-  {-
-bs1Off = 0  cpPos = Δbs1Off
-   |    bs1Off     |   boundary = Δbs1Off
-   v       v   bsX v           v
-  |. . bs1 . .|. .|. . .bsN. . .|
-  ^-----------^   ^-------------^
-      len1            lenN
-          ^---^   ^-----------^
-          len1_   isValidBS span
-          ^-------^
-          lenInit
-          ^---------------------^
-                len
-  --}
-  let len1_ = len1 - bs1Off -- the length of the trailing portion of the first bytestring that's to be evaluated.
-      (lenInit, (lenN, bsN)) = foldr
-        (\ bs@(B.length -> len') (lenInit', (lenN', _)) ->
-          (lenInit' + lenN', (len', bs))) (0, (len1_, bs1)) bss'
-      len = lenInit + lenN
-  in
-  if len == cpPos
-  then (getCodePointStateOrError st, st)
-  else
-    let index i =
-          if i < len1_
-          then B.index bs1 (i + bs1Off)
-          else
-            let index' i' (bs@(B.length -> len0) : bss'') =
-                  if i' < len0
-                  then B.index bs i'
-                  else index' (i' - len0) bss''
-                index' i' _ = B.index bsN i'
-            in
-            index' (i - len1_) bss'
-        guessUtf8Boundary
-          | wi 3 0xf0 = Just $ len - 3  -- third to last char starts a four-byte code point
-          | wi 2 0xe0 = Just $ len - 2  -- pre-last char starts a three-or-four-byte code point
-          | wi 1 0xc2 = Just $ len - 1  -- last char starts a two-(or more-)byte code point
-          | wc 4 0xf8 0xf0 ||           -- last four bytes are a four-byte code point
-            wc 3 0xf0 0xe0 ||           -- last three bytes are a three-byte code point
-            wc 2 0xe0 0xc0 ||           -- last two bytes are a two-byte code point
-            w 1 (< 0x80) = Just len     -- last char is ASCII
-          | otherwise = Nothing         -- no clue
-          where
-            w n test = len >= n && test (index $ len - n)
-            wc n mask word8 = w n $ (word8 ==) . (mask .&.)
-            wi n word8 = w n (>= word8)
-        -- push the available valid data on to the list, and remove completely evaulated bytestrings.
-        pushValidUtf8 wordCount mCps =
-          let bs1Off' = bs1Off + wordCount
-              (bss'''', bs1Off''', tbpPos'', dataStack'', tLen'') =
-                if wordCount < len1_
-                then (bss, bs1Off', tbpPos, dataStack, tLen)
-                else
-                  let pushValidUtf8' wordCount' bss''@(bs'@(B.length -> len') : bss''') bs1Off'' tbpPos' dataStack' tLen' =
-                        if wordCount' < len'
-                        then (bss'', bs1Off'', tbpPos', dataStack', tLen')
-                        else pushValidUtf8' (wordCount' - len') bss''' (bs1Off'' - len') 0 (Right (bs', 0, len') : dataStack') (tLen' + len')
-                      pushValidUtf8' _ _ bs1Off'' tbpPos' dataStack' tLen' = ([], bs1Off'', tbpPos', dataStack', tLen')
-                      bs1WordCount = bs1Off - tbpPos + len1_
-                  in
-                  pushValidUtf8' (wordCount - len1_) bss' (bs1Off' - len1) 0 (Right (bs1, tbpPos, bs1WordCount) : dataStack) (tLen + bs1WordCount)
-              st' = Utf8DecodeState mCps bss'''' bs1Off''' tbpPos'' dataStack'' tLen''
-          in
-          (getCodePointStateOrError st', st')
-        huntDownError off ndx cps =
-          if ndx < len
-          then
-            case updateUtf8State (index ndx) cps of
-              Just cps' ->
-                let ndx' = ndx + 1 in
-                huntDownError (
-                  if isUtf8StateIsComplete cps'
-                  then ndx'
-                  else off
-                ) ndx' cps'
-              Nothing -> pushValidUtf8 off Nothing
-          else pushValidUtf8 off $ Just (cps, ndx - off)
-    in
-    -- did we find the boundary?
-    case guessUtf8Boundary of
-      -- yes
-      Just boundary ->
-        -- are we before it?
-        if cpPos < boundary
-        -- yes: let's check this incomplete code point before checking the rest up to the boundary
-        then
-          let checkIncompleteCodePoint cpSt' cpPos'
-                -- a complete code point
-                | isUtf8StateIsComplete cpSt' =
-                  let getEndState ndx cpSt''
-                        | ndx < len =
-                          case updateUtf8State (index ndx) cpSt'' of
-                            Nothing -> Nothing
-                            Just cpSt''' -> getEndState (ndx + 1) cpSt'''
-                        | otherwise = Just (cpSt'', ndx - boundary)
-                      soFarSoGood =
-                        pushValidUtf8 boundary $ getEndState boundary cpSt'
-                  in
-                  -- are we at the boundary?
-                  if boundary == cpPos'
-                  -- yes: get the state of the last code point
-                  then soFarSoGood
-                  -- no:
-                  else
-                    -- are we before bsN?
-                    if cpPos' < lenInit
-                    -- yes
-                    then
-                      -- keep walking the data until we get to bsN or an error
-                      case updateUtf8State (index cpPos') cpSt' of
-                        Just cpSt'' -> checkIncompleteCodePoint cpSt'' (cpPos' + 1)
-                        Nothing -> (Left (-lenInit), Utf8DecodeState Nothing bss bs1Off tbpPos dataStack tLen)
-                    -- no: we're in bsN
-                    else let
-                          off = (if lenInit > 0
-                            then cpPos' - lenInit
-                            else cpPos' + bs1Off)
-                      in
-                      -- is the rest of the bytestring valid utf-8 up to the boundary?
-                      if (
-#ifdef SIMDUTF
-                          withBS bsN $ \ fp _ -> unsafeDupablePerformIO $
-                            unsafeWithForeignPtr fp $ \ptr -> (/= 0) <$>
-                              c_is_valid_utf8 (plusPtr ptr off) (fromIntegral $ boundary - cpPos')
-#elif MIN_VERSION_bytestring(0,11,2)
-                          B.isValidUtf8 . B.take (boundary - cpPos') $ B.drop off bsN
-#else
-                          let bLen = boundary - cpPos'
-                              step ndx cps
-                                | ndx < off + bLen =
-                                  case updateUtf8State (B.unsafeIndex bsN ndx) cps of
-                                  Just cps' -> step (ndx + 1) cps'
-                                  Nothing -> False
-                                | otherwise = isUtf8StateIsComplete cps
-                          in
-                          step off utf8StartState
-#endif
-                        )
-                      -- Yes
-                      then soFarSoGood
-                      -- No
-                      else huntDownError cpPos' cpPos' cpSt'
-                -- We're mid code point
-                | otherwise =
-                  if cpPos' < len
-                  then
-                    -- try to complete the code point
-                    case updateUtf8State (index cpPos') cpSt' of
-                      Just cpSt'' -> checkIncompleteCodePoint cpSt'' (cpPos' + 1)
-                      -- just enough additional data to find an error with the code point
-                      Nothing -> (Left (-lenInit), Utf8DecodeState Nothing bss bs1Off tbpPos dataStack tLen)
-                  else
-                    -- didn't get enough additional data to complete the code point
-                    (Right cpPos', Utf8DecodeState (Just (cpSt', cpPos')) bss bs1Off tbpPos dataStack tLen)
-          in
-          checkIncompleteCodePoint cpSt cpPos
-        -- no, we're past the boundary
-        else
-          -- the code point is the only thing that (potentially) changes
-          let getEndCodePointState cpPos' cpSt'
-                | cpPos' < len =
-                  case updateUtf8State (index cpPos') cpSt' of
-                    Nothing -> Nothing
-                    Just cpSt'' -> getEndCodePointState (cpPos' + 1) cpSt''
-                | otherwise = Just (cpSt', cpPos' - boundary)
-              mCpStLen = getEndCodePointState cpPos cpSt
-          in
-          ( case mCpStLen of
-            Nothing -> Left (-lenInit)
-            Just _ -> Right len
-          , Utf8DecodeState mCpStLen bss bs1Off tbpPos dataStack tLen
-          )
-      -- no: there's an error
-      Nothing -> huntDownError 0 cpPos cpSt
-
--- | Decodes a UTF-8 'ByteString' in the context of what has already been
--- decoded which is represented by the 'Utf8ParseState value. Returned is the
--- new decode state and either ('Right') the number of 'Word8's that make up the
--- incomplete code point at the end of the input, or ('Left') the start position
--- of an invalid code point that was encountered. The position is relative to
--- the start of the input 'ByteString'.
---
--- If the previous 'ByteString' ended with an incomplete code point, the
--- beginning of the input data will be treated as a continuation of the code
--- point. NOTE: That in this case if the input causes the previous incomplete
--- code point to be invalid, the returned error ('Left') position value will be
--- negative.
---
--- If decoding the last 'ByteString' resulted in a error. The input is ignored,
--- and the state value is returned unchanged. Error states can be handled with
--- 'recoverFromUtf8Error'.
---
--- @since 2.0.2
-decodeNextUtf8Chunk ::
-#if defined(ASSERTS)
-  HasCallStack =>
-#endif
- ByteString -> Utf8DecodeState -> (Either Int Int, Utf8DecodeState)
-decodeNextUtf8Chunk _ st@(Utf8DecodeState Nothing _ _ _ _ _) = (getCodePointStateOrError st, st)
-decodeNextUtf8Chunk bs@(B.length -> len) st@(Utf8DecodeState mCpSt bss bs1Off tbpPos dataStack tLen)
-  | len == 0 = (getCodePointStateOrError st, st)
-  | otherwise = decodeUtf8Chunks $ Utf8DecodeState mCpSt (bss ++ [bs]) bs1Off tbpPos dataStack tLen
-
--- | Decodes a 'ByteString' from a clean state.
---
--- @decodeUtf8Chunk bs = 'decodeNextUtf8Chunk' bs 'startUtf8State'@
---
--- @since 2.0.2
-decodeUtf8Chunk :: ByteString -> (Either Int Int, Utf8DecodeState)
-decodeUtf8Chunk = flip decodeNextUtf8Chunk startUtf8State
-
--- | If the 'Utf8ParseState value indicates an error state, the 'Word8' that
--- the state value point to is replaced with the input 'Text' value which may
--- be empty. Decoding resumes after the text is inserted and produces the result
--- described by 'decodeNextUtf8Chunk'.
---
--- If not in an error state, the 'Text' is inserted at the end of the data, but
--- before an incomplete code point at the end of the last input 'ByteString'.
---
--- @since 2.0.2
-recoverFromUtf8Error ::
-#if defined(ASSERTS)
-  HasCallStack =>
-#endif
- Text -> Utf8DecodeState -> (Either Int Int, Utf8DecodeState)
-recoverFromUtf8Error t@(Text _ _ utf8Len) (Utf8DecodeState mCpSt bss@(bs1@(B.length -> len) : bss') bs1Off tbpPos dataStack tLen) =
-  let tbpLen = bs1Off - tbpPos
-      (dataStack', tLen') =
-        if tbpLen > 0
-        then (Right (bs1, tbpPos, tbpLen) : dataStack, tLen + tbpLen)
-        else (dataStack, tLen)
-      (dataStack'', tLen'') =
-        if utf8Len > 0
-        then (Left t : dataStack', tLen' + utf8Len)
-        else (dataStack', tLen')
-      (mCpSt'', bss'', bs1Off'') =
-        case mCpSt of
-          Just _ -> (mCpSt, bss, bs1Off)
-          Nothing ->
-            let bs1Off' = bs1Off + 1
-                mCpSt' = Just (utf8StartState, 0)
-            in
-            if bs1Off' == len
-            then (mCpSt', bss', 0)
-            else (mCpSt', bss, bs1Off')
-  in
-  decodeUtf8Chunks $ Utf8DecodeState mCpSt'' bss'' bs1Off'' bs1Off'' dataStack'' tLen''
-recoverFromUtf8Error t@(Text _ _ utf8Len) (Utf8DecodeState _ _ _ _ dataStack tLen) =
-  decodeUtf8Chunks $ Utf8DecodeState
-    (Just (utf8StartState, 0))
-    []
-    0
-    0
-    (if utf8Len > 0
-      then Left t : dataStack
-      else dataStack
-    ) $ tLen + utf8Len
+decodeUtf8Chunk :: ByteString -> ((Int, Either (Int, ByteString) Utf8ParseState), TextDataStack)
+decodeUtf8Chunk bs = decodeNextUtf8Chunk bs startUtf8ParseState emptyStack
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text.
 --
@@ -760,46 +414,21 @@ decodeUtf8With ::
   HasCallStack =>
 #endif
   OnDecodeError -> ByteString -> Text
-decodeUtf8With onErr bs
-  | B.null undecoded = txt
-  | otherwise = txt `append` (case onErr desc (Just (B.head undecoded)) of
-    Nothing -> txt'
-    Just c  -> T.singleton c `append` txt')
-  where
-    (txt, undecoded) = decodeUtf8With2 onErr mempty bs
-    txt' = decodeUtf8With onErr (B.tail undecoded)
-    desc = "Data.Text.Internal.Encoding: Invalid UTF-8 stream"
-
--- | Decode two consecutive bytestrings, returning Text and undecoded remainder.
-decodeUtf8With2 ::
-#if defined(ASSERTS)
-  HasCallStack =>
-#endif
-  OnDecodeError -> ByteString -> ByteString -> (Text, ByteString)
-decodeUtf8With2 onErr bs1@(B.length -> len1) bs2@(B.length -> len2) =
-  let g res isSecondBs =
+decodeUtf8With onErr bs =
+  let handleErr errPos errEndPos bs' tds
+        | errPos < errEndPos = handleErr (errPos + 1) errEndPos bs' $
+          case onErr "Data.Text.Internal.Encoding: Invalid UTF-8 stream" . Just $ B.index bs' errPos of
+            Just c -> pushText (T.singleton c) tds
+            Nothing -> tds
+        | otherwise = tds
+      g bs'@(B.length -> bLen) res =
         case res of
-          ((Left pos), st) ->
-            g ( recoverFromUtf8Error
-                ( case onErr "Data.Text.Internal.Encoding: Invalid UTF-8 code point" . Just $
-                    if pos >= 0
-                    then B.index (if isSecondBs then bs2 else bs1) pos
-                    else B.index bs1 (len1 + pos) of
-                  Just c -> T.singleton c
-                  Nothing -> empty
-                ) st
-              ) isSecondBs
-          ((Right cpLen), st) ->
-            if isSecondBs
-            then
-              ( fst $ outAvailableUtf8Text st
-              , if cpLen > len2
-                then B.drop (len1 + len2 - cpLen) bs1 `B.append` bs2
-                else B.drop (len2 - cpLen) bs2
-              )
-            else g (decodeNextUtf8Chunk bs2 st) True
+          ((len, eS), tds) ->
+            case eS of
+              Left (pos, bs'') -> g bs'' . decodeNextUtf8Chunk bs'' startUtf8ParseState $ handleErr len pos bs' tds
+              Right _ -> stackToText $ handleErr len bLen bs' tds
   in
-  g (decodeUtf8Chunk bs1) False
+  g bs $ decodeUtf8Chunk bs
 
 -- $stream
 --
@@ -891,11 +520,39 @@ streamDecodeUtf8With ::
   HasCallStack =>
 #endif
   OnDecodeError -> ByteString -> Decoding
-streamDecodeUtf8With onErr = go mempty
-  where
-    go bs1 bs2 = Some txt undecoded (go undecoded)
-      where
-        (txt, undecoded) = decodeUtf8With2 onErr bs1 bs2
+-- streamDecodeUtf8With onErr = go mempty
+--   where
+--     go bs1 bs2 = Some txt undecoded (go undecoded)
+--       where
+--         (txt, undecoded) = decodeUtf8With2 onErr bs1 bs2
+streamDecodeUtf8With onErr bs =
+  let handleErr errPos errEndPos bss tds
+        | errPos < errEndPos =
+          let errPos' = errPos + 1
+              (bs'@(B.length -> len) : bss') = bss
+              h = if errPos' < len
+                then handleErr errPos' errEndPos bss
+                else handleErr 0 (errEndPos - len) bss'
+          in
+          h $
+            case onErr "Data.Text.Internal.Encoding: Invalid UTF-8 stream" . Just $ B.index bs' errPos of
+              Just c -> pushText (T.singleton c) tds
+              Nothing -> tds
+        | otherwise = tds
+      g bs' s tds =
+        case decodeNextUtf8Chunk bs' s tds of
+          ((len, eS), tds') ->
+            case eS of
+              Left (pos, bs'') -> g bs'' startUtf8ParseState $
+                ( if len < 0
+                  then handleErr 0 (pos - len) $ partialCodePoint s ++ [B.take pos bs']
+                  else handleErr len pos [bs']
+                ) tds'
+              Right s' -> let bss' = partialCodePoint s' in
+                Some (stackToText tds') (B.concat bss') $ \ bs'' ->
+                  g bs'' s' emptyStack
+  in
+  g bs startUtf8ParseState emptyStack
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text that is known
 -- to be valid.
