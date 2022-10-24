@@ -28,12 +28,6 @@ module Data.Text.Encoding
     , parseUtf8Chunk
     , parseNextUtf8Chunk
     , startUtf8ParseState
-    , TextDataStack
-    , dataStack
-    , stackLen
-    , emptyStack
-    , pushText
-    , stackToText
 
     -- * Decoding ByteStrings to Text
     -- $strict
@@ -41,15 +35,22 @@ module Data.Text.Encoding
     -- ** Total Functions #total#
     -- $total
     , decodeLatin1
-    , decodeUtf8Lenient
     , decodeAsciiPrefix
+    , TextDataStack
+    , dataStack
+    , stackLen
+    , emptyStack
+    , pushText
+    , stackToText
     , decodeNextUtf8Chunk
     , decodeUtf8Chunk
+    , decodeUtf8Lenient
 
     -- *** Catchable failure
     , decodeUtf8'
 
     -- *** Controllable error handling
+    , handleUtf8Err
     , decodeUtf8With
     , decodeUtf16LEWith
     , decodeUtf16BEWith
@@ -147,8 +148,38 @@ import qualified Data.ByteString.Unsafe as B
 -- (preferably not at all). See "Data.Text.Encoding#g:total" for better
 -- solutions.
 
--- | Decode a 'ByteString' containing 7-bit ASCII
--- encoded text.
+-- | Decode a 'ByteString' containing 7-bit ASCII encoded text.
+--
+-- This is a total function. The 'ByteString' is decoded until either
+-- the end is reached or it errors with the first non-ASCII 'Word8' is
+-- encountered. In either case the function will return the 'Text'
+-- value of the longest prefix that is valid ASCII. On error, the index
+-- of the non-ASCII 'Word8' is also returned.
+--
+-- @since 2.0.2
+decodeAsciiPrefix ::
+#if defined(ASSERTS)
+  HasCallStack =>
+#endif
+  ByteString -> (Text, Maybe (Word8, Int))
+decodeAsciiPrefix bs = if B.null bs
+  then (empty, Nothing)
+  else unsafeDupablePerformIO $ withBS bs $ \ fp len ->
+    unsafeWithForeignPtr fp $ \src -> do
+      asciiPrefixLen <- fmap fromIntegral . c_is_ascii src $ src `plusPtr` len
+      let !prefix = if asciiPrefixLen == 0
+            then empty
+            else runST $ do
+              dst <- A.new asciiPrefixLen
+              A.copyFromPointer dst 0 src asciiPrefixLen
+              arr <- A.unsafeFreeze dst
+              pure $ Text arr 0 asciiPrefixLen
+      let suffix = if asciiPrefixLen < len
+            then Just (B.index bs asciiPrefixLen, asciiPrefixLen)
+            else Nothing
+      pure (prefix, suffix)
+
+-- | Decode a 'ByteString' containing 7-bit ASCII encoded text.
 --
 -- This is a partial function: it checks that input does not contain
 -- anything except ASCII and copies buffer or throws an error otherwise.
@@ -175,7 +206,7 @@ decodeLatin1 ::
 decodeLatin1 bs = withBS bs $ \fp len -> runST $ do
   dst <- A.new (2 * len)
   let inner srcOff dstOff = if srcOff >= len then return dstOff else do
-        asciiPrefixLen <- fmap cSizeToInt $ unsafeIOToST $ unsafeWithForeignPtr fp $ \src ->
+        asciiPrefixLen <- fmap fromIntegral $ unsafeIOToST $ unsafeWithForeignPtr fp $ \src ->
           c_is_ascii (src `plusPtr` srcOff) (src `plusPtr` len)
         if asciiPrefixLen == 0
         then do
@@ -196,39 +227,6 @@ decodeLatin1 bs = withBS bs $ \fp len -> runST $ do
 foreign import ccall unsafe "_hs_text_is_ascii" c_is_ascii
     :: Ptr Word8 -> Ptr Word8 -> IO CSize
 
--- | Decode a 'ByteString' containing ASCII.
---
--- This is a total function. The 'ByteString' is decoded until either
--- the end is reached or it errors with the first non-ASCII 'Word8' is
--- encountered. In either case the function will return what 'Text' was
--- decoded. On error, the index of the non-ASCII 'Word8' is also returned.
---
--- @since 2.0.2
-decodeAsciiPrefix
-  :: ByteString
-  -> (Text, Maybe (Word8, Int))
-decodeAsciiPrefix bs = if B.null bs
-  then (empty, Nothing)
-  else unsafeDupablePerformIO $ withBS bs $ \ fp len ->
-    unsafeWithForeignPtr fp $ \src -> do
-      asciiPrefixLen <- fmap fromIntegral . c_is_ascii src $ src `plusPtr` len
-      let !prefix = if asciiPrefixLen == 0
-            then empty
-            else runST $ do
-              dst <- A.new asciiPrefixLen
-              A.copyFromPointer dst 0 src asciiPrefixLen
-              arr <- A.unsafeFreeze dst
-              pure $ Text arr 0 asciiPrefixLen
-      let suffix = if asciiPrefixLen < len
-            then Just (B.index bs asciiPrefixLen, asciiPrefixLen)
-            else Nothing
-      pure (prefix, suffix)
-
-#ifdef SIMDUTF
-foreign import ccall unsafe "_hs_text_is_valid_utf8" c_is_valid_utf8
-    :: Ptr Word8 -> CSize -> IO CInt
-#endif
-
 data Utf8ParseState = Utf8ParseState
   { partialCodePoint :: [ByteString]
   , codePointState :: Utf8CodePointState
@@ -237,6 +235,11 @@ data Utf8ParseState = Utf8ParseState
 
 startUtf8ParseState ::Utf8ParseState 
 startUtf8ParseState = Utf8ParseState [] utf8StartState
+
+#ifdef SIMDUTF
+foreign import ccall unsafe "_hs_text_is_valid_utf8" c_is_valid_utf8
+    :: Ptr Word8 -> CSize -> IO CInt
+#endif
 
 {-
 `parseUtf8Chunk chunk = (n, es)`
@@ -252,7 +255,11 @@ es
   intermediate decoding state, which can be used to parse the next chunk with
   `parseNextUtf8Chunk`
 -}
-parseUtf8Chunk :: ByteString -> (Int, Either Int Utf8ParseState)
+parseUtf8Chunk ::
+#if defined(ASSERTS)
+  HasCallStack =>
+#endif
+  ByteString -> (Int, Either Int Utf8ParseState)
 parseUtf8Chunk bs@(B.length -> len)
 #if defined(SIMDUTF) || MIN_VERSION_bytestring(0,11,2)
   | guessUtf8Boundary > 0 &&
@@ -312,7 +319,11 @@ es
   intermediate decoding state, which can be used to parse the next chunk with
   `parseNextUtf8Chunk`
 -}
-parseNextUtf8Chunk :: ByteString -> Utf8ParseState -> (Int, Either Int Utf8ParseState)
+parseNextUtf8Chunk ::
+#if defined(ASSERTS)
+  HasCallStack =>
+#endif
+  ByteString -> Utf8ParseState -> (Int, Either Int Utf8ParseState)
 parseNextUtf8Chunk bs@(B.length -> len) st@(Utf8ParseState lead s)
   | len > 0 =
     let g pos s'
@@ -350,7 +361,11 @@ pushText t@(Text _ _ tLen) tds@(TextDataStack stack sLen) =
   then TextDataStack (Left t : stack) $ sLen + tLen
   else tds
 
-stackToText :: TextDataStack -> Text
+stackToText ::
+#if defined(ASSERTS)
+  HasCallStack =>
+#endif
+  TextDataStack -> Text
 stackToText (TextDataStack stack sLen)
   | sLen > 0 = runST $
     do
@@ -373,8 +388,11 @@ stackToText (TextDataStack stack sLen)
       pure $ Text arr 0 sLen
   | otherwise = empty
 
-decodeNextUtf8Chunk
-  :: ByteString
+decodeNextUtf8Chunk ::
+#if defined(ASSERTS)
+  HasCallStack =>
+#endif
+  ByteString
   -> Utf8ParseState
   -> TextDataStack
   -> ((Int, Either (Int, ByteString) Utf8ParseState), TextDataStack)
@@ -405,6 +423,38 @@ decodeNextUtf8Chunk bs s tds =
 decodeUtf8Chunk :: ByteString -> ((Int, Either (Int, ByteString) Utf8ParseState), TextDataStack)
 decodeUtf8Chunk bs = decodeNextUtf8Chunk bs startUtf8ParseState emptyStack
 
+handleUtf8Err
+  :: OnDecodeError
+  -> String
+  -> Int
+  -> Int
+  -> Utf8ParseState
+  -> ByteString
+  -> TextDataStack
+  -> TextDataStack
+handleUtf8Err onErr errMsg len pos s bs tds =
+  let h errPos errEndPos bss tds'
+        | errPos < errEndPos =
+          let errPos' = errPos + 1 in
+          case bss of
+            bs'@(B.length -> len') : bss' ->
+              ( if errPos' < len'
+                then h errPos' errEndPos bss
+                else h 0 (errEndPos - len') bss'
+              ) $ case onErr errMsg . Just $ B.index bs' errPos of
+                Just c -> pushText (T.singleton c) tds'
+                Nothing -> tds'
+            [] -> tds'
+        | otherwise = tds'
+  in
+  ( if len < 0
+    then h 0 (pos - len) $ partialCodePoint s ++ [B.take pos bs]
+    else h len pos [bs]
+  ) tds
+
+invalidUtf8Msg :: String
+invalidUtf8Msg = "Data.Text.Internal.Encoding: Invalid UTF-8 stream"
+
 -- | Decode a 'ByteString' containing UTF-8 encoded text.
 --
 -- Surrogate code points in replacement character returned by 'OnDecodeError'
@@ -415,18 +465,13 @@ decodeUtf8With ::
 #endif
   OnDecodeError -> ByteString -> Text
 decodeUtf8With onErr bs =
-  let handleErr errPos errEndPos bs' tds
-        | errPos < errEndPos = handleErr (errPos + 1) errEndPos bs' $
-          case onErr "Data.Text.Internal.Encoding: Invalid UTF-8 stream" . Just $ B.index bs' errPos of
-            Just c -> pushText (T.singleton c) tds
-            Nothing -> tds
-        | otherwise = tds
-      g bs'@(B.length -> bLen) res =
+  let g bs'@(B.length -> bLen) res =
         case res of
           ((len, eS), tds) ->
+            let h msg pos s = handleUtf8Err onErr msg len pos s bs' tds in
             case eS of
-              Left (pos, bs'') -> g bs'' . decodeNextUtf8Chunk bs'' startUtf8ParseState $ handleErr len pos bs' tds
-              Right _ -> stackToText $ handleErr len bLen bs' tds
+              Left (pos, bs'') -> g bs'' . decodeNextUtf8Chunk bs'' startUtf8ParseState $ h invalidUtf8Msg pos startUtf8ParseState
+              Right s -> stackToText $ h "Data.Text.Internal.Encoding: Incomplete UTF-8 code point" bLen s
   in
   g bs $ decodeUtf8Chunk bs
 
@@ -520,34 +565,12 @@ streamDecodeUtf8With ::
   HasCallStack =>
 #endif
   OnDecodeError -> ByteString -> Decoding
--- streamDecodeUtf8With onErr = go mempty
---   where
---     go bs1 bs2 = Some txt undecoded (go undecoded)
---       where
---         (txt, undecoded) = decodeUtf8With2 onErr bs1 bs2
 streamDecodeUtf8With onErr bs =
-  let handleErr errPos errEndPos bss tds
-        | errPos < errEndPos =
-          let errPos' = errPos + 1
-              (bs'@(B.length -> len) : bss') = bss
-              h = if errPos' < len
-                then handleErr errPos' errEndPos bss
-                else handleErr 0 (errEndPos - len) bss'
-          in
-          h $
-            case onErr "Data.Text.Internal.Encoding: Invalid UTF-8 stream" . Just $ B.index bs' errPos of
-              Just c -> pushText (T.singleton c) tds
-              Nothing -> tds
-        | otherwise = tds
-      g bs' s tds =
+  let g bs' s tds =
         case decodeNextUtf8Chunk bs' s tds of
           ((len, eS), tds') ->
             case eS of
-              Left (pos, bs'') -> g bs'' startUtf8ParseState $
-                ( if len < 0
-                  then handleErr 0 (pos - len) $ partialCodePoint s ++ [B.take pos bs']
-                  else handleErr len pos [bs']
-                ) tds'
+              Left (pos, bs'') -> g bs'' startUtf8ParseState $ handleUtf8Err onErr invalidUtf8Msg len pos s bs' tds'
               Right s' -> let bss' = partialCodePoint s' in
                 Some (stackToText tds') (B.concat bss') $ \ bs'' ->
                   g bs'' s' emptyStack
@@ -754,6 +777,3 @@ encodeUtf32LE txt = E.unstream (E.restreamUtf32LE (F.stream txt))
 encodeUtf32BE :: Text -> ByteString
 encodeUtf32BE txt = E.unstream (E.restreamUtf32BE (F.stream txt))
 {-# INLINE encodeUtf32BE #-}
-
-cSizeToInt :: CSize -> Int
-cSizeToInt = fromIntegral

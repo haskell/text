@@ -1,5 +1,6 @@
 {-# LANGUAGE BangPatterns,CPP #-}
 {-# LANGUAGE Trustworthy #-}
+{-# LANGUAGE ViewPatterns #-}
 
 -- |
 -- Module      : Data.Text.Lazy.Encoding
@@ -65,7 +66,6 @@ import qualified Data.ByteString.Builder as B
 import qualified Data.ByteString.Builder.Prim as BP
 import qualified Data.ByteString.Lazy as B
 import qualified Data.ByteString.Lazy.Internal as B
-import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text.Internal.Lazy.Encoding.Fusion as E
 import qualified Data.Text.Internal.Lazy.Fusion as F
@@ -107,22 +107,20 @@ decodeLatin1 = foldr (chunk . TE.decodeLatin1) empty . B.toChunks
 -- | Decode a 'ByteString' containing UTF-8 encoded text.
 decodeUtf8With :: OnDecodeError -> B.ByteString -> Text
 decodeUtf8With onErr (B.Chunk b0 bs0) =
-    case TE.streamDecodeUtf8With onErr b0 of
-      TE.Some t l f -> chunk t (go f l bs0)
-  where
-    go f0 _ (B.Chunk b bs) =
-      case f0 b of
-        TE.Some t l f -> chunk t (go f l bs)
-    go _ l _
-      | S.null l  = empty
-      | otherwise =
-        let !t = T.pack (skipBytes l)
-            skipBytes = S.foldr (\x s' ->
-                  case onErr desc (Just x) of
-                    Just c -> c : s'
-                    Nothing -> s') [] in
-        Chunk t Empty
-    desc = "Data.Text.Lazy.Encoding.decodeUtf8With: Invalid UTF-8 stream"
+  let g bs@(S.length -> bLen) lbs s tds diffText =
+        case TE.decodeNextUtf8Chunk bs s tds of
+          ((len, eS), tds') ->
+            let h errMsg pos s' = TE.handleUtf8Err onErr errMsg len pos s' bs tds' in
+            case eS of
+              Left (pos, bs') -> g bs' lbs TE.startUtf8ParseState
+                (h "Data.Text.Internal.Encoding: Invalid UTF-8 stream" pos s) diffText
+              Right s' ->
+                case lbs of
+                  B.Chunk bs' lbs' ->
+                    g bs' lbs' s' TE.emptyStack $ diffText . chunk (TE.stackToText tds')
+                  B.Empty -> diffText $ chunk (TE.stackToText $ h "Data.Text.Internal.Encoding: Incomplete UTF-8 code point" bLen s') Empty
+  in
+  g b0 bs0 TE.startUtf8ParseState TE.emptyStack id
 decodeUtf8With _ _ = empty
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text that is known
