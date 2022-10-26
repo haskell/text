@@ -37,68 +37,68 @@ tl_ascii t   = EL.decodeASCII (EL.encodeUtf8 a) === a
 t_latin1     = E.decodeLatin1 `eq` (T.pack . BC.unpack)
 tl_latin1    = EL.decodeLatin1 `eq` (TL.pack . BLC.unpack)
 
-t_p_utf8_1   = case E.parseUtf8Chunk (B.pack [0x63]) of
+t_p_utf8_1   = case E.validateUtf8Chunk (B.pack [0x63]) of
   (result, st) -> whenEqProp result 1 . property $ isRight st
-t_p_utf8_2   = case E.parseUtf8Chunk (B.pack [0x63, 0x63, 0x63]) of
+t_p_utf8_2   = case E.validateUtf8Chunk (B.pack [0x63, 0x63, 0x63]) of
   (result, st) -> whenEqProp result 3 . property $ isRight st
-t_p_utf8_3   = case E.parseUtf8Chunk (B.pack [0x63, 0x63, 0xc2, 0x80, 0x63]) of
+t_p_utf8_3   = case E.validateUtf8Chunk (B.pack [0x63, 0x63, 0xc2, 0x80, 0x63]) of
   (result, st) -> whenEqProp result 5 . property $ isRight st
-t_p_utf8_4   = case E.parseUtf8Chunk (B.pack [0x63, 0xe1, 0x80, 0x80, 0x63]) of
+t_p_utf8_4   = case E.validateUtf8Chunk (B.pack [0x63, 0xe1, 0x80, 0x80, 0x63]) of
   (result, st) -> whenEqProp result 5 . property $ isRight st
-t_p_utf8_5   = case E.parseUtf8Chunk (B.pack [0xF0, 0x90, 0x80, 0x80, 0x63]) of
+t_p_utf8_5   = case E.validateUtf8Chunk (B.pack [0xF0, 0x90, 0x80, 0x80, 0x63]) of
   (result, st) -> whenEqProp result 5 . property $ isRight st
-t_p_utf8_6   = case E.parseUtf8Chunk (B.pack [0x63, 0x63, 0xF0, 0x90, 0x80]) of
+t_p_utf8_6   = case E.validateUtf8Chunk (B.pack [0x63, 0x63, 0xF0, 0x90, 0x80]) of
   (result, st) -> whenEqProp result 2 . property $ isRight st
-t_p_utf8_7   = case E.parseUtf8Chunk (B.pack [0x63, 0x63, 0x63, 0xF0, 0x90]) of
+t_p_utf8_7   = case E.validateUtf8Chunk (B.pack [0x63, 0x63, 0x63, 0xF0, 0x90]) of
   (result, st) -> whenEqProp result 3 . property $ isRight st
-t_p_utf8_8   = case E.parseUtf8Chunk (B.pack [0xF0, 0x90, 0x80, 0x63, 0x63]) of
+t_p_utf8_8   = case E.validateUtf8Chunk (B.pack [0xF0, 0x90, 0x80, 0x63, 0x63]) of
   (result, st) -> whenEqProp result 0 $ st === Left 3
-t_p_utf8_9   = case E.parseUtf8Chunk (B.pack [0x63, 0x63, 0x80, 0x63, 0x63]) of
+t_p_utf8_9   = case E.validateUtf8Chunk (B.pack [0x63, 0x63, 0x80, 0x63, 0x63]) of
   (result, st) -> whenEqProp result 2 $ st === Left 3
-t_p_utf8_0   = case E.parseUtf8Chunk (B.pack [0x63, 0x63, 0xe1, 0x63, 0x63]) of
+t_p_utf8_0   = case E.validateUtf8Chunk (B.pack [0x63, 0x63, 0xe1, 0x63, 0x63]) of
   (result, st) -> whenEqProp result 2 $ st === Left 3
 
-t_pn_utf8_1   = case E.parseUtf8Chunk (B.pack [0xF0, 0x90, 0x80]) of
+t_pn_utf8_1   = case E.validateUtf8Chunk (B.pack [0xF0, 0x90, 0x80]) of
   (result0, mS) -> whenEqProp result0 0 $
     case mS of
       Left _ -> counterexample (show mS) False
-      Right s -> case E.parseNextUtf8Chunk (B.pack [0x80]) s of
+      Right s -> case E.validateNextUtf8Chunk (B.pack [0x80]) s of
         (result1, mS1) -> whenEqProp result1 1 $
           if isLeft mS1
           then counterexample (show mS1) False
-          else case E.parseNextUtf8Chunk (B.pack [0x7f]) s of
+          else case E.validateNextUtf8Chunk (B.pack [0x7f]) s of
             (result2, mS2) -> whenEqProp result2 (-3) $ mS2 === Left 0
-t_pn_utf8_2   = case E.parseUtf8Chunk (B.pack [0xF0]) of
+t_pn_utf8_2   = case E.validateUtf8Chunk (B.pack [0xF0]) of
   (result0, mS0) -> whenEqProp result0 0 $
     case mS0 of
       Left _ -> counterexample (show mS0) False
-      Right s0 -> case E.parseNextUtf8Chunk (B.pack [0x7f]) s0 of
+      Right s0 -> case E.validateNextUtf8Chunk (B.pack [0x7f]) s0 of
         (result1, mS1) -> whenEqProp result1 (-1) .
           whenEqProp mS1 (Left 0) $
-          case E.parseNextUtf8Chunk (B.pack [0x90]) s0 of
+          case E.validateNextUtf8Chunk (B.pack [0x90]) s0 of
             (result2, mS2) -> whenEqProp result2 (-1) $
               case mS2 of
                 Left _ -> counterexample (show mS2) False
-                Right s1 -> case E.parseNextUtf8Chunk (B.pack [0x7f]) s1 of
+                Right s1 -> case E.validateNextUtf8Chunk (B.pack [0x7f]) s1 of
                   (result3, mS3) -> whenEqProp result3 (-2) .
                     whenEqProp mS3 (Left 0) $
-                    case E.parseNextUtf8Chunk (B.pack [0x80]) s1 of
+                    case E.validateNextUtf8Chunk (B.pack [0x80]) s1 of
                       (result4, mS4) -> whenEqProp result4 (-2) $
                         case mS4 of
                           Left _ -> counterexample (show mS3) False
-                          Right s2 -> case E.parseNextUtf8Chunk (B.pack [0x7f]) s2 of
+                          Right s2 -> case E.validateNextUtf8Chunk (B.pack [0x7f]) s2 of
                             (result5, mS5) -> whenEqProp result5 (-3) .
                               whenEqProp mS5 (Left 0) $
-                              case E.parseNextUtf8Chunk (B.pack [0x80]) s2 of
+                              case E.validateNextUtf8Chunk (B.pack [0x80]) s2 of
                                 (result6, mS6) -> whenEqProp result6 1 $
                                   property $ isRight mS6
-t_pn_utf8_3 = case E.parseUtf8Chunk $ B.pack [0xc2] of
+t_pn_utf8_3 = case E.validateUtf8Chunk $ B.pack [0xc2] of
   (len1, eS1) -> whenEqProp len1 0 $ case eS1 of
     Left _ -> counterexample (show eS1) False
     Right s1 -> whenEqProp (E.partialCodePoint s1) [B.pack [0xc2]] $
       if isUtf8StateIsComplete $ E.codePointState s1
       then counterexample (show $ E.codePointState s1) False
-      else case E.parseNextUtf8Chunk (B.pack [0x80, 0x80]) s1 of
+      else case E.validateNextUtf8Chunk (B.pack [0x80, 0x80]) s1 of
         (len2, eS2) -> whenEqProp len2 1 $ eS2 === Left 2
 
 t_utf8_c     = (E.stackToText . snd . E.decodeUtf8Chunk . E.encodeUtf8) `eq` id

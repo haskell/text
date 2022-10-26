@@ -112,7 +112,7 @@ decodeUtf8With onErr (B.Chunk b0 bs0) =
           ((len, eS), tds') ->
             let h errMsg pos s' = TE.handleUtf8Err onErr errMsg len pos s' bs tds' in
             case eS of
-              Left (pos, bs') -> g bs' lbs TE.startUtf8ParseState
+              Left (pos, bs') -> g bs' lbs TE.startUtf8ValidState
                 (h "Data.Text.Internal.Encoding: Invalid UTF-8 stream" pos s) diffText
               Right s' ->
                 case lbs of
@@ -120,7 +120,7 @@ decodeUtf8With onErr (B.Chunk b0 bs0) =
                     g bs' lbs' s' TE.emptyStack $ diffText . chunk (TE.stackToText tds')
                   B.Empty -> diffText $ chunk (TE.stackToText $ h "Data.Text.Internal.Encoding: Incomplete UTF-8 code point" bLen s') Empty
   in
-  g b0 bs0 TE.startUtf8ParseState TE.emptyStack id
+  g b0 bs0 TE.startUtf8ValidState TE.emptyStack id
 decodeUtf8With _ _ = empty
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text that is known

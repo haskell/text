@@ -22,12 +22,15 @@
 -- <http://hackage.haskell.org/package/text-icu text-icu package>.
 
 module Data.Text.Encoding
-    ( Utf8ParseState
-    , partialCodePoint
-    , codePointState
-    , parseUtf8Chunk
-    , parseNextUtf8Chunk
-    , startUtf8ParseState
+    (
+    -- * ByteString validation
+    -- $validation
+      Utf8ValidState
+    , partialUtf8CodePoint
+    , utf8CodePointState
+    , validateUtf8Chunk
+    , validateNextUtf8Chunk
+    , startUtf8ValidState
 
     -- * Decoding ByteStrings to Text
     -- $strict
@@ -123,6 +126,9 @@ import Foreign.C.Types (CInt(..))
 #elif !MIN_VERSION_bytestring(0,11,2)
 import qualified Data.ByteString.Unsafe as B
 #endif
+
+-- $validation
+-- These functions are for validating 'ByteString's as encoded text.
 
 -- $strict
 --
@@ -227,40 +233,53 @@ decodeLatin1 bs = withBS bs $ \fp len -> runST $ do
 foreign import ccall unsafe "_hs_text_is_ascii" c_is_ascii
     :: Ptr Word8 -> Ptr Word8 -> IO CSize
 
-data Utf8ParseState = Utf8ParseState
-  { partialCodePoint :: [ByteString]
-  , codePointState :: Utf8CodePointState
+-- | This data type represents the state of a 'ByteString' representing
+-- UTF-8-encoded text. It consists of a value representing whether or
+-- not the last byte is a complete code point, and on incompletion what
+-- the 1 to 3 end bytes are that make up the incomplete code point.
+data Utf8ValidState = Utf8ValidState
+  { -- | Get the incomplete UTF-8 code point of the 'ByteString's that
+    -- have been validated thus far.
+    partialUtf8CodePoint :: [ByteString]
+    -- | Get the current UTF-8 code point state of the 'ByteString's
+    -- that have been validated thus far.
+  , utf8CodePointState :: Utf8CodePointState
   }
-  deriving (Eq, Ord, Show, Read)
+  deriving (Eq, Ord, Show)
 
-startUtf8ParseState ::Utf8ParseState 
-startUtf8ParseState = Utf8ParseState [] utf8StartState
+-- | This represtents the starting state of a UTF-8 validation check.
+startUtf8ValidState :: Utf8ValidState 
+startUtf8ValidState = Utf8ValidState [] utf8StartState
 
 #ifdef SIMDUTF
 foreign import ccall unsafe "_hs_text_is_valid_utf8" c_is_valid_utf8
     :: Ptr Word8 -> CSize -> IO CInt
 #endif
 
-{-
-`parseUtf8Chunk chunk = (n, es)`
-
-n is the end index of the longest prefix of chunk that is valid UTF-8
-
-es
-* When `es = Left p`, there is an error: the bytes from index n and beyond are
-  not part of a valid UTF-8 code point, and is the index of the start of the
-  next (possibly valid) code point. `p - n` is the number of invalid bytes.
-* When `es = Right s`, all of the remaining bytes from index n and beyond are the
-  beginning of an incomplete UTF-8 code point, and s is the corresponding
-  intermediate decoding state, which can be used to parse the next chunk with
-  `parseNextUtf8Chunk`
--}
-parseUtf8Chunk ::
+-- | Validate a 'ByteString' as a UTF-8-encoded text.
+--
+-- @validateUtf8Chunk chunk = (n, es)@
+--
+-- This function returns two values:
+--
+-- * The value 'n' indicates the longest prefix of the 'ByteString'
+--   that is valid UTF-8-encoded data.
+-- * The value 'es' indicates whether the 'ByteString'
+--
+--     * (@Left p@) contains an invalid code point and where the next
+--       (potentially valid) code point begins, so that @p - n@ is the
+--       number of invalid bytes, or
+--     * (@Right s@) is valid, and all of the remaining bytes starting
+--       at inbex 'n' are the beginning of an incomplete UTF-8 code
+--       point, and 's' is the resulting 'Utf8ValidState' value, which
+--       can be used to validate against a following 'ByteString' with
+--       'validateNextUtf8Chunk'.
+validateUtf8Chunk ::
 #if defined(ASSERTS)
   HasCallStack =>
 #endif
-  ByteString -> (Int, Either Int Utf8ParseState)
-parseUtf8Chunk bs@(B.length -> len)
+  ByteString -> (Int, Either Int Utf8ValidState)
+validateUtf8Chunk bs@(B.length -> len)
 #if defined(SIMDUTF) || MIN_VERSION_bytestring(0,11,2)
   | guessUtf8Boundary > 0 &&
     -- the rest of the bytestring valid utf-8 up to the boundary
@@ -276,7 +295,7 @@ parseUtf8Chunk bs@(B.length -> len)
     -- No
   | otherwise = getEndState 0
     where
-      getEndState ndx = parseUtf8 ndx ndx utf8StartState
+      getEndState ndx = validateUtf8 ndx ndx utf8StartState
       w n word8 = len >= n && word8 <= (B.index bs $ len - n)
       guessUtf8Boundary
         | w 3 0xf0 = len - 3  -- third to last char starts a four-byte code point
@@ -284,53 +303,56 @@ parseUtf8Chunk bs@(B.length -> len)
         | w 1 0xc2 = len - 1  -- last char starts a two-(or more-)byte code point
         | otherwise = len
 #else
-  = parseUtf8 0 0 utf8StartState
+  = validateUtf8 0 0 utf8StartState
     where
 #endif
-      parseUtf8 ndx0 ndx s
+      validateUtf8 ndx0 ndx s
         | ndx < len =
           let ndx' = ndx + 1 in
           case updateUtf8State (B.index bs ndx) s of
             Just s' ->
-              parseUtf8 (
+              validateUtf8 (
                 if isUtf8StateIsComplete s'
                 then ndx'
                 else ndx0
               ) ndx' s'
             Nothing -> (ndx0, Left $ if ndx == ndx0 then ndx' else ndx)
-        | otherwise = (ndx0, Right $ Utf8ParseState (if ndx0 < len then [B.drop ndx0 bs] else []) s)
+        | otherwise = (ndx0, Right $ Utf8ValidState (if ndx0 < len then [B.drop ndx0 bs] else []) s)
 
-{-
-parseNextUtf8Chunk chunk s = (n, es)
-
-n
-* When n >= 0, n is the length of the longest prefix of chunk that is valid
-  UTF-8 starting from state s (i.e., n points after the end of a full codepoint,
-  to the beginning of an incomplete codepoint).
-* When n > 0, the starting code point from the previous input is either still
-  incomplete with the additonal chunk or in error.
-
-es
-* When es = Left p, there is an error: the bytes from index n and beyond are
-  not part of a valid UTF-8 code point, and is the index of the start of the
-  next (possibly valid) code point. `p - n` is the number of invalid bytes.
-* When es = Right s', all of the remaining bytes from index n and beyond are the
-  beginning of an incomplete UTF-8 code point, and s' is the corresponding
-  intermediate decoding state, which can be used to parse the next chunk with
-  `parseNextUtf8Chunk`
--}
-parseNextUtf8Chunk ::
+-- | Validate a 'ByteString' as a contiuation of UTF-8-encoded text.
+--
+-- @validateNextUtf8Chunk chunk s = (n, es)@
+--
+-- This function returns two values:
+--
+-- * The value 'n' indicates the end position of longest prefix of the
+--   'ByteString' that is valid UTF-8-encoded data from the starting
+--   state 's'. If 's' contains an incomplete code point, the input
+--   'ByteString' is considered a continuation. As a result 'n' will be
+--   negative if the code point is still incomplete or is proven to be
+--   invalid.
+--   
+-- * The value 'es' indicates whether the 'ByteString'
+--
+--     * (@Left p@) contains an invalid code point and where the next
+--       (potentially valid) code point begins, so that @p - n@ is the
+--       number of invalid bytes, or
+--     * (@Right s'@) is valid, and all of the remaining bytes starting
+--       at inbex 'n' are the beginning of an incomplete UTF-8 code
+--       point, and `s'` is the resulting 'Utf8ValidState' value, which
+--       can be used to validate against a following 'ByteString'.
+validateNextUtf8Chunk ::
 #if defined(ASSERTS)
   HasCallStack =>
 #endif
-  ByteString -> Utf8ParseState -> (Int, Either Int Utf8ParseState)
-parseNextUtf8Chunk bs@(B.length -> len) st@(Utf8ParseState lead s)
+  ByteString -> Utf8ValidState -> (Int, Either Int Utf8ValidState)
+validateNextUtf8Chunk bs@(B.length -> len) st@(Utf8ValidState lead s)
   | len > 0 =
     let g pos s'
           -- first things first. let's try to get to the start of the next code point
           | isUtf8StateIsComplete s' =
             -- found the beginning of the next code point, hand this off to someone else
-            case parseUtf8Chunk $ B.drop pos bs of
+            case validateUtf8Chunk $ B.drop pos bs of
               (len', mS) -> (pos + len', case mS of Left p -> Left (p + pos); _ -> mS)
           -- code point is not complete yet
           -- walk the rest of the code point until error, complete, or no more data
@@ -341,26 +363,32 @@ parseNextUtf8Chunk bs@(B.length -> len) st@(Utf8ParseState lead s)
               -- keep going
               Just s'' -> g (pos + 1) s''
           -- no more data
-          | otherwise = (leadPos, Right $ Utf8ParseState (lead ++ [bs]) s')
+          | otherwise = (leadPos, Right $ Utf8ValidState (lead ++ [bs]) s')
     in g 0 s
   | otherwise = (leadPos, Right st)
     where leadPos = -(foldr (\ bs' len' -> len' + B.length bs') 0 lead)
 
+-- | Validated UTF-8 data to be converted into a 'Text' value.
 data TextDataStack = TextDataStack
-  { dataStack :: [Either Text ByteString]
+  { -- | Returns a list of 'Text' and UTF-8-valid 'ByteString' values.
+    dataStack :: [Either Text ByteString]
+    -- | Returns total number of UTF-8 valid bytes in the stack.
   , stackLen :: Int
   }
   deriving Show
 
+-- | Empty stack
 emptyStack :: TextDataStack
 emptyStack = TextDataStack [] 0
 
+-- | Push a text value onto the stack
 pushText :: Text -> TextDataStack -> TextDataStack
 pushText t@(Text _ _ tLen) tds@(TextDataStack stack sLen) =
   if tLen > 0
   then TextDataStack (Left t : stack) $ sLen + tLen
   else tds
 
+-- | Create a 'Text' value from the contents of a stack.
 stackToText ::
 #if defined(ASSERTS)
   HasCallStack =>
@@ -388,16 +416,17 @@ stackToText (TextDataStack stack sLen)
       pure $ Text arr 0 sLen
   | otherwise = empty
 
+-- | Decode a 'ByteString' in the context of what has been already been decoded.
 decodeNextUtf8Chunk ::
 #if defined(ASSERTS)
   HasCallStack =>
 #endif
   ByteString
-  -> Utf8ParseState
+  -> Utf8ValidState
   -> TextDataStack
-  -> ((Int, Either (Int, ByteString) Utf8ParseState), TextDataStack)
+  -> ((Int, Either (Int, ByteString) Utf8ValidState), TextDataStack)
 decodeNextUtf8Chunk bs s tds =
-  case parseNextUtf8Chunk bs s of
+  case validateNextUtf8Chunk bs s of
     (len, res) ->
       let stackedData'
             | len >= 0 =
@@ -406,7 +435,7 @@ decodeNextUtf8Chunk bs s tds =
                       if bLen > 0
                       then TextDataStack (Right bs' : stack) $ sLen + bLen
                       else tds'
-                      ) tds $ partialCodePoint s
+                      ) tds $ partialUtf8CodePoint s
               in
               if len > 0
               then TextDataStack (Right (B.take len bs) : stack') $ sLen' + len
@@ -420,36 +449,44 @@ decodeNextUtf8Chunk bs s tds =
         )
       , stackedData')
 
-decodeUtf8Chunk :: ByteString -> ((Int, Either (Int, ByteString) Utf8ParseState), TextDataStack)
-decodeUtf8Chunk bs = decodeNextUtf8Chunk bs startUtf8ParseState emptyStack
+-- | Decode a 'ByteString'.
+--
+-- @decodeUtf8Chunk bs = 'decodeNextUtf8Chunk' bs 'startUtf8ValidState' 'emptyStack'@
+decodeUtf8Chunk :: ByteString -> ((Int, Either (Int, ByteString) Utf8ValidState), TextDataStack)
+decodeUtf8Chunk bs = decodeNextUtf8Chunk bs startUtf8ValidState emptyStack
 
+-- | Call an error handler with the give 'String' message for each byte
+-- in given 'ByteString' and lead data in the given 'Utf8ValidState'
+-- value. The bytes are the positions from 'errStart' (inclusive) to
+-- 'errEnd' (exclusive). Any substite characters are pushed onto the
+-- supplied 'TextDataStack' argument.
 handleUtf8Err
   :: OnDecodeError
   -> String
   -> Int
   -> Int
-  -> Utf8ParseState
+  -> Utf8ValidState
   -> ByteString
   -> TextDataStack
   -> TextDataStack
-handleUtf8Err onErr errMsg len pos s bs tds =
+handleUtf8Err onErr errMsg errStart errEnd s bs tds =
   let h errPos errEndPos bss tds'
         | errPos < errEndPos =
           let errPos' = errPos + 1 in
           case bss of
-            bs'@(B.length -> len') : bss' ->
-              ( if errPos' < len'
+            bs'@(B.length -> len) : bss' ->
+              ( if errPos' < len
                 then h errPos' errEndPos bss
-                else h 0 (errEndPos - len') bss'
+                else h 0 (errEndPos - len) bss'
               ) $ case onErr errMsg . Just $ B.index bs' errPos of
                 Just c -> pushText (T.singleton c) tds'
                 Nothing -> tds'
             [] -> tds'
         | otherwise = tds'
   in
-  ( if len < 0
-    then h 0 (pos - len) $ partialCodePoint s ++ [B.take pos bs]
-    else h len pos [bs]
+  ( if errStart < 0
+    then h 0 (errEnd - errStart) $ partialUtf8CodePoint s ++ [B.take errEnd bs]
+    else h errStart errEnd [bs]
   ) tds
 
 invalidUtf8Msg :: String
@@ -470,7 +507,7 @@ decodeUtf8With onErr bs =
           ((len, eS), tds) ->
             let h msg pos s = handleUtf8Err onErr msg len pos s bs' tds in
             case eS of
-              Left (pos, bs'') -> g bs'' . decodeNextUtf8Chunk bs'' startUtf8ParseState $ h invalidUtf8Msg pos startUtf8ParseState
+              Left (pos, bs'') -> g bs'' . decodeNextUtf8Chunk bs'' startUtf8ValidState $ h invalidUtf8Msg pos startUtf8ValidState
               Right s -> stackToText $ h "Data.Text.Internal.Encoding: Incomplete UTF-8 code point" bLen s
   in
   g bs $ decodeUtf8Chunk bs
@@ -570,12 +607,12 @@ streamDecodeUtf8With onErr bs =
         case decodeNextUtf8Chunk bs' s tds of
           ((len, eS), tds') ->
             case eS of
-              Left (pos, bs'') -> g bs'' startUtf8ParseState $ handleUtf8Err onErr invalidUtf8Msg len pos s bs' tds'
-              Right s' -> let bss' = partialCodePoint s' in
+              Left (pos, bs'') -> g bs'' startUtf8ValidState $ handleUtf8Err onErr invalidUtf8Msg len pos s bs' tds'
+              Right s' -> let bss' = partialUtf8CodePoint s' in
                 Some (stackToText tds') (B.concat bss') $ \ bs'' ->
                   g bs'' s' emptyStack
   in
-  g bs startUtf8ParseState emptyStack
+  g bs startUtf8ValidState emptyStack
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text that is known
 -- to be valid.

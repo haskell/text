@@ -4,10 +4,22 @@
   allow decoding to be aborted on errors without the need to raise an
   `error` and `catch` it elsewhere:
   * `decodeAsciiPrefix`
+  * `TextDataStack`
+  * `dataStack`
+  * `stackLen`
+  * `emptyStack`
   * `decodeUtf8Chunk`
   * `decodeNextUtf8Chunk`
-  * `recoverFromUtf8Error`
-  * `outAvailableUtf8Text`
+  * `pushText`
+  * `stackToText`
+
+* Added functions to validate `ByteString`s that represent encoded text:
+  * `Utf8ValidState`
+  * `partialUtf8CodePoint`
+  * `utf8CodePointState`
+  * `validateUtf8Chunk`
+  * `validateNextUtf8Chunk`
+  * `startUtf8ValidState`
 
 ### 2.0.1
 
