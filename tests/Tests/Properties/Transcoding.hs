@@ -95,9 +95,9 @@ t_pn_utf8_2   = case E.validateUtf8Chunk (B.pack [0xF0]) of
 t_pn_utf8_3 = case E.validateUtf8Chunk $ B.pack [0xc2] of
   (len1, eS1) -> whenEqProp len1 0 $ case eS1 of
     Left _ -> counterexample (show eS1) False
-    Right s1 -> whenEqProp (E.partialCodePoint s1) [B.pack [0xc2]] $
-      if isUtf8StateIsComplete $ E.codePointState s1
-      then counterexample (show $ E.codePointState s1) False
+    Right s1 -> whenEqProp (E.partialUtf8CodePoint s1) [B.pack [0xc2]] $
+      if isUtf8StateIsComplete $ E.utf8CodePointState s1
+      then counterexample (show $ E.utf8CodePointState s1) False
       else case E.validateNextUtf8Chunk (B.pack [0x80, 0x80]) s1 of
         (len2, eS2) -> whenEqProp len2 1 $ eS2 === Left 2
 
@@ -281,9 +281,9 @@ t_decode_chunk = case E.decodeUtf8Chunk $ B.pack [0xc2] of
   ((len1, eS1), tds1) -> whenEqProp (len1, E.dataStack tds1, E.stackLen tds1) (0, [], 0) $
     case eS1 of
       Left _ -> counterexample (show eS1) False
-      Right s1 -> whenEqProp (E.partialCodePoint s1) [B.pack [0xc2]] $
-        if isUtf8StateIsComplete $ E.codePointState s1
-        then counterexample (show $ E.codePointState s1) False
+      Right s1 -> whenEqProp (E.partialUtf8CodePoint s1) [B.pack [0xc2]] $
+        if isUtf8StateIsComplete $ E.utf8CodePointState s1
+        then counterexample (show $ E.utf8CodePointState s1) False
         else case E.decodeNextUtf8Chunk (B.pack [0x80, 0x80]) s1 tds1 of
           ((len2, eS2), tds2) -> whenEqProp (len2, E.dataStack tds2, E.stackLen tds2) (1, [Right $ B.pack [0x80], Right $ B.pack [0xc2]], 2) $
             case eS2 of
