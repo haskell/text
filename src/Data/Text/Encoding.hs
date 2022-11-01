@@ -388,7 +388,7 @@ pushText t@(Text _ _ tLen) tds@(TextDataStack stack sLen) =
   then TextDataStack (Left t : stack) $ sLen + tLen
   else tds
 
--- | Create a 'Text' value from the contents of a stack.
+-- | Create a 'Text' value from the contents of a 'TextDataStack'.
 stackToText ::
 #if defined(ASSERTS)
   HasCallStack =>
@@ -417,6 +417,14 @@ stackToText (TextDataStack stack sLen)
   | otherwise = empty
 
 -- | Decode a 'ByteString' in the context of what has been already been decoded.
+--
+-- The 'ByteString' is validated against the 'Utf8ValidState' using the rules
+-- governing 'validateNextUtf8Chunk'. The longest valid UTF-8 prefix is added
+-- to the input 'TextDataStack' which is returned with the end position of the
+-- valid prefix, and either the resulting 'Utf8ValidState'
+-- (@Right Utf8ValidState@) or the position of the of the first (potentially)
+-- valid byte after the invalid bytes with remainder of the 'ByteString'
+-- (@Left (Int, ByteString)@).
 decodeNextUtf8Chunk ::
 #if defined(ASSERTS)
   HasCallStack =>
@@ -447,9 +455,11 @@ decodeNextUtf8Chunk bs s tds =
             Left pos -> Left (pos, B.drop pos bs)
             Right s' -> Right s'
         )
-      , stackedData')
+      , stackedData'
+      )
 
--- | Decode a 'ByteString'.
+-- | Decode a 'ByteString' against a start 'Utf8ValidState' with an empty
+-- 'TextDataStack'.
 --
 -- @decodeUtf8Chunk bs = 'decodeNextUtf8Chunk' bs 'startUtf8ValidState' 'emptyStack'@
 decodeUtf8Chunk :: ByteString -> ((Int, Either (Int, ByteString) Utf8ValidState), TextDataStack)
