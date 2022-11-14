@@ -193,7 +193,7 @@ decodeAsciiPrefix bs = if B.null bs
 decodeASCII :: ByteString -> Text
 decodeASCII bs =
   case decodeAsciiPrefix bs of
-    (_, Just errPos) -> error $ "decodeASCII: detected non-ASCII codepoint at " ++ show errPos
+    (_, Just (word, errPos)) -> error $ "decodeASCII: detected non-ASCII codepoint " ++ show word ++ " at position " ++ show errPos
     (t, Nothing) -> t
 
 -- | Decode a 'ByteString' containing Latin-1 (aka ISO-8859-1) encoded text.
@@ -306,7 +306,7 @@ validateUtf8Chunk bs@(B.length -> len)
   = validateUtf8 0 0 utf8StartState
     where
 #endif
-      validateUtf8 ndx0 ndx s
+      validateUtf8 !ndx0 ndx s
         | ndx < len =
           let ndx' = ndx + 1 in
           case updateUtf8State (B.index bs ndx) s of
