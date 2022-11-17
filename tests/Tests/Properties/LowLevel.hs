@@ -13,6 +13,7 @@
 
 module Tests.Properties.LowLevel (testLowLevel) where
 
+import Prelude hiding (head, tail)
 import Control.Applicative ((<$>), pure)
 import Control.Exception as E (SomeException, catch, evaluate)
 import Data.Int (Int32, Int64)
@@ -101,9 +102,9 @@ t_literal_foo = T.pack "foo"
 t_write_read = write_read T.unlines T.filter T.hPutStr T.hGetContents
 tl_write_read = write_read TL.unlines TL.filter TL.hPutStr TL.hGetContents
 
-t_write_read_line m b t = write_read head T.filter T.hPutStrLn
+t_write_read_line m b t = write_read (T.concat . take 1) T.filter T.hPutStrLn
                             T.hGetLine m b [t]
-tl_write_read_line m b t = write_read head TL.filter TL.hPutStrLn
+tl_write_read_line m b t = write_read (TL.concat . take 1) TL.filter TL.hPutStrLn
                              TL.hGetLine m b [t]
 
 

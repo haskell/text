@@ -7,6 +7,7 @@ module Tests.Properties.Substrings
     ( testSubstrings
     ) where
 
+import Prelude hiding (head, tail)
 import Control.Monad.Trans.State (State, state, runState)
 import Data.Char (isSpace)
 import Test.QuickCheck
@@ -218,9 +219,10 @@ tl_split (applyFun -> p) = split p `eqP` (map unpackS . TL.split p)
 split :: (a -> Bool) -> [a] -> [[a]]
 split _ [] =  [[]]
 split p xs = loop xs
-    where loop s | null s'   = [l]
-                 | otherwise = l : loop (tail s')
-              where (l, s') = break p s
+  where
+    loop s = case break p s of
+      (l, []) -> [l]
+      (l, _ : s') -> l : loop s'
 
 t_chunksOf_same_lengths k = conjoin . map ((===k) . T.length) . ini . T.chunksOf k
   where ini [] = []
@@ -237,7 +239,9 @@ tl_lines          = L.lines       `eqP` (map unpackS . TL.lines)
 t_lines_spacy     = (L.lines      `eqP` (map unpackS . T.lines))  . getSpacyString
 tl_lines_spacy    = (L.lines      `eqP` (map unpackS . TL.lines)) . getSpacyString
 
-tl_lines_laziness = TL.head (head (TL.lines (TL.replicate 1000000000000000 (TL.singleton 'a')))) === 'a'
+tl_lines_laziness = case TL.lines (TL.replicate 1000000000000000 (TL.singleton 'a')) of
+  [] -> property False
+  hd : _ -> TL.head hd === 'a'
 
 tl_lines_specialCase = TL.lines (TL.Chunk (T.pack "foo") $ TL.Chunk (T.pack "bar\nbaz\n") $ TL.Empty) === [TL.pack "foobar", TL.pack "baz"]
 

@@ -6,6 +6,7 @@ module Tests.Properties.Transcoding
     ( testTranscoding
     ) where
 
+import Prelude hiding (head, tail)
 import Data.Bits ((.&.), shiftR)
 import Data.Char (chr, ord)
 import Test.QuickCheck hiding ((.&.))
@@ -82,7 +83,7 @@ feedChunksOf n f bs
 t_utf8_undecoded t =
   let b = E.encodeUtf8 t
       ls = concatMap (leftover . E.encodeUtf8 . T.singleton) . T.unpack $ t
-      leftover = (++ [B.empty]) . init . tail . B.inits
+      leftover = (++ [B.empty]) . init . drop 1 . B.inits
   in (map snd . feedChunksOf 1 E.streamDecodeUtf8) b === ls
 
 data InvalidUtf8 = InvalidUtf8

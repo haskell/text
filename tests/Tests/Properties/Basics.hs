@@ -2,7 +2,9 @@
 
 {-# LANGUAGE ViewPatterns #-}
 
-{-# OPTIONS_GHC -fno-warn-missing-signatures #-}
+{-# OPTIONS_GHC -Wno-missing-signatures    #-}
+{-# OPTIONS_GHC -Wno-warnings-deprecations #-}
+
 module Tests.Properties.Basics
     ( testBasics
     ) where
