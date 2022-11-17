@@ -15,10 +15,11 @@ module Arsec
     , module Text.ParserCombinators.Parsec.Prim
     ) where
 
+import Prelude hiding (head, tail)
 import Control.Monad
 import Control.Applicative
 import Data.Char
-import Numeric
+import Numeric (readHex, showHex)
 import Text.ParserCombinators.Parsec.Char hiding (lower, upper)
 import Text.ParserCombinators.Parsec.Combinator hiding (optional)
 import Text.ParserCombinators.Parsec.Error
@@ -27,7 +28,11 @@ import Text.ParserCombinators.Parsec.Prim hiding ((<|>), many)
 type Comment = String
 
 unichar :: Parser Char
-unichar = chr . fst . head . readHex <$> many1 hexDigit
+unichar = do
+  digits <- many1 hexDigit
+  case readHex digits of
+    [] -> error "unichar: cannot parse hex digits"
+    (hd, _) : _ -> pure $ chr hd
 
 unichars :: Parser [Char]
 unichars = manyTill (unichar <* spaces) semi
