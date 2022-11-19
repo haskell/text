@@ -225,7 +225,7 @@ import Control.Monad (foldM)
 import Control.Monad.ST (ST, runST)
 import Control.Monad.ST.Unsafe (unsafeIOToST)
 import qualified Data.Text.Array as A
-import qualified Data.List as L
+import qualified Data.List as L hiding (head, tail)
 import Data.Binary (Binary(get, put))
 import Data.Monoid (Monoid(..))
 import Data.Semigroup (Semigroup(..))
