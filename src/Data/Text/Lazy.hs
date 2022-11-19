@@ -210,7 +210,7 @@ import Control.Arrow (first)
 import Control.DeepSeq (NFData(..))
 import Data.Bits (finiteBitSize)
 import Data.Int (Int64)
-import qualified Data.List as L
+import qualified Data.List as L hiding (head, tail)
 import Data.Char (isSpace)
 import Data.Data (Data(gfoldl, toConstr, gunfold, dataTypeOf), constrIndex,
                   Constr, mkConstr, DataType, mkDataType, Fixity(Prefix))
@@ -1405,7 +1405,7 @@ groupBy eq (Chunk t ts) = cons x ys : groupBy eq zs
 inits :: Text -> [Text]
 inits = (Empty :) . inits'
   where inits' Empty        = []
-        inits' (Chunk t ts) = L.map (\t' -> Chunk t' Empty) (L.tail (T.inits t))
+        inits' (Chunk t ts) = L.map (\t' -> Chunk t' Empty) (L.drop 1 (T.inits t))
                            ++ L.map (Chunk t) (inits' ts)
 
 -- | /O(n)/ Return all final segments of the given 'Text', longest
