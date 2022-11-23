@@ -123,7 +123,7 @@ module Data.Text.Internal.Fusion.Common
 import Prelude (Bool(..), Char, Eq, (==), Int, Integral, Maybe(..),
                 Ord(..), Ordering(..), String, (.), ($), (+), (-), (*), (++),
                 (&&), fromIntegral, otherwise)
-import qualified Data.List as L
+import qualified Data.List as L hiding (head, tail)
 import qualified Prelude as P
 import Data.Bits (shiftL, shiftR, (.&.))
 import Data.Char (isLetter, isSpace)
