@@ -1,9 +1,35 @@
-freebsd_instance:
-  image_family: freebsd-13-1
-
 task:
+  name: FreeBSD
+  freebsd_instance:
+    image_family: freebsd-13-1
   # See https://github.com/haskell/text/pull/475#issuecomment-1272359694
   install_script: pkg install -y ghc hs-cabal-install git llvm14
   script:
     - cabal update
     - cabal test --test-show-details=direct --ghc-options='-pgmc clang++14'
+
+task:
+  name: OpenBSD
+  compute_engine_instance:
+    image_project: pg-ci-images
+    image: family/pg-ci-openbsd-vanilla-7-2
+    platform: openbsd
+  install_script: pkg_add ghc cabal-install git
+  script:
+    - export CABAL_DIR=/tmp/.cabal
+    - cabal update
+    - cabal test --test-show-details=direct
+
+task:
+  name: NetBSD
+  compute_engine_instance:
+    image_project: pg-ci-images
+    image: family/pg-ci-netbsd-vanilla-9-2
+    platform: netbsd
+  install_script:
+    - export PKG_PATH="http://cdn.NetBSD.org/pub/pkgsrc/packages/NetBSD/$(uname -p)/$(uname -r|cut -f '1 2' -d.)/All/"
+    - pkg_add ghc cabal-install git libcxx libcxxabi
+  script:
+    - export CABAL_DIR=/tmp/.cabal
+    - cabal update
+    - cabal test --test-show-details=direct
