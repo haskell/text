@@ -59,9 +59,9 @@ import qualified Data.Text.Array as A
 
 -- | A space efficient, packed, unboxed Unicode text type.
 data Text = Text
-    {-# UNPACK #-} !A.Array -- bytearray encoded as UTF-8
-    {-# UNPACK #-} !Int     -- offset in bytes (not in Char!), pointing to a start of UTF-8 sequence
-    {-# UNPACK #-} !Int     -- length in bytes (not in Char!), pointing to an end of UTF-8 sequence
+    {-# UNPACK #-} !A.Array -- ^ bytearray encoded as UTF-8
+    {-# UNPACK #-} !Int     -- ^ offset in bytes (not in Char!), pointing to a start of UTF-8 sequence
+    {-# UNPACK #-} !Int     -- ^ length in bytes (not in Char!), pointing to an end of UTF-8 sequence
     deriving (Typeable)
 
 -- | Smart constructor.
