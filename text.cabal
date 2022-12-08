@@ -132,6 +132,11 @@ library
   if (arch(aarch64) || arch(arm)) && impl(ghc == 9.2.1)
     build-depends: base < 0
 
+  -- NetBSD + GHC 9.2.1 + TH + C++ does not work together.
+  -- https://gitlab.haskell.org/ghc/ghc/-/issues/22577
+  if flag(simdutf) && os(netbsd) && impl(ghc < 9.4)
+    build-depends: base < 0
+
   exposed-modules:
     Data.Text
     Data.Text.Array

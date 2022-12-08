@@ -32,4 +32,4 @@ task:
   script:
     - export CABAL_DIR=/tmp/.cabal
     - cabal update
-    - cabal test --test-show-details=direct
+    - cabal test -f-simdutf --test-show-details=direct
