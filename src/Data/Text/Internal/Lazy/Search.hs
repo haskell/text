@@ -32,7 +32,6 @@ import qualified Data.Text.Internal as T
 import qualified Data.Text as T (concat, isPrefixOf)
 import Data.Text.Internal.Fusion.Types (PairS(..))
 import Data.Text.Internal.Lazy (Text(..), foldrChunks)
-import Data.Text.Unsafe (unsafeDupablePerformIO)
 import Data.Bits ((.|.), (.&.))
 import Foreign.C.Types
 import GHC.Exts (ByteArray#)

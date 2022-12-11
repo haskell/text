@@ -37,7 +37,6 @@ import qualified Data.Text.Array as A
 import Data.Word (Word64, Word8)
 import Data.Text.Internal (Text(..))
 import Data.Bits ((.|.), (.&.), unsafeShiftL)
-import Data.Text.Unsafe (unsafeDupablePerformIO)
 import Foreign.C.Types
 import GHC.Exts (ByteArray#)
 import System.Posix.Types (CSsize(..))

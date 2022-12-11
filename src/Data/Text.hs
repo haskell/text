@@ -242,7 +242,7 @@ import Data.Text.Internal.Unsafe.Char (unsafeWrite, unsafeChr8)
 import Data.Text.Show (singleton, unpack, unpackCString#, unpackCStringAscii#)
 import qualified Prelude as P
 import Data.Text.Unsafe (Iter(..), iter, iter_, lengthWord8, reverseIter,
-                         reverseIter_, unsafeHead, unsafeTail, unsafeDupablePerformIO, iterArray, reverseIterArray)
+                         reverseIter_, unsafeHead, unsafeTail, iterArray, reverseIterArray)
 import Data.Text.Foreign (asForeignPtr)
 import Data.Text.Internal.Search (indices)
 #if defined(__HADDOCK__)
@@ -413,7 +413,7 @@ instance Data Text where
 instance TH.Lift Text where
 #if MIN_VERSION_template_haskell(2,16,0)
   lift txt = do
-    let (ptr, len) = unsafePerformIO $ asForeignPtr txt 
+    let (ptr, len) = unsafePerformIO $ asForeignPtr txt
     let lenInt = P.fromIntegral len
     TH.appE (TH.appE (TH.varE 'unpackCStringLen#) (TH.litE . TH.bytesPrimL $ TH.mkBytes ptr 0 lenInt)) (TH.lift lenInt)
 #else
