@@ -53,7 +53,6 @@ module Data.Text.Array
 import GHC.Stack (HasCallStack)
 #endif
 #if !MIN_VERSION_base(4,11,0)
-import Data.Text.Internal.Unsafe (inlinePerformIO)
 import Foreign.C.Types (CInt(..))
 #endif
 import GHC.Exts hiding (toList)
@@ -322,9 +321,9 @@ compareInternal (ByteArray src1#) (I# off1#) (ByteArray src2#) (I# off2#) (I# co
 #if MIN_VERSION_base(4,11,0)
     i = I# (compareByteArrays# src1# off1# src2# off2# count#)
 #else
-    i = fromIntegral (inlinePerformIO (memcmp src1# off1# src2# off2# count#))
+    i = fromIntegral (memcmp src1# off1# src2# off2# count#)
 
 foreign import ccall unsafe "_hs_text_memcmp2" memcmp
-    :: ByteArray# -> Int# -> ByteArray# -> Int# -> Int# -> IO CInt
+    :: ByteArray# -> Int# -> ByteArray# -> Int# -> Int# -> CInt
 #endif
 {-# INLINE compareInternal #-}

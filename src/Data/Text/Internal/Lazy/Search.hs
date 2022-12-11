@@ -66,7 +66,7 @@ indices needle
          c = index xxs (i + nlast)
          delta | nextInPattern = nlen + 1
                | c == z        = skip + 1
-               | l >= i + nlen = case unsafeDupablePerformIO $
+               | l >= i + nlen = case
                   memchr xarr# (intToCSize (xoff + i + nlen)) (intToCSize (l - i - nlen)) z of
                     -1 -> max 1 (l - i - nlen)
                     s  -> cSsizeToInt s + 1
@@ -142,4 +142,4 @@ cSsizeToInt :: CSsize -> Int
 cSsizeToInt = fromIntegral
 
 foreign import ccall unsafe "_hs_text_memchr" memchr
-    :: ByteArray# -> CSize -> CSize -> Word8 -> IO CSsize
+    :: ByteArray# -> CSize -> CSize -> Word8 -> CSsize

@@ -88,7 +88,7 @@ indices' (Text narr noff nlen) (Text harr@(A.ByteArray harr#) hoff hlen) = loop 
       | mask .&. swizzle (A.unsafeIndex harr i) == 0
       = loop (i + nlen + 1)
       | otherwise
-      = case unsafeDupablePerformIO $ memchr harr# (intToCSize i) (intToCSize (hlen + hoff - i)) z of
+      = case memchr harr# (intToCSize i) (intToCSize (hlen + hoff - i)) z of
         -1 -> []
         x  -> loop (i + cSsizeToInt x + 1)
 {-# INLINE indices' #-}
@@ -112,4 +112,4 @@ cSsizeToInt :: CSsize -> Int
 cSsizeToInt = fromIntegral
 
 foreign import ccall unsafe "_hs_text_memchr" memchr
-    :: ByteArray# -> CSize -> CSize -> Word8 -> IO CSsize
+    :: ByteArray# -> CSize -> CSize -> Word8 -> CSsize
