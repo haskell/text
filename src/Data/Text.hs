@@ -243,7 +243,6 @@ import Data.Text.Show (singleton, unpack, unpackCString#, unpackCStringAscii#)
 import qualified Prelude as P
 import Data.Text.Unsafe (Iter(..), iter, iter_, lengthWord8, reverseIter,
                          reverseIter_, unsafeHead, unsafeTail, iterArray, reverseIterArray)
-import Data.Text.Foreign (asForeignPtr)
 import Data.Text.Internal.Search (indices)
 #if defined(__HADDOCK__)
 import Data.ByteString (ByteString)
@@ -259,7 +258,11 @@ import qualified Language.Haskell.TH.Lib as TH
 import qualified Language.Haskell.TH.Syntax as TH
 import Text.Printf (PrintfArg, formatArg, formatString)
 import System.Posix.Types (CSsize(..))
+
+#if MIN_VERSION_template_haskell(2,16,0)
+import Data.Text.Foreign (asForeignPtr)
 import System.IO.Unsafe (unsafePerformIO)
+#endif
 
 -- $setup
 -- >>> :set -package transformers
@@ -425,6 +428,7 @@ instance TH.Lift Text where
   liftTyped = TH.unsafeTExpCoerce . TH.lift
 #endif
 
+#if MIN_VERSION_template_haskell(2,16,0)
 unpackCStringLen# :: Exts.Addr# -> Int -> Text
 unpackCStringLen# addr# l = Text ba 0 l
   where
@@ -433,6 +437,7 @@ unpackCStringLen# addr# l = Text ba 0 l
       A.copyFromPointer marr 0 (Exts.Ptr addr#) l
       A.unsafeFreeze marr
 {-# NOINLINE unpackCStringLen# #-} -- set as NOINLINE to avoid generated code bloat
+#endif
 
 -- | @since 1.2.2.0
 instance PrintfArg Text where
