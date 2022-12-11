@@ -33,7 +33,6 @@ import GHC.Word (Word8(..))
 import qualified Data.Text.Array as A
 import qualified Data.Text.Internal.Fusion.Common as S
 #if !MIN_VERSION_ghc_prim(0,7,0)
-import Data.Text.Internal.Unsafe (inlinePerformIO)
 import Foreign.C.String (CString)
 import Foreign.C.Types (CSize(..))
 #endif
@@ -112,9 +111,9 @@ addrLen :: Addr# -> Int
 #if MIN_VERSION_ghc_prim(0,7,0)
 addrLen addr# = I# (GHC.cstringLength# addr#)
 #else
-addrLen addr# = fromIntegral (inlinePerformIO (c_strlen (Ptr addr#)))
+addrLen addr# = fromIntegral (c_strlen (Ptr addr#))
 
-foreign import capi unsafe "string.h strlen" c_strlen :: CString -> IO CSize
+foreign import capi unsafe "string.h strlen" c_strlen :: CString -> CSize
 #endif
 
 {-# RULES "TEXT literal" forall a.
