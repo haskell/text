@@ -32,7 +32,6 @@ import qualified Data.Text.Internal as T
 import qualified Data.Text as T (concat, isPrefixOf)
 import Data.Text.Internal.Fusion.Types (PairS(..))
 import Data.Text.Internal.Lazy (Text(..), foldrChunks)
-import Data.Text.Unsafe (unsafeDupablePerformIO)
 import Data.Bits ((.|.), (.&.))
 import Foreign.C.Types
 import GHC.Exts (ByteArray#)
@@ -66,7 +65,7 @@ indices needle
          c = index xxs (i + nlast)
          delta | nextInPattern = nlen + 1
                | c == z        = skip + 1
-               | l >= i + nlen = case unsafeDupablePerformIO $
+               | l >= i + nlen = case
                   memchr xarr# (intToCSize (xoff + i + nlen)) (intToCSize (l - i - nlen)) z of
                     -1 -> max 1 (l - i - nlen)
                     s  -> cSsizeToInt s + 1
@@ -142,4 +141,4 @@ cSsizeToInt :: CSsize -> Int
 cSsizeToInt = fromIntegral
 
 foreign import ccall unsafe "_hs_text_memchr" memchr
-    :: ByteArray# -> CSize -> CSize -> Word8 -> IO CSsize
+    :: ByteArray# -> CSize -> CSize -> Word8 -> CSsize

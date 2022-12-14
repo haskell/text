@@ -242,8 +242,7 @@ import Data.Text.Internal.Unsafe.Char (unsafeWrite, unsafeChr8)
 import Data.Text.Show (singleton, unpack, unpackCString#, unpackCStringAscii#)
 import qualified Prelude as P
 import Data.Text.Unsafe (Iter(..), iter, iter_, lengthWord8, reverseIter,
-                         reverseIter_, unsafeHead, unsafeTail, unsafeDupablePerformIO, iterArray, reverseIterArray)
-import Data.Text.Foreign (asForeignPtr)
+                         reverseIter_, unsafeHead, unsafeTail, iterArray, reverseIterArray)
 import Data.Text.Internal.Search (indices)
 #if defined(__HADDOCK__)
 import Data.ByteString (ByteString)
@@ -259,7 +258,11 @@ import qualified Language.Haskell.TH.Lib as TH
 import qualified Language.Haskell.TH.Syntax as TH
 import Text.Printf (PrintfArg, formatArg, formatString)
 import System.Posix.Types (CSsize(..))
+
+#if MIN_VERSION_template_haskell(2,16,0)
+import Data.Text.Foreign (asForeignPtr)
 import System.IO.Unsafe (unsafePerformIO)
+#endif
 
 -- $setup
 -- >>> :set -package transformers
@@ -413,7 +416,7 @@ instance Data Text where
 instance TH.Lift Text where
 #if MIN_VERSION_template_haskell(2,16,0)
   lift txt = do
-    let (ptr, len) = unsafePerformIO $ asForeignPtr txt 
+    let (ptr, len) = unsafePerformIO $ asForeignPtr txt
     let lenInt = P.fromIntegral len
     TH.appE (TH.appE (TH.varE 'unpackCStringLen#) (TH.litE . TH.bytesPrimL $ TH.mkBytes ptr 0 lenInt)) (TH.lift lenInt)
 #else
@@ -425,6 +428,7 @@ instance TH.Lift Text where
   liftTyped = TH.unsafeTExpCoerce . TH.lift
 #endif
 
+#if MIN_VERSION_template_haskell(2,16,0)
 unpackCStringLen# :: Exts.Addr# -> Int -> Text
 unpackCStringLen# addr# l = Text ba 0 l
   where
@@ -433,6 +437,7 @@ unpackCStringLen# addr# l = Text ba 0 l
       A.copyFromPointer marr 0 (Exts.Ptr addr#) l
       A.unsafeFreeze marr
 {-# NOINLINE unpackCStringLen# #-} -- set as NOINLINE to avoid generated code bloat
+#endif
 
 -- | @since 1.2.2.0
 instance PrintfArg Text where
@@ -1371,13 +1376,13 @@ take n t@(Text arr off len)
 -- @since 2.0
 measureOff :: Int -> Text -> Int
 measureOff !n (Text (A.ByteArray arr) off len) = if len == 0 then 0 else
-  cSsizeToInt $ unsafeDupablePerformIO $
+  cSsizeToInt $
     c_measure_off arr (intToCSize off) (intToCSize len) (intToCSize n)
 
 -- | The input buffer (arr :: ByteArray#, off :: CSize, len :: CSize)
 -- must specify a valid UTF-8 sequence, this condition is not checked.
 foreign import ccall unsafe "_hs_text_measure_off" c_measure_off
-    :: ByteArray# -> CSize -> CSize -> CSize -> IO CSsize
+    :: ByteArray# -> CSize -> CSize -> CSize -> CSsize
 
 -- | /O(n)/ 'takeEnd' @n@ @t@ returns the suffix remaining after
 -- taking @n@ characters from the end of @t@.
@@ -2018,12 +2023,12 @@ lines (Text arr@(A.ByteArray arr#) off len) = go off
       | delta < 0 = [Text arr n (len + off - n)]
       | otherwise = Text arr n delta : go (n + delta + 1)
       where
-        delta = cSsizeToInt $ unsafeDupablePerformIO $
+        delta = cSsizeToInt $
           memchr arr# (intToCSize n) (intToCSize (len + off - n)) 0x0A
 {-# INLINE lines #-}
 
 foreign import ccall unsafe "_hs_text_memchr" memchr
-    :: ByteArray# -> CSize -> CSize -> Word8 -> IO CSsize
+    :: ByteArray# -> CSize -> CSize -> Word8 -> CSsize
 
 -- | /O(n)/ Joins lines, after appending a terminating newline to
 -- each.

@@ -63,19 +63,16 @@ jobs:
             compilerVersion: 8.4.4
             setup-method: ghcup
             allow-failure: false
-            run-haddock: false
           - compiler: ghc-8.2.2
             compilerKind: ghc
             compilerVersion: 8.2.2
             setup-method: ghcup
             allow-failure: false
-            run-haddock: false
           - compiler: ghc-8.0.2
             compilerKind: ghc
             compilerVersion: 8.0.2
             setup-method: ghcup
             allow-failure: false
-            run-haddock: false
       fail-fast: false
     steps:
       - name: apt
@@ -231,9 +228,8 @@ jobs:
           cd ${PKGDIR_text} || false
           ${CABAL} -vnormal check
       - name: haddock
-        if: ${{ matrix.run_haddock != false }}
         run: |
-          $CABAL v2-haddock --haddock-all $ARG_COMPILER --with-haddock $HADDOCK $ARG_TESTS $ARG_BENCH all
+          if [ $((HCNUMVER >= 80600)) -ne 0 ] ; then $CABAL v2-haddock --haddock-all $ARG_COMPILER --with-haddock $HADDOCK $ARG_TESTS $ARG_BENCH all ; fi
       - name: unconstrained build
         run: |
           rm -f cabal.project.local
