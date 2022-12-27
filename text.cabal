@@ -85,6 +85,7 @@ library
   hs-source-dirs: src
 
   if flag(simdutf)
+    exposed-modules: Data.Text.Internal.Validate.Simd
     include-dirs: simdutf
     cxx-sources: simdutf/simdutf.cpp
                  cbits/validate_utf8.cpp
@@ -136,6 +137,10 @@ library
   if flag(simdutf) && os(netbsd) && impl(ghc < 9.4)
     build-depends: base < 0
 
+  -- Before GHC 9.4, Data.Array.Byte is not in base
+  if impl(ghc < 9.4)
+    build-depends: data-array-byte >= 0.1.0.1
+
   exposed-modules:
     Data.Text
     Data.Text.Array
@@ -173,6 +178,7 @@ library
     Data.Text.Internal.StrictBuilder
     Data.Text.Internal.Unsafe
     Data.Text.Internal.Unsafe.Char
+    Data.Text.Internal.Validate
     Data.Text.Lazy
     Data.Text.Lazy.Builder
     Data.Text.Lazy.Builder.Int
