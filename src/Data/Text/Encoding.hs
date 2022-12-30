@@ -338,7 +338,7 @@ validateUtf8Chunk bs@(B.length -> len)
 --       (potentially valid) code point begins, so that @p - n@ is the
 --       number of invalid bytes, or
 --     * (@Right s'@) is valid, and all of the remaining bytes starting
---       at inbex 'n' are the beginning of an incomplete UTF-8 code
+--       at index 'n' are the beginning of an incomplete UTF-8 code
 --       point, and `s'` is the resulting 'Utf8ValidState' value, which
 --       can be used to validate against a following 'ByteString'.
 validateNextUtf8Chunk ::
