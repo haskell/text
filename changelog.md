@@ -1,3 +1,7 @@
+### Unreleased
+
+* Remove support for GHC 8.0.
+
 ### 2.0.1
 
 * Improve portability of C and C++ code.
