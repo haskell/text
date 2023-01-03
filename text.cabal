@@ -46,7 +46,6 @@ copyright:      2009-2011 Bryan O'Sullivan, 2008-2009 Tom Harper, 2021 Andrew Le
 category:       Data, Text
 build-type:     Simple
 tested-with:
-    GHC == 8.0.2
     GHC == 8.2.2
     GHC == 8.4.4
     GHC == 8.6.5
@@ -117,7 +116,7 @@ library
 
   -- Certain version of GHC crash on Windows, when TemplateHaskell encounters C++.
   -- https://gitlab.haskell.org/ghc/ghc/-/issues/19417
-  if flag(simdutf) && os(windows) && impl(ghc == 8.0.1 || >= 8.8 && < 8.10.5 || == 9.0.1)
+  if flag(simdutf) && os(windows) && impl(ghc >= 8.8 && < 8.10.5 || == 9.0.1)
     build-depends: base < 0
 
   -- For GHC 8.2, 8.6.3 and 8.10.1 even TH + C crash Windows linker.
@@ -187,7 +186,7 @@ library
 
   build-depends:
     array            >= 0.3 && < 0.6,
-    base             >= 4.9 && < 5,
+    base             >= 4.10 && < 5,
     binary           >= 0.5 && < 0.9,
     bytestring       >= 0.10.4 && < 0.12,
     deepseq          >= 1.1 && < 1.5,
@@ -266,9 +265,9 @@ test-suite tests
     transformers,
     text
 
-  -- Plugin infrastructure does not work properly in 8.0.1 and 8.6.1, and
+  -- Plugin infrastructure does not work properly in 8.6.1, and
   -- ghc-9.2.1 library depends on parsec, which causes a circular dependency.
-  if impl(ghc >= 8.0.2 && < 8.6 || >= 8.6.2 && < 9.2 || >= 9.2.2)
+  if impl(ghc >= 8.2.1 && < 8.6 || >= 8.6.2 && < 9.2 || >= 9.2.2)
     build-depends: tasty-inspection-testing
 
   default-language: Haskell2010

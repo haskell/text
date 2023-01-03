@@ -1,3 +1,7 @@
+### Unreleased
+
+* Remove support for GHC 8.0.
+
 ### 2.0.2
 
 * A suite of functions have been added in `Data.Text.Encoding` that

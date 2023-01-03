@@ -1,4 +1,4 @@
-ghcup-jobs: >=8.0
+ghcup-jobs: >=8.2
 docspec: True
 docspec-options: --timeout 2
 haddock: >=8.6

@@ -132,10 +132,7 @@ testLowLevel =
         [ (`hasNoTypes` [''Char, ''[]])
         , (`doesNotUseAnyOf` ['T.pack, 'S.unstream, 'T.map, 'safe, 'S.streamList])
         , (`doesNotUseAnyOf` ['GHC.unpackCString#, 'GHC.unpackCStringUtf8#])
-#if MIN_VERSION_base(4,10,0)
-        -- skip this test for GHC 8.0
         , (`doesNotUseAnyOf` ['T.unpackCString#, 'T.unpackCStringAscii#])
-#endif
         ]
         't_literal_foo)
 #endif
