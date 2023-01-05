@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        arch: ['s390x', 'ppc64le']
+        arch: ['s390x', 'ppc64le', 'armv7', 'aarch64']
     steps:
     - uses: actions/checkout@v2
     - uses: uraimo/run-on-arch-action@v2.1.1
