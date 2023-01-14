@@ -27,10 +27,7 @@ module Tests.QuickCheckUtils
     , eqPSqrt
 
     , write_read
-<<<<<<< HEAD
-=======
 
->>>>>>> 06137ca (move test utility function whenEqProp)
     , whenEqProp
     ) where
 
