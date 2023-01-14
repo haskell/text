@@ -16,6 +16,8 @@
 * Added functions to validate `ByteString`s that represent encoded text:
   * `Utf8ValidState`
   * `partialUtf8CodePoint`
+  * `partUtf8CPLen`
+  * `wordAtPartUft8CP`
   * `utf8CodePointState`
   * `validateUtf8Chunk`
   * `validateNextUtf8Chunk`

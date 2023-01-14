@@ -2,10 +2,12 @@
 
 {-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
+{-# LANGUAGE BangPatterns #-}
 module Tests.Properties.Transcoding
     ( testTranscoding
     ) where
 
+-- import Debug.Trace (trace)
 import Prelude hiding (head, tail)
 import Data.Bits ((.&.), shiftR)
 import Data.Char (chr, ord)
@@ -29,6 +31,8 @@ import qualified Data.Text.Encoding.Error as E
 import Data.Text.Internal.Encoding.Utf8 (isUtf8StateIsComplete)
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as EL
+-- import qualified Data.Text.Internal.Lazy as BL
+-- import qualified Data.ByteString.Lazy.Internal as BS
 
 t_ascii t    = E.decodeASCII (E.encodeUtf8 a) === a
     where a  = T.map (\c -> chr (ord c `mod` 128)) t
@@ -96,7 +100,7 @@ t_pn_utf8_2   = case E.validateUtf8Chunk (B.pack [0xF0]) of
 t_pn_utf8_3 = case E.validateUtf8Chunk $ B.pack [0xc2] of
   (len1, eS1) -> whenEqProp len1 0 $ case eS1 of
     Left _ -> counterexample (show eS1) False
-    Right s1 -> whenEqProp (E.partialUtf8CodePoint s1) [B.pack [0xc2]] $
+    Right s1 -> whenEqProp (E.partialUtf8CodePoint s1) 0x01c20000 $
       if isUtf8StateIsComplete $ E.utf8CodePointState s1
       then counterexample (show $ E.utf8CodePointState s1) False
       else case E.validateNextUtf8Chunk (B.pack [0x80, 0x80]) s1 of
@@ -245,6 +249,11 @@ t_decode_utf8_lenient :: Property
 t_decode_utf8_lenient = forAllShrinkShow arbitrary shrink (show . BL.toChunks) $ \bs ->
     decodeLL bs === (TL.fromStrict . decodeL . B.concat . BL.toChunks) bs
 
+-- t_decode_utf8_lenient =
+--   let !res = trace "HEREHEREHERE" $
+--         EL.decodeUtf8With E.lenientDecode (BS.Chunk (B.pack [0xe1]) (BS.Chunk (B.pack [0xa0]) BS.Empty)) === TL.fromStrict (T.pack "\xFFFD\xFFFD") in
+--   trace "THERETHERETHERE" res
+
 -- See http://unicode.org/faq/utf_bom.html#gen8
 -- A sequence such as <110xxxxx2 0xxxxxxx2> is illegal ...
 -- When faced with this illegal byte sequence ... a UTF-8 conformant process
@@ -278,18 +287,45 @@ t_decode_with_error5' = ioProperty $ do
     Left (_ :: E.UnicodeException) -> True
     Right{} -> False
 
-t_decode_chunk = case E.decodeUtf8Chunk $ B.pack [0xc2] of
+t_decode_chunk1 = case E.decodeUtf8Chunk $ B.pack [0xc2] of
   ((len1, eS1), tds1) -> whenEqProp (len1, E.dataStack tds1, E.stackLen tds1) (0, [], 0) $
     case eS1 of
       Left _ -> counterexample (show eS1) False
-      Right s1 -> whenEqProp (E.partialUtf8CodePoint s1) [B.pack [0xc2]] $
+      Right s1 -> let partCP = E.partialUtf8CodePoint s1 in
+        whenEqProp partCP 0x01c20000 .
+        whenEqProp (E.partUtf8CPLen partCP) 1 .
+        whenEqProp (E.wordAtPartUft8CP 0 partCP) (Just 0xc2) .
+        whenEqProp (E.wordAtPartUft8CP 1 partCP) Nothing $
         if isUtf8StateIsComplete $ E.utf8CodePointState s1
         then counterexample (show $ E.utf8CodePointState s1) False
         else case E.decodeNextUtf8Chunk (B.pack [0x80, 0x80]) s1 tds1 of
-          ((len2, eS2), tds2) -> whenEqProp (len2, E.dataStack tds2, E.stackLen tds2) (1, [Right $ B.pack [0x80], Right $ B.pack [0xc2]], 2) $
+          ((len2, eS2), tds2) -> whenEqProp (len2, E.dataStack tds2, E.stackLen tds2) (1, [Right $ Right $ B.pack [0x80], Right $ Left 0x1c20000], 2) $
             case eS2 of
               Right _ -> counterexample (show eS2) False
               Left res -> res === (2, mempty)
+
+t_decode_chunk2 = case E.decodeUtf8Chunk $ B.pack [0xf0] of
+  ((len1, eS1), tds1) -> whenEqProp (len1, E.dataStack tds1, E.stackLen tds1) (0, [], 0) $
+    case eS1 of
+      Left _ -> counterexample (show eS1) False
+      Right s1 -> let partCP = E.partialUtf8CodePoint s1 in
+        whenEqProp partCP 0x01f00000 .
+        whenEqProp (E.partUtf8CPLen partCP) 1 .
+        whenEqProp (E.wordAtPartUft8CP 0 partCP) (Just 0xf0) .
+        whenEqProp (E.wordAtPartUft8CP 1 partCP) Nothing $
+        if isUtf8StateIsComplete $ E.utf8CodePointState s1
+        then counterexample (show $ E.utf8CodePointState s1) False
+        else case E.decodeNextUtf8Chunk (B.pack [0x90, 0x80]) s1 tds1 of
+          ((len2, eS2), tds2) -> whenEqProp (len2, E.dataStack tds2, E.stackLen tds2) (-1, [], 0) $
+            case eS2 of
+              Left _ -> counterexample (show eS2) False
+              Right s2 -> let partCP2 = E.partialUtf8CodePoint s2 in
+                whenEqProp partCP2 0x03f09080 .
+                whenEqProp (E.partUtf8CPLen partCP2) 3 .
+                whenEqProp (E.wordAtPartUft8CP 0 partCP2) (Just 0xf0) .
+                whenEqProp (E.wordAtPartUft8CP 1 partCP2) (Just 0x90) .
+                whenEqProp (E.wordAtPartUft8CP 2 partCP2) (Just 0x80) $
+                E.wordAtPartUft8CP 3 partCP2 === Nothing
 
 t_infix_concat bs1 text bs2 =
   forAll (Blind <$> genDecodeErr Replace) $ \(Blind onErr) ->
@@ -352,7 +388,8 @@ testTranscoding =
       testProperty "t_decode_with_error3'" t_decode_with_error3',
       testProperty "t_decode_with_error4'" t_decode_with_error4',
       testProperty "t_decode_with_error5'" t_decode_with_error5',
-      testProperty "t_decode_chunk" t_decode_chunk,
+      testProperty "t_decode_chunk1" t_decode_chunk1,
+      testProperty "t_decode_chunk2" t_decode_chunk2,
       testProperty "t_infix_concat" t_infix_concat
     ]
   ]

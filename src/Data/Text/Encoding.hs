@@ -27,6 +27,8 @@ module Data.Text.Encoding
     -- $validation
       Utf8ValidState
     , partialUtf8CodePoint
+    , partUtf8CPLen
+    , wordAtPartUft8CP
     , utf8CodePointState
     , validateUtf8Chunk
     , validateNextUtf8Chunk
@@ -89,34 +91,35 @@ module Data.Text.Encoding
     , encodeUtf8BuilderEscaped
     ) where
 
-import Control.Monad.ST.Unsafe (unsafeIOToST, unsafeSTToIO)
-
 import Control.Exception (evaluate, try)
-import Control.Monad.ST (runST)
-import Data.Bits (shiftR, (.&.))
+import Control.Monad.ST (ST, runST)
+import Control.Monad.ST.Unsafe (unsafeIOToST, unsafeSTToIO)
+import Data.Bifunctor (Bifunctor(first))
+import Data.Bits (shiftL, shiftR, (.|.), (.&.))
 import Data.ByteString (ByteString)
-import qualified Data.ByteString as B
-import qualified Data.ByteString.Internal as B
+import Data.Maybe (fromJust)
 import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode, lenientDecode)
 import Data.Text.Internal (Text(..), empty)
 import Data.Text.Internal.Unsafe (unsafeWithForeignPtr)
 import Data.Text.Show as T (singleton)
 import Data.Text.Unsafe (unsafeDupablePerformIO)
-import Data.Word (Word8)
+import Data.Word (Word32, Word8)
 import Foreign.C.Types (CSize(..))
 import Foreign.Ptr (Ptr, minusPtr, plusPtr)
 import Foreign.Storable (poke, peekByteOff)
 import GHC.Exts (byteArrayContents#, unsafeCoerce#)
 import GHC.ForeignPtr (ForeignPtr(..), ForeignPtrContents(PlainPtr))
+import Data.Text.Internal.ByteStringCompat (withBS)
+import Data.Text.Internal.Encoding.Utf8 (Utf8CodePointState, utf8StartState, updateUtf8State, isUtf8StateIsComplete)
+import qualified Data.ByteString as B
+import qualified Data.ByteString.Internal as B
 import qualified Data.ByteString.Builder as B
 import qualified Data.ByteString.Builder.Internal as B hiding (empty, append)
 import qualified Data.ByteString.Builder.Prim as BP
 import qualified Data.ByteString.Builder.Prim.Internal as BP
-import Data.Text.Internal.Encoding.Utf8 (Utf8CodePointState, utf8StartState, updateUtf8State, isUtf8StateIsComplete)
 import qualified Data.Text.Array as A
 import qualified Data.Text.Internal.Encoding.Fusion as E
 import qualified Data.Text.Internal.Fusion as F
-import Data.Text.Internal.ByteStringCompat
 #if defined(ASSERTS)
 import GHC.Stack (HasCallStack)
 #endif
@@ -224,7 +227,6 @@ decodeLatin1 bs = withBS bs $ \fp len -> runST $ do
           unsafeIOToST $ unsafeWithForeignPtr fp $ \src ->
             unsafeSTToIO $ A.copyFromPointer dst dstOff (src `plusPtr` srcOff) asciiPrefixLen
           inner (srcOff + asciiPrefixLen) (dstOff + asciiPrefixLen)
-
   actualLen <- inner 0 0
   dst' <- A.resizeM dst actualLen
   arr <- A.unsafeFreeze dst'
@@ -239,17 +241,34 @@ foreign import ccall unsafe "_hs_text_is_ascii" c_is_ascii
 -- the 1 to 3 end bytes are that make up the incomplete code point.
 data Utf8ValidState = Utf8ValidState
   { -- | Get the incomplete UTF-8 code point of the 'ByteString's that
-    -- have been validated thus far.
-    partialUtf8CodePoint :: [ByteString]
+    -- have been validated thus far. The first byte of the 'Word32'
+    -- indicates the number of bytes of the code point are available,
+    -- and is followed by the bytes of the code point.
+    partialUtf8CodePoint :: Word32
     -- | Get the current UTF-8 code point state of the 'ByteString's
     -- that have been validated thus far.
   , utf8CodePointState :: Utf8CodePointState
   }
   deriving (Eq, Ord, Show)
 
+partUtf8CPLen :: Word32 -> Int
+partUtf8CPLen partCP = fromIntegral $ partCP `shiftR` 24
+
+wordAtPartUft8CP :: Int -> Word32 -> Maybe Word8
+wordAtPartUft8CP n partCP
+  | n < partUtf8CPLen partCP && n >= 0 =
+    Just . fromIntegral $ partCP `shiftR` (16 - 8 * n)
+  | otherwise = Nothing
+
 -- | This represtents the starting state of a UTF-8 validation check.
 startUtf8ValidState :: Utf8ValidState 
-startUtf8ValidState = Utf8ValidState [] utf8StartState
+startUtf8ValidState = Utf8ValidState 0 utf8StartState
+
+appendPartialCodePoint :: Word32 -> ByteString -> Word32
+appendPartialCodePoint cp bs@(B.length -> len) =
+  fst $ B.foldl (\ (cp', bsc) word ->
+      (cp' .|. (fromIntegral word `shiftL` (16 - bsc * 8)), bsc + 1)
+    ) (cp + (fromIntegral len `shiftL` 24), partUtf8CPLen cp) bs
 
 #ifdef SIMDUTF
 foreign import ccall unsafe "_hs_text_is_valid_utf8" c_is_valid_utf8
@@ -317,7 +336,7 @@ validateUtf8Chunk bs@(B.length -> len)
                 else ndx0
               ) ndx' s'
             Nothing -> (ndx0, Left $ if ndx == ndx0 then ndx' else ndx)
-        | otherwise = (ndx0, Right $ Utf8ValidState (if ndx0 < len then [B.drop ndx0 bs] else []) s)
+        | otherwise = (ndx0, Right $ Utf8ValidState (appendPartialCodePoint 0 $ B.drop ndx0 bs) s)
 
 -- | Validate a 'ByteString' as a contiuation of UTF-8-encoded text.
 --
@@ -353,7 +372,7 @@ validateNextUtf8Chunk bs@(B.length -> len) st@(Utf8ValidState lead s)
           | isUtf8StateIsComplete s' =
             -- found the beginning of the next code point, hand this off to someone else
             case validateUtf8Chunk $ B.drop pos bs of
-              (len', mS) -> (pos + len', case mS of Left p -> Left (p + pos); _ -> mS)
+              (len', mS) -> (pos + len', first (+ pos) mS)
           -- code point is not complete yet
           -- walk the rest of the code point until error, complete, or no more data
           | pos < len =
@@ -363,15 +382,15 @@ validateNextUtf8Chunk bs@(B.length -> len) st@(Utf8ValidState lead s)
               -- keep going
               Just s'' -> g (pos + 1) s''
           -- no more data
-          | otherwise = (leadPos, Right $ Utf8ValidState (lead ++ [bs]) s')
+          | otherwise = (leadPos, Right $ Utf8ValidState (appendPartialCodePoint lead bs) s')
     in g 0 s
   | otherwise = (leadPos, Right st)
-    where leadPos = -(foldr (\ bs' len' -> len' + B.length bs') 0 lead)
+    where leadPos = -(partUtf8CPLen lead)
 
 -- | Validated UTF-8 data to be converted into a 'Text' value.
 data TextDataStack = TextDataStack
   { -- | Returns a list of 'Text' and UTF-8-valid 'ByteString' values.
-    dataStack :: [Either Text ByteString]
+    dataStack :: [Either Text (Either Word32 ByteString)]
     -- | Returns total number of UTF-8 valid bytes in the stack.
   , stackLen :: Int
   }
@@ -388,6 +407,35 @@ pushText t@(Text _ _ tLen) tds@(TextDataStack stack sLen) =
   then TextDataStack (Left t : stack) $ sLen + tLen
   else tds
 
+copyFromStack :: [Either Text (Either Word32 ByteString)] -> Int -> A.MArray s -> ST s ()
+copyFromStack (dat : dataStack') tLen dst =
+  (case dat of
+    Left (Text arr0 off utf8Len) -> do
+      let dstOff = tLen - utf8Len
+      A.copyI utf8Len dst dstOff arr0 off
+      pure dstOff
+    Right encoded ->
+      case encoded of
+        Left partial ->
+          let utf8Len = partUtf8CPLen partial
+              dstOff = tLen - utf8Len
+              g dstOff' =
+                case wordAtPartUft8CP (dstOff' - dstOff) partial of
+                  Just w -> do
+                    A.unsafeWrite dst dstOff' w
+                    g $ dstOff' + 1
+                  Nothing -> pure dstOff
+          in
+          g dstOff
+        Right bs@(B.length -> utf8Len) -> do
+          let dstOff = tLen - utf8Len
+          withBS bs $ \ fp _ ->
+            unsafeIOToST . unsafeWithForeignPtr fp $ \ src ->
+              unsafeSTToIO $ A.copyFromPointer dst dstOff src utf8Len
+          pure dstOff) >>= (\ tLen' -> copyFromStack dataStack' tLen' dst)
+copyFromStack _ _ _ = pure ()
+{-# INLINE copyFromStack #-}
+
 -- | Create a 'Text' value from the contents of a 'TextDataStack'.
 stackToText ::
 #if defined(ASSERTS)
@@ -398,20 +446,7 @@ stackToText (TextDataStack stack sLen)
   | sLen > 0 = runST $
     do
       dst <- A.new sLen
-      let g (dat : dataStack') tLen' =
-              (case dat of
-                Left (Text arr0 off utf8Len) -> do
-                  let dstOff = tLen' - utf8Len
-                  A.copyI utf8Len dst dstOff arr0 off
-                  pure dstOff
-                Right bs@(B.length -> utf8Len) -> do
-                  let dstOff = tLen' - utf8Len
-                  withBS bs $ \ fp _ ->
-                    unsafeIOToST . unsafeWithForeignPtr fp $ \ src ->
-                      unsafeSTToIO $ A.copyFromPointer dst dstOff src utf8Len
-                  pure dstOff) >>= g dataStack'
-          g _ _ = pure ()
-      g stack sLen
+      copyFromStack stack sLen dst
       arr <- A.unsafeFreeze dst
       pure $ Text arr 0 sLen
   | otherwise = empty
@@ -433,20 +468,20 @@ decodeNextUtf8Chunk ::
   -> Utf8ValidState
   -> TextDataStack
   -> ((Int, Either (Int, ByteString) Utf8ValidState), TextDataStack)
-decodeNextUtf8Chunk bs s tds =
+decodeNextUtf8Chunk bs s tds@(TextDataStack stack sLen) =
   case validateNextUtf8Chunk bs s of
     (len, res) ->
       let stackedData'
             | len >= 0 =
-              let stackedData@(TextDataStack stack' sLen') =
-                    foldl (\ tds'@(TextDataStack stack sLen) bs'@(B.length -> bLen) ->
-                      if bLen > 0
-                      then TextDataStack (Right bs' : stack) $ sLen + bLen
-                      else tds'
-                      ) tds $ partialUtf8CodePoint s
+              let partCP = partialUtf8CodePoint s
+                  partLen = partUtf8CPLen partCP
+                  stackedData@(TextDataStack stack' sLen') =
+                    if partLen > 0
+                    then TextDataStack (Right (Left partCP) : stack) $ sLen + partLen
+                    else tds
               in
               if len > 0
-              then TextDataStack (Right (B.take len bs) : stack') $ sLen' + len
+              then TextDataStack (Right (Right $ B.take len bs) : stack') $ sLen' + len
               else stackedData
             | otherwise = tds
       in
@@ -468,7 +503,7 @@ decodeUtf8Chunk bs = decodeNextUtf8Chunk bs startUtf8ValidState emptyStack
 -- | Call an error handler with the give 'String' message for each byte
 -- in given 'ByteString' and lead data in the given 'Utf8ValidState'
 -- value. The bytes are the positions from 'errStart' (inclusive) to
--- 'errEnd' (exclusive). Any substite characters are pushed onto the
+-- 'errEnd' (exclusive). Any substitute characters are pushed onto the
 -- supplied 'TextDataStack' argument.
 handleUtf8Err
   :: OnDecodeError
@@ -480,23 +515,27 @@ handleUtf8Err
   -> TextDataStack
   -> TextDataStack
 handleUtf8Err onErr errMsg errStart errEnd s bs tds =
-  let h errPos errEndPos bss tds'
-        | errPos < errEndPos =
-          let errPos' = errPos + 1 in
-          case bss of
-            bs'@(B.length -> len) : bss' ->
-              ( if errPos' < len
-                then h errPos' errEndPos bss
-                else h 0 (errEndPos - len) bss'
-              ) $ case onErr errMsg . Just $ B.index bs' errPos of
-                Just c -> pushText (T.singleton c) tds'
-                Nothing -> tds'
-            [] -> tds'
+  let h errPos tds'
+        | errPos < errEnd =
+          h (errPos + 1) $
+            case onErr errMsg . Just $ B.index bs errPos of
+              Just c -> pushText (T.singleton c) tds'
+              Nothing -> tds'
         | otherwise = tds'
   in
   ( if errStart < 0
-    then h 0 (errEnd - errStart) $ partialUtf8CodePoint s ++ [B.take errEnd bs]
-    else h errStart errEnd [bs]
+    then
+      let partCP = partialUtf8CodePoint s
+          g pNdx tds' =
+            case wordAtPartUft8CP pNdx partCP of
+              Nothing -> h (partUtf8CPLen partCP + errStart) tds'
+              mW -> g (pNdx + 1) $
+                case onErr errMsg mW of
+                  Just c -> pushText (T.singleton c) tds'
+                  Nothing -> tds'
+      in
+      g 0
+    else h errStart
   ) tds
 
 invalidUtf8Msg :: String
@@ -613,13 +652,17 @@ streamDecodeUtf8With ::
 #endif
   OnDecodeError -> ByteString -> Decoding
 streamDecodeUtf8With onErr bs =
-  let g bs' s tds =
+  let h w32 n ws =
+        if n >= 0
+        then h w32 (n - 1) $ fromJust (wordAtPartUft8CP n w32) : ws
+        else ws
+      g bs' s tds =
         case decodeNextUtf8Chunk bs' s tds of
           ((len, eS), tds') ->
             case eS of
               Left (pos, bs'') -> g bs'' startUtf8ValidState $ handleUtf8Err onErr invalidUtf8Msg len pos s bs' tds'
               Right s' -> let bss' = partialUtf8CodePoint s' in
-                Some (stackToText tds') (B.concat bss') $ \ bs'' ->
+                Some (stackToText tds') (B.pack $ h bss' (partUtf8CPLen bss' - 1) []) $ \ bs'' ->
                   g bs'' s' emptyStack
   in
   g bs startUtf8ValidState emptyStack
