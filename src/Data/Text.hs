@@ -110,6 +110,7 @@ module Data.Text
     , all
     , maximum
     , minimum
+    , isAscii
 
     -- * Construction
 
@@ -218,7 +219,7 @@ import Control.DeepSeq (NFData(rnf))
 import Control.Exception (assert)
 #endif
 import Data.Bits ((.&.), shiftR, shiftL)
-import Data.Char (isSpace, isAscii, ord)
+import qualified Data.Char as Char
 import Data.Data (Data(gfoldl, toConstr, gunfold, dataTypeOf), constrIndex,
                   Constr, mkConstr, DataType, mkDataType, Fixity(Prefix))
 import Control.Monad (foldM)
@@ -263,6 +264,9 @@ import System.Posix.Types (CSsize(..))
 import Data.Text.Foreign (asForeignPtr)
 import System.IO.Unsafe (unsafePerformIO)
 #endif
+
+import Foreign.Ptr ( plusPtr )
+import System.IO.Unsafe (unsafeDupablePerformIO)
 
 -- $setup
 -- >>> :set -package transformers
@@ -1176,6 +1180,21 @@ minimum :: HasCallStack => Text -> Char
 minimum t = S.minimum (stream t)
 {-# INLINE minimum #-}
 
+-- TODO
+isAscii :: Text -> Bool
+isAscii (Text (A.ByteArray arr) off len) =
+    let arrPtr = Exts.Ptr (Exts.byteArrayContents# arr)
+        check = c_is_ascii (arrPtr `plusPtr` off) (arrPtr `plusPtr` len)
+    in  cSizeToInt (unsafeDupablePerformIO check) == len
+{-# INLINE isAscii #-}
+
+cSizeToInt :: CSize -> Int
+cSizeToInt = P.fromIntegral
+{-# INLINE cSizeToInt #-}
+
+foreign import ccall unsafe "_hs_text_is_ascii" c_is_ascii
+    :: Exts.Ptr Word8 -> Exts.Ptr Word8 -> IO CSize
+
 -- -----------------------------------------------------------------------------
 -- * Building 'Text's
 -- | /O(n)/ 'scanl' is similar to 'foldl', but returns a list of
@@ -1315,8 +1334,8 @@ replicate n t@(Text a o l)
 replicateChar :: Int -> Char -> Text
 replicateChar !len !c'
   | len <= 0  = empty
-  | isAscii c = runST $ do
-    marr <- A.newFilled len (ord c)
+  | Char.isAscii c = runST $ do
+    marr <- A.newFilled len (Char.ord c)
     arr  <- A.unsafeFreeze marr
     return $ Text arr 0 len
   | otherwise = runST $ do
@@ -1499,14 +1518,14 @@ dropAround p = dropWhile p . dropWhileEnd p
 --
 -- > dropWhile isSpace
 stripStart :: Text -> Text
-stripStart = dropWhile isSpace
+stripStart = dropWhile Char.isSpace
 {-# INLINE stripStart #-}
 
 -- | /O(n)/ Remove trailing white space from a string.  Equivalent to:
 --
 -- > dropWhileEnd isSpace
 stripEnd :: Text -> Text
-stripEnd = dropWhileEnd isSpace
+stripEnd = dropWhileEnd Char.isSpace
 {-# INLINE [1] stripEnd #-}
 
 -- | /O(n)/ Remove leading and trailing white space from a string.
@@ -1514,7 +1533,7 @@ stripEnd = dropWhileEnd isSpace
 --
 -- > dropAround isSpace
 strip :: Text -> Text
-strip = dropAround isSpace
+strip = dropAround Char.isSpace
 {-# INLINE [1] strip #-}
 
 -- | /O(n)/ 'splitAt' @n t@ returns a pair whose first element is a
@@ -1994,7 +2013,7 @@ words (Text arr off len) = loop 0 0
         | w0 < 0xE0 = loop start (n + 2)
         -- or 3 bytes for 0x1680 + 0x2000..0x200A + 0x2028..0x2029 + 0x202F + 0x205F + 0x3000
         |  w0 == 0xE1 && w1 == 0x9A && w2 == 0x80
-        || w0 == 0xE2 && (w1 == 0x80 && isSpace (chr3 w0 w1 w2) || w1 == 0x81 && w2 == 0x9F)
+        || w0 == 0xE2 && (w1 == 0x80 && Char.isSpace (chr3 w0 w1 w2) || w1 == 0x81 && w2 == 0x9F)
         || w0 == 0xE3 && w1 == 0x80 && w2 == 0x80 =
             if start == n
             then loop (n + 3) (n + 3)
@@ -2205,7 +2224,7 @@ copy (Text arr off len) = Text (A.run go) 0 len
       return marr
 
 ord8 :: Char -> Word8
-ord8 = P.fromIntegral . ord
+ord8 = P.fromIntegral . Char.ord
 
 intToCSize :: Int -> CSize
 intToCSize = P.fromIntegral
