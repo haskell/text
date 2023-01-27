@@ -45,3 +45,8 @@ const size_t _hs_text_is_ascii(const uint8_t *src0, const uint8_t *srcend){
 
   return src - src0;
 }
+
+// TODO wrapper for using with ByteArray#
+const size_t _hs_text_is_ascii_2(const uint8_t *arr, size_t off, size_t len){
+    return _hs_text_is_ascii(arr + off, arr + len);
+}

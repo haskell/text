@@ -266,7 +266,6 @@ import System.IO.Unsafe (unsafePerformIO)
 #endif
 
 import Foreign.Ptr ( plusPtr )
-import System.IO.Unsafe (unsafeDupablePerformIO)
 
 -- $setup
 -- >>> :set -package transformers
@@ -1182,18 +1181,16 @@ minimum t = S.minimum (stream t)
 
 -- TODO
 isAscii :: Text -> Bool
-isAscii (Text (A.ByteArray arr) off len) =
-    let arrPtr = Exts.Ptr (Exts.byteArrayContents# arr)
-        check = c_is_ascii (arrPtr `plusPtr` off) (arrPtr `plusPtr` len)
-    in  cSizeToInt (unsafeDupablePerformIO check) == len
+isAscii (Text (A.ByteArray arr) (Exts.I# off#) (Exts.I# len#)) =
+    cSizeToInt (c_is_ascii_2 arr off# len#) == (Exts.I# len#)
 {-# INLINE isAscii #-}
 
 cSizeToInt :: CSize -> Int
 cSizeToInt = P.fromIntegral
 {-# INLINE cSizeToInt #-}
 
-foreign import ccall unsafe "_hs_text_is_ascii" c_is_ascii
-    :: Exts.Ptr Word8 -> Exts.Ptr Word8 -> IO CSize
+foreign import ccall unsafe "_hs_text_is_ascii_2" c_is_ascii_2
+    :: ByteArray# -> Exts.Int# -> Exts.Int# -> CSize
 
 -- -----------------------------------------------------------------------------
 -- * Building 'Text's
