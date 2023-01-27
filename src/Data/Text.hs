@@ -1177,7 +1177,23 @@ minimum :: HasCallStack => Text -> Char
 minimum t = S.minimum (stream t)
 {-# INLINE minimum #-}
 
--- TODO
+-- | \O(n)\ Test whether 'Text' contains only ASCII code-points (i.e. only
+--   U+0000 through U+007F).
+--
+-- This is a more efficient version of @'all' 'Data.Char.isAscii'@.
+--
+-- >>> isAscii ""
+-- True
+--
+-- >>> isAscii "abc\NUL"
+-- True
+--
+-- >>> isAscii "abcd€"
+-- False
+--
+-- prop> isAscii t == all (< '\x80') t
+--
+-- @since 2.0.2 (?) TODO
 isAscii :: Text -> Bool
 isAscii (Text (A.ByteArray arr) off len) =
     cSizeToInt (c_is_ascii_2 arr (intToCSize off) (intToCSize len)) == len
