@@ -110,9 +110,8 @@ sf_minimum (applyFun -> p)
                   = (L.minimum . L.filter p) `eqP` (S.minimum . S.filter p)
 t_minimum         = L.minimum     `eqP` T.minimum
 tl_minimum        = L.minimum     `eqP` TL.minimum
---sf_isAscii = L.all Char.isAscii `eq` TODO
-t_isAscii = L.all Char.isAscii `eqP` T.isAscii
---tl_isAscii = L.all Char.isAscii `eq` 
+t_isAscii         = L.all Char.isAscii `eqP` T.isAscii
+tl_isAscii        = L.all Char.isAscii `eqP` TL.isAscii
 
 -- Scans
 
@@ -239,7 +238,8 @@ testFolds =
         testProperty "sf_minimum" sf_minimum,
         testProperty "t_minimum" t_minimum,
         testProperty "tl_minimum" tl_minimum,
-        testProperty "t_isAscii " t_isAscii
+        testProperty "t_isAscii " t_isAscii,
+        testProperty "tl_isAscii " tl_isAscii
       ]
     ],
 

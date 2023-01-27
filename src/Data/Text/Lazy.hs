@@ -108,6 +108,7 @@ module Data.Text.Lazy
     , all
     , maximum
     , minimum
+    , isAscii
 
     -- * Construction
 
@@ -869,6 +870,27 @@ maximum t = S.maximum (stream t)
 minimum :: HasCallStack => Text -> Char
 minimum t = S.minimum (stream t)
 {-# INLINE minimum #-}
+
+-- | \O(n)\ Test whether 'Text' contains only ASCII code-points (i.e. only
+--   U+0000 through U+007F).
+--
+-- This is a more efficient version of @'all' 'Data.Char.isAscii'@.
+--
+-- >>> isAscii ""
+-- True
+--
+-- >>> isAscii "abc\NUL"
+-- True
+--
+-- >>> isAscii "abcd€"
+-- False
+--
+-- prop> isAscii t == all (< '\x80') t
+--
+-- @since 2.0.2 (?) TODO
+isAscii :: Text -> Bool
+isAscii Empty = True
+isAscii (Chunk c cs) = T.isAscii c && isAscii cs
 
 -- | /O(n)/ 'scanl' is similar to 'foldl', but returns a list of
 -- successive reduced values from the left.
