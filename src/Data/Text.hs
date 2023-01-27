@@ -265,8 +265,6 @@ import Data.Text.Foreign (asForeignPtr)
 import System.IO.Unsafe (unsafePerformIO)
 #endif
 
-import Foreign.Ptr ( plusPtr )
-
 -- $setup
 -- >>> :set -package transformers
 -- >>> import Control.Monad.Trans.State
@@ -1181,8 +1179,8 @@ minimum t = S.minimum (stream t)
 
 -- TODO
 isAscii :: Text -> Bool
-isAscii (Text (A.ByteArray arr) (Exts.I# off#) (Exts.I# len#)) =
-    cSizeToInt (c_is_ascii_2 arr off# len#) == (Exts.I# len#)
+isAscii (Text (A.ByteArray arr) off len) =
+    cSizeToInt (c_is_ascii_2 arr (intToCSize off) (intToCSize len)) == len
 {-# INLINE isAscii #-}
 
 cSizeToInt :: CSize -> Int
@@ -1190,7 +1188,7 @@ cSizeToInt = P.fromIntegral
 {-# INLINE cSizeToInt #-}
 
 foreign import ccall unsafe "_hs_text_is_ascii_2" c_is_ascii_2
-    :: ByteArray# -> Exts.Int# -> Exts.Int# -> CSize
+    :: ByteArray# -> CSize -> CSize -> CSize
 
 -- -----------------------------------------------------------------------------
 -- * Building 'Text's
