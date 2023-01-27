@@ -1196,14 +1196,14 @@ minimum t = S.minimum (stream t)
 -- @since 2.0.2 (?) TODO
 isAscii :: Text -> Bool
 isAscii (Text (A.ByteArray arr) off len) =
-    cSizeToInt (c_is_ascii_2 arr (intToCSize off) (intToCSize len)) == len
+    cSizeToInt (c_is_ascii_offset arr (intToCSize off) (intToCSize len)) == len
 {-# INLINE isAscii #-}
 
 cSizeToInt :: CSize -> Int
 cSizeToInt = P.fromIntegral
 {-# INLINE cSizeToInt #-}
 
-foreign import ccall unsafe "_hs_text_is_ascii_2" c_is_ascii_2
+foreign import ccall unsafe "_hs_text_is_ascii_offset" c_is_ascii_offset
     :: ByteArray# -> CSize -> CSize -> CSize
 
 -- -----------------------------------------------------------------------------

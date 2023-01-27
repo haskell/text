@@ -47,8 +47,8 @@ const size_t _hs_text_is_ascii(const uint8_t *src0, const uint8_t *srcend){
 }
 
 /*
-  _hs_text_is_ascii_wrapper is a helper for calling _hs_text_is_ascii on Texts.
+  _hs_text_is_ascii_offset is a helper for calling _hs_text_is_ascii on Texts.
 */
-const size_t _hs_text_is_ascii_2(const uint8_t *arr, size_t off, size_t len){
+const size_t _hs_text_is_ascii_offset(const uint8_t *arr, size_t off, size_t len){
     return _hs_text_is_ascii(arr + off, arr + off + len);
 }
