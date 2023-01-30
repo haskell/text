@@ -7,7 +7,7 @@
 * A suite of functions have been added in `Data.Text.Encoding` that
   allow decoding to be aborted on errors without the need to raise an
   `error` and `catch` it elsewhere:
-  * `decodeAsciiPrefix`
+  * `decodeASCIIPrefix`
   * `TextDataStack`
   * `dataStack`
   * `stackLen`

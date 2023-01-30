@@ -40,7 +40,7 @@ module Data.Text.Encoding
     -- ** Total Functions #total#
     -- $total
     , decodeLatin1
-    , decodeAsciiPrefix
+    , decodeASCIIPrefix
     , TextDataStack
     , dataStack
     , stackLen
@@ -97,6 +97,7 @@ import Control.Monad.ST.Unsafe (unsafeIOToST, unsafeSTToIO)
 import Data.Bifunctor (Bifunctor(first))
 import Data.Bits (shiftL, shiftR, (.|.), (.&.))
 import Data.ByteString (ByteString)
+import qualified Data.ByteString.Short.Internal as SBS
 import Data.Maybe (fromJust)
 import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode, lenientDecode)
 import Data.Text.Internal (Text(..), empty)
@@ -157,47 +158,51 @@ import qualified Data.ByteString.Unsafe as B
 -- (preferably not at all). See "Data.Text.Encoding#g:total" for better
 -- solutions.
 
--- | Decode a 'ByteString' containing 7-bit ASCII encoded text.
+-- | Decode a 'ByteString' containing ASCII text.
 --
--- This is a total function. The 'ByteString' is decoded until either
--- the end is reached or it errors with the first non-ASCII 'Word8' is
--- encountered. In either case the function will return the 'Text'
--- value of the longest prefix that is valid ASCII. On error, the index
--- of the non-ASCII 'Word8' is also returned.
+-- This is a total function which returns a pair of the longest ASCII prefix
+-- as 'Text', and the remaining suffix as 'ByteString'.
+--
+-- Important note: the pair is lazy. This lets you check for errors by testing
+-- whether the second component is empty, without forcing the first component
+-- (which does a copy).
+-- To drop references to the input bytestring, force the prefix
+-- (using 'seq' or @BangPatterns@) and drop references to the suffix.
+--
+-- Properties:
+-- - If @(prefix, suffix) = decodeAsciiPrefix s@, then @'encodeUtf8' prefix <> suffix = s@.
+-- - Either @suffix@ is empty, or @'B.head' suffix > 127@.
 --
 -- @since 2.0.2
-decodeAsciiPrefix ::
-#if defined(ASSERTS)
-  HasCallStack =>
-#endif
-  ByteString -> (Text, Maybe (Word8, Int))
-decodeAsciiPrefix bs = if B.null bs
-  then (empty, Nothing)
-  else unsafeDupablePerformIO $ withBS bs $ \ fp len ->
-    unsafeWithForeignPtr fp $ \src -> do
-      asciiPrefixLen <- fmap fromIntegral . c_is_ascii src $ src `plusPtr` len
-      let !prefix = if asciiPrefixLen == 0
-            then empty
-            else runST $ do
-              dst <- A.new asciiPrefixLen
-              A.copyFromPointer dst 0 src asciiPrefixLen
-              arr <- A.unsafeFreeze dst
-              pure $ Text arr 0 asciiPrefixLen
-      let suffix = if asciiPrefixLen < len
-            then Just (B.index bs asciiPrefixLen, asciiPrefixLen)
-            else Nothing
-      pure (prefix, suffix)
+decodeASCIIPrefix :: ByteString -> (Text, ByteString)
+decodeASCIIPrefix bs = if B.null bs
+  then (empty, B.empty)
+  else
+    let len = asciiPrefixLength bs
+        prefix =
+          let !(SBS.SBS arr) = SBS.toShort (B.take len bs) in
+          Text (A.ByteArray arr) 0 len
+        suffix = B.drop len bs in
+    (prefix, suffix)
+
+-- | Length of the longest ASCII prefix.
+asciiPrefixLength :: ByteString -> Int
+asciiPrefixLength bs = unsafeDupablePerformIO $ withBS bs $ \ fp len ->
+  unsafeWithForeignPtr fp $ \src -> do
+    fromIntegral <$> c_is_ascii src (src `plusPtr` len)
 
 -- | Decode a 'ByteString' containing 7-bit ASCII encoded text.
 --
 -- This is a partial function: it checks that input does not contain
 -- anything except ASCII and copies buffer or throws an error otherwise.
---
 decodeASCII :: ByteString -> Text
 decodeASCII bs =
-  case decodeAsciiPrefix bs of
-    (_, Just (word, errPos)) -> error $ "decodeASCII: detected non-ASCII codepoint " ++ show word ++ " at position " ++ show errPos
-    (t, Nothing) -> t
+  let (prefix, suffix) = decodeASCIIPrefix bs in
+  case B.uncons suffix of
+    Nothing -> prefix
+    Just (word, _) ->
+      let !errPos = B.length bs - B.length suffix in
+      error $ "decodeASCII: detected non-ASCII codepoint " ++ show word ++ " at position " ++ show errPos
 
 -- | Decode a 'ByteString' containing Latin-1 (aka ISO-8859-1) encoded text.
 --
