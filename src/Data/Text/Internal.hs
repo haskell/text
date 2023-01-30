@@ -251,6 +251,10 @@ pack xs = runST $ do
         d <- unsafeWrite marr off (safe c)
         go (off + d) cs
   len <- go 0 xs
+  -- On average, the number of bytes taken by a typical 'Char' is less than 4 in UTF-8
+  -- (only 1 to 2 bytes for latin-script languages for instance), so we shrink the array
+  -- now. Could mean substantial memory savings for a long 'String'.
+  A.shrinkM marr len
   arr <- A.unsafeFreeze marr
   return (Text arr 0 len)
 {-# NOINLINE [0] pack #-}
