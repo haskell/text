@@ -1,42 +1,28 @@
 {-# LANGUAGE BangPatterns, CPP, GeneralizedNewtypeDeriving, MagicHash,
     UnliftedFFITypes #-}
 {-# LANGUAGE Trustworthy #-}
-{-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ViewPatterns #-}
 -- |
 module Data.Text.Internal.Encoding where
 
-import Control.Exception (evaluate, try)
 import Control.Monad.ST (ST, runST)
 import Control.Monad.ST.Unsafe (unsafeIOToST, unsafeSTToIO)
-import Data.Bifunctor (Bifunctor(first))
-import Data.Bits (shiftL, shiftR, (.&.))
+import Data.Bits (shiftL, shiftR)
 import Data.ByteString (ByteString)
-import qualified Data.ByteString.Short.Internal as SBS
-import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode, lenientDecode)
-import Data.Text.Internal (Text(..), empty)
+import Data.Functor (void)
+import Data.Text.Internal (Text(..), empty, safe)
 import Data.Text.Internal.Unsafe (unsafeWithForeignPtr)
-import Data.Text.Show as T (singleton)
 import Data.Text.Unsafe (unsafeDupablePerformIO)
 import Data.Word (Word32, Word8)
 import Foreign.C.Types (CSize(..))
-import Foreign.Ptr (Ptr, minusPtr, plusPtr)
-import Foreign.Storable (poke, peekByteOff)
-import GHC.Exts (byteArrayContents#, unsafeCoerce#)
-import GHC.ForeignPtr (ForeignPtr(..), ForeignPtrContents(PlainPtr))
+import Foreign.Ptr (Ptr)
 import Data.Text.Internal.ByteStringCompat (withBS)
 import Data.Text.Internal.Encoding.Utf8
-  (Utf8CodePointState, utf8StartState, updateUtf8State, isUtf8StateIsComplete)
+  (Utf8CodePointState, utf8StartState, updateUtf8State, isUtf8StateIsComplete, utf8Length)
 import qualified Data.ByteString as B
-import qualified Data.ByteString.Internal as B
-import qualified Data.ByteString.Builder as B
-import qualified Data.ByteString.Builder.Internal as B hiding (empty, append)
-import qualified Data.ByteString.Builder.Prim as BP
-import qualified Data.ByteString.Builder.Prim.Internal as BP
 import qualified Data.Text.Array as A
-import qualified Data.Text.Internal.Encoding.Fusion as E
-import qualified Data.Text.Internal.Fusion as F
+import qualified Data.Text.Internal.Unsafe.Char as Char
 #if defined(ASSERTS)
 import GHC.Stack (HasCallStack)
 #endif
@@ -86,8 +72,8 @@ partUtf8CPUnsafeIndex ::
 #if defined(ASSERTS)
   HasCallStack =>
 #endif
-  Int -> PartialUtf8CodePoint -> Word8
-partUtf8CPUnsafeIndex n (PartialUtf8CodePoint w) = 
+  PartialUtf8CodePoint -> Int -> Word8
+partUtf8CPUnsafeIndex (PartialUtf8CodePoint w) n =
 #if defined(ASSERTS)
   assert (0 <= n && n < partUtf8CPLen w) $
 #endif
@@ -135,50 +121,57 @@ foreign import ccall unsafe "_hs_text_is_valid_utf8" c_is_valid_utf8
 --       point, and 's' is the resulting 'Utf8State' value, which
 --       can be used to validate against a following 'ByteString' with
 --       'validateNextUtf8Chunk'.
-validateUtf8Chunk ::
-#if defined(ASSERTS)
-  HasCallStack =>
-#endif
-  ByteString -> (Int, Either Int Utf8State)
-validateUtf8Chunk bs@(B.length -> len)
+validateUtf8Chunk :: ByteString -> (Int, Maybe Utf8State)
+validateUtf8Chunk = validateUtf8ChunkFrom 0
+
+-- | Add an offset to the index returned by 'validateUtf8Chunk'.
+--
+-- @
+-- validateUtf8ChunkFrom n = first (+ 1) . 'validateUtf8Chunk' . 'B.drop' n
+-- @
+validateUtf8ChunkFrom :: Int -> ByteString -> (Int, Maybe Utf8State)
+validateUtf8ChunkFrom ofs bs
 #if defined(SIMDUTF) || MIN_VERSION_bytestring(0,11,2)
   | guessUtf8Boundary > 0 &&
     -- the rest of the bytestring valid utf-8 up to the boundary
     (
 #ifdef SIMDUTF
-      withBS bs $ \ fp _ -> unsafeDupablePerformIO $
+      withBS (B.drop ofs bs) $ \ fp _ -> unsafeDupablePerformIO $
         unsafeWithForeignPtr fp $ \ptr -> (/= 0) <$>
           c_is_valid_utf8 ptr (fromIntegral guessUtf8Boundary)
 #else
-      B.isValidUtf8 $ B.take guessUtf8Boundary bs
+      B.isValidUtf8 $ B.take guessUtf8Boundary (B.drop ofs bs)
 #endif
-    ) = getEndState guessUtf8Boundary
+    ) = slowValidateUtf8ChunkFrom (ofs + guessUtf8Boundary) bs
     -- No
-  | otherwise = getEndState 0
+  | otherwise = slowValidateUtf8ChunkFrom ofs bs
     where
-      getEndState ndx = validateUtf8 ndx ndx utf8StartState
-      w n word8 = len >= n && word8 <= (B.index bs $ len - n)
+      len = B.length bs
+      isBoundary n word8 = len >= n && word8 <= B.index bs (ofs + len - n)
       guessUtf8Boundary
-        | w 3 0xf0 = len - 3  -- third to last char starts a four-byte code point
-        | w 2 0xe0 = len - 2  -- pre-last char starts a three-or-four-byte code point
-        | w 1 0xc2 = len - 1  -- last char starts a two-(or more-)byte code point
+        | isBoundary 3 0xf0 = len - 3  -- third to last char starts a four-byte code point
+        | isBoundary 2 0xe0 = len - 2  -- pre-last char starts a three-or-four-byte code point
+        | isBoundary 1 0xc2 = len - 1  -- last char starts a two-(or more-)byte code point
         | otherwise = len
 #else
-  = validateUtf8 0 0 utf8StartState
-    where
+  = slowValidateUtf8ChunkFrom ofs bs
 #endif
-      validateUtf8 !ndx0 ndx s
-        | ndx < len =
-          let ndx' = ndx + 1 in
-          case updateUtf8State (B.index bs ndx) s of
+
+-- | A pure Haskell implementation of validateUtf8Chunk.
+--
+-- Ideally the primitives 'B.isValidUtf8' or 'c_is_valid_utf8' should give us
+-- indices to let us avoid this function.
+slowValidateUtf8ChunkFrom :: Int -> ByteString -> (Int, Maybe Utf8State)
+slowValidateUtf8ChunkFrom ofs bs = loop ofs ofs utf8StartState
+  where
+    loop !utf8End i s
+      | i < B.length bs =
+          case updateUtf8State (B.index bs i) s of
             Just s' ->
-              validateUtf8 (
-                if isUtf8StateIsComplete s'
-                then ndx'
-                else ndx0
-              ) ndx' s'
-            Nothing -> (ndx0, Left $ if ndx == ndx0 then ndx' else ndx)
-        | otherwise = (ndx0, Right $ Utf8State s (partUtf8CPUnsafeAppend partUtf8CPEmpty $ B.drop ndx0 bs))
+              let utf8End' = if isUtf8StateIsComplete s' then i + 1 else utf8End
+              in loop (i + 1) utf8End' s'
+            Nothing -> (utf8End, Nothing)
+      | otherwise = (utf8End, Just (Utf8State s (partUtf8CPUnsafeAppend partUtf8CPEmpty (B.drop utf8End bs))))
 
 -- | Validate a 'ByteString' as a contiuation of UTF-8-encoded text.
 --
@@ -202,94 +195,78 @@ validateUtf8Chunk bs@(B.length -> len)
 --       at index 'n' are the beginning of an incomplete UTF-8 code
 --       point, and `s'` is the resulting 'Utf8State' value, which
 --       can be used to validate against a following 'ByteString'.
-validateNextUtf8Chunk ::
-#if defined(ASSERTS)
-  HasCallStack =>
-#endif
-  ByteString -> Utf8State -> (Int, Either Int Utf8State)
-validateNextUtf8Chunk bs@(B.length -> len) st@(Utf8State s lead)
-  | len > 0 =
-    let g pos s'
-          -- first things first. let's try to get to the start of the next code point
-          | isUtf8StateIsComplete s' =
-            -- found the beginning of the next code point, hand this off to someone else
-            case validateUtf8Chunk $ B.drop pos bs of
-              (len', mS) -> (pos + len', first (+ pos) mS)
-          -- code point is not complete yet
-          -- walk the rest of the code point until error, complete, or no more data
-          | pos < len =
-            case updateUtf8State (B.index bs pos) s' of
-              -- error
-              Nothing -> (leadPos, Left pos)
-              -- keep going
-              Just s'' -> g (pos + 1) s''
-          -- no more data
-          | otherwise = (leadPos, Right $ Utf8State s' (partUtf8CPUnsafeAppend lead bs))
-    in g 0 s
-  | otherwise = (leadPos, Right st)
-    where leadPos = -(partUtf8CPLen lead)
+validateNextUtf8Chunk :: ByteString -> Utf8State -> (Int, Maybe Utf8State)
+validateNextUtf8Chunk bs st@(Utf8State s0 part)
+  | len > 0 = loop 0 s0
+  | otherwise = (0, Just st)
+  where
+    len = B.length bs
+    -- Complete an incomplete code point (if there is one)
+    -- and then jump to validateUtf8ChunkFrom
+    loop i s
+      | isUtf8StateIsComplete s = validateUtf8ChunkFrom i bs
+      | i < len =
+        case updateUtf8State (B.index bs i) s of
+          Nothing -> (0, Nothing)
+          Just s' -> loop (i + 1) s'
+      | otherwise = (0, Just (Utf8State s (partUtf8CPUnsafeAppend part bs)))
 
--- | Validated UTF-8 data to be converted into a 'Text' value.
-data TextDataStack = TextDataStack
-  { -- | Returns a list of 'Text' and UTF-8-valid 'ByteString' values.
-    dataStack :: [Either Text (Either PartialUtf8CodePoint ByteString)]
-    -- | Returns total number of UTF-8 valid bytes in the stack.
-  , stackLen :: Int
+-- | Construct an Array. This is currently an internal data structure which is
+-- only used to construct Text (so for example byteStringToStrictBuilder should
+-- only be applied to valid UTF-8 bytestrings).
+data StrictBuilder = StrictBuilder
+  { sbLength :: !Int
+  , sbWrite :: forall s. A.MArray s -> Int -> ST s ()
   }
-  deriving Show
 
--- | Empty stack
-emptyStack :: TextDataStack
-emptyStack = TextDataStack [] 0
+emptyStrictBuilder :: StrictBuilder
+emptyStrictBuilder = StrictBuilder 0 (\_ _ -> pure ())
 
--- | Push a text value onto the stack
-pushText :: Text -> TextDataStack -> TextDataStack
-pushText t@(Text _ _ tLen) tds@(TextDataStack stack sLen) =
-  if tLen > 0
-  then TextDataStack (Left t : stack) $ sLen + tLen
-  else tds
+-- | Right-biased append: run the right action first.  This allows a builder to
+-- run tail-recursively when accumulating text left-to-right.
+appendRStrictBuilder :: StrictBuilder -> StrictBuilder -> StrictBuilder
+appendRStrictBuilder (StrictBuilder n1 write1) (StrictBuilder n2 write2) =
+  StrictBuilder (n1 + n2) (\arr ofs -> do
+    write2 arr (ofs + n1)
+    write1 arr ofs)
 
-copyFromStack :: [Either Text (Either PartialUtf8CodePoint ByteString)] -> Int -> A.MArray s -> ST s ()
-copyFromStack (dat : dataStack') tLen dst =
-  (case dat of
-    Left (Text arr0 off utf8Len) -> do
-      let dstOff = tLen - utf8Len
-      A.copyI utf8Len dst dstOff arr0 off
-      pure dstOff
-    Right encoded ->
-      case encoded of
-        Left partial -> do
-          let utf8Len = partUtf8CPLen partial
-              dstOff = tLen - utf8Len
-              g i | i < utf8Len = do
-                    A.unsafeWrite dst (dstOff + i) (partUtf8CPUnsafeIndex i partial)
-                    g (i + 1)
-                  | otherwise = pure ()
-          g dstOff
-          pure utf8Len
-        Right bs@(B.length -> utf8Len) -> do
-          let dstOff = tLen - utf8Len
-          withBS bs $ \ fp _ ->
-            unsafeIOToST . unsafeWithForeignPtr fp $ \ src ->
-              unsafeSTToIO $ A.copyFromPointer dst dstOff src utf8Len
-          pure dstOff) >>= (\ tLen' -> copyFromStack dataStack' tLen' dst)
-copyFromStack _ _ _ = pure ()
-{-# INLINE copyFromStack #-}
+copyFromByteString :: A.MArray s -> Int -> ByteString -> ST s ()
+copyFromByteString dst ofs src = withBS src $ \ srcFPtr len ->
+  unsafeIOToST $ unsafeWithForeignPtr srcFPtr $ \ srcPtr -> do
+    unsafeSTToIO $ A.copyFromPointer dst ofs srcPtr len
 
--- | Create a 'Text' value from the contents of a 'TextDataStack'.
-stackToText ::
-#if defined(ASSERTS)
-  HasCallStack =>
-#endif
-  TextDataStack -> Text
-stackToText (TextDataStack stack sLen)
-  | sLen > 0 = runST $
-    do
-      dst <- A.new sLen
-      copyFromStack stack sLen dst
-      arr <- A.unsafeFreeze dst
-      pure $ Text arr 0 sLen
-  | otherwise = empty
+byteStringToStrictBuilder :: ByteString -> StrictBuilder
+byteStringToStrictBuilder bs =
+  StrictBuilder (B.length bs) (\arr ofs -> copyFromByteString arr ofs bs)
+
+charToStrictBuilder :: Char -> StrictBuilder
+charToStrictBuilder c =
+  StrictBuilder (utf8Length c) (\arr ofs -> void (Char.unsafeWrite arr ofs (safe c)))
+
+word8ToStrictBuilder :: Word8 -> StrictBuilder
+word8ToStrictBuilder w =
+  StrictBuilder 1 (\arr ofs -> A.unsafeWrite arr ofs w)
+
+partUtf8CPFoldr :: (Word8 -> a -> a) -> a -> PartialUtf8CodePoint -> a
+partUtf8CPFoldr f x0 c = case partUtf8CPLen c of
+    0 -> x0
+    1 -> build 0 x0
+    2 -> build 0 (build 1 x0)
+    _ -> build 0 (build 1 (build 2 x0))
+  where
+    build i x = f (partUtf8CPUnsafeIndex c i) x
+
+partUtf8CPToStrictBuilder :: PartialUtf8CodePoint -> StrictBuilder
+partUtf8CPToStrictBuilder =
+  partUtf8CPFoldr (appendRStrictBuilder . word8ToStrictBuilder) emptyStrictBuilder
+
+strictBuilderToText :: StrictBuilder -> Text
+strictBuilderToText (StrictBuilder 0 _) = empty
+strictBuilderToText (StrictBuilder n write) = runST (do
+  dst <- A.new n
+  write dst 0
+  arr <- A.unsafeFreeze dst
+  pure (Text arr 0 n))
 
 -- | Decode a 'ByteString' in the context of what has been already been decoded.
 --
@@ -300,103 +277,77 @@ stackToText (TextDataStack stack sLen)
 -- (@Right Utf8State@) or the position of the of the first (potentially)
 -- valid byte after the invalid bytes with remainder of the 'ByteString'
 -- (@Left (Int, ByteString)@).
-decodeNextUtf8Chunk ::
-#if defined(ASSERTS)
-  HasCallStack =>
-#endif
-  ByteString
-  -> Utf8State
-  -> TextDataStack
-  -> ((Int, Either (Int, ByteString) Utf8State), TextDataStack)
-decodeNextUtf8Chunk bs s tds@(TextDataStack stack sLen) =
+decodeUtf8Chunk :: ByteString -> Utf8State -> (StrictBuilder, ByteString, Maybe Utf8State)
+decodeUtf8Chunk bs s =
   case validateNextUtf8Chunk bs s of
-    (len, res) ->
-      let stackedData'
-            | len >= 0 =
-              let partCP = partialUtf8CodePoint s
-                  partLen = partUtf8CPLen partCP
-                  stackedData@(TextDataStack stack' sLen') =
-                    if partLen > 0
-                    then TextDataStack (Right (Left partCP) : stack) $ sLen + partLen
-                    else tds
-              in
-              if len > 0
-              then TextDataStack (Right (Right $ B.take len bs) : stack') $ sLen' + len
-              else stackedData
-            | otherwise = tds
-      in
-      ( ( len
-        , case res of
-            Left pos -> Left (pos, B.drop pos bs)
-            Right s' -> Right s'
-        )
-      , stackedData'
-      )
+    (len, s') ->
+      let builder | len == 0 = emptyStrictBuilder
+                  | otherwise = partUtf8CPToStrictBuilder (partialUtf8CodePoint s)
+                    `appendRStrictBuilder` byteStringToStrictBuilder (B.take len bs)
+      in (builder, B.drop len bs, s')
 
 -- | Decode a 'ByteString' against a start 'Utf8State' with an empty
 -- 'TextDataStack'.
 --
 -- @decodeUtf8Chunk bs = 'decodeNextUtf8Chunk' bs 'startUtf8State' 'emptyStack'@
-decodeUtf8Chunk :: ByteString -> ((Int, Either (Int, ByteString) Utf8State), TextDataStack)
-decodeUtf8Chunk bs = decodeNextUtf8Chunk bs startUtf8State emptyStack
+decodeUtf8ChunkStart :: ByteString -> (StrictBuilder, ByteString, Maybe Utf8State)
+decodeUtf8ChunkStart bs = decodeUtf8Chunk bs startUtf8State
 
 -- | Call an error handler with the give 'String' message for each byte
 -- in given 'ByteString' and lead data in the given 'Utf8State'
 -- value. The bytes are the positions from 'errStart' (inclusive) to
 -- 'errEnd' (exclusive). Any substitute characters are pushed onto the
 -- supplied 'TextDataStack' argument.
-handleUtf8Err
-  :: OnDecodeError
-  -> String
-  -> Int
-  -> Int
-  -> Utf8State
-  -> ByteString
-  -> TextDataStack
-  -> TextDataStack
-handleUtf8Err onErr errMsg errStart errEnd s bs tds =
-  let h errPos tds'
-        | errPos < errEnd =
-          h (errPos + 1) $
-            case onErr errMsg . Just $ B.index bs errPos of
-              Just c -> pushText (T.singleton c) tds'
-              Nothing -> tds'
-        | otherwise = tds'
-  in
-  ( if errStart < 0
-    then
-      let partCP = partialUtf8CodePoint s
-          partCPLen = partUtf8CPLen partCP
-          g i tds'
-            | i < partCPLen = g (i + 1) $
-              case onErr errMsg (Just (partUtf8CPUnsafeIndex i partCP)) of
-                Just c -> pushText (T.singleton c) tds'
-                Nothing -> tds'
-            | otherwise = h (partCPLen + errStart) tds'
-      in
-      g 0
-    else h errStart
-  ) tds
+skipIncomplete :: (Word8 -> Maybe Char) -> Utf8State -> StrictBuilder
+skipIncomplete onErr s =
+  partUtf8CPFoldr
+    (appendRStrictBuilder . handleUtf8Error onErr)
+    emptyStrictBuilder (partialUtf8CodePoint s)
 
-invalidUtf8Msg :: String
-invalidUtf8Msg = "Data.Text.Internal.Encoding: Invalid UTF-8 stream"
+handleUtf8Error :: (Word8 -> Maybe Char) -> Word8 -> StrictBuilder
+handleUtf8Error onErr w = case onErr w of
+  Just c -> charToStrictBuilder c
+  Nothing -> emptyStrictBuilder
 
--- | Decode a 'ByteString' containing UTF-8 encoded text.
---
--- Surrogate code points in replacement character returned by 'OnDecodeError'
--- will be automatically remapped to the replacement char @U+FFFD@.
-decodeUtf8With ::
+decodeUtf8With1 ::
 #if defined(ASSERTS)
   HasCallStack =>
 #endif
-  OnDecodeError -> ByteString -> Text
-decodeUtf8With onErr bs =
-  let g bs' res =
-        case res of
-          ((len, eS), tds) ->
-            let h msg pos s = handleUtf8Err onErr msg len pos s bs' tds in
-            case eS of
-              Left (pos, bs'') -> g bs'' . decodeNextUtf8Chunk bs'' startUtf8State $ h invalidUtf8Msg pos startUtf8State
-              Right s -> stackToText $ h "Data.Text.Internal.Encoding: Incomplete UTF-8 code point" (B.length bs') s
-  in
-  g bs $ decodeUtf8Chunk bs
+  (Word8 -> Maybe Char) -> ByteString -> Text
+decodeUtf8With1 onErr bs0 = strictBuilderToText $
+    builder `appendRStrictBuilder` skipIncomplete onErr s
+  where
+    (builder, _, s) = decodeUtf8With2 onErr bs0 startUtf8State
+
+-- | Helper for 'decodeUtf8With' and 'streamDecodeUtf8With'.
+-- This uses an 'OnDecodeError' to process bad bytes.
+-- This is not a very pretty legacy API.
+-- See 'decodeUtf8Chunk' for a more flexible alternative.
+decodeUtf8With2 ::
+#if defined(ASSERTS)
+  HasCallStack =>
+#endif
+  (Word8 -> Maybe Char) -> ByteString -> Utf8State -> (StrictBuilder, ByteString, Utf8State)
+decodeUtf8With2 onErr bs0 s0 = loop bs0 s0 emptyStrictBuilder
+  where
+    loop bs s !builder =
+      let nonEmptyPrefix len = builder
+            `appendRStrictBuilder` partUtf8CPToStrictBuilder (partialUtf8CodePoint s)
+            `appendRStrictBuilder` byteStringToStrictBuilder (B.take len bs)
+      in case validateNextUtf8Chunk bs s of
+        (len, Nothing) ->
+          if len == 0 && partUtf8CPLen (partialUtf8CodePoint s) == 0
+          then
+            -- loop is strict on builder, so if onErr raises an error it will be forced here.
+            let builder' = builder `appendRStrictBuilder` skipIncomplete onErr s
+            in loop bs startUtf8State builder'
+          else
+            let builder' = nonEmptyPrefix len
+                  `appendRStrictBuilder` handleUtf8Error onErr (B.index bs len)
+            in loop (B.drop 1 bs) startUtf8State builder'
+        (len, Just s') ->
+          let builder' =
+                if len == 0
+                then builder `appendRStrictBuilder` skipIncomplete onErr s'
+                else nonEmptyPrefix len `appendRStrictBuilder` skipIncomplete onErr s'
+          in (builder', B.drop len bs, s')

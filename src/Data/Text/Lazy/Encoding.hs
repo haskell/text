@@ -61,12 +61,12 @@ import Data.Monoid (Monoid(..))
 import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode)
 import Data.Text.Internal.Lazy (Text(..), chunk, empty, foldrChunks)
 import Data.Word (Word8)
-import qualified Data.ByteString as S
 import qualified Data.ByteString.Builder as B
 import qualified Data.ByteString.Builder.Prim as BP
 import qualified Data.ByteString.Lazy as B
 import qualified Data.ByteString.Lazy.Internal as B
 import qualified Data.Text.Encoding as TE
+import qualified Data.Text.Internal.Encoding as TE
 import qualified Data.Text.Internal.Lazy.Encoding.Fusion as E
 import qualified Data.Text.Internal.Lazy.Fusion as F
 import Data.Text.Unsafe (unsafeDupablePerformIO)
@@ -106,22 +106,12 @@ decodeLatin1 = foldr (chunk . TE.decodeLatin1) empty . B.toChunks
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text.
 decodeUtf8With :: OnDecodeError -> B.ByteString -> Text
-decodeUtf8With onErr (B.Chunk b0 bs0) =
-  let g bs@(S.length -> bLen) lbs s tds diffText =
-        case TE.decodeNextUtf8Chunk bs s tds of
-          ((len, eS), tds') ->
-            let h errMsg pos s' = TE.handleUtf8Err onErr errMsg len pos s' bs tds' in
-            case eS of
-              Left (pos, bs') -> g bs' lbs TE.startUtf8State
-                (h "Data.Text.Internal.Encoding: Invalid UTF-8 stream" pos s) diffText
-              Right s' ->
-                case lbs of
-                  B.Chunk bs' lbs' ->
-                    g bs' lbs' s' TE.emptyStack $ diffText . chunk (TE.stackToText tds')
-                  B.Empty -> diffText $ chunk (TE.stackToText $ h "Data.Text.Internal.Encoding: Incomplete UTF-8 code point" bLen s') Empty
-  in
-  g b0 bs0 TE.startUtf8State TE.emptyStack id
-decodeUtf8With _ _ = empty
+decodeUtf8With onErr = loop TE.startUtf8State
+  where
+    loop s (B.Chunk b0 bs0) = case TE.decodeUtf8With2 onErr' b0 s of
+      (builder, _, s') -> Chunk (TE.strictBuilderToText builder) (loop s' bs0)
+    loop s B.Empty = Chunk (TE.strictBuilderToText (TE.skipIncomplete onErr' s)) Empty
+    onErr' = onErr "Data.Text.Internal.Encoding: Invalid UTF-8 stream" . Just
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text that is known
 -- to be valid.

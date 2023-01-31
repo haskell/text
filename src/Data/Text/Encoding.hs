@@ -37,13 +37,6 @@ module Data.Text.Encoding
     -- $total
     , decodeLatin1
     , decodeASCIIPrefix
-    , TextDataStack
-    , dataStack
-    , stackLen
-    , emptyStack
-    , pushText
-    , stackToText
-    , decodeNextUtf8Chunk
     , decodeUtf8Chunk
     , decodeUtf8Lenient
 
@@ -51,7 +44,6 @@ module Data.Text.Encoding
     , decodeUtf8'
 
     -- *** Controllable error handling
-    , handleUtf8Err
     , decodeUtf8With
     , decodeUtf16LEWith
     , decodeUtf16BEWith
@@ -114,6 +106,7 @@ import qualified Data.Text.Array as A
 import Data.Text.Internal.Encoding
 import qualified Data.Text.Internal.Encoding.Fusion as E
 import qualified Data.Text.Internal.Fusion as F
+import Data.Text.Show ()
 #if defined(ASSERTS)
 import GHC.Stack (HasCallStack)
 #endif
@@ -322,21 +315,25 @@ streamDecodeUtf8With ::
   HasCallStack =>
 #endif
   OnDecodeError -> ByteString -> Decoding
-streamDecodeUtf8With onErr bs =
-  let h w32 n ws =
-        if n >= 0
-        then h w32 (n - 1) $ partUtf8CPUnsafeIndex n w32 : ws
-        else ws
-      g bs' s tds =
-        case decodeNextUtf8Chunk bs' s tds of
-          ((len, eS), tds') ->
-            case eS of
-              Left (pos, bs'') -> g bs'' startUtf8State $ handleUtf8Err onErr invalidUtf8Msg len pos s bs' tds'
-              Right s' -> let bss' = partialUtf8CodePoint s' in
-                Some (stackToText tds') (B.pack $ h bss' (partUtf8CPLen bss' - 1) []) $ \ bs'' ->
-                  g bs'' s' emptyStack
-  in
-  g bs startUtf8State emptyStack
+streamDecodeUtf8With onErr = loop startUtf8State
+  where
+    loop s chunk =
+      let (builder, undecoded, s') = decodeUtf8With2 (onErr invalidUtf8Msg . Just) chunk s
+      in Some (strictBuilderToText builder) undecoded (loop s')
+
+-- | Decode a 'ByteString' containing UTF-8 encoded text.
+--
+-- Surrogate code points in replacement character returned by 'OnDecodeError'
+-- will be automatically remapped to the replacement char @U+FFFD@.
+decodeUtf8With ::
+#if defined(ASSERTS)
+  HasCallStack =>
+#endif
+  OnDecodeError -> ByteString -> Text
+decodeUtf8With onErr = decodeUtf8With1 (onErr invalidUtf8Msg . Just)
+
+invalidUtf8Msg :: String
+invalidUtf8Msg = "Data.Text.Encoding: Invalid UTF-8 stream"
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text that is known
 -- to be valid.
