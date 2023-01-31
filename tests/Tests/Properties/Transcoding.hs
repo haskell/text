@@ -29,6 +29,7 @@ import qualified Data.Text as T
 import qualified Data.Text.Encoding as E
 import qualified Data.Text.Encoding.Error as E
 import Data.Text.Internal.Encoding.Utf8 (isUtf8StateIsComplete)
+import qualified Data.Text.Internal.Encoding as E
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as EL
 -- import qualified Data.Text.Internal.Lazy as BL
@@ -100,11 +101,11 @@ t_pn_utf8_2   = case E.validateUtf8Chunk (B.pack [0xF0]) of
 t_pn_utf8_3 = case E.validateUtf8Chunk $ B.pack [0xc2] of
   (len1, eS1) -> whenEqProp len1 0 $ case eS1 of
     Left _ -> counterexample (show eS1) False
-    Right s1 -> whenEqProp (E.partialUtf8CodePoint s1) 0x01c20000 $
+    Right s1 -> E.partialUtf8CodePoint s1 === E.PartialUtf8CodePoint 0x01c20000 .&&.
       if isUtf8StateIsComplete $ E.utf8CodePointState s1
       then counterexample (show $ E.utf8CodePointState s1) False
       else case E.validateNextUtf8Chunk (B.pack [0x80, 0x80]) s1 of
-        (len2, eS2) -> whenEqProp len2 1 $ eS2 === Left 2
+        (len2, eS2) -> len2 === 1 .&&. eS2 === Left 2
 
 t_utf8_c     = (E.stackToText . snd . E.decodeUtf8Chunk . E.encodeUtf8) `eq` id
 t_utf8       = (E.decodeUtf8 . E.encodeUtf8) `eq` id
@@ -292,14 +293,13 @@ t_decode_chunk1 = case E.decodeUtf8Chunk $ B.pack [0xc2] of
     case eS1 of
       Left _ -> counterexample (show eS1) False
       Right s1 -> let partCP = E.partialUtf8CodePoint s1 in
-        whenEqProp partCP 0x01c20000 .
-        whenEqProp (E.partUtf8CPLen partCP) 1 .
-        whenEqProp (E.wordAtPartUft8CP 0 partCP) (Just 0xc2) .
-        whenEqProp (E.wordAtPartUft8CP 1 partCP) Nothing $
+        partCP === E.PartialUtf8CodePoint 0x01c20000 .&&.
+        E.partUtf8CPLen partCP === 1 .&&.
+        E.partUtf8CPUnsafeIndex 0 partCP === 0xc2 .&&.
         if isUtf8StateIsComplete $ E.utf8CodePointState s1
         then counterexample (show $ E.utf8CodePointState s1) False
         else case E.decodeNextUtf8Chunk (B.pack [0x80, 0x80]) s1 tds1 of
-          ((len2, eS2), tds2) -> whenEqProp (len2, E.dataStack tds2, E.stackLen tds2) (1, [Right $ Right $ B.pack [0x80], Right $ Left 0x1c20000], 2) $
+          ((len2, eS2), tds2) -> whenEqProp (len2, E.dataStack tds2, E.stackLen tds2) (1, [Right $ Right $ B.pack [0x80], Right $ Left (E.PartialUtf8CodePoint 0x1c20000)], 2) $
             case eS2 of
               Right _ -> counterexample (show eS2) False
               Left res -> res === (2, mempty)
@@ -309,10 +309,9 @@ t_decode_chunk2 = case E.decodeUtf8Chunk $ B.pack [0xf0] of
     case eS1 of
       Left _ -> counterexample (show eS1) False
       Right s1 -> let partCP = E.partialUtf8CodePoint s1 in
-        whenEqProp partCP 0x01f00000 .
-        whenEqProp (E.partUtf8CPLen partCP) 1 .
-        whenEqProp (E.wordAtPartUft8CP 0 partCP) (Just 0xf0) .
-        whenEqProp (E.wordAtPartUft8CP 1 partCP) Nothing $
+        partCP === E.PartialUtf8CodePoint 0x01f00000 .&&.
+        E.partUtf8CPLen partCP === 1 .&&.
+        E.partUtf8CPUnsafeIndex 0 partCP === 0xf0 .&&.
         if isUtf8StateIsComplete $ E.utf8CodePointState s1
         then counterexample (show $ E.utf8CodePointState s1) False
         else case E.decodeNextUtf8Chunk (B.pack [0x90, 0x80]) s1 tds1 of
@@ -320,12 +319,11 @@ t_decode_chunk2 = case E.decodeUtf8Chunk $ B.pack [0xf0] of
             case eS2 of
               Left _ -> counterexample (show eS2) False
               Right s2 -> let partCP2 = E.partialUtf8CodePoint s2 in
-                whenEqProp partCP2 0x03f09080 .
-                whenEqProp (E.partUtf8CPLen partCP2) 3 .
-                whenEqProp (E.wordAtPartUft8CP 0 partCP2) (Just 0xf0) .
-                whenEqProp (E.wordAtPartUft8CP 1 partCP2) (Just 0x90) .
-                whenEqProp (E.wordAtPartUft8CP 2 partCP2) (Just 0x80) $
-                E.wordAtPartUft8CP 3 partCP2 === Nothing
+                partCP2 === E.PartialUtf8CodePoint 0x03f09080 .&&.
+                E.partUtf8CPLen partCP2 === 3 .&&.
+                E.partUtf8CPUnsafeIndex 0 partCP2 === 0xf0 .&&.
+                E.partUtf8CPUnsafeIndex 1 partCP2 === 0x90 .&&.
+                E.partUtf8CPUnsafeIndex 2 partCP2 === 0x80
 
 t_infix_concat bs1 text bs2 =
   forAll (Blind <$> genDecodeErr Replace) $ \(Blind onErr) ->
