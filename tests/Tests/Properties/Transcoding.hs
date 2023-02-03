@@ -386,11 +386,11 @@ testTranscoding =
       testCase "t_pn_utf8_2" t_pn_utf8_2,
       testCase "t_pn_utf8_3" t_pn_utf8_3,
       testCase "t_decode_chunk1" t_decode_chunk1,
-      testCase "t_decode_chunk2" t_decode_chunk2
+      testCase "t_decode_chunk2" t_decode_chunk2,
       testCase "t_decode_with_error1'" t_decode_with_error1',
       testCase "t_decode_with_error2'" t_decode_with_error2',
       testCase "t_decode_with_error3'" t_decode_with_error3',
       testCase "t_decode_with_error4'" t_decode_with_error4',
-      testCase "t_decode_with_error5'" t_decode_with_error5',
+      testCase "t_decode_with_error5'" t_decode_with_error5'
     ]
   ]

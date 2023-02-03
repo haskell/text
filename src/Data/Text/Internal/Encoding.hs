@@ -3,7 +3,12 @@
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ViewPatterns #-}
+
 -- |
+-- Internals of "Data.Text.Encoding".
+--
+-- If you'd like to depend on something from here that's not in "Data.Text.Encoding",
+-- please request to have it exported!
 module Data.Text.Internal.Encoding where
 
 import Control.Monad.ST (ST, runST)
@@ -11,6 +16,7 @@ import Control.Monad.ST.Unsafe (unsafeIOToST, unsafeSTToIO)
 import Data.Bits ((.&.), shiftL, shiftR)
 import Data.ByteString (ByteString)
 import Data.Functor (void)
+import Data.Semigroup (Semigroup(..))
 import Data.Text.Internal (Text(..), empty, safe)
 import Data.Text.Internal.Unsafe (unsafeWithForeignPtr)
 import Data.Text.Unsafe (unsafeDupablePerformIO)
@@ -36,31 +42,46 @@ import qualified Data.ByteString.Unsafe as B
 #endif
 
 -- | State of decoding a 'ByteString' in UTF-8.
--- It consists of a value representing whether or
--- not the last byte is a complete code point, and on incompletion what
--- the 1 to 3 end bytes are that make up the incomplete code point.
+-- Enables stream decoding ('validateUtf8Chunk', 'validateUtf8More',
+-- 'decodeUtf8Chunk', 'decodeUtf8More').
+
+-- Internal invariant:
+-- the first component is the initial state if and only if
+-- the second component is empty.
+--
+-- @
+-- 'utf9CodePointState' s = 'utf8StartState'
+-- <=>
+-- 'partialUtf8CodePoint' s = 'PartialUtf8CodePoint' 0
+-- @
+--
+-- @since 2.0.2
 data Utf8State = Utf8State
-  { -- | Current UTF-8 code point state of the 'ByteString's
-    -- that have been validated thus far.
+  { -- | State of the UTF-8 state machine.
     utf8CodePointState :: {-# UNPACK #-} !Utf8CodePointState
-    -- | Get the incomplete UTF-8 code point of the 'ByteString's that
-    -- have been validated thus far. The first byte of the 'Word32'
-    -- indicates the number of bytes of the code point are available,
-    -- and is followed by the bytes of the code point.
+    -- | Bytes of the currently incomplete code point (if any).
   , partialUtf8CodePoint :: {-# UNPACK #-} !PartialUtf8CodePoint
   }
   deriving (Eq, Ord, Show)
 
--- | This represtents the starting state of a UTF-8 validation check.
+-- | Initial 'Utf8State'.
+--
+-- @since 2.0.2
 startUtf8State :: Utf8State 
 startUtf8State = Utf8State utf8StartState partUtf8Empty
 
--- | Prefix of a valid UTF-8 encoded code point encoded in 4 bytes.
--- This consists of a length (in bytes) between 1 and 3 stored in the most
--- significant byte, and the actual bytes in the rest of the word.
+-- | Prefix of a UTF-8 code point encoded in 4 bytes,
+-- possibly empty.
 --
--- All of its operations are the functions below.
+-- - The most significant byte contains the number of bytes,
+--   between 0 and 3.
+-- - The remaining bytes hold the incomplete code point.
+-- - Unused bytes must be 0.
+--
+-- All of operations available on it are the functions below.
 -- The constructor should never be used outside of those.
+--
+-- @since 2.0.2
 newtype PartialUtf8CodePoint = PartialUtf8CodePoint Word32
   deriving (Eq, Ord, Show)
 
@@ -72,6 +93,8 @@ partUtf8Empty = PartialUtf8CodePoint 0
 partUtf8Len :: PartialUtf8CodePoint -> Int
 partUtf8Len (PartialUtf8CodePoint w) = fromIntegral $ w `shiftR` 24
 
+-- | Length of the code point once completed (it is known in the first byte).
+-- 0 if empty.
 partUtf8CompleteLen :: PartialUtf8CodePoint -> Int
 partUtf8CompleteLen c@(PartialUtf8CodePoint w)
   | partUtf8Len c == 0 = 0
@@ -83,6 +106,8 @@ partUtf8CompleteLen c@(PartialUtf8CodePoint w)
     firstByte = (w `shiftR` 16) .&. 255
 
 -- | Get the @n@-th byte, assuming it is within bounds: @0 <= n < partUtf8Len c@.
+--
+-- Unsafe: no bounds checking.
 partUtf8UnsafeIndex ::
 #if defined(ASSERTS)
   HasCallStack =>
@@ -94,6 +119,9 @@ partUtf8UnsafeIndex (PartialUtf8CodePoint w) n =
 #endif
   fromIntegral $ w `shiftR` (16 - 8 * n)
 
+-- | Append some bytes.
+--
+-- Unsafe: no bounds checking.
 partUtf8UnsafeAppend ::
 #if defined(ASSERTS)
   HasCallStack =>
@@ -113,7 +141,7 @@ partUtf8UnsafeAppend c@(PartialUtf8CodePoint word) bs =
       then w + (fromIntegral (B.index bs i) `shiftL` fromIntegral (16 - 8 * (lenc + i)))
       else w
 
--- | This avoids recursion to unfold to straightline code.
+-- | Fold a 'PartialUtf8CodePoint'. This avoids recursion so it unfolds to straightline code.
 partUtf8Foldr :: (Word8 -> a -> a) -> a -> PartialUtf8CodePoint -> a
 partUtf8Foldr f x0 c = case partUtf8Len c of
     0 -> x0
@@ -123,6 +151,7 @@ partUtf8Foldr f x0 c = case partUtf8Len c of
   where
     build i x = f (partUtf8UnsafeIndex c i) x
 
+-- | Convert 'PartialUtf8CodePoint' to 'ByteString'.
 partUtf8ToByteString :: PartialUtf8CodePoint -> B.ByteString
 partUtf8ToByteString c = BI.unsafeCreate (partUtf8Len c) $ \ptr ->
   partUtf8Foldr (\w k i -> pokeElemOff ptr i w >> k (i+1)) (\_ -> pure ()) c 0
@@ -132,31 +161,37 @@ foreign import ccall unsafe "_hs_text_is_valid_utf8" c_is_valid_utf8
     :: Ptr Word8 -> CSize -> IO CInt
 #endif
 
--- | Validate a 'ByteString' as a UTF-8-encoded text.
+-- | Validate a 'ByteString' as UTF-8-encoded text. To be continued using 'validateUtf8More'.
 --
--- @validateUtf8More chunk = (n, es)@
+-- See also 'validateUtf8More' for details on the result of this function.
 --
--- This function returns two values:
+-- @
+-- 'validateUtf8Chunk' = 'validateUtf8More' 'startUtf8State'
+-- @
 --
--- * The value 'n' indicates the longest prefix of the 'ByteString'
---   that is valid UTF-8-encoded data.
--- * The value 'es' indicates whether the 'ByteString'
+-- === Properties
 --
---     * (@Left p@) contains an invalid code point and where the next
---       (potentially valid) code point begins, so that @p - n@ is the
---       number of invalid bytes, or
---     * (@Right s@) is valid, and all of the remaining bytes starting
---       at inbex 'n' are the beginning of an incomplete UTF-8 code
---       point, and 's' is the resulting 'Utf8State' value, which
---       can be used to validate against a following 'ByteString' with
---       'validateNextUtf8Chunk'.
+-- Given:
+--
+-- @
+-- 'validateUtf8Chunk' chunk = (n, ms)
+-- @
+--
+-- - The prefix is valid UTF-8. In particular, it should be accepted
+--   by this validation:
+--
+--   @
+--   'validateUtf8Chunk' ('Data.ByteString.take' n chunk) = (n, Just 'startUtf8State')
+--   @
+--
+-- @since 2.0.2
 validateUtf8Chunk :: ByteString -> (Int, Maybe Utf8State)
 validateUtf8Chunk = validateUtf8ChunkFrom 0
 
 -- | Add an offset to the index returned by 'validateUtf8More'.
 --
 -- @
--- validateUtf8ChunkFrom n = first (+ 1) . 'validateUtf8More' . 'B.drop' n
+-- validateUtf8ChunkFrom n = first (+ n) . 'validateUtf8More' . 'B.drop' n
 -- @
 validateUtf8ChunkFrom :: Int -> ByteString -> (Int, Maybe Utf8State)
 validateUtf8ChunkFrom ofs bs
@@ -202,32 +237,51 @@ slowValidateUtf8ChunkFrom ofs bs = loop ofs ofs utf8StartState
             Nothing -> (utf8End, Nothing)
       | otherwise = (utf8End, Just (Utf8State s (partUtf8UnsafeAppend partUtf8Empty (B.drop utf8End bs))))
 
--- | Validate a 'ByteString' as a contiuation of UTF-8-encoded text.
+-- | Validate another 'ByteString' chunk in an ongoing stream of UTF-8-encoded text.
 --
--- @validateNextUtf8Chunk chunk s = (n, es)@
+-- Returns a pair:
 --
--- This function returns two values:
+-- 1. The first component @n@ is the end position, relative to the current
+--    chunk, of the longest prefix of the accumulated bytestring which is valid UTF-8.
+--    @n@ may be negative: that happens when an incomplete code point started in
+--    a previous chunk and is not completed by the current chunk (either
+--    that code point is still incomplete, or it is broken by an invalid byte).
 --
--- * The value 'n' indicates the end position of longest prefix of the
---   'ByteString' that is valid UTF-8-encoded data from the starting
---   state 's'. If 's' contains an incomplete code point, the input
---   'ByteString' is considered a continuation. As a result 'n' will be
---   negative if the code point is still incomplete or is proven to be
---   invalid.
---   
--- * The value 'es' indicates whether the 'ByteString'
+-- 2. The second component @ms@ indicates the following:
 --
---     * (@Left p@) contains an invalid code point and where the next
---       (potentially valid) code point begins, so that @p - n@ is the
---       number of invalid bytes, or
---     * (@Right s'@) is valid, and all of the remaining bytes starting
---       at index 'n' are the beginning of an incomplete UTF-8 code
---       point, and `s'` is the resulting 'Utf8State' value, which
---       can be used to validate against a following 'ByteString'.
+--     - if @ms = Nothing@, the remainder of the chunk contains an invalid byte,
+--       within four bytes from position @n@;
+--     - if @ms = Just s'@, you can carry on validating another chunk
+--       by calling 'validateUtf8More' with the new state @s'@.
+--
+-- === Properties
+--
+-- Given:
+--
+-- @
+-- 'validateUtf8More' s chunk = (n, ms)
+-- @
+--
+-- - If the chunk is invalid, it cannot be extended to be valid.
+--
+--   @
+--   ms = Nothing
+--   ==> 'validateUtf8More' s (chunk '<>' more) = (n, Nothing)
+--   @
+--
+-- - Validating two chunks sequentially is the same as validating them
+--   together at once:
+--
+--   @
+--   ms = Just s'
+--   ==> 'validateUtf8More' s (chunk '<>' more) = 'Data.Bifunctor.first' ('Data.ByteString.length' chunk '+') ('validateUtf8More' s' more)
+--   @
+--
+-- @since 2.0.2
 validateUtf8More :: Utf8State -> ByteString -> (Int, Maybe Utf8State)
 validateUtf8More st@(Utf8State s0 part) bs
   | len > 0 = loop 0 s0
-  | otherwise = (0, Just st)
+  | otherwise = (- partUtf8Len part, Just st)
   where
     len = B.length bs
     -- Complete an incomplete code point (if there is one)
@@ -238,21 +292,33 @@ validateUtf8More st@(Utf8State s0 part) bs
         case updateUtf8State (B.index bs i) s of
           Nothing -> (0, Nothing)
           Just s' -> loop (i + 1) s'
-      | otherwise = (0, Just (Utf8State s (partUtf8UnsafeAppend part bs)))
+      | otherwise = (- partUtf8Len part, Just (Utf8State s (partUtf8UnsafeAppend part bs)))
 
--- | Construct an Array. This is currently an internal data structure which is
--- only used to construct Text (so for example byteStringToStrictBuilder should
--- only be applied to valid UTF-8 bytestrings).
+-- | A delayed representation of strict 'Text'.
+
+-- For internal purposes, this is instead used as a delayed 'Array':
+-- it may not actually be valid 'Text' (e.g., 'word8ToStrictBuilder',
+-- 'byteStringToStrictBuilder', 'partUtf8ToStrictBuilder').
+--
+-- @since 2.0.2
 data StrictBuilder = StrictBuilder
   { sbLength :: {-# UNPACK #-} !Int
   , sbWrite :: forall s. A.MArray s -> Int -> ST s ()
   }
 
+-- | Concatenation of 'StrictBuilder' is right-biased:
+-- the right builder will be run first. This allows a builder to
+-- run tail-recursively when it was accumulated left-to-right.
+instance Semigroup StrictBuilder where
+  (<>) = appendRStrictBuilder
+
+instance Monoid StrictBuilder where
+  mempty = emptyStrictBuilder
+  mappend = (<>)
+
 emptyStrictBuilder :: StrictBuilder
 emptyStrictBuilder = StrictBuilder 0 (\_ _ -> pure ())
 
--- | Right-biased append: run the right action first.  This allows a builder to
--- run tail-recursively when accumulating text left-to-right.
 appendRStrictBuilder :: StrictBuilder -> StrictBuilder -> StrictBuilder
 appendRStrictBuilder (StrictBuilder n1 write1) (StrictBuilder n2 write2) =
   StrictBuilder (n1 + n2) (\arr ofs -> do
@@ -278,8 +344,11 @@ word8ToStrictBuilder w =
 
 partUtf8ToStrictBuilder :: PartialUtf8CodePoint -> StrictBuilder
 partUtf8ToStrictBuilder =
-  partUtf8Foldr (appendRStrictBuilder . word8ToStrictBuilder) emptyStrictBuilder
+  partUtf8Foldr ((<>) . word8ToStrictBuilder) emptyStrictBuilder
 
+-- | Use 'StrictBuilder' to build 'Text'.
+--
+-- @since 2.0.2
 strictBuilderToText :: StrictBuilder -> Text
 strictBuilderToText (StrictBuilder 0 _) = empty
 strictBuilderToText (StrictBuilder n write) = runST (do
@@ -288,28 +357,50 @@ strictBuilderToText (StrictBuilder n write) = runST (do
   arr <- A.unsafeFreeze dst
   pure (Text arr 0 n))
 
--- | Decode a 'ByteString' in the context of what has been already been decoded.
+-- | Decode another chunk in an ongoing UTF-8 stream.
 --
--- The 'ByteString' is validated against the 'Utf8State' using the rules
--- governing 'validateNextUtf8Chunk'. The longest valid UTF-8 prefix is added
--- to the input 'TextDataStack' which is returned with the end position of the
--- valid prefix, and either the resulting 'Utf8State'
--- (@Right Utf8State@) or the position of the of the first (potentially)
--- valid byte after the invalid bytes with remainder of the 'ByteString'
--- (@Left (Int, ByteString)@).
+-- Returns a triple:
+--
+-- 1. A 'StrictBuilder' for the decoded chunk of text. You can accumulate
+--    chunks with @('<>')@ or output them with 'strictBuilderToText'.
+-- 2. The undecoded remainder of the given chunk, for diagnosing errors
+--    and resuming (presumably after skipping some bytes).
+-- 3. 'Just' the new state, or 'Nothing' if an invalid byte was encountered
+--    (it will be within the first 4 bytes of the undecoded remainder).
+--
+-- @since 2.0.2
 decodeUtf8More :: Utf8State -> ByteString -> (StrictBuilder, ByteString, Maybe Utf8State)
 decodeUtf8More s bs =
   case validateUtf8More s bs of
     (len, s') ->
-      let builder | len == 0 = emptyStrictBuilder
+      let builder | len <= 0 = emptyStrictBuilder
                   | otherwise = partUtf8ToStrictBuilder (partialUtf8CodePoint s)
-                    `appendRStrictBuilder` byteStringToStrictBuilder (B.take len bs)
+                    <> byteStringToStrictBuilder (B.take len bs)
       in (builder, B.drop len bs, s')
 
--- | Decode a 'ByteString' against a start 'Utf8State' with an empty
--- 'TextDataStack'.
+-- | Decode a chunk of UTF-8 text. To be continued with 'decodeUtf8More'.
 --
--- @decodeUtf8More bs = 'decodeNextUtf8Chunk' bs 'startUtf8State' 'emptyStack'@
+-- See 'decodeUtf8More' for details on the result.
+--
+-- === Properties
+--
+-- @
+-- 'decodeUtf8Chunk' = 'decodeUtf8More' 'startUtf8State'
+-- @
+--
+-- Given:
+--
+-- @
+-- 'decodeUtf8Chunk' chunk = (builder, rest, ms)
+-- @
+--
+-- @builder@ is a prefix and @rest@ is a suffix of @chunk@.
+--
+-- @
+-- 'Data.Text.Encoding.encodeUtf8' ('strictBuilderToText' builder) '<>' rest = chunk
+-- @
+--
+-- @since 2.0.2
 decodeUtf8Chunk :: ByteString -> (StrictBuilder, ByteString, Maybe Utf8State)
 decodeUtf8Chunk = decodeUtf8More startUtf8State
 
@@ -321,7 +412,7 @@ decodeUtf8Chunk = decodeUtf8More startUtf8State
 skipIncomplete :: (Word8 -> Maybe Char) -> Utf8State -> StrictBuilder
 skipIncomplete onErr s =
   partUtf8Foldr
-    (appendRStrictBuilder . handleUtf8Error onErr)
+    ((<>) . handleUtf8Error onErr)
     emptyStrictBuilder (partialUtf8CodePoint s)
 
 handleUtf8Error :: (Word8 -> Maybe Char) -> Word8 -> StrictBuilder
@@ -336,14 +427,16 @@ decodeUtf8With1 ::
 #endif
   (Word8 -> Maybe Char) -> ByteString -> Text
 decodeUtf8With1 onErr bs0 = strictBuilderToText $
-    builder `appendRStrictBuilder` skipIncomplete onErr s
+    builder <> skipIncomplete onErr s
   where
     (builder, _, s) = decodeUtf8With2 onErr startUtf8State bs0
 
--- | Helper for 'decodeUtf8With' and 'streamDecodeUtf8With'.
--- This uses an 'OnDecodeError' to process bad bytes.
--- This is not a very pretty legacy API.
--- See 'decodeUtf8More' for a more flexible alternative.
+-- | Helper for 'Data.Text.Encoding.decodeUtf8With',
+-- 'Data.Text.Encoding.streamDecodeUtf8With', and lazy
+-- 'Data.Text.Lazy.Encoding.decodeUtf8With',
+-- which use an 'OnDecodeError' to process bad bytes.
+--
+-- See 'decodeUtf8Chunk' for a more flexible alternative.
 decodeUtf8With2 ::
 #if defined(ASSERTS)
   HasCallStack =>
@@ -353,21 +446,21 @@ decodeUtf8With2 onErr s0 bs = loop s0 0 emptyStrictBuilder
   where
     loop s i !builder =
       let nonEmptyPrefix len = builder
-            `appendRStrictBuilder` partUtf8ToStrictBuilder (partialUtf8CodePoint s)
-            `appendRStrictBuilder` byteStringToStrictBuilder (B.take len (B.drop i bs))
+            <> partUtf8ToStrictBuilder (partialUtf8CodePoint s)
+            <> byteStringToStrictBuilder (B.take len (B.drop i bs))
       in case validateUtf8More s (B.drop i bs) of
         (len, Nothing) ->
-          if len == 0 && utf8CodePointState s /= utf8StartState
+          if len < 0
           then
             -- loop is strict on builder, so if onErr raises an error it will be forced here.
-            let builder' = builder `appendRStrictBuilder` skipIncomplete onErr s
+            let builder' = builder <> skipIncomplete onErr s
             in loop startUtf8State i builder'
           else
             let builder' = nonEmptyPrefix len
-                  `appendRStrictBuilder` handleUtf8Error onErr (B.index bs (i + len))
+                  <> handleUtf8Error onErr (B.index bs (i + len))
             in loop startUtf8State (i + len + 1) builder'
         (len, Just s') ->
-          let builder' = if len == 0 then builder else nonEmptyPrefix len
+          let builder' = if len <= 0 then builder else nonEmptyPrefix len
               undecoded = if B.length bs - i - len == partUtf8Len (partialUtf8CodePoint s')
                 then B.drop (i + len) bs  -- Reuse bs if possible
                 else partUtf8ToByteString (partialUtf8CodePoint s')

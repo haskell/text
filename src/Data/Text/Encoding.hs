@@ -23,24 +23,14 @@
 
 module Data.Text.Encoding
     (
-    -- * ByteString validation
-    -- $validation
-      Utf8State
-    , validateUtf8Chunk
-    , validateUtf8More
-    , startUtf8State
-
     -- * Decoding ByteStrings to Text
     -- $strict
 
     -- ** Total Functions #total#
     -- $total
-    , decodeLatin1
+      decodeLatin1
     , decodeASCIIPrefix
-    , decodeUtf8Chunk
     , decodeUtf8Lenient
-
-    -- *** Catchable failure
     , decodeUtf8'
 
     -- *** Controllable error handling
@@ -54,6 +44,15 @@ module Data.Text.Encoding
     -- $stream
     , streamDecodeUtf8With
     , Decoding(..)
+
+    -- *** Incremental decoding
+    -- $incremental
+    , decodeUtf8Chunk
+    , decodeUtf8More
+    , Utf8State
+    , startUtf8State
+    , StrictBuilder()
+    , strictBuilderToText
 
     -- ** Partial Functions
     -- $partial
@@ -77,6 +76,11 @@ module Data.Text.Encoding
     -- * Encoding Text using ByteString Builders
     , encodeUtf8Builder
     , encodeUtf8BuilderEscaped
+
+    -- * ByteString validation
+    -- $validation
+    , validateUtf8Chunk
+    , validateUtf8More
     ) where
 
 import Control.Exception (evaluate, try)
@@ -154,7 +158,8 @@ import qualified Data.ByteString.Unsafe as B
 -- To drop references to the input bytestring, force the prefix
 -- (using 'seq' or @BangPatterns@) and drop references to the suffix.
 --
--- Properties:
+-- === Properties
+--
 -- - If @(prefix, suffix) = decodeAsciiPrefix s@, then @'encodeUtf8' prefix <> suffix = s@.
 -- - Either @suffix@ is empty, or @'B.head' suffix > 127@.
 --
@@ -535,3 +540,18 @@ encodeUtf32LE txt = E.unstream (E.restreamUtf32LE (F.stream txt))
 encodeUtf32BE :: Text -> ByteString
 encodeUtf32BE txt = E.unstream (E.restreamUtf32BE (F.stream txt))
 {-# INLINE encodeUtf32BE #-}
+
+-- $incremental
+-- The functions 'decodeUtf8Chunk' and 'decodeUtf8More' provide more
+-- control for error-handling and streaming.
+--
+-- - You get an UTF-8 prefix of the given 'ByteString' up to the next error.
+--   For example this lets you insert or delete arbitrary text, or do some
+--   stateful operations, before resuming.
+--   In contrast, the older stream-oriented interface only lets you substitute
+--   a single fixed 'Char' for each invalid byte in 'OnDecodeError'.
+-- - The prefix is encoded as a 'StrictBuilder', so you can accumulate chunks
+--   before doing the copying work to construct a 'Text', or you can
+--   output decoded fragments immediately as a lazy 'Data.Text.Lazy.Text'.
+--
+-- For even lower-level primitives, see 'validateUtf8Chunk' and 'validateUtf8More'.
