@@ -108,9 +108,11 @@ decodeLatin1 = foldr (chunk . TE.decodeLatin1) empty . B.toChunks
 decodeUtf8With :: OnDecodeError -> B.ByteString -> Text
 decodeUtf8With onErr = loop TE.startUtf8State
   where
-    loop s (B.Chunk b0 bs0) = case TE.decodeUtf8With2 onErr' b0 s of
-      (builder, _, s') -> Chunk (TE.strictBuilderToText builder) (loop s' bs0)
-    loop s B.Empty = Chunk (TE.strictBuilderToText (TE.skipIncomplete onErr' s)) Empty
+    chunkb builder t | TE.sbLength builder == 0 = t
+                    | otherwise = Chunk (TE.strictBuilderToText builder) t
+    loop s (B.Chunk b bs) = case TE.decodeUtf8With2 onErr' s b of
+      (builder, _, s') -> chunkb builder (loop s' bs)
+    loop s B.Empty = chunkb (TE.skipIncomplete onErr' s) Empty
     onErr' = onErr "Data.Text.Internal.Encoding: Invalid UTF-8 stream" . Just
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text that is known

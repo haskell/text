@@ -11,10 +11,11 @@ module Tests.Properties.Transcoding
 import Prelude hiding (head, tail)
 import Data.Bits ((.&.), shiftR)
 import Data.Char (chr, ord)
-import Data.Either (isLeft, isRight)
+import Data.Functor (void)
 import Test.QuickCheck hiding ((.&.))
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.QuickCheck (testProperty)
+import Test.Tasty.HUnit ((@?=), assertBool, assertFailure, testCase)
 import Tests.QuickCheckUtils
 import qualified Control.Exception as Exception
 import qualified Data.Bits as Bits (shiftL, shiftR)
@@ -28,12 +29,10 @@ import qualified Data.ByteString.Lazy.Char8 as BLC
 import qualified Data.Text as T
 import qualified Data.Text.Encoding as E
 import qualified Data.Text.Encoding.Error as E
-import Data.Text.Internal.Encoding.Utf8 (isUtf8StateIsComplete)
 import qualified Data.Text.Internal.Encoding as E
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as EL
--- import qualified Data.Text.Internal.Lazy as BL
--- import qualified Data.ByteString.Lazy.Internal as BS
+import Data.Word (Word8)
 
 t_ascii t    = E.decodeASCII (E.encodeUtf8 a) === a
     where a  = T.map (\c -> chr (ord c `mod` 128)) t
@@ -43,71 +42,69 @@ tl_ascii t   = EL.decodeASCII (EL.encodeUtf8 a) === a
 t_latin1     = E.decodeLatin1 `eq` (T.pack . BC.unpack)
 tl_latin1    = EL.decodeLatin1 `eq` (TL.pack . BLC.unpack)
 
-t_p_utf8_1   = case E.validateUtf8Chunk (B.pack [0x63]) of
-  (result, st) -> whenEqProp result 1 . property $ isRight st
-t_p_utf8_2   = case E.validateUtf8Chunk (B.pack [0x63, 0x63, 0x63]) of
-  (result, st) -> whenEqProp result 3 . property $ isRight st
-t_p_utf8_3   = case E.validateUtf8Chunk (B.pack [0x63, 0x63, 0xc2, 0x80, 0x63]) of
-  (result, st) -> whenEqProp result 5 . property $ isRight st
-t_p_utf8_4   = case E.validateUtf8Chunk (B.pack [0x63, 0xe1, 0x80, 0x80, 0x63]) of
-  (result, st) -> whenEqProp result 5 . property $ isRight st
-t_p_utf8_5   = case E.validateUtf8Chunk (B.pack [0xF0, 0x90, 0x80, 0x80, 0x63]) of
-  (result, st) -> whenEqProp result 5 . property $ isRight st
-t_p_utf8_6   = case E.validateUtf8Chunk (B.pack [0x63, 0x63, 0xF0, 0x90, 0x80]) of
-  (result, st) -> whenEqProp result 2 . property $ isRight st
-t_p_utf8_7   = case E.validateUtf8Chunk (B.pack [0x63, 0x63, 0x63, 0xF0, 0x90]) of
-  (result, st) -> whenEqProp result 3 . property $ isRight st
-t_p_utf8_8   = case E.validateUtf8Chunk (B.pack [0xF0, 0x90, 0x80, 0x63, 0x63]) of
-  (result, st) -> whenEqProp result 0 $ st === Left 3
-t_p_utf8_9   = case E.validateUtf8Chunk (B.pack [0x63, 0x63, 0x80, 0x63, 0x63]) of
-  (result, st) -> whenEqProp result 2 $ st === Left 3
-t_p_utf8_0   = case E.validateUtf8Chunk (B.pack [0x63, 0x63, 0xe1, 0x63, 0x63]) of
-  (result, st) -> whenEqProp result 2 $ st === Left 3
+t_p_utf8_1   = testValidateUtf8_ [0x63] 1
+t_p_utf8_2   = testValidateUtf8_ [0x63, 0x63, 0x63] 3
+t_p_utf8_3   = testValidateUtf8_ [0x63, 0x63, 0xc2, 0x80, 0x63] 5
+t_p_utf8_4   = testValidateUtf8_ [0x63, 0xe1, 0x80, 0x80, 0x63] 5
+t_p_utf8_5   = testValidateUtf8_ [0xF0, 0x90, 0x80, 0x80, 0x63] 5
+t_p_utf8_6   = testValidateUtf8_ [0x63, 0x63, 0xF0, 0x90, 0x80] 2
+t_p_utf8_7   = testValidateUtf8_ [0x63, 0x63, 0x63, 0xF0, 0x90] 3
+t_p_utf8_8   = testValidateUtf8Fail [0xF0, 0x90, 0x80, 0x63, 0x63] 0
+t_p_utf8_9   = testValidateUtf8Fail [0x63, 0x63, 0x80, 0x63, 0x63] 2
+t_p_utf8_0   = testValidateUtf8Fail [0x63, 0x63, 0xe1, 0x63, 0x63] 2
 
-t_pn_utf8_1   = case E.validateUtf8Chunk (B.pack [0xF0, 0x90, 0x80]) of
-  (result0, mS) -> whenEqProp result0 0 $
-    case mS of
-      Left _ -> counterexample (show mS) False
-      Right s -> case E.validateNextUtf8Chunk (B.pack [0x80]) s of
-        (result1, mS1) -> whenEqProp result1 1 $
-          if isLeft mS1
-          then counterexample (show mS1) False
-          else case E.validateNextUtf8Chunk (B.pack [0x7f]) s of
-            (result2, mS2) -> whenEqProp result2 (-3) $ mS2 === Left 0
-t_pn_utf8_2   = case E.validateUtf8Chunk (B.pack [0xF0]) of
-  (result0, mS0) -> whenEqProp result0 0 $
-    case mS0 of
-      Left _ -> counterexample (show mS0) False
-      Right s0 -> case E.validateNextUtf8Chunk (B.pack [0x7f]) s0 of
-        (result1, mS1) -> whenEqProp result1 (-1) .
-          whenEqProp mS1 (Left 0) $
-          case E.validateNextUtf8Chunk (B.pack [0x90]) s0 of
-            (result2, mS2) -> whenEqProp result2 (-1) $
-              case mS2 of
-                Left _ -> counterexample (show mS2) False
-                Right s1 -> case E.validateNextUtf8Chunk (B.pack [0x7f]) s1 of
-                  (result3, mS3) -> whenEqProp result3 (-2) .
-                    whenEqProp mS3 (Left 0) $
-                    case E.validateNextUtf8Chunk (B.pack [0x80]) s1 of
-                      (result4, mS4) -> whenEqProp result4 (-2) $
-                        case mS4 of
-                          Left _ -> counterexample (show mS3) False
-                          Right s2 -> case E.validateNextUtf8Chunk (B.pack [0x7f]) s2 of
-                            (result5, mS5) -> whenEqProp result5 (-3) .
-                              whenEqProp mS5 (Left 0) $
-                              case E.validateNextUtf8Chunk (B.pack [0x80]) s2 of
-                                (result6, mS6) -> whenEqProp result6 1 $
-                                  property $ isRight mS6
-t_pn_utf8_3 = case E.validateUtf8Chunk $ B.pack [0xc2] of
-  (len1, eS1) -> whenEqProp len1 0 $ case eS1 of
-    Left _ -> counterexample (show eS1) False
-    Right s1 -> E.partialUtf8CodePoint s1 === E.PartialUtf8CodePoint 0x01c20000 .&&.
-      if isUtf8StateIsComplete $ E.utf8CodePointState s1
-      then counterexample (show $ E.utf8CodePointState s1) False
-      else case E.validateNextUtf8Chunk (B.pack [0x80, 0x80]) s1 of
-        (len2, eS2) -> len2 === 1 .&&. eS2 === Left 2
+testValidateUtf8With ::
+  (B.ByteString -> (Int, Maybe E.Utf8State)) ->
+  (Maybe E.Utf8State -> IO r) ->
+  [Word8] -> Int -> IO r
+testValidateUtf8With validate k xs expectedLen = case validate (B.pack xs) of
+  (len, s) -> do
+    len @?= expectedLen
+    k s
 
-t_utf8_c     = (E.stackToText . snd . E.decodeUtf8Chunk . E.encodeUtf8) `eq` id
+expectJust :: Maybe a -> IO a
+expectJust Nothing = assertFailure "Unexpected Nothing"
+expectJust (Just s) = pure s
+
+expectNothing :: Maybe a -> IO ()
+expectNothing Nothing = pure ()
+expectNothing (Just _) = assertFailure "Unexpected Just"
+
+testValidateUtf8 :: [Word8] -> Int -> IO E.Utf8State
+testValidateUtf8 = testValidateUtf8With E.validateUtf8Chunk expectJust
+
+testValidateUtf8_ :: [Word8] -> Int -> IO ()
+testValidateUtf8_ = testValidateUtf8With E.validateUtf8Chunk (void . expectJust)
+
+testValidateUtf8Fail :: [Word8] -> Int -> IO ()
+testValidateUtf8Fail = testValidateUtf8With E.validateUtf8Chunk expectNothing
+
+testValidateUtf8More :: E.Utf8State -> [Word8] -> Int -> IO E.Utf8State
+testValidateUtf8More s =  testValidateUtf8With (E.validateUtf8More s) expectJust
+
+testValidateUtf8MoreFail :: E.Utf8State -> [Word8] -> Int -> IO ()
+testValidateUtf8MoreFail s = testValidateUtf8With (E.validateUtf8More s) expectNothing
+
+t_pn_utf8_1 = do
+  s <- testValidateUtf8 [0xF0, 0x90, 0x80] 0
+  _ <- testValidateUtf8More s [0x80] 1
+  testValidateUtf8MoreFail s [0x7f] 0
+t_pn_utf8_2 = do
+  s0 <- testValidateUtf8 [0xF0] 0
+  testValidateUtf8MoreFail s0 [0x7f] 0
+  s1 <- testValidateUtf8More s0 [0x90] 0
+  testValidateUtf8MoreFail s1 [0x7f] 0
+  s2 <- testValidateUtf8More s1 [0x80] 0
+  testValidateUtf8MoreFail s2 [0x7f] 0
+  _ <- testValidateUtf8More s2 [0x80] 1
+  pure ()
+t_pn_utf8_3 = do
+  s1 <- testValidateUtf8 [0xc2] 0
+  let c = E.partialUtf8CodePoint s1
+  assertBool "PartialUtf8 must be partial" $ E.partUtf8Len c < E.partUtf8CompleteLen c
+  testValidateUtf8MoreFail s1 [0x80, 0x80] 1
+
+t_utf8_c     = (E.strictBuilderToText . fst3 . E.decodeUtf8Chunk . E.encodeUtf8) `eq` id
 t_utf8       = (E.decodeUtf8 . E.encodeUtf8) `eq` id
 t_utf8'      = (E.decodeUtf8' . E.encodeUtf8) `eq` (id . Right)
 tl_utf8      = (EL.decodeUtf8 . EL.encodeUtf8) `eq` id
@@ -120,6 +117,9 @@ t_utf32LE    = (E.decodeUtf32LE . E.encodeUtf32LE) `eq` id
 tl_utf32LE   = (EL.decodeUtf32LE . EL.encodeUtf32LE) `eq` id
 t_utf32BE    = (E.decodeUtf32BE . E.encodeUtf32BE) `eq` id
 tl_utf32BE   = (EL.decodeUtf32BE . EL.encodeUtf32BE) `eq` id
+
+fst3 :: (a, b, c) -> a
+fst3 (a, _, _) = a
 
 runBuilder :: B.Builder -> B.ByteString
 runBuilder =
@@ -268,62 +268,63 @@ t_decode_with_error3 =
 t_decode_with_error4 =
   E.decodeUtf8With (\_ _ -> Just 'x') (B.pack [0xF0, 97, 97, 97]) === "xaaa"
 
-t_decode_with_error1' =
-  case E.streamDecodeUtf8With (\_ _ -> Just 'x') (B.pack [0xc2]) of
-    E.Some x1 bs1 f1 -> whenEqProp x1 "" . whenEqProp bs1 (B.pack [0xc2]) $
-      case f1 $ B.pack [0x80, 0x80] of
-        E.Some x2 bs2 _ -> whenEqProp x2 "\x80x" $ bs2 === mempty
+t_decode_with_error1' = do
+  E.Some x1 bs1 f1 <- pure $ E.streamDecodeUtf8With (\_ _ -> Just 'x') (B.pack [0xc2])
+  x1 @?= ""
+  bs1 @?= B.pack [0xc2]
+  E.Some x2 bs2 _ <- pure $ f1 $ B.pack [0x80, 0x80]
+  x2 @?= "\x80x"
+  bs2 @?= mempty
 t_decode_with_error2' =
   case E.streamDecodeUtf8With (\_ _ -> Just 'x') (B.pack [0xC2, 97]) of
-    E.Some x _ _ -> x === "xa"
+    E.Some x _ _ -> x @?= "xa"
 t_decode_with_error3' =
   case E.streamDecodeUtf8With (\_ _ -> Just 'x') (B.pack [0xC2, 97, 97]) of
-    E.Some x _ _ -> x === "xaa"
+    E.Some x _ _ -> x @?= "xaa"
 t_decode_with_error4' =
   case E.streamDecodeUtf8With (\_ _ -> Just 'x') (B.pack [0xC2, 97, 97, 97]) of
-    E.Some x _ _ -> x === "xaaa"
-t_decode_with_error5' = ioProperty $ do
+    E.Some x _ _ -> x @?= "xaaa"
+t_decode_with_error5' = do
   ret <- Exception.try $ Exception.evaluate $ E.streamDecodeUtf8 (B.pack [0x81])
-  pure $ case ret of
-    Left (_ :: E.UnicodeException) -> True
-    Right{} -> False
+  case ret of
+    Left (_ :: E.UnicodeException) -> pure ()
+    Right{} -> assertFailure "Unexpected success"
 
-t_decode_chunk1 = case E.decodeUtf8Chunk $ B.pack [0xc2] of
-  ((len1, eS1), tds1) -> whenEqProp (len1, E.dataStack tds1, E.stackLen tds1) (0, [], 0) $
-    case eS1 of
-      Left _ -> counterexample (show eS1) False
-      Right s1 -> let partCP = E.partialUtf8CodePoint s1 in
-        partCP === E.PartialUtf8CodePoint 0x01c20000 .&&.
-        E.partUtf8CPLen partCP === 1 .&&.
-        E.partUtf8CPUnsafeIndex 0 partCP === 0xc2 .&&.
-        if isUtf8StateIsComplete $ E.utf8CodePointState s1
-        then counterexample (show $ E.utf8CodePointState s1) False
-        else case E.decodeNextUtf8Chunk (B.pack [0x80, 0x80]) s1 tds1 of
-          ((len2, eS2), tds2) -> whenEqProp (len2, E.dataStack tds2, E.stackLen tds2) (1, [Right $ Right $ B.pack [0x80], Right $ Left (E.PartialUtf8CodePoint 0x1c20000)], 2) $
-            case eS2 of
-              Right _ -> counterexample (show eS2) False
-              Left res -> res === (2, mempty)
+testDecodeUtf8With :: (Maybe E.Utf8State -> IO r) -> E.Utf8State -> [Word8] -> T.Text -> IO r
+testDecodeUtf8With k s xs expected =
+  let xs' = B.pack xs in
+  case E.decodeUtf8More s xs' of
+    (prefix, bs, s') -> do
+      let txt = E.strictBuilderToText prefix
+      txt @?= expected
+      if T.null txt then
+        bs @?= xs'
+      else
+        let c = E.partUtf8ToByteString (E.partialUtf8CodePoint s)
+        in E.encodeUtf8 txt <> bs @?= c <> xs'
+      k s'
 
-t_decode_chunk2 = case E.decodeUtf8Chunk $ B.pack [0xf0] of
-  ((len1, eS1), tds1) -> whenEqProp (len1, E.dataStack tds1, E.stackLen tds1) (0, [], 0) $
-    case eS1 of
-      Left _ -> counterexample (show eS1) False
-      Right s1 -> let partCP = E.partialUtf8CodePoint s1 in
-        partCP === E.PartialUtf8CodePoint 0x01f00000 .&&.
-        E.partUtf8CPLen partCP === 1 .&&.
-        E.partUtf8CPUnsafeIndex 0 partCP === 0xf0 .&&.
-        if isUtf8StateIsComplete $ E.utf8CodePointState s1
-        then counterexample (show $ E.utf8CodePointState s1) False
-        else case E.decodeNextUtf8Chunk (B.pack [0x90, 0x80]) s1 tds1 of
-          ((len2, eS2), tds2) -> whenEqProp (len2, E.dataStack tds2, E.stackLen tds2) (-1, [], 0) $
-            case eS2 of
-              Left _ -> counterexample (show eS2) False
-              Right s2 -> let partCP2 = E.partialUtf8CodePoint s2 in
-                partCP2 === E.PartialUtf8CodePoint 0x03f09080 .&&.
-                E.partUtf8CPLen partCP2 === 3 .&&.
-                E.partUtf8CPUnsafeIndex 0 partCP2 === 0xf0 .&&.
-                E.partUtf8CPUnsafeIndex 1 partCP2 === 0x90 .&&.
-                E.partUtf8CPUnsafeIndex 2 partCP2 === 0x80
+testDecodeUtf8 :: E.Utf8State -> [Word8] -> T.Text -> IO E.Utf8State
+testDecodeUtf8 = testDecodeUtf8With (\ms -> case ms of
+  Just s -> pure s
+  Nothing -> assertFailure "Unexpected failure")
+
+testDecodeUtf8Fail :: E.Utf8State -> [Word8] -> T.Text -> IO ()
+testDecodeUtf8Fail = testDecodeUtf8With (\ms -> case ms of
+  Just _ -> assertFailure "Unexpected failure"
+  Nothing -> pure ())
+
+t_decode_chunk1 = do
+  s1 <- testDecodeUtf8 E.startUtf8State [0xc2] ""
+  let c1 = E.partialUtf8CodePoint s1
+  E.partUtf8Len c1 @?= 1
+  testDecodeUtf8Fail s1 [0x80, 0x80] "\128"
+
+t_decode_chunk2 = do
+  s1 <- testDecodeUtf8 E.startUtf8State [0xf0] ""
+  s2 <- testDecodeUtf8 s1 [0x90, 0x80] ""
+  _  <- testDecodeUtf8 s2 [0x80, 0x41] "\65536A"
+  pure ()
 
 t_infix_concat bs1 text bs2 =
   forAll (Blind <$> genDecodeErr Replace) $ \(Blind onErr) ->
@@ -337,24 +338,8 @@ testTranscoding =
     testProperty "tl_ascii" tl_ascii,
     testProperty "t_latin1" t_latin1,
     testProperty "tl_latin1" tl_latin1,
-    testProperty "t_p_utf8_1" t_p_utf8_1,
-    testProperty "t_p_utf8_2" t_p_utf8_2,
-    testProperty "t_p_utf8_3" t_p_utf8_3,
-    testProperty "t_p_utf8_4" t_p_utf8_4,
-    testProperty "t_p_utf8_5" t_p_utf8_5,
-    testProperty "t_p_utf8_6" t_p_utf8_6,
-    testProperty "t_p_utf8_7" t_p_utf8_7,
-    testProperty "t_p_utf8_8" t_p_utf8_8,
-    testProperty "t_p_utf8_9" t_p_utf8_9,
-    testProperty "t_p_utf8_0" t_p_utf8_0,
-    testProperty "t_pn_utf8_1" t_pn_utf8_1,
-    testProperty "t_pn_utf8_2" t_pn_utf8_2,
-    testProperty "t_pn_utf8_3" t_pn_utf8_3,
-    testProperty "t_utf8_c" t_utf8_c,
     testProperty "t_utf8" t_utf8,
     testProperty "t_utf8'" t_utf8',
-    testProperty "t_utf8_incr" t_utf8_incr,
-    testProperty "t_utf8_undecoded" t_utf8_undecoded,
     testProperty "tl_utf8" tl_utf8,
     testProperty "tl_utf8'" tl_utf8',
     testProperty "t_utf16LE" t_utf16LE,
@@ -381,13 +366,31 @@ testTranscoding =
       testProperty "t_decode_with_error2" t_decode_with_error2,
       testProperty "t_decode_with_error3" t_decode_with_error3,
       testProperty "t_decode_with_error4" t_decode_with_error4,
-      testProperty "t_decode_with_error1'" t_decode_with_error1',
-      testProperty "t_decode_with_error2'" t_decode_with_error2',
-      testProperty "t_decode_with_error3'" t_decode_with_error3',
-      testProperty "t_decode_with_error4'" t_decode_with_error4',
-      testProperty "t_decode_with_error5'" t_decode_with_error5',
-      testProperty "t_decode_chunk1" t_decode_chunk1,
-      testProperty "t_decode_chunk2" t_decode_chunk2,
       testProperty "t_infix_concat" t_infix_concat
+    ],
+    testGroup "streaming" [
+      testProperty "t_utf8_undecoded" t_utf8_undecoded,
+      testProperty "t_utf8_incr" t_utf8_incr,
+      testProperty "t_utf8_c" t_utf8_c,
+      testCase "t_p_utf8_1" t_p_utf8_1,
+      testCase "t_p_utf8_2" t_p_utf8_2,
+      testCase "t_p_utf8_3" t_p_utf8_3,
+      testCase "t_p_utf8_4" t_p_utf8_4,
+      testCase "t_p_utf8_5" t_p_utf8_5,
+      testCase "t_p_utf8_6" t_p_utf8_6,
+      testCase "t_p_utf8_7" t_p_utf8_7,
+      testCase "t_p_utf8_8" t_p_utf8_8,
+      testCase "t_p_utf8_9" t_p_utf8_9,
+      testCase "t_p_utf8_0" t_p_utf8_0,
+      testCase "t_pn_utf8_1" t_pn_utf8_1,
+      testCase "t_pn_utf8_2" t_pn_utf8_2,
+      testCase "t_pn_utf8_3" t_pn_utf8_3,
+      testCase "t_decode_chunk1" t_decode_chunk1,
+      testCase "t_decode_chunk2" t_decode_chunk2
+      testCase "t_decode_with_error1'" t_decode_with_error1',
+      testCase "t_decode_with_error2'" t_decode_with_error2',
+      testCase "t_decode_with_error3'" t_decode_with_error3',
+      testCase "t_decode_with_error4'" t_decode_with_error4',
+      testCase "t_decode_with_error5'" t_decode_with_error5',
     ]
   ]

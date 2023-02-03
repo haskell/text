@@ -27,7 +27,7 @@ module Data.Text.Encoding
     -- $validation
       Utf8State
     , validateUtf8Chunk
-    , validateNextUtf8Chunk
+    , validateUtf8More
     , startUtf8State
 
     -- * Decoding ByteStrings to Text
@@ -318,7 +318,7 @@ streamDecodeUtf8With ::
 streamDecodeUtf8With onErr = loop startUtf8State
   where
     loop s chunk =
-      let (builder, undecoded, s') = decodeUtf8With2 (onErr invalidUtf8Msg . Just) chunk s
+      let (builder, undecoded, s') = decodeUtf8With2 (onErr invalidUtf8Msg . Just) s chunk
       in Some (strictBuilderToText builder) undecoded (loop s')
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text.
