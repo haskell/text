@@ -70,7 +70,7 @@ data Utf8State = Utf8State
 -- | Initial 'Utf8State'.
 --
 -- @since 2.0.2
-startUtf8State :: Utf8State 
+startUtf8State :: Utf8State
 startUtf8State = Utf8State utf8StartState partUtf8Empty
 
 -- | Prefix of a UTF-8 code point encoded in 4 bytes,
