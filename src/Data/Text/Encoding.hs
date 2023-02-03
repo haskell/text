@@ -547,7 +547,7 @@ encodeUtf32BE txt = E.unstream (E.restreamUtf32BE (F.stream txt))
 --
 -- - You get an UTF-8 prefix of the given 'ByteString' up to the next error.
 --   For example this lets you insert or delete arbitrary text, or do some
---   stateful operations, before resuming.
+--   stateful operations before resuming, such as keeping track of error locations.
 --   In contrast, the older stream-oriented interface only lets you substitute
 --   a single fixed 'Char' for each invalid byte in 'OnDecodeError'.
 -- - The prefix is encoded as a 'StrictBuilder', so you can accumulate chunks

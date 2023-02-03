@@ -11,6 +11,9 @@
 -- please request to have it exported!
 module Data.Text.Internal.Encoding where
 
+#if defined(ASSERTS)
+import Control.Exception (assert)
+#endif
 import Control.Monad.ST (ST, runST)
 import Control.Monad.ST.Unsafe (unsafeIOToST, unsafeSTToIO)
 import Data.Bits ((.&.), shiftL, shiftR)
@@ -113,9 +116,9 @@ partUtf8UnsafeIndex ::
   HasCallStack =>
 #endif
   PartialUtf8CodePoint -> Int -> Word8
-partUtf8UnsafeIndex (PartialUtf8CodePoint w) n =
+partUtf8UnsafeIndex _c@(PartialUtf8CodePoint w) n =
 #if defined(ASSERTS)
-  assert (0 <= n && n < partUtf8Len w) $
+  assert (0 <= n && n < partUtf8Len _c) $
 #endif
   fromIntegral $ w `shiftR` (16 - 8 * n)
 
@@ -290,7 +293,7 @@ validateUtf8More st@(Utf8State s0 part) bs
       | isUtf8StateIsComplete s = validateUtf8ChunkFrom i bs
       | i < len =
         case updateUtf8State (B.index bs i) s of
-          Nothing -> (0, Nothing)
+          Nothing -> (- partUtf8Len part, Nothing)
           Just s' -> loop (i + 1) s'
       | otherwise = (- partUtf8Len part, Just (Utf8State s (partUtf8UnsafeAppend part bs)))
 
@@ -461,7 +464,7 @@ decodeUtf8With2 onErr s0 bs = loop s0 0 emptyStrictBuilder
             in loop startUtf8State (i + len + 1) builder'
         (len, Just s') ->
           let builder' = if len <= 0 then builder else nonEmptyPrefix len
-              undecoded = if B.length bs - i - len == partUtf8Len (partialUtf8CodePoint s')
+              undecoded = if B.length bs >= partUtf8Len (partialUtf8CodePoint s')
                 then B.drop (i + len) bs  -- Reuse bs if possible
                 else partUtf8ToByteString (partialUtf8CodePoint s')
           in (builder', undecoded, s')

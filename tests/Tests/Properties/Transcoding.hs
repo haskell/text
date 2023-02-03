@@ -88,14 +88,14 @@ testValidateUtf8MoreFail s = testValidateUtf8With (E.validateUtf8More s) expectN
 t_pn_utf8_1 = do
   s <- testValidateUtf8 [0xF0, 0x90, 0x80] 0
   _ <- testValidateUtf8More s [0x80] 1
-  testValidateUtf8MoreFail s [0x7f] 0
+  testValidateUtf8MoreFail s [0x7f] (-3)
 t_pn_utf8_2 = do
   s0 <- testValidateUtf8 [0xF0] 0
-  testValidateUtf8MoreFail s0 [0x7f] 0
-  s1 <- testValidateUtf8More s0 [0x90] 0
-  testValidateUtf8MoreFail s1 [0x7f] 0
-  s2 <- testValidateUtf8More s1 [0x80] 0
-  testValidateUtf8MoreFail s2 [0x7f] 0
+  testValidateUtf8MoreFail s0 [0x7f] (-1)
+  s1 <- testValidateUtf8More s0 [0x90] (-1)
+  testValidateUtf8MoreFail s1 [0x7f] (-2)
+  s2 <- testValidateUtf8More s1 [0x80] (-2)
+  testValidateUtf8MoreFail s2 [0x7f] (-3)
   _ <- testValidateUtf8More s2 [0x80] 1
   pure ()
 t_pn_utf8_3 = do
