@@ -183,9 +183,9 @@ foreign import ccall unsafe "_hs_text_is_valid_utf8" c_is_valid_utf8
 -- - The prefix is valid UTF-8. In particular, it should be accepted
 --   by this validation:
 --
---   @
---   'validateUtf8Chunk' ('Data.ByteString.take' n chunk) = (n, Just 'startUtf8State')
---   @
+--     @
+--     'validateUtf8Chunk' ('Data.ByteString.take' n chunk) = (n, Just 'startUtf8State')
+--     @
 --
 -- @since 2.0.2
 validateUtf8Chunk :: ByteString -> (Int, Maybe Utf8State)
@@ -267,18 +267,18 @@ slowValidateUtf8ChunkFrom ofs bs = loop ofs ofs utf8StartState
 --
 -- - If the chunk is invalid, it cannot be extended to be valid.
 --
---   @
---   ms = Nothing
---   ==> 'validateUtf8More' s (chunk '<>' more) = (n, Nothing)
---   @
+--     @
+--     ms = Nothing
+--     ==> 'validateUtf8More' s (chunk '<>' more) = (n, Nothing)
+--     @
 --
 -- - Validating two chunks sequentially is the same as validating them
 --   together at once:
 --
---   @
---   ms = Just s'
---   ==> 'validateUtf8More' s (chunk '<>' more) = 'Data.Bifunctor.first' ('Data.ByteString.length' chunk '+') ('validateUtf8More' s' more)
---   @
+--     @
+--     ms = Just s'
+--     ==> 'validateUtf8More' s (chunk '<>' more) = 'Data.Bifunctor.first' ('Data.ByteString.length' chunk '+') ('validateUtf8More' s' more)
+--     @
 --
 -- @since 2.0.2
 validateUtf8More :: Utf8State -> ByteString -> (Int, Maybe Utf8State)
@@ -379,6 +379,48 @@ textToStrictBuilder (Text src srcOfs n) = StrictBuilder n (\dst dstOfs ->
 --    (it will be within the first 4 bytes of the undecoded remainder).
 --
 -- @since 2.0.2
+--
+-- === Properties
+--
+-- Given:
+--
+-- @
+-- (pre, suf, ms) = 'decodeUtf8More' s chunk
+-- @
+--
+-- 1. If the output @pre@ is nonempty (alternatively, if @length chunk > length suf@)
+--
+--     @
+--     s2b pre \`'Data.ByteString.append'\` suf = p2b s \`'Data.ByteString.append'\` chunk
+--     @
+--
+--     where
+--
+--     @
+--     s2b = 'Data.Text.Encoding.encodeUtf8' . 'Data.Text.Encoding.strictBuilderToText'
+--     p2b = 'Data.Text.Internal.Encoding.partUtf8ToByteString'
+--     @
+--
+-- 2. If the output @pre@ is empty (alternatively, if @length chunk = length suf@)
+--
+--     @suf = chunk@
+--
+-- 3. Decoding chunks separately is equivalent to decoding their concatenation.
+--
+--     Given:
+--
+--     @
+--     (pre1, suf1, Just s1) = 'decodeUtf8More' s chunk1
+--     (pre2, suf2,     ms2) = 'decodeUtf8More' s1 chunk2
+--     (pre3, suf3,     ms3) = 'decodeUtf8More' s (chunk1 \`B.append\` chunk2)
+--     @
+--
+--     we have:
+--
+--     @
+--     s2b (pre1 '<>' pre2) = s2b pre3
+--     ms2 = ms3
+--     @
 decodeUtf8More :: Utf8State -> ByteString -> (StrictBuilder, ByteString, Maybe Utf8State)
 decodeUtf8More s bs =
   case validateUtf8More s bs of

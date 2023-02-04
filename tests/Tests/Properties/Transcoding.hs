@@ -12,6 +12,8 @@ import Prelude hiding (head, tail)
 import Data.Bits ((.&.), shiftR)
 import Data.Char (chr, ord)
 import Data.Functor (void)
+import Data.Maybe (isNothing)
+import Data.Semigroup ((<>))
 import Test.QuickCheck hiding ((.&.))
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.QuickCheck (testProperty)
@@ -103,6 +105,105 @@ t_pn_utf8_3 = do
   let c = E.partialUtf8CodePoint s1
   assertBool "PartialUtf8 must be partial" $ E.partUtf8Len c < E.partUtf8CompleteLen c
   testValidateUtf8MoreFail s1 [0x80, 0x80] 1
+
+-- Precondition: (i, ms1) = E.validateUtf8More s chunk
+--
+-- The index points to the end of the longest valid prefix
+-- of prechunk `B.append` chunk
+pre_validateUtf8More_validPrefix s chunk i =
+  let prechunk = E.partUtf8ToByteString (E.partialUtf8CodePoint s) in
+  -- Note: i <= 0 implies take i = id
+  let (j, ms2) = E.validateUtf8Chunk (B.take (B.length prechunk + i) (prechunk `B.append` chunk)) in
+  counterexample (show prechunk) $
+    (B.length prechunk + i, ms2) === (j, Just E.startUtf8State)
+
+-- Precondition: (i, Nothing) = E.validateUtf8More s chunk
+--
+-- Appending to an invalid chunk yields another invalid chunk.
+pre_validateUtf8More_maximalPrefix s chunk i more =
+  E.validateUtf8More s (chunk `B.append` more) === (i, Nothing)
+
+-- Precondition: (i, Just s1) = E.validateUtf8More s chunk
+pre_validateUtf8More_suffix s chunk i s1 =
+  if 0 <= i
+  then B.drop i chunk === p2b s1         -- The state s1 contains a suffix of the chunk.
+  else p2b s `B.append` chunk === p2b s1 -- Or the chunk extends the incomplete code point in s1.
+
+-- Precondition: (i, Just s1) = E.validateUtf8More s chunk1
+--
+-- Validating two chunks sequentially is equivalent to validating them at once.
+pre_validateUtf8More_append s chunk1 s1 chunk2 =
+  let (j, ms2) = E.validateUtf8More s1 chunk2 in
+  (B.length chunk1 + j, ms2) === E.validateUtf8More s (chunk1 `B.append` chunk2)
+
+-- These wrappers use custom generators to satisfy the above properties.
+
+t_validateUtf8More_validPrefix = property $ do
+  cex@(s, chunk, i, _ms1) <- randomMoreChunk
+  pure $ counterexample (show cex) $
+    pre_validateUtf8More_validPrefix s chunk i
+
+t_validateUtf8More_maximalPrefix = property $ do
+  -- We want chunks that fail validation: force their size to be big,..
+  cex@(s, chunk, i, ms1) <- scale (* 3) arbitraryMoreChunk
+  pure $ counterexample (show cex) $
+    -- ... and just use rejection sampling
+    isNothing ms1 ==>
+    pre_validateUtf8More_maximalPrefix s chunk i
+
+t_validateUtf8More_valid = property $ do
+  cex@(s, chunk1, i, s1, chunk2) <- validMoreChunks
+  pure $ counterexample (show cex) $
+    pre_validateUtf8More_suffix s chunk1 i s1 .&&.
+    pre_validateUtf8More_append s chunk1 s1 chunk2
+
+randomMoreChunk, arbitraryMoreChunk, validMoreChunk :: Gen (E.Utf8State, B.ByteString, Int, Maybe E.Utf8State)
+randomMoreChunk = oneof [arbitraryMoreChunk, validMoreChunk]
+
+arbitraryMoreChunk = do
+  s <- randomUtf8State
+  chunk <- arbitrary
+  let (i, ms1) = E.validateUtf8More s chunk
+  pure (s, chunk, i, ms1)
+
+-- | Generate a random state by parsing a prefix of a Char
+randomUtf8State :: Gen E.Utf8State
+randomUtf8State = do
+  c <- arbitrary
+  chunk <- elements (B.inits (E.encodeUtf8 (T.singleton c)))
+  case E.validateUtf8Chunk chunk of
+    (_, Just s) -> pure s
+    (_, Nothing) -> error "should not happen"
+
+-- | Make a valid chunk, i.e., (s, chunk) such that
+--
+-- validateUtf8More s chunk = (i, Just s1)
+--
+-- Also returning i and s1 to not repeat work.
+validMoreChunk = do
+  (s, chunk, i, s1, _chunk2) <- validMoreChunks
+  pure (s, chunk, i, Just s1)
+
+-- | Make a valid chunk by slicing a valid UTF8 bs,
+-- and also provide a second chunk which is a valid extension
+-- with 0.5 probability.
+validMoreChunks :: Gen (E.Utf8State, B.ByteString, Int, E.Utf8State, B.ByteString)
+validMoreChunks = do
+  bs <- E.encodeUtf8 <$> scale (* 3) arbitrary
+  -- Take an intermediate state.
+  -- No need to go too far since code points are at most 4 bytes long
+  i <- choose (0, 3)
+  let (bs0, bs1) = B.splitAt i bs
+  case E.validateUtf8Chunk bs0 of
+    (_, Just s) -> do
+      j <- choose (0, B.length bs1)
+      let (chunk1, chunk2') = B.splitAt j bs1
+      case E.validateUtf8More s chunk1 of
+        (n1, Just s1) -> do
+          chunk2 <- oneof [pure chunk2', arbitrary]
+          pure (s, chunk1, n1, s1, chunk2)
+        (_, Nothing) -> error "should not happen"
+    (_, Nothing) -> error "should not happen"
 
 t_utf8_c     = (E.strictBuilderToText . fst3 . E.decodeUtf8Chunk . E.encodeUtf8) `eq` id
 t_utf8       = (E.decodeUtf8 . E.encodeUtf8) `eq` id
@@ -334,6 +435,60 @@ t_infix_concat bs1 text bs2 =
 t_textToStrictBuilder =
   (E.strictBuilderToText . E.textToStrictBuilder) `eq` id
 
+-- decodeUtf8Chunk splits the input bytestring
+t_decodeUtf8Chunk_split chunk =
+  let (pre, suf, _ms) = E.decodeUtf8Chunk chunk
+  in s2b pre `B.append` suf === chunk
+
+-- decodeUtf8More mostly splits the input bytestring,
+-- also inserting bytes from the partial code point in s.
+--
+-- This is wrapped by t_decodeUtf8More_split to have more
+-- likely valid chunks.
+t_decodeUtf8More_split' s chunk =
+  let (pre, suf, _ms) = E.decodeUtf8More s chunk
+  in if B.length chunk > B.length suf
+  then s2b pre `B.append` suf === p2b s `B.append` chunk
+  else suf === chunk
+
+-- The output state of decodeUtf8More contains the suffix.
+--
+-- Precondition (valid chunk): ms = Just s'
+pre_decodeUtf8More_suffix s chunk =
+  let (_pre, suf, ms) = E.decodeUtf8More s chunk
+  in case ms of
+    Nothing -> discard
+    Just s' -> if B.length chunk > B.length suf
+      then p2b s' === suf
+      else p2b s' === p2b s `B.append` suf
+
+-- Decoding chunks separately is equivalent to decoding their concatenation.
+pre_decodeUtf8More_append s chunk1 chunk2 =
+  let (pre1, suf1, ms1) = E.decodeUtf8More s chunk1 in
+  case ms1 of
+    Nothing -> discard
+    Just s1 ->
+      let (pre2, suf2, ms2) = E.decodeUtf8More s1 chunk2 in
+      let (pre3, suf3, ms3) = E.decodeUtf8More s (chunk1 `B.append` chunk2) in
+      (s2b (pre1 <> pre2), ms2) === (s2b pre3, ms3)
+
+-- Properties for any chunk
+-- (but do try to generate valid chunks often enough)
+t_decodeUtf8More1 = property $ do
+  cex@(s, chunk, _, _) <- randomMoreChunk
+  pure $ counterexample (show cex) $
+    t_decodeUtf8More_split' s chunk
+
+-- Properties that require valid chunks
+t_decodeUtf8More2 = property $ do
+  cex@(s, chunk, _, _, chunk2) <- validMoreChunks
+  pure $ counterexample (show cex) $
+    pre_decodeUtf8More_suffix s chunk .&&.
+    pre_decodeUtf8More_append s chunk chunk2
+
+s2b = E.encodeUtf8 . E.strictBuilderToText
+p2b = E.partUtf8ToByteString . E.partialUtf8CodePoint
+
 testTranscoding :: TestTree
 testTranscoding =
   testGroup "transcoding" [
@@ -371,6 +526,11 @@ testTranscoding =
       testProperty "t_decode_with_error4" t_decode_with_error4,
       testProperty "t_infix_concat" t_infix_concat
     ],
+    testGroup "validate" [
+      testProperty "t_validateUtf8More_validPrefix" t_validateUtf8More_validPrefix,
+      testProperty "t_validateUtf8More_maximalPrefix" t_validateUtf8More_maximalPrefix,
+      testProperty "t_validateUtf8More_valid" t_validateUtf8More_valid
+    ],
     testGroup "streaming" [
       testProperty "t_utf8_undecoded" t_utf8_undecoded,
       testProperty "t_utf8_incr" t_utf8_incr,
@@ -394,7 +554,10 @@ testTranscoding =
       testCase "t_decode_with_error2'" t_decode_with_error2',
       testCase "t_decode_with_error3'" t_decode_with_error3',
       testCase "t_decode_with_error4'" t_decode_with_error4',
-      testCase "t_decode_with_error5'" t_decode_with_error5'
+      testCase "t_decode_with_error5'" t_decode_with_error5',
+      testProperty "t_decodeUtf8Chunk_split" t_decodeUtf8Chunk_split,
+      testProperty "t_decodeUtf8More1" t_decodeUtf8More1,
+      testProperty "t_decodeUtf8More2" t_decodeUtf8More2
     ],
     testGroup "strictBuilder" [
       testProperty "textToStrictBuilder" t_textToStrictBuilder
