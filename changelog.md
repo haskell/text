@@ -4,28 +4,22 @@
 
 ### 2.0.2
 
-* A suite of functions have been added in `Data.Text.Encoding` that
-  allow decoding to be aborted on errors without the need to raise an
-  `error` and `catch` it elsewhere:
+* Add decoding functions in `Data.Text.Encoding` that allow
+  more control for error handling and for how to allocate text.
+  (https://github.com/haskell/text/pull/448 Thanks to David Sledge)
   * `decodeASCIIPrefix`
-  * `TextDataStack`
-  * `dataStack`
-  * `stackLen`
-  * `emptyStack`
   * `decodeUtf8Chunk`
-  * `decodeNextUtf8Chunk`
-  * `pushText`
-  * `stackToText`
-
-* Added functions to validate `ByteString`s that represent encoded text:
+  * `decodeUtf8More`
   * `Utf8ValidState`
-  * `partialUtf8CodePoint`
-  * `partUtf8CPLen`
-  * `wordAtPartUft8CP`
-  * `utf8CodePointState`
-  * `validateUtf8Chunk`
-  * `validateNextUtf8Chunk`
   * `startUtf8ValidState`
+  * `StrictBuilder`
+  * `strictBuilderToText`
+  * `textToStrictBuilder`
+  * `validateUtf8Chunk`
+  * `validateUtf8More`
+
+* Fix quadratic slowdown when decoding invalid UTF-8 bytestrings
+  (https://github.com/haskell/text/issues/495)
 
 ### 2.0.1
 
