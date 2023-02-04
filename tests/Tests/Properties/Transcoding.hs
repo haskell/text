@@ -301,7 +301,7 @@ testDecodeUtf8With k s xs expected =
         bs @?= xs'
       else
         let c = E.partUtf8ToByteString (E.partialUtf8CodePoint s)
-        in E.encodeUtf8 txt <> bs @?= c <> xs'
+        in E.encodeUtf8 txt `B.append` bs @?= c `B.append` xs'
       k s'
 
 testDecodeUtf8 :: E.Utf8State -> [Word8] -> T.Text -> IO E.Utf8State
