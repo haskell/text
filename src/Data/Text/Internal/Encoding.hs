@@ -324,9 +324,9 @@ emptyStrictBuilder = StrictBuilder 0 (\_ _ -> pure ())
 
 appendRStrictBuilder :: StrictBuilder -> StrictBuilder -> StrictBuilder
 appendRStrictBuilder (StrictBuilder n1 write1) (StrictBuilder n2 write2) =
-  StrictBuilder (n1 + n2) (\arr ofs -> do
-    write2 arr (ofs + n1)
-    write1 arr ofs)
+  StrictBuilder (n1 + n2) (\dst ofs -> do
+    write2 dst (ofs + n1)
+    write1 dst ofs)
 
 copyFromByteString :: A.MArray s -> Int -> ByteString -> ST s ()
 copyFromByteString dst ofs src = withBS src $ \ srcFPtr len ->
@@ -335,15 +335,15 @@ copyFromByteString dst ofs src = withBS src $ \ srcFPtr len ->
 
 byteStringToStrictBuilder :: ByteString -> StrictBuilder
 byteStringToStrictBuilder bs =
-  StrictBuilder (B.length bs) (\arr ofs -> copyFromByteString arr ofs bs)
+  StrictBuilder (B.length bs) (\dst ofs -> copyFromByteString dst ofs bs)
 
 charToStrictBuilder :: Char -> StrictBuilder
 charToStrictBuilder c =
-  StrictBuilder (utf8Length c) (\arr ofs -> void (Char.unsafeWrite arr ofs (safe c)))
+  StrictBuilder (utf8Length c) (\dst ofs -> void (Char.unsafeWrite dst ofs (safe c)))
 
 word8ToStrictBuilder :: Word8 -> StrictBuilder
 word8ToStrictBuilder w =
-  StrictBuilder 1 (\arr ofs -> A.unsafeWrite arr ofs w)
+  StrictBuilder 1 (\dst ofs -> A.unsafeWrite dst ofs w)
 
 partUtf8ToStrictBuilder :: PartialUtf8CodePoint -> StrictBuilder
 partUtf8ToStrictBuilder =
@@ -359,6 +359,13 @@ strictBuilderToText (StrictBuilder n write) = runST (do
   write dst 0
   arr <- A.unsafeFreeze dst
   pure (Text arr 0 n))
+
+-- | Copy 'Text' in a 'StrictBuilder'
+--
+-- @since 2.0.2
+textToStrictBuilder :: Text -> StrictBuilder
+textToStrictBuilder (Text src srcOfs n) = StrictBuilder n (\dst dstOfs ->
+  A.copyI n dst dstOfs src srcOfs)
 
 -- | Decode another chunk in an ongoing UTF-8 stream.
 --
@@ -455,8 +462,11 @@ decodeUtf8With2 onErr s0 bs = loop s0 0 emptyStrictBuilder
         (len, Nothing) ->
           if len < 0
           then
-            -- loop is strict on builder, so if onErr raises an error it will be forced here.
+            -- If the first byte cannot complete the partial code point in s,
+            -- retry from startUtf8State.
             let builder' = builder <> skipIncomplete onErr s
+            -- Note: loop is strict on builder, so if onErr raises an error it will
+            -- be forced here, short-circuiting the loop as desired.
             in loop startUtf8State i builder'
           else
             let builder' = nonEmptyPrefix len

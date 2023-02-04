@@ -45,7 +45,7 @@ module Data.Text.Encoding
     , streamDecodeUtf8With
     , Decoding(..)
 
-    -- *** Incremental decoding
+    -- *** Incremental UTF-8 decoding
     -- $incremental
     , decodeUtf8Chunk
     , decodeUtf8More
@@ -53,6 +53,7 @@ module Data.Text.Encoding
     , startUtf8State
     , StrictBuilder()
     , strictBuilderToText
+    , textToStrictBuilder
 
     -- ** Partial Functions
     -- $partial

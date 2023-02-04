@@ -331,6 +331,9 @@ t_infix_concat bs1 text bs2 =
   text `T.isInfixOf`
     E.decodeUtf8With onErr (B.concat [bs1, E.encodeUtf8 text, bs2])
 
+t_textToStrictBuilder =
+  (E.strictBuilderToText . E.textToStrictBuilder) `eq` id
+
 testTranscoding :: TestTree
 testTranscoding =
   testGroup "transcoding" [
@@ -392,5 +395,8 @@ testTranscoding =
       testCase "t_decode_with_error3'" t_decode_with_error3',
       testCase "t_decode_with_error4'" t_decode_with_error4',
       testCase "t_decode_with_error5'" t_decode_with_error5'
+    ],
+    testGroup "strictBuilder" [
+      testProperty "textToStrictBuilder" t_textToStrictBuilder
     ]
   ]
