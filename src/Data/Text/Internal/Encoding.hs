@@ -144,7 +144,7 @@ partUtf8UnsafeAppend c@(PartialUtf8CodePoint word) bs =
       then w + (fromIntegral (B.index bs i) `shiftL` fromIntegral (16 - 8 * (lenc + i)))
       else w
 
--- | Fold a 'PartialUtf8CodePoint'. This avoids recursion so it unfolds to straightline code.
+-- | Fold a 'PartialUtf8CodePoint'. This avoids recursion so it can unfold to straightline code.
 partUtf8Foldr :: (Word8 -> a -> a) -> a -> PartialUtf8CodePoint -> a
 partUtf8Foldr f x0 c = case partUtf8Len c of
     0 -> x0
@@ -153,6 +153,7 @@ partUtf8Foldr f x0 c = case partUtf8Len c of
     _ -> build 0 (build 1 (build 2 x0))
   where
     build i x = f (partUtf8UnsafeIndex c i) x
+{-# INLINE partUtf8Foldr #-}
 
 -- | Convert 'PartialUtf8CodePoint' to 'ByteString'.
 partUtf8ToByteString :: PartialUtf8CodePoint -> B.ByteString
@@ -340,14 +341,16 @@ byteStringToStrictBuilder bs =
 charToStrictBuilder :: Char -> StrictBuilder
 charToStrictBuilder c =
   StrictBuilder (utf8Length c) (\dst ofs -> void (Char.unsafeWrite dst ofs (safe c)))
+{-# INLINE charToStrictBuilder #-}
 
 word8ToStrictBuilder :: Word8 -> StrictBuilder
-word8ToStrictBuilder w =
+word8ToStrictBuilder !w =
   StrictBuilder 1 (\dst ofs -> A.unsafeWrite dst ofs w)
 
+-- Eta-expanded to inline partUtf8Foldr
 partUtf8ToStrictBuilder :: PartialUtf8CodePoint -> StrictBuilder
-partUtf8ToStrictBuilder =
-  partUtf8Foldr ((<>) . word8ToStrictBuilder) emptyStrictBuilder
+partUtf8ToStrictBuilder c =
+  partUtf8Foldr ((<>) . word8ToStrictBuilder) emptyStrictBuilder c
 
 -- | Use 'StrictBuilder' to build 'Text'.
 --

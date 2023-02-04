@@ -175,6 +175,7 @@ decodeASCIIPrefix bs = if B.null bs
           Text (A.ByteArray arr) 0 len
         suffix = B.drop len bs in
     (prefix, suffix)
+{-# INLINE decodeASCIIPrefix #-}
 
 -- | Length of the longest ASCII prefix.
 asciiPrefixLength :: ByteString -> Int
