@@ -110,10 +110,10 @@ decodeUtf8With onErr = loop TE.startUtf8State
   where
     chunkb builder t | TE.sbLength builder == 0 = t
                     | otherwise = Chunk (TE.strictBuilderToText builder) t
-    loop s (B.Chunk b bs) = case TE.decodeUtf8With2 onErr' s b of
+    loop s (B.Chunk b bs) = case TE.decodeUtf8With2 onErr msg s b of
       (builder, _, s') -> chunkb builder (loop s' bs)
-    loop s B.Empty = chunkb (TE.skipIncomplete onErr' s) Empty
-    onErr' = onErr "Data.Text.Internal.Encoding: Invalid UTF-8 stream" . Just
+    loop s B.Empty = chunkb (TE.skipIncomplete onErr msg s) Empty
+    msg = "Data.Text.Internal.Encoding: Invalid UTF-8 stream"
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text that is known
 -- to be valid.

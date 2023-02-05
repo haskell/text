@@ -325,7 +325,7 @@ streamDecodeUtf8With ::
 streamDecodeUtf8With onErr = loop startUtf8State
   where
     loop s chunk =
-      let (builder, undecoded, s') = decodeUtf8With2 (onErr invalidUtf8Msg . Just) s chunk
+      let (builder, undecoded, s') = decodeUtf8With2 onErr invalidUtf8Msg s chunk
       in Some (strictBuilderToText builder) undecoded (loop s')
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text.
@@ -337,7 +337,7 @@ decodeUtf8With ::
   HasCallStack =>
 #endif
   OnDecodeError -> ByteString -> Text
-decodeUtf8With onErr = decodeUtf8With1 (onErr invalidUtf8Msg . Just)
+decodeUtf8With onErr = decodeUtf8With1 onErr invalidUtf8Msg
 
 invalidUtf8Msg :: String
 invalidUtf8Msg = "Data.Text.Encoding: Invalid UTF-8 stream"
