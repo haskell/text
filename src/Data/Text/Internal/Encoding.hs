@@ -32,6 +32,7 @@ import Data.Text.Internal.Encoding.Utf8
   (Utf8CodePointState, utf8StartState, updateUtf8State, isUtf8StateIsComplete, utf8Length)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Internal as BI
+import qualified Data.ByteString.Short.Internal as SBS
 import qualified Data.Text.Array as A
 import qualified Data.Text.Internal.Unsafe.Char as Char
 #if defined(ASSERTS)
@@ -324,6 +325,8 @@ emptyStrictBuilder :: StrictBuilder
 emptyStrictBuilder = StrictBuilder 0 (\_ _ -> pure ())
 
 appendRStrictBuilder :: StrictBuilder -> StrictBuilder -> StrictBuilder
+appendRStrictBuilder (StrictBuilder 0 _) b2 = b2
+appendRStrictBuilder b1 (StrictBuilder 0 _) = b1
 appendRStrictBuilder (StrictBuilder n1 write1) (StrictBuilder n2 write2) =
   StrictBuilder (n1 + n2) (\dst ofs -> do
     write2 dst (ofs + n1)
@@ -476,15 +479,28 @@ handleUtf8Error onErr w = case onErr w of
   Nothing -> emptyStrictBuilder
 
 -- | Helper for 'decodeUtfWith'.
+--
+-- This could be shorter by calling decodeUtf8With2 directly,
+-- but we make the first call validateUtf8Chunk directly so that
 decodeUtf8With1 ::
 #if defined(ASSERTS)
   HasCallStack =>
 #endif
   (Word8 -> Maybe Char) -> ByteString -> Text
-decodeUtf8With1 onErr bs0 = strictBuilderToText $
-    builder <> skipIncomplete onErr s
-  where
-    (builder, _, s) = decodeUtf8With2 onErr startUtf8State bs0
+decodeUtf8With1 onErr bs = case validateUtf8Chunk bs of
+    (len, Just s)
+      | len == B.length bs ->
+        let !(SBS.SBS arr) = SBS.toShort bs in
+        Text (A.ByteArray arr) 0 len
+      | otherwise -> strictBuilderToText $
+          byteStringToStrictBuilder (B.take len bs) <> skipIncomplete onErr s
+    (len, Nothing) ->
+       let (builder, _, s) = decodeUtf8With2 onErr startUtf8State (B.drop (len + 1) bs) in
+       strictBuilderToText $
+         byteStringToStrictBuilder (B.take len bs) <>
+         handleUtf8Error onErr (B.index bs len) <>
+         builder <>
+         skipIncomplete onErr s
 
 -- | Helper for 'Data.Text.Encoding.decodeUtf8With',
 -- 'Data.Text.Encoding.streamDecodeUtf8With', and lazy
