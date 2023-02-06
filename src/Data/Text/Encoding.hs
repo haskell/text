@@ -3,7 +3,6 @@
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE ViewPatterns #-}
 -- |
 -- Module      : Data.Text.Encoding
 -- Copyright   : (c) 2009, 2010, 2011 Bryan O'Sullivan,

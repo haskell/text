@@ -490,6 +490,8 @@ testTranscoding =
     testProperty "tl_latin1" tl_latin1,
     testProperty "t_utf8" t_utf8,
     testProperty "t_utf8'" t_utf8',
+    testProperty "t_utf8_undecoded" t_utf8_undecoded,
+    testProperty "t_utf8_incr" t_utf8_incr,
     testProperty "tl_utf8" tl_utf8,
     testProperty "tl_utf8'" tl_utf8',
     testProperty "t_utf16LE" t_utf16LE,
@@ -516,6 +518,11 @@ testTranscoding =
       testProperty "t_decode_with_error2" t_decode_with_error2,
       testProperty "t_decode_with_error3" t_decode_with_error3,
       testProperty "t_decode_with_error4" t_decode_with_error4,
+      testCase "t_decode_with_error1'" t_decode_with_error1',
+      testCase "t_decode_with_error2'" t_decode_with_error2',
+      testCase "t_decode_with_error3'" t_decode_with_error3',
+      testCase "t_decode_with_error4'" t_decode_with_error4',
+      testCase "t_decode_with_error5'" t_decode_with_error5',
       testProperty "t_infix_concat" t_infix_concat
     ],
     testGroup "validate" [
@@ -524,8 +531,6 @@ testTranscoding =
       testProperty "t_validateUtf8More_valid" t_validateUtf8More_valid
     ],
     testGroup "streaming" [
-      testProperty "t_utf8_undecoded" t_utf8_undecoded,
-      testProperty "t_utf8_incr" t_utf8_incr,
       testProperty "t_utf8_c" t_utf8_c,
       testCase "t_p_utf8_1" t_p_utf8_1,
       testCase "t_p_utf8_2" t_p_utf8_2,
@@ -542,11 +547,6 @@ testTranscoding =
       testCase "t_pn_utf8_3" t_pn_utf8_3,
       testCase "t_decode_chunk1" t_decode_chunk1,
       testCase "t_decode_chunk2" t_decode_chunk2,
-      testCase "t_decode_with_error1'" t_decode_with_error1',
-      testCase "t_decode_with_error2'" t_decode_with_error2',
-      testCase "t_decode_with_error3'" t_decode_with_error3',
-      testCase "t_decode_with_error4'" t_decode_with_error4',
-      testCase "t_decode_with_error5'" t_decode_with_error5',
       testProperty "t_decodeUtf8Chunk_split" t_decodeUtf8Chunk_split,
       testProperty "t_decodeUtf8More1" t_decodeUtf8More1,
       testProperty "t_decodeUtf8More2" t_decodeUtf8More2
