@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE RankNTypes #-}
 
@@ -29,6 +30,9 @@ import Control.Monad.ST.Unsafe (unsafeIOToST, unsafeSTToIO)
 import Data.Functor (void)
 import Data.Word (Word8)
 import Data.ByteString (ByteString)
+#if !MIN_VERSION_base(4,11,0)
+import Data.Semigroup (Semigroup(..))
+#endif
 import Data.Text.Internal (Text(..), empty, safe)
 import Data.Text.Internal.ByteStringCompat (withBS)
 import Data.Text.Internal.Encoding.Utf8 (utf8Length)
