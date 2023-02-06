@@ -1,19 +1,20 @@
 -- | Tests for encoding and decoding
 
-{-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
+{-# LANGUAGE CPP, OverloadedStrings, ScopedTypeVariables #-}
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
 {-# LANGUAGE BangPatterns #-}
 module Tests.Properties.Transcoding
     ( testTranscoding
     ) where
 
--- import Debug.Trace (trace)
 import Prelude hiding (head, tail)
 import Data.Bits ((.&.), shiftR)
 import Data.Char (chr, ord)
 import Data.Functor (void)
 import Data.Maybe (isNothing)
+#if !MIN_VERSION_base(4,11,0)
 import Data.Semigroup ((<>))
+#endif
 import Test.QuickCheck hiding ((.&.))
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.QuickCheck (testProperty)
@@ -102,8 +103,7 @@ t_pn_utf8_2 = do
   pure ()
 t_pn_utf8_3 = do
   s1 <- testValidateUtf8 [0xc2] 0
-  let c = E.partialUtf8CodePoint s1
-  assertBool "PartialUtf8 must be partial" $ E.partUtf8Len c < E.partUtf8CompleteLen c
+  assertBool "PartialUtf8 must be partial" $ B.length (E.getPartialUtf8 s1) < E.getCompleteLen s1
   testValidateUtf8MoreFail s1 [0x80, 0x80] 1
 
 -- Precondition: (i, ms1) = E.validateUtf8More s chunk
@@ -111,7 +111,7 @@ t_pn_utf8_3 = do
 -- The index points to the end of the longest valid prefix
 -- of prechunk `B.append` chunk
 pre_validateUtf8More_validPrefix s chunk i =
-  let prechunk = E.partUtf8ToByteString (E.partialUtf8CodePoint s) in
+  let prechunk = E.getPartialUtf8 s in
   -- Note: i <= 0 implies take i = id
   let (j, ms2) = E.validateUtf8Chunk (B.take (B.length prechunk + i) (prechunk `B.append` chunk)) in
   counterexample (show prechunk) $
@@ -351,11 +351,6 @@ t_decode_utf8_lenient :: Property
 t_decode_utf8_lenient = forAllShrinkShow arbitrary shrink (show . BL.toChunks) $ \bs ->
     decodeLL bs === (TL.fromStrict . decodeL . B.concat . BL.toChunks) bs
 
--- t_decode_utf8_lenient =
---   let !res = trace "HEREHEREHERE" $
---         EL.decodeUtf8With E.lenientDecode (BS.Chunk (B.pack [0xe1]) (BS.Chunk (B.pack [0xa0]) BS.Empty)) === TL.fromStrict (T.pack "\xFFFD\xFFFD") in
---   trace "THERETHERETHERE" res
-
 -- See http://unicode.org/faq/utf_bom.html#gen8
 -- A sequence such as <110xxxxx2 0xxxxxxx2> is illegal ...
 -- When faced with this illegal byte sequence ... a UTF-8 conformant process
@@ -401,8 +396,7 @@ testDecodeUtf8With k s xs expected =
       if T.null txt then
         bs @?= xs'
       else
-        let c = E.partUtf8ToByteString (E.partialUtf8CodePoint s)
-        in E.encodeUtf8 txt `B.append` bs @?= c `B.append` xs'
+        E.encodeUtf8 txt `B.append` bs @?= E.getPartialUtf8 s `B.append` xs'
       k s'
 
 testDecodeUtf8 :: E.Utf8State -> [Word8] -> T.Text -> IO E.Utf8State
@@ -417,8 +411,7 @@ testDecodeUtf8Fail = testDecodeUtf8With (\ms -> case ms of
 
 t_decode_chunk1 = do
   s1 <- testDecodeUtf8 E.startUtf8State [0xc2] ""
-  let c1 = E.partialUtf8CodePoint s1
-  E.partUtf8Len c1 @?= 1
+  B.length (E.getPartialUtf8 s1) @?= 1
   testDecodeUtf8Fail s1 [0x80, 0x80] "\128"
 
 t_decode_chunk2 = do
@@ -464,12 +457,12 @@ pre_decodeUtf8More_suffix s chunk =
 
 -- Decoding chunks separately is equivalent to decoding their concatenation.
 pre_decodeUtf8More_append s chunk1 chunk2 =
-  let (pre1, suf1, ms1) = E.decodeUtf8More s chunk1 in
+  let (pre1, _, ms1) = E.decodeUtf8More s chunk1 in
   case ms1 of
     Nothing -> discard
     Just s1 ->
-      let (pre2, suf2, ms2) = E.decodeUtf8More s1 chunk2 in
-      let (pre3, suf3, ms3) = E.decodeUtf8More s (chunk1 `B.append` chunk2) in
+      let (pre2, _, ms2) = E.decodeUtf8More s1 chunk2 in
+      let (pre3, _, ms3) = E.decodeUtf8More s (chunk1 `B.append` chunk2) in
       (s2b (pre1 <> pre2), ms2) === (s2b pre3, ms3)
 
 -- Properties for any chunk
@@ -487,7 +480,7 @@ t_decodeUtf8More2 = property $ do
     pre_decodeUtf8More_append s chunk chunk2
 
 s2b = E.encodeUtf8 . E.strictBuilderToText
-p2b = E.partUtf8ToByteString . E.partialUtf8CodePoint
+p2b = E.getPartialUtf8
 
 testTranscoding :: TestTree
 testTranscoding =

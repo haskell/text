@@ -169,6 +169,7 @@ library
     Data.Text.Internal.Private
     Data.Text.Internal.Read
     Data.Text.Internal.Search
+    Data.Text.Internal.StrictBuilder
     Data.Text.Internal.Unsafe
     Data.Text.Internal.Unsafe.Char
     Data.Text.Lazy

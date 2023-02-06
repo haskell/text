@@ -26,17 +26,22 @@ module Data.Text.Internal.Encoding
   , decodeUtf8With2
   , Utf8State
   , startUtf8State
+  , StrictBuilder()
+  , strictBuilderToText
+  , textToStrictBuilder
+
+    -- * Internal
+  , skipIncomplete
+  , getCompleteLen
+  , getPartialUtf8
   ) where
 
 #if defined(ASSERTS)
 import Control.Exception (assert)
 #endif
-import Control.Monad.ST (ST, runST)
-import Control.Monad.ST.Unsafe (unsafeIOToST, unsafeSTToIO)
 import Data.Bits ((.&.), shiftL, shiftR)
 import Data.ByteString (ByteString)
-import Data.Functor (void)
-#if MIN_VERSION_base(4,11,0)
+#if !MIN_VERSION_base(4,11,0)
 import Data.Semigroup (Semigroup(..))
 #endif
 import Data.Word (Word32, Word8)
@@ -44,17 +49,18 @@ import Foreign.C.Types (CSize(..))
 import Foreign.Ptr (Ptr)
 import Foreign.Storable (pokeElemOff)
 import Data.Text.Encoding.Error (OnDecodeError)
-import Data.Text.Internal (Text(..), empty, safe)
+import Data.Text.Internal (Text(..))
 import Data.Text.Internal.ByteStringCompat (withBS)
 import Data.Text.Internal.Encoding.Utf8
-  (Utf8CodePointState, utf8StartState, updateUtf8State, isUtf8StateIsComplete, utf8Length)
+  (Utf8CodePointState, utf8StartState, updateUtf8State, isUtf8StateIsComplete)
+import Data.Text.Internal.StrictBuilder (StrictBuilder)
 import Data.Text.Internal.Unsafe (unsafeWithForeignPtr)
 import Data.Text.Unsafe (unsafeDupablePerformIO)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Internal as BI
 import qualified Data.ByteString.Short.Internal as SBS
 import qualified Data.Text.Array as A
-import qualified Data.Text.Internal.Unsafe.Char as Char
+import qualified Data.Text.Internal.StrictBuilder as SB
 #if defined(ASSERTS)
 import GHC.Stack (HasCallStack)
 #endif
@@ -62,6 +68,12 @@ import GHC.Stack (HasCallStack)
 #ifdef SIMDUTF
 import Foreign.C.Types (CInt(..))
 #endif
+
+strictBuilderToText :: StrictBuilder -> Text
+strictBuilderToText = SB.toText
+
+textToStrictBuilder :: Text -> StrictBuilder
+textToStrictBuilder = SB.fromText
 
 -- | State of decoding a 'ByteString' in UTF-8.
 -- Enables stream decoding ('validateUtf8Chunk', 'validateUtf8More',
@@ -178,6 +190,14 @@ partUtf8Foldr f x0 c = case partUtf8Len c of
 partUtf8ToByteString :: PartialUtf8CodePoint -> B.ByteString
 partUtf8ToByteString c = BI.unsafeCreate (partUtf8Len c) $ \ptr ->
   partUtf8Foldr (\w k i -> pokeElemOff ptr i w >> k (i+1)) (\_ -> pure ()) c 0
+
+-- Exported for testing.
+getCompleteLen :: Utf8State -> Int
+getCompleteLen = partUtf8CompleteLen . partialUtf8CodePoint
+
+-- | Exported for testing.
+getPartialUtf8 :: Utf8State -> B.ByteString
+getPartialUtf8 = partUtf8ToByteString . partialUtf8CodePoint
 
 #ifdef SIMDUTF
 foreign import ccall unsafe "_hs_text_is_valid_utf8" c_is_valid_utf8
@@ -327,89 +347,20 @@ validateUtf8MoreCont st@(Utf8State s0 part) bs k
           Just s' -> loop (i + 1) s'
       | otherwise = k (- partUtf8Len part) (Just (Utf8State s (partUtf8UnsafeAppend part bs)))
 
--- | A delayed representation of strict 'Text'.
---
--- @since 2.0.2
-
--- For internal purposes, this is instead abused as a delayed 'Array':
--- it may not actually be valid 'Text' (e.g., 'word8ToStrictBuilder',
--- 'byteStringToStrictBuilder', 'utf8StateToStrictBuilder').
-data StrictBuilder = StrictBuilder
-  { sbLength :: {-# UNPACK #-} !Int
-  , sbWrite :: forall s. A.MArray s -> Int -> ST s ()
-  }
-
--- | Concatenation of 'StrictBuilder' is right-biased:
--- the right builder will be run first. This allows a builder to
--- run tail-recursively when it was accumulated left-to-right.
-instance Semigroup StrictBuilder where
-  (<>) = appendRStrictBuilder
-
-instance Monoid StrictBuilder where
-  mempty = emptyStrictBuilder
-  mappend = (<>)
-
-emptyStrictBuilder :: StrictBuilder
-emptyStrictBuilder = StrictBuilder 0 (\_ _ -> pure ())
-
-appendRStrictBuilder :: StrictBuilder -> StrictBuilder -> StrictBuilder
-appendRStrictBuilder (StrictBuilder 0 _) b2 = b2
-appendRStrictBuilder b1 (StrictBuilder 0 _) = b1
-appendRStrictBuilder (StrictBuilder n1 write1) (StrictBuilder n2 write2) =
-  StrictBuilder (n1 + n2) (\dst ofs -> do
-    write2 dst (ofs + n1)
-    write1 dst ofs)
-
-copyFromByteString :: A.MArray s -> Int -> ByteString -> ST s ()
-copyFromByteString dst ofs src = withBS src $ \ srcFPtr len ->
-  unsafeIOToST $ unsafeWithForeignPtr srcFPtr $ \ srcPtr -> do
-    unsafeSTToIO $ A.copyFromPointer dst ofs srcPtr len
-
-byteStringToStrictBuilder :: ByteString -> StrictBuilder
-byteStringToStrictBuilder bs =
-  StrictBuilder (B.length bs) (\dst ofs -> copyFromByteString dst ofs bs)
-
-{-# INLINE charToStrictBuilder #-}
-charToStrictBuilder :: Char -> StrictBuilder
-charToStrictBuilder c =
-  StrictBuilder (utf8Length c) (\dst ofs -> void (Char.unsafeWrite dst ofs (safe c)))
-
-word8ToStrictBuilder :: Word8 -> StrictBuilder
-word8ToStrictBuilder !w =
-  StrictBuilder 1 (\dst ofs -> A.unsafeWrite dst ofs w)
-
 -- Eta-expanded to inline partUtf8Foldr
 partUtf8ToStrictBuilder :: PartialUtf8CodePoint -> StrictBuilder
 partUtf8ToStrictBuilder c =
-  partUtf8Foldr ((<>) . word8ToStrictBuilder) emptyStrictBuilder c
+  partUtf8Foldr ((<>) . SB.unsafeFromWord8) mempty c
 
 utf8StateToStrictBuilder :: Utf8State -> StrictBuilder
 utf8StateToStrictBuilder = partUtf8ToStrictBuilder . partialUtf8CodePoint
-
--- | Use 'StrictBuilder' to build 'Text'.
---
--- @since 2.0.2
-strictBuilderToText :: StrictBuilder -> Text
-strictBuilderToText (StrictBuilder 0 _) = empty
-strictBuilderToText (StrictBuilder n write) = runST (do
-  dst <- A.new n
-  write dst 0
-  arr <- A.unsafeFreeze dst
-  pure (Text arr 0 n))
-
--- | Copy 'Text' in a 'StrictBuilder'
---
--- @since 2.0.2
-textToStrictBuilder :: Text -> StrictBuilder
-textToStrictBuilder (Text src srcOfs n) = StrictBuilder n (\dst dstOfs ->
-  A.copyI n dst dstOfs src srcOfs)
 
 -- | Decode another chunk in an ongoing UTF-8 stream.
 --
 -- Returns a triple:
 --
 -- 1. A 'StrictBuilder' for the decoded chunk of text. You can accumulate
---    chunks with @('<>')@ or output them with 'strictBuilderToText'.
+--    chunks with @('<>')@ or output them with 'SB.toText'.
 -- 2. The undecoded remainder of the given chunk, for diagnosing errors
 --    and resuming (presumably after skipping some bytes).
 -- 3. 'Just' the new state, or 'Nothing' if an invalid byte was encountered
@@ -434,7 +385,7 @@ textToStrictBuilder (Text src srcOfs n) = StrictBuilder n (\dst dstOfs ->
 --     where
 --
 --     @
---     s2b = 'Data.Text.Encoding.encodeUtf8' . 'Data.Text.Encoding.strictBuilderToText'
+--     s2b = 'Data.Text.Encoding.encodeUtf8' . 'Data.Text.Encoding.toText'
 --     p2b = 'Data.Text.Internal.Encoding.partUtf8ToByteString'
 --     @
 --
@@ -463,9 +414,9 @@ textToStrictBuilder (Text src srcOfs n) = StrictBuilder n (\dst dstOfs ->
 decodeUtf8More :: Utf8State -> ByteString -> (StrictBuilder, ByteString, Maybe Utf8State)
 decodeUtf8More s bs =
   validateUtf8MoreCont s bs $ \len ms ->
-    let builder | len <= 0 = emptyStrictBuilder
+    let builder | len <= 0 = mempty
                 | otherwise = utf8StateToStrictBuilder s
-                  <> byteStringToStrictBuilder (B.take len bs)
+                  <> SB.unsafeFromByteString (B.take len bs)
     in (builder, B.drop len bs, ms)
 
 -- | Decode a chunk of UTF-8 text. To be continued with 'decodeUtf8More'.
@@ -487,7 +438,7 @@ decodeUtf8More s bs =
 -- @builder@ is a prefix and @rest@ is a suffix of @chunk@.
 --
 -- @
--- 'Data.Text.Encoding.encodeUtf8' ('strictBuilderToText' builder) '<>' rest = chunk
+-- 'Data.Text.Encoding.encodeUtf8' ('Data.Text.Encoding.strictBuilderToText' builder) '<>' rest = chunk
 -- @
 --
 -- @since 2.0.2
@@ -499,18 +450,20 @@ decodeUtf8Chunk = decodeUtf8More startUtf8State
 -- value. The bytes are the positions from 'errStart' (inclusive) to
 -- 'errEnd' (exclusive). Any substitute characters are pushed onto the
 -- supplied 'TextDataStack' argument.
+--
+-- Exported for lazy 'Data.Text.Lazy.Encoding.decodeUtf8With'.
 {-# INLINE skipIncomplete #-}
 skipIncomplete :: OnDecodeError -> String -> Utf8State -> StrictBuilder
 skipIncomplete onErr msg s =
   partUtf8Foldr
     ((<>) . handleUtf8Error onErr msg)
-    emptyStrictBuilder (partialUtf8CodePoint s)
+    mempty (partialUtf8CodePoint s)
 
 {-# INLINE handleUtf8Error #-}
 handleUtf8Error :: OnDecodeError -> String -> Word8 -> StrictBuilder
 handleUtf8Error onErr msg w = case onErr msg (Just w) of
-  Just c -> charToStrictBuilder c
-  Nothing -> emptyStrictBuilder
+  Just c -> SB.fromChar c
+  Nothing -> mempty
 
 -- | Helper for 'Data.Text.Encoding.decodeUtfWith'.
 --
@@ -529,12 +482,12 @@ decodeUtf8With1 onErr msg bs = validateUtf8ChunkFrom 0 bs $ \len ms -> case ms o
       | len == B.length bs ->
         let !(SBS.SBS arr) = SBS.toShort bs in
         Text (A.ByteArray arr) 0 len
-      | otherwise -> strictBuilderToText $
-          byteStringToStrictBuilder (B.take len bs) <> skipIncomplete onErr msg s
+      | otherwise -> SB.toText $
+          SB.unsafeFromByteString (B.take len bs) <> skipIncomplete onErr msg s
     Nothing ->
        let (builder, _, s) = decodeUtf8With2 onErr msg startUtf8State (B.drop (len + 1) bs) in
-       strictBuilderToText $
-         byteStringToStrictBuilder (B.take len bs) <>
+       SB.toText $
+         SB.unsafeFromByteString (B.take len bs) <>
          handleUtf8Error onErr msg (B.index bs len) <>
          builder <>
          skipIncomplete onErr msg s
@@ -552,12 +505,12 @@ decodeUtf8With2 ::
   HasCallStack =>
 #endif
   OnDecodeError -> String -> Utf8State -> ByteString -> (StrictBuilder, ByteString, Utf8State)
-decodeUtf8With2 onErr msg s0 bs = loop s0 0 emptyStrictBuilder
+decodeUtf8With2 onErr msg s0 bs = loop s0 0 mempty
   where
     loop s i !builder =
       let nonEmptyPrefix len = builder
             <> utf8StateToStrictBuilder s
-            <> byteStringToStrictBuilder (B.take len (B.drop i bs))
+            <> SB.unsafeFromByteString (B.take len (B.drop i bs))
       in validateUtf8MoreCont s (B.drop i bs) $ \len ms -> case ms of
         Nothing ->
           if len < 0

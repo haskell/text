@@ -69,6 +69,7 @@ import qualified Data.Text.Encoding as TE
 import qualified Data.Text.Internal.Encoding as TE
 import qualified Data.Text.Internal.Lazy.Encoding.Fusion as E
 import qualified Data.Text.Internal.Lazy.Fusion as F
+import qualified Data.Text.Internal.StrictBuilder as SB
 import Data.Text.Unsafe (unsafeDupablePerformIO)
 
 -- $strict
@@ -108,7 +109,7 @@ decodeLatin1 = foldr (chunk . TE.decodeLatin1) empty . B.toChunks
 decodeUtf8With :: OnDecodeError -> B.ByteString -> Text
 decodeUtf8With onErr = loop TE.startUtf8State
   where
-    chunkb builder t | TE.sbLength builder == 0 = t
+    chunkb builder t | SB.sbLength builder == 0 = t
                     | otherwise = Chunk (TE.strictBuilderToText builder) t
     loop s (B.Chunk b bs) = case TE.decodeUtf8With2 onErr msg s b of
       (builder, _, s') -> chunkb builder (loop s' bs)
