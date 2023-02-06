@@ -255,8 +255,7 @@ validateUtf8ChunkFrom ofs bs k
 #else
       B.isValidUtf8 $ B.take guessUtf8Boundary (B.drop ofs bs)
 #endif
-    ) = if guessUtf8Boundary == len then k (B.length bs) (Just startUtf8State)
-        else slowValidateUtf8ChunkFrom (ofs + guessUtf8Boundary)
+    ) = slowValidateUtf8ChunkFrom (ofs + guessUtf8Boundary)
     -- No
   | otherwise = slowValidateUtf8ChunkFrom ofs
   where
