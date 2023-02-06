@@ -14,6 +14,7 @@ import Data.Maybe (isNothing)
 #if !MIN_VERSION_base(4,11,0)
 import Data.Semigroup ((<>))
 #endif
+import Data.Word (Word8)
 import Test.QuickCheck hiding ((.&.))
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.QuickCheck (testProperty)
@@ -34,7 +35,6 @@ import qualified Data.Text.Encoding.Error as E
 import qualified Data.Text.Internal.Encoding as E
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Encoding as EL
-import Data.Word (Word8)
 
 t_ascii t    = E.decodeASCII (E.encodeUtf8 a) === a
     where a  = T.map (\c -> chr (ord c `mod` 128)) t
