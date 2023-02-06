@@ -547,12 +547,12 @@ encodeUtf32BE txt = E.unstream (E.restreamUtf32BE (F.stream txt))
 -- The functions 'decodeUtf8Chunk' and 'decodeUtf8More' provide more
 -- control for error-handling and streaming.
 --
--- - You get an UTF-8 prefix of the given 'ByteString' up to the next error.
+-- - Those functions return an UTF-8 prefix of the given 'ByteString' up to the next error.
 --   For example this lets you insert or delete arbitrary text, or do some
 --   stateful operations before resuming, such as keeping track of error locations.
 --   In contrast, the older stream-oriented interface only lets you substitute
 --   a single fixed 'Char' for each invalid byte in 'OnDecodeError'.
--- - The prefix is encoded as a 'StrictBuilder', so you can accumulate chunks
+-- - That prefix is encoded as a 'StrictBuilder', so you can accumulate chunks
 --   before doing the copying work to construct a 'Text', or you can
 --   output decoded fragments immediately as a lazy 'Data.Text.Lazy.Text'.
 --

@@ -76,7 +76,7 @@ textToStrictBuilder :: Text -> StrictBuilder
 textToStrictBuilder = SB.fromText
 
 -- | State of decoding a 'ByteString' in UTF-8.
--- Enables stream decoding ('validateUtf8Chunk', 'validateUtf8More',
+-- Enables incremental decoding ('validateUtf8Chunk', 'validateUtf8More',
 -- 'decodeUtf8Chunk', 'decodeUtf8More').
 
 -- Internal invariant:
@@ -444,13 +444,12 @@ decodeUtf8More s bs =
 decodeUtf8Chunk :: ByteString -> (StrictBuilder, ByteString, Maybe Utf8State)
 decodeUtf8Chunk = decodeUtf8More startUtf8State
 
--- | Call an error handler with the give 'String' message for each byte
--- in given 'ByteString' and lead data in the given 'Utf8State'
--- value. The bytes are the positions from 'errStart' (inclusive) to
--- 'errEnd' (exclusive). Any substitute characters are pushed onto the
--- supplied 'TextDataStack' argument.
+-- | Call the error handler on each byte of the partial code point stored in
+-- 'Utf8State' and append the results.
 --
--- Exported for lazy 'Data.Text.Lazy.Encoding.decodeUtf8With'.
+-- Exported for use in lazy 'Data.Text.Lazy.Encoding.decodeUtf8With'.
+--
+-- @since 2.0.2
 {-# INLINE skipIncomplete #-}
 skipIncomplete :: OnDecodeError -> String -> Utf8State -> StrictBuilder
 skipIncomplete onErr msg s =
@@ -464,13 +463,13 @@ handleUtf8Error onErr msg w = case onErr msg (Just w) of
   Just c -> SB.fromChar c
   Nothing -> mempty
 
--- | Helper for 'Data.Text.Encoding.decodeUtfWith'.
---
--- This could be shorter by calling decodeUtf8With2 directly, but we make the
--- first call validateUtf8Chunk directly to return even faster in successful
--- cases.
+-- | Helper for 'Data.Text.Encoding.decodeUtf8With'.
 --
 -- @since 2.0.2
+
+-- This could be shorter by calling 'decodeUtf8With2' directly, but we make the
+-- first call validateUtf8Chunk directly to return even faster in successful
+-- cases.
 decodeUtf8With1 ::
 #if defined(ASSERTS)
   HasCallStack =>
