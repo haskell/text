@@ -116,11 +116,6 @@ import qualified Data.Text.Internal.Fusion as F
 import GHC.Stack (HasCallStack)
 #endif
 
-#ifdef SIMDUTF
-#elif !MIN_VERSION_bytestring(0,11,2)
-import qualified Data.ByteString.Unsafe as B
-#endif
-
 -- $validation
 -- These functions are for validating 'ByteString's as encoded text.
 

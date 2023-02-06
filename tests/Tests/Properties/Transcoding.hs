@@ -2,7 +2,6 @@
 
 {-# LANGUAGE CPP, OverloadedStrings, ScopedTypeVariables #-}
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
-{-# LANGUAGE BangPatterns #-}
 module Tests.Properties.Transcoding
     ( testTranscoding
     ) where

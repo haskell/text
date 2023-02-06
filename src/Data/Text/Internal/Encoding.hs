@@ -45,17 +45,12 @@ import Data.ByteString (ByteString)
 import Data.Semigroup (Semigroup(..))
 #endif
 import Data.Word (Word32, Word8)
-import Foreign.C.Types (CSize(..))
-import Foreign.Ptr (Ptr)
 import Foreign.Storable (pokeElemOff)
 import Data.Text.Encoding.Error (OnDecodeError)
 import Data.Text.Internal (Text(..))
-import Data.Text.Internal.ByteStringCompat (withBS)
 import Data.Text.Internal.Encoding.Utf8
   (DecoderState, utf8AcceptState, utf8RejectState, updateDecoderState)
 import Data.Text.Internal.StrictBuilder (StrictBuilder)
-import Data.Text.Internal.Unsafe (unsafeWithForeignPtr)
-import Data.Text.Unsafe (unsafeDupablePerformIO)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Internal as BI
 import qualified Data.ByteString.Short.Internal as SBS
@@ -66,7 +61,12 @@ import GHC.Stack (HasCallStack)
 #endif
 
 #ifdef SIMDUTF
+import Data.Text.Internal.ByteStringCompat (withBS)
+import Data.Text.Internal.Unsafe (unsafeWithForeignPtr)
+import Data.Text.Unsafe (unsafeDupablePerformIO)
+import Foreign.C.Types (CSize(..))
 import Foreign.C.Types (CInt(..))
+import Foreign.Ptr (Ptr)
 #endif
 
 -- | Use 'StrictBuilder' to build 'Text'.
