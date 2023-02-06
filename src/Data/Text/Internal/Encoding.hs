@@ -52,7 +52,7 @@ import Data.Text.Encoding.Error (OnDecodeError)
 import Data.Text.Internal (Text(..))
 import Data.Text.Internal.ByteStringCompat (withBS)
 import Data.Text.Internal.Encoding.Utf8
-  (Utf8CodePointState, utf8StartState, updateUtf8State, isUtf8StateIsComplete)
+  (DecoderState, utf8AcceptState, utf8RejectState, updateDecoderState)
 import Data.Text.Internal.StrictBuilder (StrictBuilder)
 import Data.Text.Internal.Unsafe (unsafeWithForeignPtr)
 import Data.Text.Unsafe (unsafeDupablePerformIO)
@@ -92,17 +92,17 @@ textToStrictBuilder = SB.fromText
 -- @since 2.0.2
 data Utf8State = Utf8State
   { -- | State of the UTF-8 state machine.
-    utf8CodePointState :: {-# UNPACK #-} !Utf8CodePointState
+    utf8CodePointState :: {-# UNPACK #-} !DecoderState
     -- | Bytes of the currently incomplete code point (if any).
   , partialUtf8CodePoint :: {-# UNPACK #-} !PartialUtf8CodePoint
   }
-  deriving (Eq, Ord, Show)
+  deriving (Eq, Show)
 
 -- | Initial 'Utf8State'.
 --
 -- @since 2.0.2
 startUtf8State :: Utf8State
-startUtf8State = Utf8State utf8StartState partUtf8Empty
+startUtf8State = Utf8State utf8AcceptState partUtf8Empty
 
 -- | Prefix of a UTF-8 code point encoded in 4 bytes,
 -- possibly empty.
@@ -117,7 +117,7 @@ startUtf8State = Utf8State utf8StartState partUtf8Empty
 --
 -- @since 2.0.2
 newtype PartialUtf8CodePoint = PartialUtf8CodePoint Word32
-  deriving (Eq, Ord, Show)
+  deriving (Eq, Show)
 
 -- | Empty prefix.
 partUtf8Empty :: PartialUtf8CodePoint
@@ -273,15 +273,14 @@ validateUtf8ChunkFrom ofs bs k
     -- Ideally the primitives 'B.isValidUtf8' or 'c_is_valid_utf8' should give us
     -- indices to let us avoid this function.
     slowValidateUtf8ChunkFrom :: Int -> r
-    slowValidateUtf8ChunkFrom ofs1 = slowLoop ofs1 ofs1 utf8StartState
+    slowValidateUtf8ChunkFrom ofs1 = slowLoop ofs1 ofs1 utf8AcceptState
 
     slowLoop !utf8End i s
       | i < B.length bs =
-          case updateUtf8State (B.index bs i) s of
-            Just s' ->
-              let utf8End' = if isUtf8StateIsComplete s' then i + 1 else utf8End
-              in slowLoop utf8End' (i + 1) s'
-            Nothing -> k utf8End Nothing
+          case updateDecoderState (B.index bs i) s of
+            s' | s' == utf8RejectState -> k utf8End Nothing
+               | s' == utf8AcceptState -> slowLoop (i + 1) (i + 1) s'
+               | otherwise -> slowLoop utf8End (i + 1) s'
       | otherwise = k utf8End (Just (Utf8State s (partUtf8UnsafeAppend partUtf8Empty (B.drop utf8End bs))))
 
 -- | Validate another 'ByteString' chunk in an ongoing stream of UTF-8-encoded text.
@@ -340,11 +339,11 @@ validateUtf8MoreCont st@(Utf8State s0 part) bs k
     -- Complete an incomplete code point (if there is one)
     -- and then jump to validateUtf8ChunkFrom
     loop !i s
-      | isUtf8StateIsComplete s = validateUtf8ChunkFrom i bs k
+      | s == utf8AcceptState = validateUtf8ChunkFrom i bs k
       | i < len =
-        case updateUtf8State (B.index bs i) s of
-          Nothing -> k (- partUtf8Len part) Nothing
-          Just s' -> loop (i + 1) s'
+        case updateDecoderState (B.index bs i) s of
+          s' | s' == utf8RejectState -> k (- partUtf8Len part) Nothing
+             | otherwise -> loop (i + 1) s'
       | otherwise = k (- partUtf8Len part) (Just (Utf8State s (partUtf8UnsafeAppend part bs)))
 
 -- Eta-expanded to inline partUtf8Foldr

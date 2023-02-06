@@ -21,6 +21,12 @@
 * Fix quadratic slowdown when decoding invalid UTF-8 bytestrings
   (https://github.com/haskell/text/issues/495)
 
+* Add internal module `Data.Text.Internal.StrictBuilder`
+
+* Add internal module `Data.Text.Internal.Encoding`
+
+* Add `Data.Text.Internal.Encoding.Utf8.updateDecoderState`
+
 ### 2.0.1
 
 * Improve portability of C and C++ code.
