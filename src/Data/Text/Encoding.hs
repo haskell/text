@@ -88,30 +88,30 @@ import Control.Exception (evaluate, try)
 import Control.Monad.ST (runST)
 import Control.Monad.ST.Unsafe (unsafeIOToST, unsafeSTToIO)
 import Data.Bits (shiftR, (.&.))
-import Data.ByteString (ByteString)
-import qualified Data.ByteString.Short.Internal as SBS
-import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode, lenientDecode)
-import Data.Text.Internal (Text(..), empty)
-import Data.Text.Internal.Unsafe (unsafeWithForeignPtr)
-import Data.Text.Unsafe (unsafeDupablePerformIO)
 import Data.Word (Word8)
 import Foreign.C.Types (CSize(..))
 import Foreign.Ptr (Ptr, minusPtr, plusPtr)
 import Foreign.Storable (poke, peekByteOff)
 import GHC.Exts (byteArrayContents#, unsafeCoerce#)
 import GHC.ForeignPtr (ForeignPtr(..), ForeignPtrContents(PlainPtr))
+import Data.ByteString (ByteString)
+import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode, lenientDecode)
+import Data.Text.Internal (Text(..), empty)
 import Data.Text.Internal.ByteStringCompat (withBS)
+import Data.Text.Internal.Encoding
+import Data.Text.Internal.Unsafe (unsafeWithForeignPtr)
+import Data.Text.Unsafe (unsafeDupablePerformIO)
+import Data.Text.Show ()
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Internal as B
 import qualified Data.ByteString.Builder as B
 import qualified Data.ByteString.Builder.Internal as B hiding (empty, append)
 import qualified Data.ByteString.Builder.Prim as BP
 import qualified Data.ByteString.Builder.Prim.Internal as BP
+import qualified Data.ByteString.Short.Internal as SBS
 import qualified Data.Text.Array as A
-import Data.Text.Internal.Encoding
 import qualified Data.Text.Internal.Encoding.Fusion as E
 import qualified Data.Text.Internal.Fusion as F
-import Data.Text.Show ()
 #if defined(ASSERTS)
 import GHC.Stack (HasCallStack)
 #endif
