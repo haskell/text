@@ -69,15 +69,23 @@ import GHC.Stack (HasCallStack)
 import Foreign.C.Types (CInt(..))
 #endif
 
+-- | Use 'StrictBuilder' to build 'Text'.
+--
+-- @since 2.0.2
 strictBuilderToText :: StrictBuilder -> Text
 strictBuilderToText = SB.toText
 
+-- | Copy 'Text' in a 'StrictBuilder'
+--
+-- @since 2.0.2
 textToStrictBuilder :: Text -> StrictBuilder
 textToStrictBuilder = SB.fromText
 
 -- | State of decoding a 'ByteString' in UTF-8.
 -- Enables incremental decoding ('validateUtf8Chunk', 'validateUtf8More',
 -- 'decodeUtf8Chunk', 'decodeUtf8More').
+--
+-- @since 2.0.2
 
 -- Internal invariant:
 -- the first component is the initial state if and only if
@@ -88,8 +96,6 @@ textToStrictBuilder = SB.fromText
 -- <=>
 -- 'partialUtf8CodePoint' s = 'PartialUtf8CodePoint' 0
 -- @
---
--- @since 2.0.2
 data Utf8State = Utf8State
   { -- | State of the UTF-8 state machine.
     utf8CodePointState :: {-# UNPACK #-} !DecoderState
@@ -191,7 +197,7 @@ partUtf8ToByteString :: PartialUtf8CodePoint -> B.ByteString
 partUtf8ToByteString c = BI.unsafeCreate (partUtf8Len c) $ \ptr ->
   partUtf8Foldr (\w k i -> pokeElemOff ptr i w >> k (i+1)) (\_ -> pure ()) c 0
 
--- Exported for testing.
+-- | Exported for testing.
 getCompleteLen :: Utf8State -> Int
 getCompleteLen = partUtf8CompleteLen . partialUtf8CodePoint
 
@@ -212,6 +218,8 @@ foreign import ccall unsafe "_hs_text_is_valid_utf8" c_is_valid_utf8
 -- 'validateUtf8Chunk' = 'validateUtf8More' 'startUtf8State'
 -- @
 --
+-- @since 2.0.2
+--
 -- === Properties
 --
 -- Given:
@@ -226,8 +234,6 @@ foreign import ccall unsafe "_hs_text_is_valid_utf8" c_is_valid_utf8
 --     @
 --     'validateUtf8Chunk' ('Data.ByteString.take' n chunk) = (n, Just 'startUtf8State')
 --     @
---
--- @since 2.0.2
 validateUtf8Chunk :: ByteString -> (Int, Maybe Utf8State)
 validateUtf8Chunk bs = validateUtf8ChunkFrom 0 bs (,)
 
@@ -297,6 +303,8 @@ validateUtf8ChunkFrom ofs bs k
 --     - if @ms = Just s'@, you can carry on validating another chunk
 --       by calling 'validateUtf8More' with the new state @s'@.
 --
+-- @since 2.0.2
+--
 -- === Properties
 --
 -- Given:
@@ -319,8 +327,6 @@ validateUtf8ChunkFrom ofs bs k
 --     ms = Just s'
 --     ==> 'validateUtf8More' s (chunk '<>' more) = 'Data.Bifunctor.first' ('Data.ByteString.length' chunk '+') ('validateUtf8More' s' more)
 --     @
---
--- @since 2.0.2
 validateUtf8More :: Utf8State -> ByteString -> (Int, Maybe Utf8State)
 validateUtf8More st bs = validateUtf8MoreCont st bs (,)
 
@@ -405,8 +411,6 @@ utf8StateToStrictBuilder = partUtf8ToStrictBuilder . partialUtf8CodePoint
 --     s2b (pre1 '<>' pre2) = s2b pre3
 --     ms2 = ms3
 --     @
---
--- @since 2.0.2
 decodeUtf8More :: Utf8State -> ByteString -> (StrictBuilder, ByteString, Maybe Utf8State)
 decodeUtf8More s bs =
   validateUtf8MoreCont s bs $ \len ms ->
@@ -418,6 +422,8 @@ decodeUtf8More s bs =
 -- | Decode a chunk of UTF-8 text. To be continued with 'decodeUtf8More'.
 --
 -- See 'decodeUtf8More' for details on the result.
+--
+-- @since 2.0.2
 --
 -- === Properties
 --
@@ -436,8 +442,6 @@ decodeUtf8More s bs =
 -- @
 -- 'Data.Text.Encoding.encodeUtf8' ('Data.Text.Encoding.strictBuilderToText' builder) '<>' rest = chunk
 -- @
---
--- @since 2.0.2
 decodeUtf8Chunk :: ByteString -> (StrictBuilder, ByteString, Maybe Utf8State)
 decodeUtf8Chunk = decodeUtf8More startUtf8State
 

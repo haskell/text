@@ -19,6 +19,7 @@ module Data.Text.Internal.StrictBuilder
   , fromText
 
     -- * Unsafe
+    -- $unsafe
   , unsafeFromByteString
   , unsafeFromWord8
   ) where
@@ -39,10 +40,6 @@ import qualified Data.Text.Internal.Unsafe.Char as Char
 -- | A delayed representation of strict 'Text'.
 --
 -- @since 2.0.2
-
--- For internal purposes, this is instead abused as a delayed 'Array':
--- it may not actually be valid 'Text' (e.g., 'unsafeFromWord8',
--- 'unsafeFromByteString').
 data StrictBuilder = StrictBuilder
   { sbLength :: {-# UNPACK #-} !Int
   , sbWrite :: forall s. A.MArray s -> Int -> ST s ()
@@ -85,16 +82,29 @@ copyFromByteString dst ofs src = withBS src $ \ srcFPtr len ->
   unsafeIOToST $ unsafeWithForeignPtr srcFPtr $ \ srcPtr -> do
     unsafeSTToIO $ A.copyFromPointer dst ofs srcPtr len
 
--- | Copy a 'ByteString'. Note: This may not be valid text.
+-- | Copy a 'ByteString'.
+--
+-- Unsafe: This may not be valid UTF-8 text.
+--
+-- @since 2.0.2
 unsafeFromByteString :: ByteString -> StrictBuilder
 unsafeFromByteString bs =
   StrictBuilder (B.length bs) (\dst ofs -> copyFromByteString dst ofs bs)
 
+-- |
+-- @since 2.0.2
 {-# INLINE fromChar #-}
 fromChar :: Char -> StrictBuilder
 fromChar c =
   StrictBuilder (utf8Length c) (\dst ofs -> void (Char.unsafeWrite dst ofs (safe c)))
 
+-- $unsafe
+-- For internal purposes, we abuse 'StrictBuilder' as a delayed 'Array' rather
+-- than 'Text': it may not actually be valid 'Text'.
+
+-- | Unsafe: This may not be valid UTF-8 text.
+--
+-- @since 2.0.2
 unsafeFromWord8 :: Word8 -> StrictBuilder
 unsafeFromWord8 !w =
   StrictBuilder 1 (\dst ofs -> A.unsafeWrite dst ofs w)
