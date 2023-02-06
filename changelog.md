@@ -25,7 +25,7 @@
 
 * Add internal module `Data.Text.Internal.Encoding`
 
-* Add `Data.Text.Internal.Encoding.Utf8.updateDecoderState`
+* Add `Data.Text.Internal.Encoding.Utf8.updateDecoderState` and export `utf8{Accept,Reject}State` from the same module.
 
 ### 2.0.1
 

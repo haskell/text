@@ -50,7 +50,7 @@ module Data.Text.Encoding
     , decodeUtf8More
     , Utf8State
     , startUtf8State
-    , StrictBuilder()
+    , StrictBuilder
     , strictBuilderToText
     , textToStrictBuilder
 
