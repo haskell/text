@@ -231,20 +231,16 @@ foreign import ccall unsafe "_hs_text_is_valid_utf8" c_is_valid_utf8
 validateUtf8Chunk :: ByteString -> (Int, Maybe Utf8State)
 validateUtf8Chunk bs = validateUtf8ChunkFrom 0 bs (,)
 
--- Add an offset to the index returned by 'validateUtf8More'.
+-- Assume bytes up to offset @ofs@ have been validated already.
 --
--- @
--- validateUtf8ChunkFrom n bs (,) = (first (+ n) . 'validateUtf8More' . 'B.drop' n) bs
--- @
---
--- CPS: inlining the continuation lets us avoid allocating a @Maybe@ in the
--- @decode...@ functions.
+-- Using CPS lets us inline the continuation and avoid allocating a @Maybe@
+-- in the @decode...@ functions.
 {-# INLINE validateUtf8ChunkFrom #-}
 validateUtf8ChunkFrom :: forall r. Int -> ByteString -> (Int -> Maybe Utf8State -> r) -> r
 validateUtf8ChunkFrom ofs bs k
 #if defined(SIMDUTF) || MIN_VERSION_bytestring(0,11,2)
   | guessUtf8Boundary > 0 &&
-    -- the rest of the bytestring valid utf-8 up to the boundary
+    -- the rest of the bytestring is valid utf-8 up to the boundary
     (
 #ifdef SIMDUTF
       withBS (B.drop ofs bs) $ \ fp _ -> unsafeDupablePerformIO $
@@ -253,14 +249,15 @@ validateUtf8ChunkFrom ofs bs k
 #else
       B.isValidUtf8 $ B.take guessUtf8Boundary (B.drop ofs bs)
 #endif
-    ) = slowValidateUtf8ChunkFrom (ofs + guessUtf8Boundary)
+    ) = if guessUtf8Boundary == len then k (B.length bs) (Just startUtf8State)
+        else slowValidateUtf8ChunkFrom (ofs + guessUtf8Boundary)
     -- No
-  | otherwise = if guessUtf8Boundary == len then k len (Just startUtf8State) else slowValidateUtf8ChunkFrom ofs
+  | otherwise = slowValidateUtf8ChunkFrom ofs
   where
     len = B.length bs - ofs
     isBoundary n p = len >= n && p (B.index bs (ofs + len - n))
     guessUtf8Boundary
-      | isBoundary 1 (<= 0x80) = len      -- last char is ASCII
+      | isBoundary 1 (<= 0x80) = len      -- last char is ASCII (common short-circuit)
       | isBoundary 1 (0xc2 <=) = len - 1  -- last char starts a two-(or more-)byte code point
       | isBoundary 2 (0xe0 <=) = len - 2  -- pre-last char starts a three-or-four-byte code point
       | isBoundary 3 (0xf0 <=) = len - 3  -- third to last char starts a four-byte code point
