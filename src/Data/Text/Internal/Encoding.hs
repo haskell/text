@@ -6,11 +6,27 @@
 {-# LANGUAGE ViewPatterns #-}
 
 -- |
+-- Module      : Data.Text.Internal.Builder
+-- License     : BSD-style (see LICENSE)
+-- Stability   : experimental
+--
+-- /Warning/: this is an internal module, and does not have a stable
+-- API or name. Functions in this module may not check or enforce
+-- preconditions expected by public modules. Use at your own risk!
+--
 -- Internals of "Data.Text.Encoding".
 --
--- If you'd like to depend on something from here that's not in "Data.Text.Encoding",
--- please request to have it exported!
-module Data.Text.Internal.Encoding where
+-- @since 2.0.2
+module Data.Text.Internal.Encoding
+  ( validateUtf8Chunk
+  , validateUtf8More
+  , decodeUtf8Chunk
+  , decodeUtf8More
+  , decodeUtf8With1
+  , decodeUtf8With2
+  , Utf8State
+  , startUtf8State
+  ) where
 
 #if defined(ASSERTS)
 import Control.Exception (assert)
@@ -20,7 +36,9 @@ import Control.Monad.ST.Unsafe (unsafeIOToST, unsafeSTToIO)
 import Data.Bits ((.&.), shiftL, shiftR)
 import Data.ByteString (ByteString)
 import Data.Functor (void)
+#if MIN_VERSION_base(4,11,0)
 import Data.Semigroup (Semigroup(..))
+#endif
 import Data.Word (Word32, Word8)
 import Foreign.C.Types (CSize(..))
 import Foreign.Ptr (Ptr)
@@ -43,8 +61,6 @@ import GHC.Stack (HasCallStack)
 
 #ifdef SIMDUTF
 import Foreign.C.Types (CInt(..))
-#elif !MIN_VERSION_bytestring(0,11,2)
-import qualified Data.ByteString.Unsafe as B
 #endif
 
 -- | State of decoding a 'ByteString' in UTF-8.
@@ -312,12 +328,12 @@ validateUtf8MoreCont st@(Utf8State s0 part) bs k
       | otherwise = k (- partUtf8Len part) (Just (Utf8State s (partUtf8UnsafeAppend part bs)))
 
 -- | A delayed representation of strict 'Text'.
-
--- For internal purposes, this is instead used as a delayed 'Array':
--- it may not actually be valid 'Text' (e.g., 'word8ToStrictBuilder',
--- 'byteStringToStrictBuilder', 'partUtf8ToStrictBuilder').
 --
 -- @since 2.0.2
+
+-- For internal purposes, this is instead abused as a delayed 'Array':
+-- it may not actually be valid 'Text' (e.g., 'word8ToStrictBuilder',
+-- 'byteStringToStrictBuilder', 'utf8StateToStrictBuilder').
 data StrictBuilder = StrictBuilder
   { sbLength :: {-# UNPACK #-} !Int
   , sbWrite :: forall s. A.MArray s -> Int -> ST s ()
@@ -366,6 +382,9 @@ word8ToStrictBuilder !w =
 partUtf8ToStrictBuilder :: PartialUtf8CodePoint -> StrictBuilder
 partUtf8ToStrictBuilder c =
   partUtf8Foldr ((<>) . word8ToStrictBuilder) emptyStrictBuilder c
+
+utf8StateToStrictBuilder :: Utf8State -> StrictBuilder
+utf8StateToStrictBuilder = partUtf8ToStrictBuilder . partialUtf8CodePoint
 
 -- | Use 'StrictBuilder' to build 'Text'.
 --
@@ -439,11 +458,13 @@ textToStrictBuilder (Text src srcOfs n) = StrictBuilder n (\dst dstOfs ->
 --     s2b (pre1 '<>' pre2) = s2b pre3
 --     ms2 = ms3
 --     @
+--
+-- @since 2.0.2
 decodeUtf8More :: Utf8State -> ByteString -> (StrictBuilder, ByteString, Maybe Utf8State)
 decodeUtf8More s bs =
   validateUtf8MoreCont s bs $ \len ms ->
     let builder | len <= 0 = emptyStrictBuilder
-                | otherwise = partUtf8ToStrictBuilder (partialUtf8CodePoint s)
+                | otherwise = utf8StateToStrictBuilder s
                   <> byteStringToStrictBuilder (B.take len bs)
     in (builder, B.drop len bs, ms)
 
@@ -491,10 +512,13 @@ handleUtf8Error onErr msg w = case onErr msg (Just w) of
   Just c -> charToStrictBuilder c
   Nothing -> emptyStrictBuilder
 
--- | Helper for 'decodeUtfWith'.
+-- | Helper for 'Data.Text.Encoding.decodeUtfWith'.
 --
--- This could be shorter by calling decodeUtf8With2 directly,
--- but we make the first call validateUtf8Chunk directly so that
+-- This could be shorter by calling decodeUtf8With2 directly, but we make the
+-- first call validateUtf8Chunk directly to return even faster in successful
+-- cases.
+--
+-- @since 2.0.2
 decodeUtf8With1 ::
 #if defined(ASSERTS)
   HasCallStack =>
@@ -521,6 +545,8 @@ decodeUtf8With1 onErr msg bs = validateUtf8ChunkFrom 0 bs $ \len ms -> case ms o
 -- which use an 'OnDecodeError' to process bad bytes.
 --
 -- See 'decodeUtf8Chunk' for a more flexible alternative.
+--
+-- @since 2.0.2
 decodeUtf8With2 ::
 #if defined(ASSERTS)
   HasCallStack =>
@@ -530,7 +556,7 @@ decodeUtf8With2 onErr msg s0 bs = loop s0 0 emptyStrictBuilder
   where
     loop s i !builder =
       let nonEmptyPrefix len = builder
-            <> partUtf8ToStrictBuilder (partialUtf8CodePoint s)
+            <> utf8StateToStrictBuilder s
             <> byteStringToStrictBuilder (B.take len (B.drop i bs))
       in validateUtf8MoreCont s (B.drop i bs) $ \len ms -> case ms of
         Nothing ->
