@@ -2,6 +2,31 @@
 
 * Remove support for GHC 8.0.
 
+### 2.0.2
+
+* Add decoding functions in `Data.Text.Encoding` that allow
+  more control for error handling and for how to allocate text.
+  (https://github.com/haskell/text/pull/448 Thanks to David Sledge)
+  * `decodeASCIIPrefix`
+  * `decodeUtf8Chunk`
+  * `decodeUtf8More`
+  * `Utf8ValidState`
+  * `startUtf8ValidState`
+  * `StrictBuilder`
+  * `strictBuilderToText`
+  * `textToStrictBuilder`
+  * `validateUtf8Chunk`
+  * `validateUtf8More`
+
+* Fix quadratic slowdown when decoding invalid UTF-8 bytestrings
+  (https://github.com/haskell/text/issues/495)
+
+* Add internal module `Data.Text.Internal.StrictBuilder`
+
+* Add internal module `Data.Text.Internal.Encoding`
+
+* Add `Data.Text.Internal.Encoding.Utf8.updateDecoderState` and export `utf8{Accept,Reject}State` from the same module.
+
 ### 2.0.1
 
 * Improve portability of C and C++ code.

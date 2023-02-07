@@ -150,6 +150,7 @@ library
     Data.Text.Internal.Builder.RealFloat.Functions
     Data.Text.Internal.ByteStringCompat
     Data.Text.Internal.PrimCompat
+    Data.Text.Internal.Encoding
     Data.Text.Internal.Encoding.Fusion
     Data.Text.Internal.Encoding.Fusion.Common
     Data.Text.Internal.Encoding.Utf16
@@ -168,6 +169,7 @@ library
     Data.Text.Internal.Private
     Data.Text.Internal.Read
     Data.Text.Internal.Search
+    Data.Text.Internal.StrictBuilder
     Data.Text.Internal.Unsafe
     Data.Text.Internal.Unsafe.Char
     Data.Text.Lazy

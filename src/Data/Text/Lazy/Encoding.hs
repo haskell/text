@@ -1,5 +1,6 @@
 {-# LANGUAGE BangPatterns,CPP #-}
 {-# LANGUAGE Trustworthy #-}
+{-# LANGUAGE ViewPatterns #-}
 
 -- |
 -- Module      : Data.Text.Lazy.Encoding
@@ -60,15 +61,15 @@ import Data.Monoid (Monoid(..))
 import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode)
 import Data.Text.Internal.Lazy (Text(..), chunk, empty, foldrChunks)
 import Data.Word (Word8)
-import qualified Data.ByteString as S
 import qualified Data.ByteString.Builder as B
 import qualified Data.ByteString.Builder.Prim as BP
 import qualified Data.ByteString.Lazy as B
 import qualified Data.ByteString.Lazy.Internal as B
-import qualified Data.Text as T
 import qualified Data.Text.Encoding as TE
+import qualified Data.Text.Internal.Encoding as TE
 import qualified Data.Text.Internal.Lazy.Encoding.Fusion as E
 import qualified Data.Text.Internal.Lazy.Fusion as F
+import qualified Data.Text.Internal.StrictBuilder as SB
 import Data.Text.Unsafe (unsafeDupablePerformIO)
 
 -- $strict
@@ -106,24 +107,14 @@ decodeLatin1 = foldr (chunk . TE.decodeLatin1) empty . B.toChunks
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text.
 decodeUtf8With :: OnDecodeError -> B.ByteString -> Text
-decodeUtf8With onErr (B.Chunk b0 bs0) =
-    case TE.streamDecodeUtf8With onErr b0 of
-      TE.Some t l f -> chunk t (go f l bs0)
+decodeUtf8With onErr = loop TE.startUtf8State
   where
-    go f0 _ (B.Chunk b bs) =
-      case f0 b of
-        TE.Some t l f -> chunk t (go f l bs)
-    go _ l _
-      | S.null l  = empty
-      | otherwise =
-        let !t = T.pack (skipBytes l)
-            skipBytes = S.foldr (\x s' ->
-                  case onErr desc (Just x) of
-                    Just c -> c : s'
-                    Nothing -> s') [] in
-        Chunk t Empty
-    desc = "Data.Text.Lazy.Encoding.decodeUtf8With: Invalid UTF-8 stream"
-decodeUtf8With _ _ = empty
+    chunkb builder t | SB.sbLength builder == 0 = t
+                    | otherwise = Chunk (TE.strictBuilderToText builder) t
+    loop s (B.Chunk b bs) = case TE.decodeUtf8With2 onErr msg s b of
+      (builder, _, s') -> chunkb builder (loop s' bs)
+    loop s B.Empty = chunkb (TE.skipIncomplete onErr msg s) Empty
+    msg = "Data.Text.Internal.Encoding: Invalid UTF-8 stream"
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text that is known
 -- to be valid.

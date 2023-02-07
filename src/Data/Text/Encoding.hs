@@ -3,7 +3,6 @@
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE ViewPatterns #-}
 -- |
 -- Module      : Data.Text.Encoding
 -- Copyright   : (c) 2009, 2010, 2011 Bryan O'Sullivan,
@@ -29,9 +28,8 @@ module Data.Text.Encoding
     -- ** Total Functions #total#
     -- $total
       decodeLatin1
+    , decodeASCIIPrefix
     , decodeUtf8Lenient
-
-    -- *** Catchable failure
     , decodeUtf8'
 
     -- *** Controllable error handling
@@ -45,6 +43,16 @@ module Data.Text.Encoding
     -- $stream
     , streamDecodeUtf8With
     , Decoding(..)
+
+    -- *** Incremental UTF-8 decoding
+    -- $incremental
+    , decodeUtf8Chunk
+    , decodeUtf8More
+    , Utf8State
+    , startUtf8State
+    , StrictBuilder
+    , strictBuilderToText
+    , textToStrictBuilder
 
     -- ** Partial Functions
     -- $partial
@@ -68,48 +76,47 @@ module Data.Text.Encoding
     -- * Encoding Text using ByteString Builders
     , encodeUtf8Builder
     , encodeUtf8BuilderEscaped
+
+    -- * ByteString validation
+    -- $validation
+    , validateUtf8Chunk
+    , validateUtf8More
     ) where
 
-import Control.Monad.ST.Unsafe (unsafeIOToST, unsafeSTToIO)
-
 import Control.Exception (evaluate, try)
-import Control.Monad.ST (runST, ST)
+import Control.Monad.ST (runST)
+import Control.Monad.ST.Unsafe (unsafeIOToST, unsafeSTToIO)
 import Data.Bits (shiftR, (.&.))
-import Data.ByteString (ByteString)
-import qualified Data.ByteString as B
-import qualified Data.ByteString.Internal as B
-import qualified Data.ByteString.Short.Internal as SBS
-import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode, lenientDecode)
-import Data.Text.Internal (Text(..), safe, empty, append)
-import Data.Text.Internal.Unsafe (unsafeWithForeignPtr)
-import Data.Text.Internal.Unsafe.Char (unsafeWrite)
-import Data.Text.Show as T (singleton)
-import Data.Text.Unsafe (unsafeDupablePerformIO)
 import Data.Word (Word8)
 import Foreign.C.Types (CSize(..))
 import Foreign.Ptr (Ptr, minusPtr, plusPtr)
 import Foreign.Storable (poke, peekByteOff)
 import GHC.Exts (byteArrayContents#, unsafeCoerce#)
 import GHC.ForeignPtr (ForeignPtr(..), ForeignPtrContents(PlainPtr))
+import Data.ByteString (ByteString)
+import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode, lenientDecode)
+import Data.Text.Internal (Text(..), empty)
+import Data.Text.Internal.ByteStringCompat (withBS)
+import Data.Text.Internal.Encoding
+import Data.Text.Internal.Unsafe (unsafeWithForeignPtr)
+import Data.Text.Unsafe (unsafeDupablePerformIO)
+import Data.Text.Show ()
+import qualified Data.ByteString as B
+import qualified Data.ByteString.Internal as B
 import qualified Data.ByteString.Builder as B
 import qualified Data.ByteString.Builder.Internal as B hiding (empty, append)
 import qualified Data.ByteString.Builder.Prim as BP
 import qualified Data.ByteString.Builder.Prim.Internal as BP
-import Data.Text.Internal.Encoding.Utf8 (utf8DecodeStart, utf8DecodeContinue, DecoderResult(..))
+import qualified Data.ByteString.Short.Internal as SBS
 import qualified Data.Text.Array as A
 import qualified Data.Text.Internal.Encoding.Fusion as E
 import qualified Data.Text.Internal.Fusion as F
-import Data.Text.Internal.ByteStringCompat
 #if defined(ASSERTS)
 import GHC.Stack (HasCallStack)
 #endif
 
-#ifdef SIMDUTF
-import Foreign.C.Types (CInt(..))
-#elif !MIN_VERSION_bytestring(0,11,2)
-import qualified Data.ByteString.Unsafe as B
-import Data.Text.Internal.Encoding.Utf8 (CodePoint(..))
-#endif
+-- $validation
+-- These functions are for validating 'ByteString's as encoded text.
 
 -- $strict
 --
@@ -135,20 +142,53 @@ import Data.Text.Internal.Encoding.Utf8 (CodePoint(..))
 -- (preferably not at all). See "Data.Text.Encoding#g:total" for better
 -- solutions.
 
--- | Decode a 'ByteString' containing 7-bit ASCII
--- encoded text.
+-- | Decode a 'ByteString' containing ASCII text.
+--
+-- This is a total function which returns a pair of the longest ASCII prefix
+-- as 'Text', and the remaining suffix as 'ByteString'.
+--
+-- Important note: the pair is lazy. This lets you check for errors by testing
+-- whether the second component is empty, without forcing the first component
+-- (which does a copy).
+-- To drop references to the input bytestring, force the prefix
+-- (using 'seq' or @BangPatterns@) and drop references to the suffix.
+--
+-- === Properties
+--
+-- - If @(prefix, suffix) = decodeAsciiPrefix s@, then @'encodeUtf8' prefix <> suffix = s@.
+-- - Either @suffix@ is empty, or @'B.head' suffix > 127@.
+--
+-- @since 2.0.2
+decodeASCIIPrefix :: ByteString -> (Text, ByteString)
+decodeASCIIPrefix bs = if B.null bs
+  then (empty, B.empty)
+  else
+    let len = asciiPrefixLength bs
+        prefix =
+          let !(SBS.SBS arr) = SBS.toShort (B.take len bs) in
+          Text (A.ByteArray arr) 0 len
+        suffix = B.drop len bs in
+    (prefix, suffix)
+{-# INLINE decodeASCIIPrefix #-}
+
+-- | Length of the longest ASCII prefix.
+asciiPrefixLength :: ByteString -> Int
+asciiPrefixLength bs = unsafeDupablePerformIO $ withBS bs $ \ fp len ->
+  unsafeWithForeignPtr fp $ \src -> do
+    fromIntegral <$> c_is_ascii src (src `plusPtr` len)
+
+-- | Decode a 'ByteString' containing 7-bit ASCII encoded text.
 --
 -- This is a partial function: it checks that input does not contain
 -- anything except ASCII and copies buffer or throws an error otherwise.
---
 decodeASCII :: ByteString -> Text
-decodeASCII bs = withBS bs $ \fp len -> if len == 0 then empty else runST $ do
-  asciiPrefixLen <- fmap cSizeToInt $ unsafeIOToST $ unsafeWithForeignPtr fp $ \src ->
-    c_is_ascii src (src `plusPtr` len)
-  if asciiPrefixLen == len
-  then let !(SBS.SBS arr) = SBS.toShort bs in
-        return (Text (A.ByteArray arr) 0 len)
-  else error $ "decodeASCII: detected non-ASCII codepoint at " ++ show asciiPrefixLen
+decodeASCII bs =
+  let (prefix, suffix) = decodeASCIIPrefix bs in
+  case B.uncons suffix of
+    Nothing -> prefix
+    Just (word, _) ->
+      let !errPos = B.length bs - B.length suffix in
+      error $ "decodeASCII: detected non-ASCII codepoint " ++ show word ++ " at position " ++ show errPos
 
 -- | Decode a 'ByteString' containing Latin-1 (aka ISO-8859-1) encoded text.
 --
@@ -166,7 +206,7 @@ decodeLatin1 ::
 decodeLatin1 bs = withBS bs $ \fp len -> runST $ do
   dst <- A.new (2 * len)
   let inner srcOff dstOff = if srcOff >= len then return dstOff else do
-        asciiPrefixLen <- fmap cSizeToInt $ unsafeIOToST $ unsafeWithForeignPtr fp $ \src ->
+        asciiPrefixLen <- fmap fromIntegral $ unsafeIOToST $ unsafeWithForeignPtr fp $ \src ->
           c_is_ascii (src `plusPtr` srcOff) (src `plusPtr` len)
         if asciiPrefixLen == 0
         then do
@@ -178,7 +218,6 @@ decodeLatin1 bs = withBS bs $ \fp len -> runST $ do
           unsafeIOToST $ unsafeWithForeignPtr fp $ \src ->
             unsafeSTToIO $ A.copyFromPointer dst dstOff (src `plusPtr` srcOff) asciiPrefixLen
           inner (srcOff + asciiPrefixLen) (dstOff + asciiPrefixLen)
-
   actualLen <- inner 0 0
   dst' <- A.resizeM dst actualLen
   arr <- A.unsafeFreeze dst'
@@ -186,135 +225,6 @@ decodeLatin1 bs = withBS bs $ \fp len -> runST $ do
 
 foreign import ccall unsafe "_hs_text_is_ascii" c_is_ascii
     :: Ptr Word8 -> Ptr Word8 -> IO CSize
-
-isValidBS :: ByteString -> Bool
-#ifdef SIMDUTF
-isValidBS bs = withBS bs $ \fp len -> unsafeDupablePerformIO $
-  unsafeWithForeignPtr fp $ \ptr -> (/= 0) <$> c_is_valid_utf8 ptr (fromIntegral len)
-#else
-#if MIN_VERSION_bytestring(0,11,2)
-isValidBS = B.isValidUtf8
-#else
-isValidBS bs = start 0
-  where
-    start ix
-      | ix >= B.length bs = True
-      | otherwise = case utf8DecodeStart (B.unsafeIndex bs ix) of
-        Accept{} -> start (ix + 1)
-        Reject{} -> False
-        Incomplete st _ -> step (ix + 1) st
-    step ix st
-      | ix >= B.length bs = False
-      -- We do not use decoded code point, so passing a dummy value to save an argument.
-      | otherwise = case utf8DecodeContinue (B.unsafeIndex bs ix) st (CodePoint 0) of
-        Accept{} -> start (ix + 1)
-        Reject{} -> False
-        Incomplete st' _ -> step (ix + 1) st'
-#endif
-#endif
-
--- | Decode a 'ByteString' containing UTF-8 encoded text.
---
--- Surrogate code points in replacement character returned by 'OnDecodeError'
--- will be automatically remapped to the replacement char @U+FFFD@.
-decodeUtf8With ::
-#if defined(ASSERTS)
-  HasCallStack =>
-#endif
-  OnDecodeError -> ByteString -> Text
-decodeUtf8With onErr bs
-  | isValidBS bs =
-    let !(SBS.SBS arr) = SBS.toShort bs in
-      (Text (A.ByteArray arr) 0 (B.length bs))
-  | B.null undecoded = txt
-  | otherwise = txt `append` (case onErr desc (Just (B.head undecoded)) of
-    Nothing -> txt'
-    Just c  -> T.singleton c `append` txt')
-  where
-    (txt, undecoded) = decodeUtf8With2 onErr mempty bs
-    txt' = decodeUtf8With onErr (B.tail undecoded)
-    desc = "Data.Text.Internal.Encoding: Invalid UTF-8 stream"
-
--- | Decode two consecutive bytestrings, returning Text and undecoded remainder.
-decodeUtf8With2 ::
-#if defined(ASSERTS)
-  HasCallStack =>
-#endif
-  OnDecodeError -> ByteString -> ByteString -> (Text, ByteString)
-decodeUtf8With2 onErr bs1@(B.length -> len1) bs2@(B.length -> len2) = runST $ do
-  marr <- A.new len'
-  outer marr len' 0 0
-  where
-    len = len1 + len2
-    len' = len + 4
-
-    index i
-      | i < len1  = B.index bs1 i
-      | otherwise = B.index bs2 (i - len1)
-
-    -- We need Data.ByteString.findIndexEnd, but it is unavailable before bytestring-0.10.12.0
-    guessUtf8Boundary :: Int
-    guessUtf8Boundary
-      | len2 >= 1 && w0 <  0x80 = len2     -- last char is ASCII
-      | len2 >= 1 && w0 >= 0xC0 = len2 - 1 -- last char starts a code point
-      | len2 >= 2 && w1 >= 0xC0 = len2 - 2 -- pre-last char starts a code point
-      | len2 >= 3 && w2 >= 0xC0 = len2 - 3
-      | len2 >= 4 && w3 >= 0xC0 = len2 - 4
-      | otherwise = 0
-      where
-        w0 = B.index bs2 (len2 - 1)
-        w1 = B.index bs2 (len2 - 2)
-        w2 = B.index bs2 (len2 - 3)
-        w3 = B.index bs2 (len2 - 4)
-
-    decodeFrom :: Int -> DecoderResult
-    decodeFrom off = step (off + 1) (utf8DecodeStart (index off))
-      where
-        step i (Incomplete a b)
-          | i < len = step (i + 1) (utf8DecodeContinue (index i) a b)
-        step _ st = st
-
-    outer :: forall s. A.MArray s -> Int -> Int -> Int -> ST s (Text, ByteString)
-    outer dst dstLen = inner
-        where
-          inner srcOff dstOff
-            | srcOff >= len = do
-              A.shrinkM dst dstOff
-              arr <- A.unsafeFreeze dst
-              return (Text arr 0 dstOff, mempty)
-
-            | srcOff >= len1
-            , srcOff < len1 + guessUtf8Boundary
-            , dstOff + (len1 + guessUtf8Boundary - srcOff) <= dstLen
-            , bs <- B.drop (srcOff - len1) (B.take guessUtf8Boundary bs2)
-            , isValidBS bs = do
-              withBS bs $ \fp _ -> unsafeIOToST $ unsafeWithForeignPtr fp $ \src ->
-                unsafeSTToIO $ A.copyFromPointer dst dstOff src (len1 + guessUtf8Boundary - srcOff)
-              inner (len1 + guessUtf8Boundary) (dstOff + (len1 + guessUtf8Boundary - srcOff))
-
-            | dstOff + 4 > dstLen = do
-              let dstLen' = dstLen + 4
-              dst' <- A.resizeM dst dstLen'
-              outer dst' dstLen' srcOff dstOff
-
-            | otherwise = case decodeFrom srcOff of
-              Accept c -> do
-                d <- unsafeWrite dst dstOff c
-                inner (srcOff + d) (dstOff + d)
-              Reject -> case onErr desc (Just (index srcOff)) of
-                Nothing -> inner (srcOff + 1) dstOff
-                Just c -> do
-                  d <- unsafeWrite dst dstOff (safe c)
-                  inner (srcOff + 1) (dstOff + d)
-              Incomplete{} -> do
-                A.shrinkM dst dstOff
-                arr <- A.unsafeFreeze dst
-                let bs = if srcOff >= len1
-                      then B.drop (srcOff - len1) bs2
-                      else B.drop srcOff (bs1 `B.append` bs2)
-                return (Text arr 0 dstOff, bs)
-
-    desc = "Data.Text.Internal.Encoding: Invalid UTF-8 stream"
 
 -- $stream
 --
@@ -406,11 +316,25 @@ streamDecodeUtf8With ::
   HasCallStack =>
 #endif
   OnDecodeError -> ByteString -> Decoding
-streamDecodeUtf8With onErr = go mempty
+streamDecodeUtf8With onErr = loop startUtf8State
   where
-    go bs1 bs2 = Some txt undecoded (go undecoded)
-      where
-        (txt, undecoded) = decodeUtf8With2 onErr bs1 bs2
+    loop s chunk =
+      let (builder, undecoded, s') = decodeUtf8With2 onErr invalidUtf8Msg s chunk
+      in Some (strictBuilderToText builder) undecoded (loop s')
+
+-- | Decode a 'ByteString' containing UTF-8 encoded text.
+--
+-- Surrogate code points in replacement character returned by 'OnDecodeError'
+-- will be automatically remapped to the replacement char @U+FFFD@.
+decodeUtf8With ::
+#if defined(ASSERTS)
+  HasCallStack =>
+#endif
+  OnDecodeError -> ByteString -> Text
+decodeUtf8With onErr = decodeUtf8With1 onErr invalidUtf8Msg
+
+invalidUtf8Msg :: String
+invalidUtf8Msg = "Data.Text.Encoding: Invalid UTF-8 stream"
 
 -- | Decode a 'ByteString' containing UTF-8 encoded text that is known
 -- to be valid.
@@ -613,10 +537,17 @@ encodeUtf32BE :: Text -> ByteString
 encodeUtf32BE txt = E.unstream (E.restreamUtf32BE (F.stream txt))
 {-# INLINE encodeUtf32BE #-}
 
-cSizeToInt :: CSize -> Int
-cSizeToInt = fromIntegral
-
-#ifdef SIMDUTF
-foreign import ccall unsafe "_hs_text_is_valid_utf8" c_is_valid_utf8
-    :: Ptr Word8 -> CSize -> IO CInt
-#endif
+-- $incremental
+-- The functions 'decodeUtf8Chunk' and 'decodeUtf8More' provide more
+-- control for error-handling and streaming.
+--
+-- - Those functions return an UTF-8 prefix of the given 'ByteString' up to the next error.
+--   For example this lets you insert or delete arbitrary text, or do some
+--   stateful operations before resuming, such as keeping track of error locations.
+--   In contrast, the older stream-oriented interface only lets you substitute
+--   a single fixed 'Char' for each invalid byte in 'OnDecodeError'.
+-- - That prefix is encoded as a 'StrictBuilder', so you can accumulate chunks
+--   before doing the copying work to construct a 'Text', or you can
+--   output decoded fragments immediately as a lazy 'Data.Text.Lazy.Text'.
+--
+-- For even lower-level primitives, see 'validateUtf8Chunk' and 'validateUtf8More'.
