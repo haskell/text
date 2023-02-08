@@ -11,7 +11,7 @@ import Control.Arrow (second)
 import Control.Exception (ErrorCall, evaluate, try)
 import Data.Word (Word8, Word16)
 import Test.Tasty (TestTree, testGroup)
-import Test.Tasty.HUnit (testCase, assertFailure)
+import Test.Tasty.HUnit (testCase, assertFailure, assertBool)
 import Test.Tasty.QuickCheck (testProperty, Small(..), (===), applyFun, applyFun2)
 import Tests.QuickCheckUtils
 import qualified Data.List as L
@@ -20,6 +20,7 @@ import qualified Data.Text.Internal.Fusion as S
 import qualified Data.Text.Internal.Fusion.Common as S
 import qualified Data.Text.Lazy as TL
 import qualified Data.Char as Char
+import qualified Data.Text.Internal as T
 
 -- Folds
 
@@ -193,6 +194,13 @@ tl_unfoldrN n m   = (L.take i . L.unfoldr (unf j)) `eq`
     where i = fromIntegral (n :: Word16)
           j = fromIntegral (m :: Word16)
 
+isAscii_border :: IO ()
+isAscii_border = do
+    -- ASCII prefix ends at position 3 (from 0)
+    let text  = T.pack "123一二三"
+        text' = case text of T.Text arr off _len -> T.Text arr (off+1) 3
+    assertBool "UTF-8 string with ASCII prefix ending at last position incorrectly detected as ASCII" $ not $ T.isAscii text'
+
 testFolds :: TestTree
 testFolds =
   testGroup "folds-unfolds" [
@@ -239,7 +247,8 @@ testFolds =
         testProperty "t_minimum" t_minimum,
         testProperty "tl_minimum" tl_minimum,
         testProperty "t_isAscii " t_isAscii,
-        testProperty "tl_isAscii " tl_isAscii
+        testProperty "tl_isAscii " tl_isAscii,
+        testCase "isAscii_border" isAscii_border
       ]
     ],
 
