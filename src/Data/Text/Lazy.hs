@@ -887,7 +887,7 @@ minimum t = S.minimum (stream t)
 --
 -- prop> isAscii t == all (< '\x80') t
 --
--- @since 2.0.2 (?) TODO
+-- @since 2.0.2
 isAscii :: Text -> Bool
 isAscii Empty = True
 isAscii (Chunk c cs) = T.isAscii c && isAscii cs
