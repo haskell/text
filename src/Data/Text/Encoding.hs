@@ -31,6 +31,7 @@ module Data.Text.Encoding
     , decodeASCIIPrefix
     , decodeUtf8Lenient
     , decodeUtf8'
+    , decodeASCII'
 
     -- *** Controllable error handling
     , decodeUtf8With
@@ -176,6 +177,21 @@ asciiPrefixLength :: ByteString -> Int
 asciiPrefixLength bs = unsafeDupablePerformIO $ withBS bs $ \ fp len ->
   unsafeWithForeignPtr fp $ \src -> do
     fromIntegral <$> c_is_ascii src (src `plusPtr` len)
+
+-- | Decode a 'ByteString' containing 7-bit ASCII encoded text.
+--
+-- This is a total function which returns either the 'ByteString' converted to a
+-- 'Text' containing ASCII text, or 'Nothing'.
+--
+-- Use 'decodeASCIIPrefix' to retain the longest ASCII prefix for an invalid
+-- input instead of discarding it.
+--
+-- @since 2.0.2
+decodeASCII' :: ByteString -> Maybe Text
+decodeASCII' bs =
+  let (prefix, suffix) = decodeASCIIPrefix bs in
+  if B.null suffix then Just prefix else Nothing
+{-# INLINE decodeASCII' #-}
 
 -- | Decode a 'ByteString' containing 7-bit ASCII encoded text.
 --
