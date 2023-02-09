@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, CPP, Rank2Types, UnboxedTuples #-}
+{-# LANGUAGE BangPatterns, CPP, RankNTypes, UnboxedTuples #-}
 
 -- |
 -- Module      : Data.Text.Internal.Private

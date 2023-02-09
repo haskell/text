@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, CPP, MagicHash, Rank2Types,
+{-# LANGUAGE BangPatterns, CPP, MagicHash, RankNTypes,
     RecordWildCards, UnboxedTuples, UnliftedFFITypes #-}
 {-# OPTIONS_GHC -fno-warn-unused-matches #-}
 -- |
