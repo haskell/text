@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, MagicHash, Rank2Types, PartialTypeSignatures #-}
+{-# LANGUAGE BangPatterns, MagicHash, RankNTypes, PartialTypeSignatures #-}
 {-# OPTIONS_GHC -Wno-partial-type-signatures #-}
 -- |
 -- Module      : Data.Text.Internal.Fusion.Common
