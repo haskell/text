@@ -11,7 +11,7 @@ import Control.Arrow (second)
 import Control.Exception (ErrorCall, evaluate, try)
 import Data.Word (Word8, Word16)
 import Test.Tasty (TestTree, testGroup)
-import Test.Tasty.HUnit (testCase, assertFailure)
+import Test.Tasty.HUnit (testCase, assertFailure, assertBool)
 import Test.Tasty.QuickCheck (testProperty, Small(..), (===), applyFun, applyFun2)
 import Tests.QuickCheckUtils
 import qualified Data.List as L
@@ -19,6 +19,7 @@ import qualified Data.Text as T
 import qualified Data.Text.Internal.Fusion as S
 import qualified Data.Text.Internal.Fusion.Common as S
 import qualified Data.Text.Lazy as TL
+import qualified Data.Char as Char
 
 -- Folds
 
@@ -109,6 +110,8 @@ sf_minimum (applyFun -> p)
                   = (L.minimum . L.filter p) `eqP` (S.minimum . S.filter p)
 t_minimum         = L.minimum     `eqP` T.minimum
 tl_minimum        = L.minimum     `eqP` TL.minimum
+t_isAscii         = L.all Char.isAscii `eqP` T.isAscii
+tl_isAscii        = L.all Char.isAscii `eqP` TL.isAscii
 
 -- Scans
 
@@ -190,6 +193,11 @@ tl_unfoldrN n m   = (L.take i . L.unfoldr (unf j)) `eq`
     where i = fromIntegral (n :: Word16)
           j = fromIntegral (m :: Word16)
 
+isAscii_border :: IO ()
+isAscii_border = do
+    let text  = T.drop 2 $ T.pack "XX1234五"
+    assertBool "UTF-8 string with ASCII prefix ending at last position incorrectly detected as ASCII" $ not $ T.isAscii text
+
 testFolds :: TestTree
 testFolds =
   testGroup "folds-unfolds" [
@@ -234,7 +242,10 @@ testFolds =
         testProperty "tl_maximum" tl_maximum,
         testProperty "sf_minimum" sf_minimum,
         testProperty "t_minimum" t_minimum,
-        testProperty "tl_minimum" tl_minimum
+        testProperty "tl_minimum" tl_minimum,
+        testProperty "t_isAscii " t_isAscii,
+        testProperty "tl_isAscii " tl_isAscii,
+        testCase "isAscii_border" isAscii_border
       ]
     ],
 
