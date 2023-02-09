@@ -196,10 +196,8 @@ tl_unfoldrN n m   = (L.take i . L.unfoldr (unf j)) `eq`
 
 isAscii_border :: IO ()
 isAscii_border = do
-    -- ASCII prefix ends at position 3 (from 0)
-    let text  = T.pack "123一二三"
-        text' = case text of T.Text arr off _len -> T.Text arr (off+1) 3
-    assertBool "UTF-8 string with ASCII prefix ending at last position incorrectly detected as ASCII" $ not $ T.isAscii text'
+    let text  = T.drop 2 $ T.pack "XX1234五"
+    assertBool "UTF-8 string with ASCII prefix ending at last position incorrectly detected as ASCII" $ not $ T.isAscii text
 
 testFolds :: TestTree
 testFolds =
