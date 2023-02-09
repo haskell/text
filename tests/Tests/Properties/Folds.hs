@@ -20,7 +20,6 @@ import qualified Data.Text.Internal.Fusion as S
 import qualified Data.Text.Internal.Fusion.Common as S
 import qualified Data.Text.Lazy as TL
 import qualified Data.Char as Char
-import qualified Data.Text.Internal as T
 
 -- Folds
 
