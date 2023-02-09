@@ -889,8 +889,7 @@ minimum t = S.minimum (stream t)
 --
 -- @since 2.0.2
 isAscii :: Text -> Bool
-isAscii Empty = True
-isAscii (Chunk c cs) = T.isAscii c && isAscii cs
+isAscii = foldrChunks (\chnk acc -> T.isAscii chnk && acc) True
 
 -- | /O(n)/ 'scanl' is similar to 'foldl', but returns a list of
 -- successive reduced values from the left.
