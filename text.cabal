@@ -281,6 +281,8 @@ benchmark text-benchmarks
     ghc-options:  "-with-rtsopts=-A32m --nonmoving-gc"
   else
     ghc-options:  "-with-rtsopts=-A32m"
+  if impl(ghc >= 8.6)
+    ghc-options:  -fproc-alignment=64
 
   build-depends:  base,
                   bytestring >= 0.10.4,
