@@ -939,7 +939,7 @@ caseConvert ascii remap (Text src o l) = runST $ do
 -- U+00B5) is case folded to \"&#x3bc;\" (small letter mu, U+03BC)
 -- instead of itself.
 toCaseFold :: Text -> Text
-toCaseFold = caseConvert (\w -> if w - 65 <= 25 then w + 32 else w) foldMapping
+toCaseFold = \xs -> caseConvert (\w -> if w - 65 <= 25 then w + 32 else w) foldMapping xs
 {-# INLINE toCaseFold #-}
 
 -- | /O(n)/ Convert a string to lower case, using simple case
@@ -950,7 +950,7 @@ toCaseFold = caseConvert (\w -> if w - 65 <= 25 then w + 32 else w) foldMapping
 -- U+0130) maps to the sequence \"i\" (Latin small letter i, U+0069)
 -- followed by \" &#x307;\" (combining dot above, U+0307).
 toLower :: Text -> Text
-toLower = caseConvert (\w -> if w - 65 <= 25 then w + 32 else w) lowerMapping
+toLower = \xs -> caseConvert (\w -> if w - 65 <= 25 then w + 32 else w) lowerMapping xs
 {-# INLINE toLower #-}
 
 -- | /O(n)/ Convert a string to upper case, using simple case
@@ -960,7 +960,7 @@ toLower = caseConvert (\w -> if w - 65 <= 25 then w + 32 else w) lowerMapping
 -- instance, the German \"&#xdf;\" (eszett, U+00DF) maps to the
 -- two-letter sequence \"SS\".
 toUpper :: Text -> Text
-toUpper = caseConvert (\w -> if w - 97 <= 25 then w - 32 else w) upperMapping
+toUpper = \xs -> caseConvert (\w -> if w - 97 <= 25 then w - 32 else w) upperMapping xs
 {-# INLINE toUpper #-}
 
 -- | /O(n)/ Convert a string to title case, using simple case
