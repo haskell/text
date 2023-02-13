@@ -105,8 +105,10 @@ sf_toCaseFold_length (applyFun -> p) xs =
 t_toCaseFold_length t = T.length (T.toCaseFold t) >= T.length t
 
 tl_toCaseFold_length t = TL.length (TL.toCaseFold t) >= TL.length t
+#if MIN_VERSION_base(4,16,0)
 t_toCaseFold_char c = c `notElem` (toCaseFoldExceptions ++ cherokeeLower ++ cherokeeUpper) ==>
     T.toCaseFold (T.singleton c) === T.singleton (C.toLower c)
+#endif
 
 -- | Baseline generated with GHC 9.2 + text-1.2.5.0,
 t_toCaseFold_exceptions = T.unpack (T.toCaseFold (T.pack toCaseFoldExceptions)) === "\956ssi\775\700nsj\780\953\953\776\769\965\776\769\963\946\952\966\960\954\961\949\1381\1410\5104\5105\5106\5107\5108\5109\1074\1076\1086\1089\1090\1090\1098\1123\42571h\817t\776w\778y\778a\702\7777ss\965\787\965\787\768\965\787\769\965\787\834\7936\953\7937\953\7938\953\7939\953\7940\953\7941\953\7942\953\7943\953\7936\953\7937\953\7938\953\7939\953\7940\953\7941\953\7942\953\7943\953\7968\953\7969\953\7970\953\7971\953\7972\953\7973\953\7974\953\7975\953\7968\953\7969\953\7970\953\7971\953\7972\953\7973\953\7974\953\7975\953\8032\953\8033\953\8034\953\8035\953\8036\953\8037\953\8038\953\8039\953\8032\953\8033\953\8034\953\8035\953\8036\953\8037\953\8038\953\8039\953\8048\953\945\953\940\953\945\834\945\834\953\945\953\953\8052\953\951\953\942\953\951\834\951\834\953\951\953\953\776\768\953\776\769\953\834\953\776\834\965\776\768\965\776\769\961\787\965\834\965\776\834\8060\953\969\953\974\953\969\834\969\834\953\969\953fffiflffifflstst\1396\1398\1396\1381\1396\1387\1406\1398\1396\1389"
@@ -379,7 +381,9 @@ testText =
         testProperty "sf_toCaseFold_length" sf_toCaseFold_length,
         testProperty "t_toCaseFold_length" t_toCaseFold_length,
         testProperty "tl_toCaseFold_length" tl_toCaseFold_length,
+#if MIN_VERSION_base(4,16,0)
         testProperty "t_toCaseFold_char" t_toCaseFold_char,
+#endif
         testProperty "t_toCaseFold_exceptions" t_toCaseFold_exceptions,
         testProperty "t_toCaseFold_cherokeeLower" t_toCaseFold_cherokeeLower,
         testProperty "t_toCaseFold_cherokeeUpper" t_toCaseFold_cherokeeUpper,
