@@ -85,7 +85,7 @@ hPutStrLn h t = hPutStr h t >> B.hPutStr h (B.Char8.singleton '\n')
 -- passed to this function as its argument, and the resulting string
 -- is output on the standard output device.
 interact :: (Text -> Text) -> IO ()
-interact f = B.interact (encodeUtf8 . f . decodeUtf8)
+interact f = putStr . f =<< getContents
 
 -- | Read all user input on 'stdin' as a single string.
 getContents :: IO Text
