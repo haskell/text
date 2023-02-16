@@ -1,12 +1,7 @@
-### Unreleased
-
-* Remove support for GHC 8.0.
-
 ### 2.0.2
 
-* Add decoding functions in `Data.Text.Encoding` that allow
-  more control for error handling and for how to allocate text.
-  (https://github.com/haskell/text/pull/448 Thanks to David Sledge)
+* [Add decoding functions in `Data.Text.Encoding` that allow
+  more control for error handling and for how to allocate text](https://github.com/haskell/text/pull/448). Thanks to David Sledge!
   * `decodeASCIIPrefix`
   * `decodeUtf8Chunk`
   * `decodeUtf8More`
@@ -18,14 +13,23 @@
   * `validateUtf8Chunk`
   * `validateUtf8More`
 
-* Fix quadratic slowdown when decoding invalid UTF-8 bytestrings
-  (https://github.com/haskell/text/issues/495)
+* [Fix quadratic slowdown when decoding invalid UTF-8 bytestrings](https://github.com/haskell/text/issues/495)
+
+* [Add `isAscii :: Text -> Bool`](https://github.com/haskell/text/issues/497)
+
+* [Add `decodeASCII' :: ByteString -> Maybe Text`](https://github.com/haskell/text/issues/499)
 
 * Add internal module `Data.Text.Internal.StrictBuilder`
 
 * Add internal module `Data.Text.Internal.Encoding`
 
 * Add `Data.Text.Internal.Encoding.Utf8.updateDecoderState` and export `utf8{Accept,Reject}State` from the same module.
+
+* [Speed up case conversions](https://github.com/haskell/text/pull/460)
+
+* [Reduce code bloat for literal strings](https://github.com/haskell/text/pull/468)
+
+* [Remove support for GHC 8.0](https://github.com/haskell/text/pull/485)
 
 ### 2.0.1
 
