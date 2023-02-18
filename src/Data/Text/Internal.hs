@@ -1,4 +1,8 @@
-{-# LANGUAGE CPP, DeriveDataTypeable, UnboxedTuples #-}
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE CPP #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE UnboxedTuples #-}
 {-# OPTIONS_HADDOCK not-home #-}
 
 -- |
@@ -244,18 +248,28 @@ int64ToInt32 = fromIntegral
 -- "\65533"
 pack :: String -> Text
 pack xs = runST $ do
-  -- Each 'Char' takes up to 4 bytes
-  marr <- A.new (length xs `shiftL` 2)
-  let go off [] = pure off
-      go off (c : cs) = do
-        d <- unsafeWrite marr off (safe c)
-        go (off + d) cs
-  len <- go 0 xs
-  -- On average, the number of bytes taken by a typical 'Char' is less than 4 in UTF-8
-  -- (only 1 to 2 bytes for latin-script languages for instance), so we shrink the array
-  -- now. Could mean substantial memory savings for a long 'String'.
-  A.shrinkM marr len
-  arr <- A.unsafeFreeze marr
-  return (Text arr 0 len)
+  -- It's tempting to allocate a buffer of 4 * length xs bytes,
+  -- but not only it's wasteful for predominantly ASCII arguments,
+  -- the computation of length xs would force allocation of the entire xs at once.
+  let dstLen = 64
+  dst <- A.new dstLen
+  outer dst dstLen 0 xs
+  where
+    outer :: forall s. A.MArray s -> Int -> Int -> String -> ST s Text
+    outer !dst !dstLen = inner
+      where
+        inner !dstOff [] = do
+          A.shrinkM dst dstOff
+          arr <- A.unsafeFreeze dst
+          return (Text arr 0 dstOff)
+        inner !dstOff ccs@(c : cs)
+          -- Each 'Char' takes up to 4 bytes
+          | dstOff + 4 > dstLen = do
+            -- Double size of the buffer
+            let !dstLen' = dstLen * 2
+            dst' <- A.resizeM dst dstLen'
+            outer dst' dstLen' dstOff ccs
+          | otherwise = do
+            d <- unsafeWrite dst dstOff (safe c)
+            inner (dstOff + d) cs
 {-# NOINLINE [0] pack #-}
--- TODO Do not calculate length xs upfront
