@@ -21,7 +21,6 @@
 
 module Data.Text.IO
     (
-    -- * locale-sensitive I\/O
     -- * File-at-a-time operations
       readFile
     , writeFile
@@ -38,21 +37,6 @@ module Data.Text.IO
     , getLine
     , putStr
     , putStrLn
-    -- * File-at-a-time operations
-    , readFileUtf8
-    , writeFileUtf8
-    , appendFileUtf8
-    -- * Operations on handles
-    , hGetContentsUtf8
-    , hGetLineUtf8
-    , hPutStrUtf8
-    , hPutStrLnUtf8
-    -- * Special cases for standard input and output
-    , interactUtf8
-    , getContentsUtf8
-    , getLineUtf8
-    , putStrUtf8
-    , putStrLnUtf8
     ) where
 
 import Data.Text (Text)
@@ -78,13 +62,6 @@ import GHC.IO.Handle.Types (BufferList(..), BufferMode(..), Handle__(..),
                             HandleType(..), Newline(..))
 import System.IO (hGetBuffering, hFileSize, hSetBuffering, hTell)
 import System.IO.Error (isEOFError)
-import Prelude hiding (readFile, writeFile, appendFile, interact, getContents, getLine, putStr, putStrLn)
-import Control.Exception (evaluate)
-import Control.Monad ((<=<))
-import Data.ByteString (ByteString)
-import qualified Data.ByteString as B
-import Data.Text.Encoding (decodeUtf8, encodeUtf8)
-import qualified Data.ByteString.Char8 as B.Char8
 
 -- | The 'readFile' function reads a file and returns the contents of
 -- the file as a string.  The entire file is read strictly, as with
@@ -330,70 +307,3 @@ putStr = hPutStr stdout
 -- | Write a string to 'stdout', followed by a newline.
 putStrLn :: Text -> IO ()
 putStrLn = hPutStrLn stdout
-
--- | The 'readFile' function reads a file and returns the contents of
--- the file as a string.  The entire file is read strictly, as with
--- 'getContents'.
-readFileUtf8 :: FilePath -> IO Text
-readFileUtf8 = decodeUtf8IO <=< B.readFile
-
--- | Write a string to a file.  The file is truncated to zero length
--- before writing begins.
-writeFileUtf8 :: FilePath -> Text -> IO ()
-writeFileUtf8 fp = B.writeFile fp . encodeUtf8
-
--- | Write a string to the end of a file.
-appendFileUtf8 :: FilePath -> Text -> IO ()
-appendFileUtf8 fp = B.appendFile fp . encodeUtf8
-
--- | Read the remaining contents of a 'Handle' as a string.  The
--- 'Handle' is closed once the contents have been read, or if an
--- exception is thrown.
---
--- Internally, this function reads a chunk at a time from the
--- lower-level buffering abstraction, and concatenates the chunks into
--- a single string once the entire file has been read.
---
--- As a result, it requires approximately twice as much memory as its
--- result to construct its result.  For files more than a half of
--- available RAM in size, this may result in memory exhaustion.
-hGetContentsUtf8 :: Handle -> IO Text
-hGetContentsUtf8 = decodeUtf8IO <=< B.hGetContents
-
--- | Read a single line from a handle.
-hGetLineUtf8 :: Handle -> IO Text
-hGetLineUtf8 = decodeUtf8IO <=< B.hGetLine
-
--- | Write a string to a handle.
-hPutStrUtf8 :: Handle -> Text -> IO ()
-hPutStrUtf8 h = B.hPutStr h . encodeUtf8
-
--- | Write a string to a handle, followed by a newline.
-hPutStrLnUtf8 :: Handle -> Text -> IO ()
-hPutStrLnUtf8 h t = hPutStrUtf8 h t >> B.hPutStr h (B.Char8.singleton '\n')
-
--- | The 'interact' function takes a function of type @Text -> Text@
--- as its argument. The entire input from the standard input device is
--- passed to this function as its argument, and the resulting string
--- is output on the standard output device.
-interactUtf8 :: (Text -> Text) -> IO ()
-interactUtf8 f = putStrUtf8 . f =<< getContentsUtf8
-
--- | Read all user input on 'stdin' as a single string.
-getContentsUtf8 :: IO Text
-getContentsUtf8 = decodeUtf8IO =<< B.getContents
-
--- | Read a single line of user input from 'stdin'.
-getLineUtf8 :: IO Text
-getLineUtf8 = decodeUtf8IO =<< B.getLine
-
--- | Write a string to 'stdout'.
-putStrUtf8 :: Text -> IO ()
-putStrUtf8 = B.putStr . encodeUtf8
-
--- | Write a string to 'stdout', followed by a newline.
-putStrLnUtf8 :: Text -> IO ()
-putStrLnUtf8 t = B.putStr (encodeUtf8 t) >> B.putStr (B.Char8.singleton '\n')
-
-decodeUtf8IO :: ByteString -> IO Text
-decodeUtf8IO = evaluate . decodeUtf8
