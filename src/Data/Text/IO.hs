@@ -13,8 +13,11 @@
 -- The functions in this module obey the runtime system's locale,
 -- character set encoding, and line ending conversion settings.
 --
+-- If you want to do I\/O using the UTF-8 encoding, use @Data.Text.IO.Utf8@,
+-- which is faster than this module.
+--
 -- If you know in advance that you will be working with data that has
--- a specific encoding (e.g. UTF-8), and your application is highly
+-- a specific encoding, and your application is highly
 -- performance sensitive, you may find that it is faster to perform
 -- I\/O with bytestrings and to encode and decode yourself than to use
 -- the functions in this module.
