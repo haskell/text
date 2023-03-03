@@ -1,9 +1,6 @@
 -- |
 -- Module      : Data.Text.IO.Utf8
--- Copyright   : (c) 2009, 2010 Bryan O'Sullivan,
---               (c) 2009 Simon Marlow
 -- License     : BSD-style
--- Maintainer  : bos@serpentine.com
 -- Portability : GHC
 --
 -- Efficient UTF-8 support for text I\/O.
@@ -54,17 +51,7 @@ writeFile fp = B.writeFile fp . encodeUtf8
 appendFile :: FilePath -> Text -> IO ()
 appendFile fp = B.appendFile fp . encodeUtf8
 
--- | Read the remaining contents of a 'Handle' as a string.  The
--- 'Handle' is closed once the contents have been read, or if an
--- exception is thrown.
---
--- Internally, this function reads a chunk at a time from the
--- lower-level buffering abstraction, and concatenates the chunks into
--- a single string once the entire file has been read.
---
--- As a result, it requires approximately twice as much memory as its
--- result to construct its result.  For files more than a half of
--- available RAM in size, this may result in memory exhaustion.
+-- | Read the remaining contents of a 'Handle' as a string.
 hGetContents :: Handle -> IO Text
 hGetContents = decodeUtf8IO <=< B.hGetContents
 
