@@ -38,6 +38,7 @@ import Test.Tasty.Inspection (inspectObligations, hasNoTypes, doesNotUseAnyOf)
 import qualified Data.Text.Internal.Fusion as S
 import qualified Data.Text.Internal.Fusion.Common as S
 import qualified GHC.CString as GHC
+import qualified Data.Text.IO.Utf8 as TU
 #endif
 
 mulRef :: (Integral a, Bounded a) => a -> a -> Maybe a
@@ -107,6 +108,9 @@ t_write_read_line m b t = write_read (T.concat . take 1) T.filter T.hPutStrLn
 tl_write_read_line m b t = write_read (TL.concat . take 1) TL.filter TL.hPutStrLn
                              TL.hGetLine m b [t]
 
+utf8_write_read = write_read T.unlines T.filter TU.hPutStr TU.hGetContents
+utf8_write_read_line m b t = write_read (T.concat . take 1) T.filter TU.hPutStrLn
+                            TU.hGetLine m b [t]
 
 testLowLevel :: TestTree
 testLowLevel =
@@ -142,7 +146,9 @@ testLowLevel =
       testProperty "t_write_read" t_write_read,
       testProperty "tl_write_read" tl_write_read,
       testProperty "t_write_read_line" t_write_read_line,
-      testProperty "tl_write_read_line" tl_write_read_line
+      testProperty "tl_write_read_line" tl_write_read_line,
+      testProperty "utf8_write_read" utf8_write_read,
+      testProperty "utf8_write_read_line" utf8_write_read_line
       -- These tests are subject to I/O race conditions
       -- testProperty "t_put_get" t_put_get,
       -- testProperty "tl_put_get" tl_put_get
