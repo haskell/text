@@ -31,6 +31,7 @@ import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.IO as TL
+import qualified Data.Text.IO.Utf8 as TU
 import qualified System.IO as IO
 
 #ifdef MIN_VERSION_tasty_inspection_testing
@@ -38,7 +39,6 @@ import Test.Tasty.Inspection (inspectObligations, hasNoTypes, doesNotUseAnyOf)
 import qualified Data.Text.Internal.Fusion as S
 import qualified Data.Text.Internal.Fusion.Common as S
 import qualified GHC.CString as GHC
-import qualified Data.Text.IO.Utf8 as TU
 #endif
 
 mulRef :: (Integral a, Bounded a) => a -> a -> Maybe a
