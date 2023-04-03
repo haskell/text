@@ -28,7 +28,6 @@ module Data.Text.Internal.Validate
   ) where
 
 import Data.Array.Byte (ByteArray(ByteArray))
-import GHC.Exts (ByteArray#)
 import Data.ByteString (ByteString)
 import GHC.Exts (isTrue#,isByteArrayPinned#)
 
@@ -38,6 +37,7 @@ import Data.Text.Internal.ByteStringCompat (withBS)
 import Data.Text.Internal.Unsafe (unsafeWithForeignPtr)
 import Data.Text.Internal.Validate.Simd (c_is_valid_utf8_bytearray_safe,c_is_valid_utf8_bytearray_unsafe,c_is_valid_utf8_ptr_unsafe)
 #else
+import GHC.Exts (ByteArray#)
 import Data.Text.Internal.Encoding.Utf8 (CodePoint(..),DecoderResult(..),utf8DecodeStart,utf8DecodeContinue)
 import GHC.Exts (Int(I#),indexWord8Array#)
 import GHC.Word (Word8(W8#))

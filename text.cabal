@@ -73,7 +73,7 @@ flag developer
   manual: True
 
 flag simdutf
-  description: use simdutf library
+  description: use simdutf library, causes Data.Text.Internal.Validate.Simd to be exposed
   default: True
   manual: True
 
@@ -136,10 +136,6 @@ library
   -- https://gitlab.haskell.org/ghc/ghc/-/issues/22577
   if flag(simdutf) && os(netbsd) && impl(ghc < 9.4)
     build-depends: base < 0
-
-  -- Before GHC 9.4, Data.Array.Byte is not in base
-  if impl(ghc < 9.4)
-    build-depends: data-array-byte >= 0.1.0.1
 
   exposed-modules:
     Data.Text
