@@ -31,7 +31,8 @@ task:
     image: family/pg-ci-netbsd-vanilla-9-3
     platform: netbsd
   install_script:
-    - export PKG_PATH="http://cdn.NetBSD.org/pub/pkgsrc/packages/NetBSD/$(uname -p)/$(uname -r|cut -f '1 2' -d.)/All/"
+    - export PKG_PATH="http://cdn.NetBSD.org/pub/pkgsrc/packages/NetBSD/$(uname -p)/$(uname -r|cut -f '1 2' -d.)/All/;http://cdn.netbsd.org/pub/pkgsrc/packages/NetBSD/x86_64/9.0_2022Q3/All/"
+    - echo $PKG_PATH
     - pkg_add ghc cabal-install git libcxx libcxxabi
   script:
     - export CABAL_DIR=/tmp/.cabal
