@@ -2,8 +2,9 @@
 -- instances, and comparison functions, so we can focus on the actual properties
 -- in the 'Tests.Properties' module.
 --
-{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE FlexibleInstances #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
@@ -213,11 +214,13 @@ instance Arbitrary (Precision Double) where
     arbitrary = arbitraryPrecision 22
     shrink    = map Precision . shrink . precision undefined
 
+#if !MIN_VERSION_QuickCheck(2,14,3)
 instance Arbitrary IO.Newline where
     arbitrary = oneof [return IO.LF, return IO.CRLF]
 
 instance Arbitrary IO.NewlineMode where
     arbitrary = IO.NewlineMode <$> arbitrary <*> arbitrary
+#endif
 
 instance Arbitrary IO.BufferMode where
     arbitrary = oneof [ return IO.NoBuffering,
