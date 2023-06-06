@@ -105,6 +105,8 @@ library
         extra-libraries: c++ c++abi
     elif os(linux)
       extra-libraries: stdc++
+    elif os(haiku)
+      extra-libraries: stdc++
     else
       -- This is supposed to be under arch(wasm32), but we can't do that yet
       -- since cabal check would fail with unrecognized arch, see
