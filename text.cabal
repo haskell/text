@@ -192,7 +192,7 @@ library
     bytestring       >= 0.10.4 && < 0.13,
     deepseq          >= 1.1 && < 1.5,
     ghc-prim         >= 0.2 && < 0.11,
-    template-haskell >= 2.5 && < 2.21
+    template-haskell >= 2.5 && < 2.22
 
   if impl(ghc < 9.4)
     build-depends: data-array-byte >= 0.1 && < 0.2
