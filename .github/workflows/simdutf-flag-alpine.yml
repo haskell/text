@@ -25,14 +25,14 @@ jobs:
         shell: bash
       - name: Install GHC and cabal
         run: |
-          ghcup install ghc   --force -i /usr/local -u "https://downloads.haskell.org/ghc/9.4.1-alpha3/ghc-9.4.0.20220623-x86_64-alpine3_12-linux-static.tar.xz" 9.4.1
-          ghcup install cabal --force -i /usr/local/bin 3.6.2.0
+          ghcup install ghc   --force -i /usr/local
+          ghcup install cabal --force -i /usr/local/bin
         shell: bash
 
       - name: Update cabal package database
         run: cabal update
 
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Test
         run: |
           cat > THLinkTest.hs <<EOF
