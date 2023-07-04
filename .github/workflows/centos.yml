@@ -17,7 +17,7 @@ jobs:
       run: |
         yum install -y gcc gmp gmp-devel make ncurses ncurses-compat-libs ncurses-devel xz perl libstdc++-static
         curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | BOOTSTRAP_HASKELL_NONINTERACTIVE=1 sh
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     - name: Test
       run: |
         source ~/.ghcup/env
