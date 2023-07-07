@@ -38,7 +38,7 @@ module Data.Text.Internal.Encoding.Fusion
 import Control.Exception (assert)
 #endif
 import Data.Bits (shiftL, shiftR)
-import Data.ByteString.Internal (ByteString(..), mallocByteString, memcpy)
+import Data.ByteString.Internal (ByteString(..), mallocByteString)
 import Data.Text.Internal.Fusion (Step(..), Stream(..))
 import Data.Text.Internal.Fusion.Size
 import Data.Text.Encoding.Error
@@ -47,6 +47,7 @@ import Data.Text.Internal.Unsafe.Char (unsafeChr8, unsafeChr16, unsafeChr32)
 import Data.Text.Internal.Unsafe (unsafeWithForeignPtr)
 import Data.Word (Word8, Word16, Word32)
 import Foreign.ForeignPtr (ForeignPtr)
+import Foreign.Marshal.Utils (copyBytes)
 import Foreign.Storable (pokeByteOff)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Unsafe as B
@@ -197,7 +198,7 @@ unstream (Stream next s0 len) = unsafeDupablePerformIO $ do
           dest <- mallocByteString destLen
           unsafeWithForeignPtr src  $ \src'  ->
               unsafeWithForeignPtr dest $ \dest' ->
-                  memcpy dest' src' srcLen
+                  copyBytes dest' src' srcLen
           return dest
 
 decodeError :: forall s. String -> String -> OnDecodeError -> Maybe Word8
