@@ -29,7 +29,7 @@ import Prelude hiding (readFile, writeFile, appendFile, interact, getContents, g
 import Control.Exception (evaluate)
 import Control.Monad ((<=<))
 import Data.ByteString (ByteString)
-import qualified Data.ByteString as B
+import qualified Data.ByteString.Char8 as B
 import Data.Text (Text)
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import GHC.IO.Handle (Handle)

@@ -49,8 +49,9 @@ import qualified Data.Text.Internal.Encoding.Utf16 as U16
 import qualified Data.Text.Internal.Encoding.Utf32 as U32
 import Data.Text.Unsafe (unsafeDupablePerformIO)
 import Foreign.ForeignPtr (ForeignPtr)
+import Foreign.Marshal.Utils (copyBytes)
 import Foreign.Storable (pokeByteOff)
-import Data.ByteString.Internal (mallocByteString, memcpy)
+import Data.ByteString.Internal (mallocByteString)
 #if defined(ASSERTS)
 import Control.Exception (assert)
 #endif
@@ -308,7 +309,7 @@ unstreamChunks chunkSize (Stream next s0 len0) = chunk s0 (upperBound 4 len0)
                 dest <- mallocByteString destLen
                 unsafeWithForeignPtr src  $ \src'  ->
                     unsafeWithForeignPtr dest $ \dest' ->
-                        memcpy dest' src' srcLen
+                        copyBytes dest' src' srcLen
                 return dest
 
 -- | /O(n)/ Convert a 'Stream' 'Word8' to a lazy 'ByteString'.
