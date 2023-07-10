@@ -100,7 +100,7 @@ streamUtf8 onErr bs0 = Stream next (T bs0 S0 0) unknownSize
         S2 a b     -> next (T bs (S3 a b x)   (i+1))
         S3 a b c   -> next (T bs (S4 a b c x) (i+1))
         S4 a b c d -> decodeError "streamUtf8" "UTF-8" onErr (Just a)
-                           (T bs (S3 b c d)   (i+1))
+                           (T bs (S4 b c d x) (i+1))
         where x = B.unsafeIndex ps i
     consume (T Empty S0 _) = Done
     consume (T Empty _  i) = decodeError "streamUtf8" "UTF-8" onErr Nothing (T Empty S0 i)
@@ -140,7 +140,7 @@ streamUtf16LE onErr bs0 = Stream next (T bs0 S0 0) unknownSize
         S2 w1 w2       -> next (T bs (S3 w1 w2 x)    (i+1))
         S3 w1 w2 w3    -> next (T bs (S4 w1 w2 w3 x) (i+1))
         S4 w1 w2 w3 w4 -> decodeError "streamUtf16LE" "UTF-16LE" onErr (Just w1)
-                           (T bs (S3 w2 w3 w4)       (i+1))
+                           (T bs (S4 w2 w3 w4 x)     (i+1))
         where x = B.unsafeIndex ps i
     consume (T Empty S0 _) = Done
     consume (T Empty _  i) = decodeError "streamUtf16LE" "UTF-16LE" onErr Nothing (T Empty S0 i)
@@ -180,7 +180,7 @@ streamUtf16BE onErr bs0 = Stream next (T bs0 S0 0) unknownSize
         S2 w1 w2       -> next (T bs (S3 w1 w2 x)    (i+1))
         S3 w1 w2 w3    -> next (T bs (S4 w1 w2 w3 x) (i+1))
         S4 w1 w2 w3 w4 -> decodeError "streamUtf16BE" "UTF-16BE" onErr (Just w1)
-                           (T bs (S3 w2 w3 w4)       (i+1))
+                           (T bs (S4 w2 w3 w4 x)     (i+1))
         where x = B.unsafeIndex ps i
     consume (T Empty S0 _) = Done
     consume (T Empty _  i) = decodeError "streamUtf16BE" "UTF-16BE" onErr Nothing (T Empty S0 i)
@@ -224,7 +224,7 @@ streamUtf32BE onErr bs0 = Stream next (T bs0 S0 0) unknownSize
         S2 w1 w2       -> next (T bs (S3 w1 w2 x)    (i+1))
         S3 w1 w2 w3    -> next (T bs (S4 w1 w2 w3 x) (i+1))
         S4 w1 w2 w3 w4 -> decodeError "streamUtf32BE" "UTF-32BE" onErr (Just w1)
-                           (T bs (S3 w2 w3 w4)       (i+1))
+                           (T bs (S4 w2 w3 w4 x)     (i+1))
         where x = B.unsafeIndex ps i
     consume (T Empty S0 _) = Done
     consume (T Empty _  i) = decodeError "streamUtf32BE" "UTF-32BE" onErr Nothing (T Empty S0 i)
@@ -268,7 +268,7 @@ streamUtf32LE onErr bs0 = Stream next (T bs0 S0 0) unknownSize
         S2 w1 w2       -> next (T bs (S3 w1 w2 x)    (i+1))
         S3 w1 w2 w3    -> next (T bs (S4 w1 w2 w3 x) (i+1))
         S4 w1 w2 w3 w4 -> decodeError "streamUtf32LE" "UTF-32LE" onErr (Just w1)
-                           (T bs (S3 w2 w3 w4)       (i+1))
+                           (T bs (S4 w2 w3 w4 x)     (i+1))
         where x = B.unsafeIndex ps i
     consume (T Empty S0 _) = Done
     consume (T Empty _  i) = decodeError "streamUtf32LE" "UTF-32LE" onErr Nothing (T Empty S0 i)
