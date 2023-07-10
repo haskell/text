@@ -11,7 +11,7 @@ module Tests.Regressions
     ) where
 
 import Control.Exception (SomeException, handle)
-import Data.Char (isLetter)
+import Data.Char (isLetter, chr)
 import GHC.Exts (Int(..), sizeofByteArray#)
 import System.IO
 import Test.Tasty.HUnit (assertBool, assertEqual, assertFailure)
@@ -158,6 +158,14 @@ t525 = do
     LE.decodeUtf32BEWith E.lenientDecode "\0" @?= "\65533"
     LE.decodeUtf32LEWith E.lenientDecode "\0" @?= "\65533"
 
+t529 :: IO ()
+t529 = do
+  let decode = TE.decodeUtf8With E.lenientDecode
+  -- https://github.com/haskell/bytestring/issues/575
+  assertEqual "Data.ByteString.isValidUtf8 should work correctly"
+    (T.pack (chr 33 : replicate 31 (chr 0) ++ [chr 65533, chr 0]))
+    (decode (B.pack (33 : replicate 31 0 ++ [128, 0])))
+
 tests :: F.TestTree
 tests = F.testGroup "Regressions"
     [ F.testCase "hGetContents_crash" hGetContents_crash
@@ -173,4 +181,5 @@ tests = F.testGroup "Regressions"
     , F.testCase "t301" t301
     , F.testCase "t330" t330
     , F.testCase "t525" t525
+    , F.testCase "t529" t529
     ]
