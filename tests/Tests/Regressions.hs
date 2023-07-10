@@ -158,6 +158,16 @@ t525 = do
     LE.decodeUtf32BEWith E.lenientDecode "\0" @?= "\65533"
     LE.decodeUtf32LEWith E.lenientDecode "\0" @?= "\65533"
 
+-- Stream decoders skip one invalid byte at a time
+t528 :: IO ()
+t528 = do
+    let decodeUtf8With onErr bs = LF.unstream (E.streamUtf8 onErr bs)
+    decodeUtf8With E.lenientDecode "\xC0\xF0\x90\x80\x80" @?= "\65533\65536"
+    LE.decodeUtf16BEWith E.lenientDecode "\xD8\xD8\x00\xDC\x00" @?= "\65533\65536"
+    LE.decodeUtf16LEWith E.lenientDecode "\xD8\xD8\x00\xD8\x00\xDC" @?= "\65533\65533\65536"
+    LE.decodeUtf32BEWith E.lenientDecode "\xFF\x00\x00\x00\x00" @?= "\65533\0"
+    LE.decodeUtf32LEWith E.lenientDecode "\x00\x00\xFF\x00\x00" @?= "\65533\65280"
+
 t529 :: IO ()
 t529 = do
   let decode = TE.decodeUtf8With E.lenientDecode
@@ -181,5 +191,6 @@ tests = F.testGroup "Regressions"
     , F.testCase "t301" t301
     , F.testCase "t330" t330
     , F.testCase "t525" t525
+    , F.testCase "t528" t528
     , F.testCase "t529" t529
     ]
