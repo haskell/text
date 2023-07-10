@@ -103,7 +103,7 @@ streamUtf8 onErr bs0 = Stream next (T bs0 S0 0) unknownSize
                            (T bs (S3 b c d)   (i+1))
         where x = B.unsafeIndex ps i
     consume (T Empty S0 _) = Done
-    consume st             = decodeError "streamUtf8" "UTF-8" onErr Nothing st
+    consume (T Empty _  i) = decodeError "streamUtf8" "UTF-8" onErr Nothing (T Empty S0 i)
 {-# INLINE [0] streamUtf8 #-}
 
 -- | /O(n)/ Convert a 'ByteString' into a 'Stream Char', using little
@@ -143,7 +143,7 @@ streamUtf16LE onErr bs0 = Stream next (T bs0 S0 0) unknownSize
                            (T bs (S3 w2 w3 w4)       (i+1))
         where x = B.unsafeIndex ps i
     consume (T Empty S0 _) = Done
-    consume st             = decodeError "streamUtf16LE" "UTF-16LE" onErr Nothing st
+    consume (T Empty _  i) = decodeError "streamUtf16LE" "UTF-16LE" onErr Nothing (T Empty S0 i)
 {-# INLINE [0] streamUtf16LE #-}
 
 -- | /O(n)/ Convert a 'ByteString' into a 'Stream Char', using big
@@ -183,7 +183,7 @@ streamUtf16BE onErr bs0 = Stream next (T bs0 S0 0) unknownSize
                            (T bs (S3 w2 w3 w4)       (i+1))
         where x = B.unsafeIndex ps i
     consume (T Empty S0 _) = Done
-    consume st             = decodeError "streamUtf16BE" "UTF-16BE" onErr Nothing st
+    consume (T Empty _  i) = decodeError "streamUtf16BE" "UTF-16BE" onErr Nothing (T Empty S0 i)
 {-# INLINE [0] streamUtf16BE #-}
 
 -- | /O(n)/ Convert a 'ByteString' into a 'Stream Char', using big
@@ -227,7 +227,7 @@ streamUtf32BE onErr bs0 = Stream next (T bs0 S0 0) unknownSize
                            (T bs (S3 w2 w3 w4)       (i+1))
         where x = B.unsafeIndex ps i
     consume (T Empty S0 _) = Done
-    consume st             = decodeError "streamUtf32BE" "UTF-32BE" onErr Nothing st
+    consume (T Empty _  i) = decodeError "streamUtf32BE" "UTF-32BE" onErr Nothing (T Empty S0 i)
 {-# INLINE [0] streamUtf32BE #-}
 
 -- | /O(n)/ Convert a 'ByteString' into a 'Stream Char', using little
@@ -271,7 +271,7 @@ streamUtf32LE onErr bs0 = Stream next (T bs0 S0 0) unknownSize
                            (T bs (S3 w2 w3 w4)       (i+1))
         where x = B.unsafeIndex ps i
     consume (T Empty S0 _) = Done
-    consume st             = decodeError "streamUtf32LE" "UTF-32LE" onErr Nothing st
+    consume (T Empty _  i) = decodeError "streamUtf32LE" "UTF-32LE" onErr Nothing (T Empty S0 i)
 {-# INLINE [0] streamUtf32LE #-}
 
 -- | /O(n)/ Convert a 'Stream' 'Word8' to a lazy 'ByteString'.

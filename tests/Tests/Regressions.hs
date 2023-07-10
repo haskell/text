@@ -23,6 +23,8 @@ import qualified Data.Text.Array as TA
 import qualified Data.Text.Encoding as TE
 import qualified Data.Text.Encoding.Error as E
 import qualified Data.Text.Internal as T
+import qualified Data.Text.Internal.Lazy.Encoding.Fusion as E
+import qualified Data.Text.Internal.Lazy.Fusion as LF
 import qualified Data.Text.IO as T
 import qualified Data.Text.Lazy as LT
 import qualified Data.Text.Lazy.Builder as TB
@@ -30,6 +32,7 @@ import qualified Data.Text.Lazy.Encoding as LE
 import qualified Data.Text.Unsafe as T
 import qualified Test.Tasty as F
 import qualified Test.Tasty.HUnit as F
+import Test.Tasty.HUnit ((@?=))
 import System.Directory (removeFile)
 
 import Tests.Utils (withTempFile)
@@ -145,6 +148,16 @@ t330 = do
     (decodeL (LB.fromChunks [B.pack [194], B.pack [97, 98, 99]]))
     (decodeL (LB.fromChunks [B.pack [194, 97, 98, 99]]))
 
+-- Stream decoders should not loop on incomplete code points
+t525 :: IO ()
+t525 = do
+    let decodeUtf8With onErr bs = LF.unstream (E.streamUtf8 onErr bs)
+    decodeUtf8With E.lenientDecode "\xC0" @?= "\65533"
+    LE.decodeUtf16BEWith E.lenientDecode "\0" @?= "\65533"
+    LE.decodeUtf16LEWith E.lenientDecode "\0" @?= "\65533"
+    LE.decodeUtf32BEWith E.lenientDecode "\0" @?= "\65533"
+    LE.decodeUtf32LEWith E.lenientDecode "\0" @?= "\65533"
+
 tests :: F.TestTree
 tests = F.testGroup "Regressions"
     [ F.testCase "hGetContents_crash" hGetContents_crash
@@ -159,4 +172,5 @@ tests = F.testGroup "Regressions"
     , F.testCase "t280/singleton" t280_singleton
     , F.testCase "t301" t301
     , F.testCase "t330" t330
+    , F.testCase "t525" t525
     ]
