@@ -70,6 +70,9 @@ static inline const ssize_t measure_off_naive(const uint8_t *src, const uint8_t 
   while (src < srcend - 7){
     uint64_t w64;
     memcpy(&w64, src, sizeof(uint64_t));
+    // find leading bytes by finding every byte that is not a continuation
+    // byte. The bit twiddle only results in a 0 if the original byte starts
+    // with 0b11...
     w64 =  ((w64 << 1) | ~w64) & 0x8080808080808080ULL;
     // compute the popcount of w64 with two bit shifts and a multiplication
     size_t leads = (  (w64 >> 7)              // w64 >> 7           = Sum{0<= i <= 7} x_i * 256^i    (x_i \in {0,1})
