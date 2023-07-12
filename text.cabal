@@ -78,14 +78,35 @@ flag simdutf
   default: True
   manual: True
 
+flag pure-haskell
+  description: Don't use text's standard C routines
+    NB: This feature is not fully implemented. Several C routines are still in
+    use.
+
+    When this flag is true, text will use pure Haskell variants of the
+    routines. This is not recommended except for use with GHC's JavaScript
+    backend.
+
+    This flag also disables simdutf.
+
+  default: False
+  manual: True
+
 library
-  c-sources:    cbits/is_ascii.c
+  if arch(javascript) || flag(pure-haskell)
+    cpp-options: -DPURE_HASKELL
+    c-sources:  cbits/is_ascii.c
+                cbits/measure_off.c
+                cbits/utils.c
+  else
+    c-sources:  cbits/is_ascii.c
                 cbits/measure_off.c
                 cbits/reverse.c
                 cbits/utils.c
+
   hs-source-dirs: src
 
-  if flag(simdutf)
+  if flag(simdutf) && !(arch(javascript) || flag(pure-haskell))
     exposed-modules: Data.Text.Internal.Validate.Simd
     include-dirs: simdutf
     cxx-sources: simdutf/simdutf.cpp
@@ -184,6 +205,7 @@ library
 
   other-modules:
     Data.Text.Show
+    Data.Text.Internal.Reverse
 
   build-depends:
     array            >= 0.3 && < 0.6,

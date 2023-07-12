@@ -213,7 +213,7 @@ import Prelude (Char, Bool(..), Int, Maybe(..), String,
                 Eq, (==), (/=), Ord(..), Ordering(..), (++),
                 Monad(..), pure, Read(..),
                 (&&), (||), (+), (-), (.), ($), ($!), (>>),
-                not, return, otherwise, quot, IO)
+                not, return, otherwise, quot)
 import Control.DeepSeq (NFData(rnf))
 #if defined(ASSERTS)
 import Control.Exception (assert)
@@ -224,13 +224,13 @@ import Data.Data (Data(gfoldl, toConstr, gunfold, dataTypeOf), constrIndex,
                   Constr, mkConstr, DataType, mkDataType, Fixity(Prefix))
 import Control.Monad (foldM)
 import Control.Monad.ST (ST, runST)
-import Control.Monad.ST.Unsafe (unsafeIOToST)
 import qualified Data.Text.Array as A
 import qualified Data.List as L hiding (head, tail)
 import Data.Binary (Binary(get, put))
 import Data.Monoid (Monoid(..))
 import Data.Semigroup (Semigroup(..))
 import Data.String (IsString(..))
+import Data.Text.Internal.Reverse (reverse)
 import Data.Text.Internal.Encoding.Utf8 (utf8Length, utf8LengthByLeader, chr2, chr3, chr4, ord2, ord3, ord4)
 import qualified Data.Text.Internal.Fusion as S
 import Data.Text.Internal.Fusion.CaseMapping (foldMapping, lowerMapping, upperMapping)
@@ -745,29 +745,6 @@ intersperse c t@(Text src o l) = if l == 0 then mempty else runST $ do
     arr <- A.unsafeFreeze dst
     return (Text arr 0 (dstLen - cLen))
 {-# INLINE [1] intersperse #-}
-
--- | /O(n)/ Reverse the characters of a string.
---
--- Example:
---
--- >>> T.reverse "desrever"
--- "reversed"
-reverse ::
-#if defined(ASSERTS)
-  HasCallStack =>
-#endif
-  Text -> Text
-reverse (Text (A.ByteArray ba) off len) = runST $ do
-    marr@(A.MutableByteArray mba) <- A.new len
-    unsafeIOToST $ c_reverse mba ba (intToCSize off) (intToCSize len)
-    brr <- A.unsafeFreeze marr
-    return $ Text brr 0 len
-{-# INLINE reverse #-}
-
--- | The input buffer (src :: ByteArray#, off :: CSize, len :: CSize)
--- must specify a valid UTF-8 sequence, this condition is not checked.
-foreign import ccall unsafe "_hs_text_reverse" c_reverse
-    :: Exts.MutableByteArray# s -> ByteArray# -> CSize -> CSize -> IO ()
 
 -- | /O(m+n)/ Replace every non-overlapping occurrence of @needle@ in
 -- @haystack@ with @replacement@.
