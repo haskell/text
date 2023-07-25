@@ -146,6 +146,7 @@ module Data.Text
     , stripEnd
     , splitAt
     , breakOn
+    , breakOnChar
     , breakOnEnd
     , break
     , span
@@ -160,6 +161,7 @@ module Data.Text
     -- $split
     , splitOn
     , split
+    , splitOnChar
     , chunksOf
 
     -- ** Breaking into lines and words
@@ -207,6 +209,7 @@ module Data.Text
     , unpackCStringAscii#
 
     , measureOff
+    , codepointOffset
     ) where
 
 import Prelude (Char, Bool(..), Int, Maybe(..), String,
@@ -268,6 +271,7 @@ import System.IO.Unsafe (unsafePerformIO)
 -- $setup
 -- >>> :set -package transformers
 -- >>> import Control.Monad.Trans.State
+-- >>> import Data.Char (isUpper)
 -- >>> import Data.Text
 -- >>> import qualified Data.Text as T
 -- >>> :seti -XOverloadedStrings
@@ -1414,6 +1418,19 @@ measureOff !n (Text (A.ByteArray arr) off len) = if len == 0 then 0 else
 foreign import ccall unsafe "_hs_text_measure_off" c_measure_off
     :: ByteArray# -> CSize -> CSize -> CSize -> CSsize
 
+-- | /O(n)/ Finds the byte offset of the first occurrence of @c@ in the @Text@, or
+-- '-1' if if can't be found.
+codepointOffset :: Text -> Char -> Int
+codepointOffset !(Text (A.ByteArray arr) off len) c = if len == 0 then -1 else
+   cSsizeToInt $ unsafeDupablePerformIO $
+    c_hs_offset_of_codepoint arr (intToCSize off) (intToCSize len) (intToCSize $ ord c)
+
+-- | The input buffer (arr :: ByteArray#, off :: CSize, len :: CSize)
+-- must specify a valid UTF-8 sequence, and the character must be less
+-- than 0x10FFFF, these conditions are not checked.
+foreign import ccall unsafe "_hs_offset_of_codepoint" c_hs_offset_of_codepoint
+  ::ByteArray# -> CSize -> CSize -> CSize -> IO CSsize
+
 -- | /O(n)/ 'takeEnd' @n@ @t@ returns the suffix remaining after
 -- taking @n@ characters from the end of @t@.
 --
@@ -1702,7 +1719,7 @@ splitOn :: HasCallStack
         -> [Text]
 splitOn pat@(Text _ _ l) src@(Text arr off len)
     | l <= 0          = emptyError "splitOn"
-    | isSingleton pat = split (== unsafeHead pat) src
+    | isSingleton pat = splitOnChar (unsafeHead pat) src
     | otherwise       = go 0 (indices pat src)
   where
     go !s (x:xs) =  text arr (s+off) (x-s) : go (x+l) xs
@@ -1710,19 +1727,22 @@ splitOn pat@(Text _ _ l) src@(Text arr off len)
 {-# INLINE [1] splitOn #-}
 
 {-# RULES
-"TEXT splitOn/singleton -> split/==" [~1] forall c t.
-    splitOn (singleton c) t = split (==c) t
+"TEXT splitOn/singleton -> splitOnChar" [~1] forall c t.
+    splitOn (singleton c) t = splitOnChar c t
   #-}
+
 
 -- | /O(n)/ Splits a 'Text' into components delimited by separators,
 -- where the predicate returns True for a separator element.  The
 -- resulting components do not contain the separators.  Two adjacent
--- separators result in an empty component in the output.  eg.
+-- separators result in an empty component in the output.  To split
+-- on a specific character, use @splitOnChar@.
+-- eg.
 --
--- >>> split (=='a') "aabbaca"
--- ["","","bb","c",""]
+-- >>> split isUpper "theQuickBrownFox"
+-- ["the","uick","rown","ox"]
 --
--- >>> split (=='a') ""
+-- >>> split isUpper ""
 -- [""]
 split :: (Char -> Bool) -> Text -> [Text]
 split _ t@(Text _off _arr 0) = [t]
@@ -1731,6 +1751,32 @@ split p t = loop t
                  | otherwise = l : loop (unsafeTail s')
               where (# l, s' #) = span_ (not . p) s
 {-# INLINE split #-}
+
+
+{- TODO Fix:
+Rule "TEXT split/eq1 -> splitOnChar/==" may never fire
+  because rule "Class op ==" for ‘==’ might fire first
+Probable fix: add phase [n] or [~n] to the competing rulecompile(-Winline-rule-shadowing)
+-}
+{-# RULES
+"TEXT split/eq1 -> splitOnChar/==" [~2] forall c t.
+    split (== c) t = splitOnChar c t
+"TEXT split/eq1 -> splitOnChar/==" [~2] forall c t.
+    split (c ==) t = splitOnChar c t
+  #-}
+
+
+-- | /O(n)/ Splits a 'Text' into components delimited by the given @Char@.
+-- The behaviour is the same as @split@ but should be faster than @split (== c)@
+--
+-- >>> split (=='a') "aabbaca"
+-- ["","","bb","c",""]
+splitOnChar :: Char -> Text -> [Text]
+splitOnChar _ t@(Text _off _arr 0) = [t]
+splitOnChar c t = loop t
+      where loop s | null s'   = [l]
+                 | otherwise = l : loop (unsafeTail s')
+              where ( l, s' ) = breakOnChar c s
 
 -- | /O(n)/ Splits a 'Text' into components of length @k@.  The last
 -- element may be shorter than the other chunks, depending on the
@@ -1855,6 +1901,8 @@ filter p = go
 -- is the prefix of @haystack@ before @needle@ is matched.  The second
 -- is the remainder of @haystack@, starting with the match.
 --
+-- To break on a specific character, use @breakOnChar@
+--
 -- Examples:
 --
 -- >>> breakOn "::" "a::b::c"
@@ -1881,6 +1929,19 @@ breakOn pat src@(Text arr off len)
                     []    -> (src, empty)
                     (x:_) -> (text arr off x, text arr (off+x) (len-x))
 {-# INLINE breakOn #-}
+
+-- | /O(n)/ Equivalent to @breakOn (== c)@ but should be faster.
+--
+-- >>> breakOnChar '/' "foo/bar/"
+-- ("foo","/bar/")
+--
+-- >>> breakOnChar '/' "foobar"
+-- ("foobar","")
+breakOnChar :: Char -> Text -> (Text, Text)
+breakOnChar c src@(Text arr off len) = case codepointOffset src c of
+  -1 -> (src, empty)
+  n  -> (text arr off n, text arr (off+n) (len-n) )
+
 
 -- | /O(n+m)/ Similar to 'breakOn', but searches from the end of the
 -- string.
