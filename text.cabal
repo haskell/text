@@ -251,6 +251,7 @@ test-suite tests
     Tests.Properties.Text
     Tests.Properties.Transcoding
     Tests.QuickCheckUtils
+    Tests.RebindableSyntaxTest
     Tests.Regressions
     Tests.SlowFunctions
     Tests.Utils

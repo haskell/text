@@ -418,8 +418,10 @@ instance TH.Lift Text where
 #if MIN_VERSION_template_haskell(2,16,0)
   lift txt = do
     let (ptr, len) = unsafePerformIO $ asForeignPtr txt
-    let lenInt = P.fromIntegral len
-    TH.appE (TH.appE (TH.varE 'unpackCStringLen#) (TH.litE . TH.bytesPrimL $ TH.mkBytes ptr 0 lenInt)) (TH.lift lenInt)
+        bytesQ = TH.litE . TH.bytesPrimL $ TH.mkBytes ptr 0 (P.fromIntegral len)
+        lenQ = liftInt (P.fromIntegral len)
+        liftInt n = (TH.appE (TH.conE 'Exts.I#) (TH.litE (TH.IntPrimL n)))
+    TH.varE 'unpackCStringLen# `TH.appE` bytesQ `TH.appE` lenQ
 #else
   lift = TH.appE (TH.varE 'pack) . TH.stringE . unpack
 #endif
