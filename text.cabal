@@ -205,8 +205,9 @@ library
 
   other-modules:
     Data.Text.Show
-    Data.Text.Internal.Reverse
     Data.Text.Internal.Measure
+    Data.Text.Internal.Reverse
+    Data.Text.Internal.Transformation
 
   build-depends:
     array            >= 0.3 && < 0.6,
@@ -277,6 +278,7 @@ test-suite tests
     Tests.RebindableSyntaxTest
     Tests.Regressions
     Tests.SlowFunctions
+    Tests.ShareEmpty
     Tests.Utils
 
   build-depends:

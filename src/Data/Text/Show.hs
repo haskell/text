@@ -24,7 +24,7 @@ module Data.Text.Show
     ) where
 
 import Control.Monad.ST (ST, runST)
-import Data.Text.Internal (Text(..), empty_, safe, pack)
+import Data.Text.Internal (Text(..), empty, safe, pack)
 import Data.Text.Internal.Encoding.Utf8 (utf8Length)
 import Data.Text.Internal.Fusion (stream)
 import Data.Text.Internal.Unsafe.Char (unsafeWrite)
@@ -123,7 +123,7 @@ foreign import capi unsafe "string.h strlen" c_strlen :: CString -> CSize
     pack (GHC.unpackCStringUtf8# a) = unpackCString# a #-}
 
 {-# RULES "TEXT empty literal"
-    pack [] = empty_ #-}
+    pack [] = empty #-}
 
 {-# RULES "TEXT singleton literal" forall a.
     pack [a] = singleton a #-}
