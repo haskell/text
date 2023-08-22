@@ -233,6 +233,8 @@ import Data.Text.Internal.Lazy.Fusion (stream, unstream)
 import Data.Text.Internal.Lazy (Text(..), chunk, empty, foldlChunks,
                                 foldrChunks, smallChunkSize, defaultChunkSize, equal, LazyText)
 import Data.Text.Internal (firstf, safe, text)
+import Data.Text.Internal.Reverse (reverseNonEmpty)
+import Data.Text.Internal.Transformation (mapNonEmpty, toCaseFoldNonEmpty, toLowerNonEmpty, toUpperNonEmpty, filter_)
 import Data.Text.Lazy.Encoding (decodeUtf8', encodeUtf8)
 import Data.Text.Internal.Lazy.Search (indices)
 import qualified GHC.CString as GHC
@@ -578,7 +580,7 @@ compareLength t c = S.compareLengthI (stream t) c
 -- each element of @t@. Performs replacement on
 -- invalid scalar values.
 map :: (Char -> Char) -> Text -> Text
-map f = foldrChunks (Chunk . T.map f) Empty
+map f = foldrChunks (Chunk . mapNonEmpty f) Empty
 {-# INLINE [1] map #-}
 
 {-# RULES
@@ -664,7 +666,7 @@ reverse ::
   Text -> Text
 reverse = rev Empty
   where rev a Empty        = a
-        rev a (Chunk t ts) = rev (Chunk (T.reverse t) a) ts
+        rev a (Chunk t ts) = rev (Chunk (reverseNonEmpty t) a) ts
 
 -- | /O(m+n)/ Replace every non-overlapping occurrence of @needle@ in
 -- @haystack@ with @replacement@.
@@ -729,7 +731,7 @@ replace s d = intercalate d . splitOn s
 -- case folded to the Greek small letter letter mu (U+03BC) instead of
 -- itself.
 toCaseFold :: Text -> Text
-toCaseFold = foldrChunks (\chnk acc -> Chunk (T.toCaseFold chnk) acc) Empty
+toCaseFold = foldrChunks (\chnk acc -> Chunk (toCaseFoldNonEmpty chnk) acc) Empty
 {-# INLINE toCaseFold #-}
 
 -- | /O(n)/ Convert a string to lower case, using simple case
@@ -740,7 +742,7 @@ toCaseFold = foldrChunks (\chnk acc -> Chunk (T.toCaseFold chnk) acc) Empty
 -- to the sequence Latin small letter i (U+0069) followed by combining
 -- dot above (U+0307).
 toLower :: Text -> Text
-toLower = foldrChunks (\chnk acc -> Chunk (T.toLower chnk) acc) Empty
+toLower = foldrChunks (\chnk acc -> Chunk (toLowerNonEmpty chnk) acc) Empty
 {-# INLINE toLower #-}
 
 -- | /O(n)/ Convert a string to upper case, using simple case
@@ -750,7 +752,7 @@ toLower = foldrChunks (\chnk acc -> Chunk (T.toLower chnk) acc) Empty
 -- instance, the German eszett (U+00DF) maps to the two-letter
 -- sequence SS.
 toUpper :: Text -> Text
-toUpper = foldrChunks (\chnk acc -> Chunk (T.toUpper chnk) acc) Empty
+toUpper = foldrChunks (\chnk acc -> Chunk (toUpperNonEmpty chnk) acc) Empty
 {-# INLINE toUpper #-}
 
 
@@ -1683,7 +1685,7 @@ stripSuffix p t = reverse `fmap` stripPrefix (reverse p) (reverse t)
 -- returns a 'Text' containing those characters that satisfy the
 -- predicate.
 filter :: (Char -> Bool) -> Text -> Text
-filter p = foldrChunks (chunk . T.filter p) Empty
+filter p = foldrChunks (chunk . filter_ T.Text p) Empty
 {-# INLINE [1] filter #-}
 
 {-# RULES

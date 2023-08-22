@@ -37,7 +37,6 @@ module Data.Text.Internal
     , safe
     -- * Code that must be here for accessibility
     , empty
-    , empty_
     , append
     -- * Utilities
     , firstf
@@ -94,12 +93,7 @@ text_ arr off len =
 -- | /O(1)/ The empty 'Text'.
 empty :: Text
 empty = Text A.empty 0 0
-{-# INLINE [1] empty #-}
-
--- | A non-inlined version of 'empty'.
-empty_ :: Text
-empty_ = Text A.empty 0 0
-{-# NOINLINE empty_ #-}
+{-# NOINLINE empty #-}
 
 -- | /O(n)/ Appends one 'Text' to the other by copying both of them
 -- into a new 'Text'.
@@ -121,6 +115,7 @@ append a@(Text arr1 off1 len1) b@(Text arr2 off2 len2)
 
 -- | Construct a 'Text' without invisibly pinning its byte array in
 -- memory if its length has dwindled to zero.
+-- It ensures that empty 'Text' values are shared.
 text ::
 #if defined(ASSERTS)
   HasCallStack =>
@@ -131,7 +126,7 @@ text ::
   -> Text
 text arr off len | len == 0  = empty
                  | otherwise = text_ arr off len
-{-# INLINE text #-}
+{-# INLINE [0] text #-}
 
 textP :: A.Array -> Int -> Int -> Text
 {-# DEPRECATED textP "Use text instead" #-}
@@ -251,6 +246,7 @@ int64ToInt32 = fromIntegral
 -- >>> Data.Text.unpack (pack "\55555")
 -- "\65533"
 pack :: String -> Text
+pack [] = empty
 pack xs = runST $ do
   -- It's tempting to allocate a buffer of 4 * length xs bytes,
   -- but not only it's wasteful for predominantly ASCII arguments,

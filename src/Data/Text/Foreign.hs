@@ -71,6 +71,7 @@ newtype I8 = I8 Int
 fromPtr :: Ptr Word8           -- ^ source array
         -> I8                  -- ^ length of source array (in 'Word8' units)
         -> IO Text
+fromPtr _   (I8 0)   = pure empty
 fromPtr ptr (I8 len) = unsafeSTToIO $ do
   dst <- A.new len
   A.copyFromPointer dst 0 ptr len

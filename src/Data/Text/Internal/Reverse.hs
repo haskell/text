@@ -9,7 +9,7 @@
 {-# OPTIONS_HADDOCK not-home #-}
 
 -- | Implements 'reverse', using efficient C routines by default.
-module Data.Text.Internal.Reverse (reverse) where
+module Data.Text.Internal.Reverse (reverse, reverseNonEmpty) where
 
 #if !defined(PURE_HASKELL)
 import GHC.Exts as Exts
@@ -23,7 +23,7 @@ import Data.Text.Internal.Encoding.Utf8 (utf8LengthByLeader)
 import GHC.Stack (HasCallStack)
 #endif
 import Prelude hiding (reverse)
-import Data.Text.Internal (Text(..))
+import Data.Text.Internal (Text(..), empty)
 import Control.Monad.ST (runST)
 import qualified Data.Text.Array as A
 
@@ -39,8 +39,16 @@ reverse ::
   HasCallStack =>
 #endif
   Text -> Text
+reverse (Text _ _ 0) = empty
+reverse t            = reverseNonEmpty t
+{-# INLINE reverse #-}
+
+-- | /O(n)/ Reverse the characters of a string.
+-- Assume that the @Text@ is non-empty. The returned @Text@ is guaranteed to be non-empty.
+reverseNonEmpty ::
+  Text -> Text
 #if defined(PURE_HASKELL)
-reverse (Text src off len) = runST $ do
+reverseNonEmtpy (Text src off len) = runST $ do
     dest <- A.new len
     _ <- reversePoints src off dest len
     result <- A.unsafeFreeze dest
@@ -80,13 +88,13 @@ reversePoints src xx dest yy = go xx yy where
             A.copyI pLen dest yNext src x
             go (x + pLen) yNext
 #else
-reverse (Text (A.ByteArray ba) off len) = runST $ do
+reverseNonEmpty (Text (A.ByteArray ba) off len) = runST $ do
     marr@(A.MutableByteArray mba) <- A.new len
     unsafeIOToST $ c_reverse mba ba (fromIntegral off) (fromIntegral len)
     brr <- A.unsafeFreeze marr
     return $ Text brr 0 len
 #endif
-{-# INLINE reverse #-}
+{-# INLINE reverseNonEmpty #-}
 
 #if !defined(PURE_HASKELL)
 -- | The input buffer (src :: ByteArray#, off :: CSize, len :: CSize)
