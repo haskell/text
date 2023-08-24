@@ -1,3 +1,17 @@
+### 2.1
+
+* [Switch `Data.Text.Array` to `Data.Array.Byte`](https://github.com/haskell/text/pull/474)
+
+* [Add `Text.IO.Utf8` module](https://github.com/haskell/text/pull/503)
+
+* [Expose UTF-8 validation functions from internal module](https://github.com/haskell/text/pull/483)
+
+* [Fix handling of incomplete input in stream decoders](https://github.com/haskell/text/pull/527)
+
+* [Fix handling of invalid bytes in stream decoders](https://github.com/haskell/text/pull/528)
+
+* [Make Lift Text work under RebindableSyntax](https://github.com/haskell/text/pull/534)
+
 ### 2.0.2
 
 * [Add decoding functions in `Data.Text.Encoding` that allow
