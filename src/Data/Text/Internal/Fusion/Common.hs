@@ -77,6 +77,7 @@ module Data.Text.Internal.Fusion.Common
     , foldl1'
     , foldr
     , foldr1
+    , foldlM
 
     -- ** Special folds
     , concat
@@ -688,6 +689,20 @@ foldl1' f (Stream next s0 _len) = loop0_foldl1' s0
                              Skip s' -> loop_foldl1' z s'
                              Yield x s' -> loop_foldl1' (f z x) s'
 {-# INLINE [0] foldl1' #-}
+
+-- | A monadic version of foldl.
+--
+-- __Properties__
+--
+-- @ 'foldlM' f z0 . 'Data.Text.Internal.Fusion.stream' = 'Data.Text.foldlM' f z0 @
+foldlM :: P.Monad m => (b -> Char -> m b) -> b -> Stream Char -> m b
+foldlM f z0 (Stream next s0 _len) = loop_foldlM z0 s0
+    where
+      loop_foldlM !z !s = case next s of
+                            Done -> P.pure z
+                            Skip s' -> loop_foldlM z s'
+                            Yield x s' -> f z x P.>>= \z' -> loop_foldlM z' s'
+{-# INLINE [0] foldlM #-}
 
 -- | 'foldr', applied to a binary operator, a starting value (typically the
 -- right-identity of the operator), and a stream, reduces the stream using the
