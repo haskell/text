@@ -103,6 +103,7 @@ module Data.Text
     , foldr
     , foldr'
     , foldr1
+    , foldlM
 
     -- ** Special folds
     , concat
@@ -993,6 +994,11 @@ foldl1 f t = S.foldl1 f (stream t)
 foldl1' :: HasCallStack => (Char -> Char -> Char) -> Text -> Char
 foldl1' f t = S.foldl1' f (stream t)
 {-# INLINE foldl1' #-}
+
+-- | /O(n)/ A monadic version of 'foldl'.
+foldlM :: Monad m => (a -> Char -> m a) -> a -> Text -> m a
+foldlM f z t = S.foldlM f z (stream t)
+{-# INLINE foldlM #-}
 
 -- | /O(n)/ 'foldr', applied to a binary operator, a starting value
 -- (typically the right-identity of the operator), and a 'Text',
