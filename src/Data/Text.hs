@@ -231,6 +231,7 @@ import Data.Binary (Binary(get, put))
 import Data.Monoid (Monoid(..))
 import Data.Semigroup (Semigroup(..))
 import Data.String (IsString(..))
+import Data.Text.Internal.IsAscii (isAscii)
 import Data.Text.Internal.Reverse (reverse)
 import Data.Text.Internal.Measure (measure_off)
 import Data.Text.Internal.Encoding.Utf8 (utf8Length, utf8LengthByLeader, chr3, ord2, ord3, ord4)
@@ -1074,35 +1075,6 @@ maximum t = S.maximum (stream t)
 minimum :: HasCallStack => Text -> Char
 minimum t = S.minimum (stream t)
 {-# INLINE minimum #-}
-
--- | \O(n)\ Test whether 'Text' contains only ASCII code-points (i.e. only
---   U+0000 through U+007F).
---
--- This is a more efficient version of @'all' 'Data.Char.isAscii'@.
---
--- >>> isAscii ""
--- True
---
--- >>> isAscii "abc\NUL"
--- True
---
--- >>> isAscii "abcd€"
--- False
---
--- prop> isAscii t == all (< '\x80') t
---
--- @since 2.0.2
-isAscii :: Text -> Bool
-isAscii (Text (A.ByteArray arr) off len) =
-    cSizeToInt (c_is_ascii_offset arr (intToCSize off) (intToCSize len)) == len
-{-# INLINE isAscii #-}
-
-cSizeToInt :: CSize -> Int
-cSizeToInt = P.fromIntegral
-{-# INLINE cSizeToInt #-}
-
-foreign import ccall unsafe "_hs_text_is_ascii_offset" c_is_ascii_offset
-    :: ByteArray# -> CSize -> CSize -> CSize
 
 -- -----------------------------------------------------------------------------
 -- * Building 'Text's

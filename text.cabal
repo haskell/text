@@ -209,6 +209,7 @@ library
     Data.Text.Internal.Measure
     Data.Text.Internal.Reverse
     Data.Text.Internal.Transformation
+    Data.Text.Internal.IsAscii
 
   build-depends:
     array            >= 0.3 && < 0.6,
