@@ -96,8 +96,7 @@ flag pure-haskell
 library
   if arch(javascript) || flag(pure-haskell)
     cpp-options: -DPURE_HASKELL
-    c-sources:  cbits/is_ascii.c
-                cbits/utils.c
+    c-sources:  cbits/utils.c
   else
     c-sources:  cbits/is_ascii.c
                 cbits/measure_off.c

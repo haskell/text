@@ -85,21 +85,30 @@ module Data.Text.Encoding
     ) where
 
 import Control.Exception (evaluate, try)
-import Control.Monad.ST (runST)
-import Control.Monad.ST.Unsafe (unsafeIOToST, unsafeSTToIO)
-import Data.Bits (shiftR, (.&.))
 import Data.Word (Word8)
-import Foreign.C.Types (CSize(..))
-import Foreign.Ptr (Ptr, minusPtr, plusPtr)
-import Foreign.Storable (poke, peekByteOff)
 import GHC.Exts (byteArrayContents#, unsafeCoerce#)
 import GHC.ForeignPtr (ForeignPtr(..), ForeignPtrContents(PlainPtr))
 import Data.ByteString (ByteString)
+#if defined(PURE_HASKELL)
+import Control.Monad.ST.Unsafe (unsafeSTToIO)
+import Data.ByteString.Char8 (unpack)
+import Data.Text.Internal (pack)
+import Foreign.Ptr (minusPtr, plusPtr)
+import Foreign.Storable (poke)
+#else
+import Control.Monad.ST (runST)
+import Control.Monad.ST.Unsafe (unsafeIOToST, unsafeSTToIO)
+import Data.Bits (shiftR, (.&.))
+import Data.Text.Internal.ByteStringCompat (withBS)
+import Data.Text.Internal.Unsafe (unsafeWithForeignPtr)
+import Foreign.C.Types (CSize(..))
+import Foreign.Ptr (Ptr, minusPtr, plusPtr)
+import Foreign.Storable (poke, peekByteOff)
+#endif
 import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode, lenientDecode)
 import Data.Text.Internal (Text(..), empty)
-import Data.Text.Internal.ByteStringCompat (withBS)
 import Data.Text.Internal.Encoding
-import Data.Text.Internal.Unsafe (unsafeWithForeignPtr)
+import Data.Text.Internal.IsAscii (asciiPrefixLength)
 import Data.Text.Unsafe (unsafeDupablePerformIO)
 import Data.Text.Show ()
 import qualified Data.ByteString as B
@@ -172,12 +181,6 @@ decodeASCIIPrefix bs = if B.null bs
     (prefix, suffix)
 {-# INLINE decodeASCIIPrefix #-}
 
--- | Length of the longest ASCII prefix.
-asciiPrefixLength :: ByteString -> Int
-asciiPrefixLength bs = unsafeDupablePerformIO $ withBS bs $ \ fp len ->
-  unsafeWithForeignPtr fp $ \src -> do
-    fromIntegral <$> c_is_ascii src (src `plusPtr` len)
-
 -- | Decode a 'ByteString' containing 7-bit ASCII encoded text.
 --
 -- This is a total function which returns either the 'ByteString' converted to a
@@ -219,6 +222,9 @@ decodeLatin1 ::
   HasCallStack =>
 #endif
   ByteString -> Text
+#if defined(PURE_HASKELL)
+decodeLatin1 bs = pack (Data.ByteString.Char8.unpack bs)
+#else
 decodeLatin1 bs = withBS bs $ \fp len -> runST $ do
   dst <- A.new (2 * len)
   let inner srcOff dstOff = if srcOff >= len then return dstOff else do
@@ -238,9 +244,12 @@ decodeLatin1 bs = withBS bs $ \fp len -> runST $ do
   dst' <- A.resizeM dst actualLen
   arr <- A.unsafeFreeze dst'
   return $ Text arr 0 actualLen
+#endif
 
+#if !defined(PURE_HASKELL)
 foreign import ccall unsafe "_hs_text_is_ascii" c_is_ascii
     :: Ptr Word8 -> Ptr Word8 -> IO CSize
+#endif
 
 -- $stream
 --
