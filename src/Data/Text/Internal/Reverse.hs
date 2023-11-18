@@ -8,8 +8,6 @@
 
 {-# OPTIONS_HADDOCK not-home #-}
 
-{-# OPTIONS_GHC -ddump-to-file -ddump-simpl -dsuppress-all -dno-suppress-type-signatures #-}
-
 -- | Implements 'reverse', using efficient C routines by default.
 module Data.Text.Internal.Reverse (reverse) where
 
