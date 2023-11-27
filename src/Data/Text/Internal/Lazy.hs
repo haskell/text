@@ -21,6 +21,7 @@
 module Data.Text.Internal.Lazy
     (
       Text(..)
+    , LazyText
     , chunk
     , empty
     , foldrChunks
@@ -50,6 +51,9 @@ import qualified Data.Text.Internal as T
 data Text = Empty
           | Chunk {-# UNPACK #-} !T.Text Text
             deriving (Typeable)
+
+-- | Type synonym for the lazy flavour of 'Text'.
+type LazyText = Text
 
 -- $invariant
 --

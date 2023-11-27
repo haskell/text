@@ -46,6 +46,7 @@ module Data.Text.Lazy
 
     -- * Types
       Text
+    , LazyText
 
     -- * Creation and elimination
     , pack
@@ -230,7 +231,7 @@ import qualified Data.Text.Internal.Lazy.Fusion as S
 import Data.Text.Internal.Fusion.Types (PairS(..))
 import Data.Text.Internal.Lazy.Fusion (stream, unstream)
 import Data.Text.Internal.Lazy (Text(..), chunk, empty, foldlChunks,
-                                foldrChunks, smallChunkSize, defaultChunkSize, equal)
+                                foldrChunks, smallChunkSize, defaultChunkSize, equal, LazyText)
 import Data.Text.Internal (firstf, safe, text)
 import Data.Text.Lazy.Encoding (decodeUtf8', encodeUtf8)
 import Data.Text.Internal.Lazy.Search (indices)

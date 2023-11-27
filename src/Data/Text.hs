@@ -53,6 +53,7 @@ module Data.Text
 
     -- * Types
       Text
+    , StrictText
 
     -- * Creation and elimination
     , pack
@@ -238,7 +239,7 @@ import qualified Data.Text.Internal.Fusion.Common as S
 import Data.Text.Encoding (decodeUtf8', encodeUtf8)
 import Data.Text.Internal.Fusion (stream, reverseStream, unstream)
 import Data.Text.Internal.Private (span_)
-import Data.Text.Internal (Text(..), empty, firstf, mul, safe, text, append, pack)
+import Data.Text.Internal (Text(..), StrictText, empty, firstf, mul, safe, text, append, pack)
 import Data.Text.Internal.Unsafe.Char (unsafeWrite, unsafeChr8)
 import Data.Text.Show (singleton, unpack, unpackCString#, unpackCStringAscii#)
 import qualified Prelude as P
