@@ -29,6 +29,7 @@ module Data.Text.Internal
     -- * Types
     -- $internals
       Text(..)
+    , StrictText
     -- * Construction
     , text
     , textP
@@ -67,6 +68,9 @@ data Text = Text
     {-# UNPACK #-} !Int     -- ^ offset in bytes (not in Char!), pointing to a start of UTF-8 sequence
     {-# UNPACK #-} !Int     -- ^ length in bytes (not in Char!), pointing to an end of UTF-8 sequence
     deriving (Typeable)
+
+-- | Type synonym for the strict flavour of 'Text'.
+type StrictText = Text
 
 -- | Smart constructor.
 text_ ::
