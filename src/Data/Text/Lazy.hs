@@ -442,12 +442,12 @@ toChunks :: Text -> [T.Text]
 toChunks cs = foldrChunks (:) [] cs
 
 -- | /O(n)/ Convert a lazy 'Text' into a strict 'T.Text'.
-toStrict :: Text -> T.Text
+toStrict :: LazyText -> T.StrictText
 toStrict t = T.concat (toChunks t)
 {-# INLINE [1] toStrict #-}
 
 -- | /O(c)/ Convert a strict 'T.Text' into a lazy 'Text'.
-fromStrict :: T.Text -> Text
+fromStrict :: T.StrictText -> LazyText
 fromStrict t = chunk t Empty
 {-# INLINE [1] fromStrict #-}
 
