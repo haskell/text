@@ -232,6 +232,7 @@ import Data.Monoid (Monoid(..))
 import Data.Semigroup (Semigroup(..))
 import Data.String (IsString(..))
 import Data.Text.Internal.Reverse (reverse)
+import Data.Text.Internal.Measure (measure_off)
 import Data.Text.Internal.Encoding.Utf8 (utf8Length, utf8LengthByLeader, chr2, chr3, chr4, ord2, ord3, ord4)
 import qualified Data.Text.Internal.Fusion as S
 import Data.Text.Internal.Fusion.CaseMapping (foldMapping, lowerMapping, upperMapping)
@@ -1387,12 +1388,7 @@ take n t@(Text arr off len)
 measureOff :: Int -> Text -> Int
 measureOff !n (Text (A.ByteArray arr) off len) = if len == 0 then 0 else
   cSsizeToInt $
-    c_measure_off arr (intToCSize off) (intToCSize len) (intToCSize n)
-
--- | The input buffer (arr :: ByteArray#, off :: CSize, len :: CSize)
--- must specify a valid UTF-8 sequence, this condition is not checked.
-foreign import ccall unsafe "_hs_text_measure_off" c_measure_off
-    :: ByteArray# -> CSize -> CSize -> CSize -> CSsize
+    measure_off arr (intToCSize off) (intToCSize len) (intToCSize n)
 
 -- | /O(n)/ 'takeEnd' @n@ @t@ returns the suffix remaining after
 -- taking @n@ characters from the end of @t@.

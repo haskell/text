@@ -97,7 +97,6 @@ library
   if arch(javascript) || flag(pure-haskell)
     cpp-options: -DPURE_HASKELL
     c-sources:  cbits/is_ascii.c
-                cbits/measure_off.c
                 cbits/utils.c
   else
     c-sources:  cbits/is_ascii.c
@@ -207,6 +206,7 @@ library
   other-modules:
     Data.Text.Show
     Data.Text.Internal.Reverse
+    Data.Text.Internal.Measure
 
   build-depends:
     array            >= 0.3 && < 0.6,
