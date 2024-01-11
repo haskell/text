@@ -1032,18 +1032,18 @@ foldr' f z t = S.foldl' (P.flip f) z (reverseStream t)
 
 -- | /O(n)/ Concatenate a list of 'Text's.
 concat :: [Text] -> Text
-concat ts = case ts' of
-              [] -> empty
-              [t] -> t
-              _ -> Text (A.run go) 0 len
+concat ts = case ts of
+    [] -> empty
+    [t] -> t
+    _ | len == 0 -> empty
+      | otherwise -> Text (A.run go) 0 len
   where
-    ts' = L.filter (not . null) ts
-    len = sumP "concat" $ L.map lengthWord8 ts'
+    len = sumP "concat" $ L.map lengthWord8 ts
     go :: ST s (A.MArray s)
     go = do
       arr <- A.new len
       let step i (Text a o l) = A.copyI l arr i a o >> return (i + l)
-      foldM step 0 ts' >> return arr
+      foldM step 0 ts >> return arr
 
 -- | /O(n)/ Map a function over a 'Text' that results in a 'Text', and
 -- concatenate the results.
@@ -2043,12 +2043,12 @@ stripSuffix p@(Text _arr _off plen) t@(Text arr off len)
 
 -- | Add a list of non-negative numbers.  Errors out on overflow.
 sumP :: String -> [Int] -> Int
-sumP fun = go 0
-  where go !a (x:xs)
-            | ax >= 0   = go ax xs
+sumP fun = L.foldl' add 0
+  where add a x
+            | ax >= 0   = ax
             | otherwise = overflowError fun
           where ax = a + x
-        go a  _         = a
+{-# INLINE sumP #-} -- Use foldl' and inline for fusion.
 
 emptyError :: HasCallStack => String -> a
 emptyError fun = P.error $ "Data.Text." ++ fun ++ ": empty input"
