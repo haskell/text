@@ -48,7 +48,7 @@ reverse t            = reverseNonEmpty t
 reverseNonEmpty ::
   Text -> Text
 #if defined(PURE_HASKELL)
-reverseNonEmtpy (Text src off len) = runST $ do
+reverseNonEmpty (Text src off len) = runST $ do
     dest <- A.new len
     _ <- reversePoints src off dest len
     result <- A.unsafeFreeze dest
