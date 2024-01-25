@@ -37,14 +37,8 @@ import Data.Text.Internal.ByteStringCompat (withBS)
 import Data.Text.Internal.Unsafe (unsafeWithForeignPtr)
 import Data.Text.Internal.Validate.Simd (c_is_valid_utf8_bytearray_safe,c_is_valid_utf8_bytearray_unsafe,c_is_valid_utf8_ptr_unsafe)
 #else
-import GHC.Exts (ByteArray#)
-import Data.Text.Internal.Encoding.Utf8 (CodePoint(..),DecoderResult(..),utf8DecodeStart,utf8DecodeContinue)
-import GHC.Exts (Int(I#),indexWord8Array#)
-import GHC.Word (Word8(W8#))
 import qualified Data.ByteString as B
-#if !MIN_VERSION_bytestring(0,11,2)
-import qualified Data.ByteString.Unsafe as B
-#endif
+import qualified Data.Text.Internal.Validate.Native as N
 #endif
 
 -- | Is the ByteString a valid UTF-8 byte sequence?
@@ -56,21 +50,7 @@ isValidUtf8ByteString bs = withBS bs $ \fp len -> unsafeDupablePerformIO $
 #if MIN_VERSION_bytestring(0,11,2)
 isValidUtf8ByteString = B.isValidUtf8
 #else
-isValidUtf8ByteString bs = start 0
-  where
-    start ix
-      | ix >= B.length bs = True
-      | otherwise = case utf8DecodeStart (B.unsafeIndex bs ix) of
-        Accept{} -> start (ix + 1)
-        Reject{} -> False
-        Incomplete st _ -> step (ix + 1) st
-    step ix st
-      | ix >= B.length bs = False
-      -- We do not use decoded code point, so passing a dummy value to save an argument.
-      | otherwise = case utf8DecodeContinue (B.unsafeIndex bs ix) st (CodePoint 0) of
-        Accept{} -> start (ix + 1)
-        Reject{} -> False
-        Incomplete st' _ -> step (ix + 1) st'
+isValidUtf8ByteString = N.isValidUtf8ByteStringHaskell
 #endif
 #endif
 
@@ -103,7 +83,7 @@ isValidUtf8ByteArrayUnpinned ::
 isValidUtf8ByteArrayUnpinned (ByteArray bs) !off !len =
   unsafeDupablePerformIO $ (/= 0) <$> c_is_valid_utf8_bytearray_unsafe bs (fromIntegral off) (fromIntegral len)
 #else
-isValidUtf8ByteArrayUnpinned (ByteArray bs) = isValidUtf8ByteArrayHaskell# bs
+isValidUtf8ByteArrayUnpinned = N.isValidUtf8ByteArrayHaskell
 #endif
 
 -- | This uses the @safe@ FFI. GC may run concurrently with @safe@
@@ -120,30 +100,5 @@ isValidUtf8ByteArrayPinned ::
 isValidUtf8ByteArrayPinned (ByteArray bs) !off !len =
   unsafeDupablePerformIO $ (/= 0) <$> c_is_valid_utf8_bytearray_safe bs (fromIntegral off) (fromIntegral len)
 #else
-isValidUtf8ByteArrayPinned (ByteArray bs) = isValidUtf8ByteArrayHaskell# bs
-#endif
-
-#ifndef SIMDUTF
-isValidUtf8ByteArrayHaskell# ::
-     ByteArray# -- ^ Bytes
-  -> Int -- ^ Offset
-  -> Int -- ^ Length
-  -> Bool
-isValidUtf8ByteArrayHaskell# b !off !len = start off
-  where
-    indexWord8 :: ByteArray# -> Int -> Word8
-    indexWord8 !x (I# i) = W8# (indexWord8Array# x i)
-    start ix
-      | ix >= len = True
-      | otherwise = case utf8DecodeStart (indexWord8 b ix) of
-        Accept{} -> start (ix + 1)
-        Reject{} -> False
-        Incomplete st _ -> step (ix + 1) st
-    step ix st
-      | ix >= len = False
-      -- We do not use decoded code point, so passing a dummy value to save an argument.
-      | otherwise = case utf8DecodeContinue (indexWord8 b ix) st (CodePoint 0) of
-        Accept{} -> start (ix + 1)
-        Reject{} -> False
-        Incomplete st' _ -> step (ix + 1) st'
+isValidUtf8ByteArrayPinned = N.isValidUtf8ByteArrayHaskell
 #endif

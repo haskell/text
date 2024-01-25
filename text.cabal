@@ -192,6 +192,7 @@ library
     Data.Text.Internal.Unsafe
     Data.Text.Internal.Unsafe.Char
     Data.Text.Internal.Validate
+    Data.Text.Internal.Validate.Native
     Data.Text.Lazy
     Data.Text.Lazy.Builder
     Data.Text.Lazy.Builder.Int
