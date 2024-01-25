@@ -16,6 +16,7 @@ import Tests.Properties.Substrings (testSubstrings)
 import Tests.Properties.Read (testRead)
 import Tests.Properties.Text (testText)
 import Tests.Properties.Transcoding (testTranscoding)
+import Tests.Properties.Validate (testValidate)
 
 tests :: TestTree
 tests =
@@ -28,5 +29,6 @@ tests =
     testSubstrings,
     testBuilder,
     testLowLevel,
-    testRead
+    testRead,
+    testValidate
   ]
