@@ -46,13 +46,13 @@ isValidUtf8ByteArrayHaskell (ByteArray b) !off !len = start off
     indexWord8 :: ByteArray# -> Int -> Word8
     indexWord8 !x (I# i) = W8# (indexWord8Array# x i)
     start ix
-      | ix >= len = True
+      | ix >= off + len = True
       | otherwise = case utf8DecodeStart (indexWord8 b ix) of
         Accept{} -> start (ix + 1)
         Reject{} -> False
         Incomplete st _ -> step (ix + 1) st
     step ix st
-      | ix >= len = False
+      | ix >= off + len = False
       -- We do not use decoded code point, so passing a dummy value to save an argument.
       | otherwise = case utf8DecodeContinue (indexWord8 b ix) st (CodePoint 0) of
         Accept{} -> start (ix + 1)
