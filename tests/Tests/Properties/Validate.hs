@@ -15,7 +15,11 @@ import Tests.QuickCheckUtils ()
 #if MIN_VERSION_bytestring(0,12,0)
 import Data.ByteString.Short (unShortByteString)
 #else
+#if MIN_VERSION_bytestring(0,11,1)
 import Data.ByteString.Short (ShortByteString(SBS))
+#else
+import Data.ByteString.Short.Internal (ShortByteString(SBS))
+#endif
 import Data.Array.Byte (ByteArray(ByteArray))
 
 unShortByteString :: ShortByteString -> ByteArray
