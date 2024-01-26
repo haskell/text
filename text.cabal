@@ -259,7 +259,7 @@ source-repository head
 test-suite tests
   type:           exitcode-stdio-1.0
   ghc-options:
-    -Wall -threaded -rtsopts
+    -Wall -threaded -rtsopts -with-rtsopts=-N
 
   hs-source-dirs: tests
   main-is:        Tests.hs
