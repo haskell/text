@@ -77,7 +77,7 @@ isAscii (Text (A.ByteArray arr) off len) =
 -- | Length of the longest ASCII prefix.
 asciiPrefixLength :: ByteString -> Int
 #if defined(PURE_HASKELL)
-asciiPrefixLength = P.const 0
+asciiPrefixLength = BS.length P.. BS.takeWhile (P.< 0x80)
 #else
 asciiPrefixLength bs = unsafeDupablePerformIO $ withBS bs $ \ fp len ->
   unsafeWithForeignPtr fp $ \src -> do
