@@ -1,6 +1,9 @@
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE UnliftedFFITypes #-}
+#if defined(PURE_HASKELL)
+{-# LANGUAGE BangPatterns #-}
+#endif
 
 {-# OPTIONS_HADDOCK not-home #-}
 
@@ -10,7 +13,10 @@
 module Data.Text.Internal.IsAscii where
 
 #if defined(PURE_HASKELL)
-import Prelude (Bool(..), Int)
+import Prelude hiding (all)
+import qualified Data.Char as Char
+import qualified Data.ByteString as BS
+import Data.Text.Unsafe (iter, Iter(..))
 #else
 import Data.Text.Internal.ByteStringCompat (withBS)
 import Data.Text.Internal.Unsafe (unsafeWithForeignPtr)
@@ -45,7 +51,16 @@ import qualified Prelude as P
 -- @since 2.0.2
 isAscii :: Text -> Bool
 #if defined(PURE_HASKELL)
-isAscii = P.const False
+isAscii = all Char.isAscii
+
+-- | (Re)implemented to avoid circular dependency on Data.Text.
+all :: (Char -> Bool) -> Text -> Bool
+all p t@(Text _ _ len) = go 0
+  where
+    go i | i >= len = True
+         | otherwise =
+             let !(Iter c j) = iter t i
+             in p c && go (i+j)
 #else
 cSizeToInt :: CSize -> Int
 cSizeToInt = P.fromIntegral
