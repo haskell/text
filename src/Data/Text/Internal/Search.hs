@@ -37,9 +37,7 @@ import qualified Data.Text.Array as A
 import Data.Word (Word64, Word8)
 import Data.Text.Internal (Text(..))
 import Data.Bits ((.|.), (.&.), unsafeShiftL)
-import Foreign.C.Types
-import GHC.Exts (ByteArray#)
-import System.Posix.Types (CSsize(..))
+import Data.Text.Internal.ArrayUtils (memchr)
 
 data T = {-# UNPACK #-} !Word64 :* {-# UNPACK #-} !Int
 
@@ -87,9 +85,9 @@ indices' (Text narr noff nlen) (Text harr@(A.ByteArray harr#) hoff hlen) = loop 
       | mask .&. swizzle (A.unsafeIndex harr i) == 0
       = loop (i + nlen + 1)
       | otherwise
-      = case memchr harr# (intToCSize i) (intToCSize (hlen + hoff - i)) z of
+      = case memchr harr# i (hlen + hoff - i) z of
         -1 -> []
-        x  -> loop (i + cSsizeToInt x + 1)
+        x  -> loop (i + x + 1)
 {-# INLINE indices' #-}
 
 scanOne :: Word8 -> Text -> [Int]
@@ -103,12 +101,3 @@ scanOne c (Text harr hoff hlen) = loop 0
 
 word8ToInt :: Word8 -> Int
 word8ToInt = fromIntegral
-
-intToCSize :: Int -> CSize
-intToCSize = fromIntegral
-
-cSsizeToInt :: CSsize -> Int
-cSsizeToInt = fromIntegral
-
-foreign import ccall unsafe "_hs_text_memchr" memchr
-    :: ByteArray# -> CSize -> CSize -> Word8 -> CSsize
