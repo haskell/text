@@ -231,6 +231,7 @@ import Data.Binary (Binary(get, put))
 import Data.Monoid (Monoid(..))
 import Data.Semigroup (Semigroup(..))
 import Data.String (IsString(..))
+import Data.Text.Internal.ArrayUtils (memchr)
 import Data.Text.Internal.IsAscii (isAscii)
 import Data.Text.Internal.Reverse (reverse)
 import Data.Text.Internal.Measure (measure_off)
@@ -254,7 +255,7 @@ import qualified Data.Text.Lazy as L
 #endif
 import Data.Word (Word8)
 import Foreign.C.Types
-import GHC.Base (eqInt, neInt, gtInt, geInt, ltInt, leInt, ByteArray#)
+import GHC.Base (eqInt, neInt, gtInt, geInt, ltInt, leInt)
 import qualified GHC.Exts as Exts
 import GHC.Int (Int8)
 import GHC.Stack (HasCallStack)
@@ -1864,12 +1865,8 @@ lines (Text arr@(A.ByteArray arr#) off len) = go off
       | delta < 0 = [Text arr n (len + off - n)]
       | otherwise = Text arr n delta : go (n + delta + 1)
       where
-        delta = cSsizeToInt $
-          memchr arr# (intToCSize n) (intToCSize (len + off - n)) 0x0A
+        delta = memchr arr# n (len + off - n) 0x0A
 {-# INLINE lines #-}
-
-foreign import ccall unsafe "_hs_text_memchr" memchr
-    :: ByteArray# -> CSize -> CSize -> Word8 -> CSsize
 
 -- | /O(n)/ Joins lines, after appending a terminating newline to
 -- each.
