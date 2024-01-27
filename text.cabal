@@ -162,6 +162,7 @@ library
     Data.Text.IO
     Data.Text.IO.Utf8
     Data.Text.Internal
+    Data.Text.Internal.ArrayUtils
     Data.Text.Internal.Builder
     Data.Text.Internal.Builder.Functions
     Data.Text.Internal.Builder.Int.Digits
