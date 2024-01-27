@@ -30,7 +30,6 @@ testValidate :: TestTree
 testValidate = testGroup "validate"
   [ testProperty "bytestring" $ forAllShrink genByteString shrink $ \bs ->
       isValidUtf8ByteString bs === isRight (decodeUtf8' bs)
-    -- We have all we need to shrink here but I'm too lazy to do that now.
   , testProperty "bytearray" $ forAllByteArray $ \ba off len bs ->
       isValidUtf8ByteArray ba off len === isRight (decodeUtf8' bs)
   ]
