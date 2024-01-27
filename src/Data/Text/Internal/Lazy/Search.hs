@@ -24,18 +24,15 @@ module Data.Text.Internal.Lazy.Search
       indices
     ) where
 
-import Data.Bits (unsafeShiftL)
+import Data.Bits (unsafeShiftL, (.|.), (.&.))
 import qualified Data.Text.Array as A
 import Data.Int (Int64)
 import Data.Word (Word8, Word64)
 import qualified Data.Text.Internal as T
 import qualified Data.Text as T (concat, isPrefixOf)
+import Data.Text.Internal.ArrayUtils (memchr)
 import Data.Text.Internal.Fusion.Types (PairS(..))
 import Data.Text.Internal.Lazy (Text(..), foldrChunks)
-import Data.Bits ((.|.), (.&.))
-import Foreign.C.Types
-import GHC.Exts (ByteArray#)
-import System.Posix.Types (CSsize(..))
 
 -- | /O(n+m)/ Find the offsets of all non-overlapping indices of
 -- @needle@ within @haystack@.
@@ -66,9 +63,9 @@ indices needle
          delta | nextInPattern = nlen + 1
                | c == z        = skip + 1
                | l >= i + nlen = case
-                  memchr xarr# (intToCSize (xoff + i + nlen)) (intToCSize (l - i - nlen)) z of
+                  memchr xarr# (xoff + i + nlen) (l - i - nlen) z of
                     -1 -> max 1 (l - i - nlen)
-                    s  -> cSsizeToInt s + 1
+                    s  -> s + 1
                 | otherwise = 1
          nextInPattern         = mask .&. swizzle (index xxs (i + nlen)) == 0
 
@@ -133,12 +130,3 @@ intToInt64 = fromIntegral
 
 word8ToInt :: Word8 -> Int
 word8ToInt = fromIntegral
-
-intToCSize :: Int -> CSize
-intToCSize = fromIntegral
-
-cSsizeToInt :: CSsize -> Int
-cSsizeToInt = fromIntegral
-
-foreign import ccall unsafe "_hs_text_memchr" memchr
-    :: ByteArray# -> CSize -> CSize -> Word8 -> CSsize
