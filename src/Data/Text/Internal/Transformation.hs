@@ -22,7 +22,6 @@
 
 module Data.Text.Internal.Transformation
   ( mapNonEmpty
-  , reverseNonEmpty
   , toCaseFoldNonEmpty
   , toLowerNonEmpty
   , toUpperNonEmpty
@@ -33,10 +32,9 @@ import Prelude (Char, Bool(..), Int,
                 Ord(..),
                 Monad(..), pure,
                 (+), (-), ($),
-                not, return, otherwise, IO)
+                not, return, otherwise)
 import Data.Bits ((.&.), shiftR, shiftL)
 import Control.Monad.ST (ST, runST)
-import Control.Monad.ST.Unsafe (unsafeIOToST)
 import qualified Data.Text.Array as A
 import Data.Text.Internal.Encoding.Utf8 (utf8LengthByLeader, chr2, chr3, chr4)
 import Data.Text.Internal.Fusion.CaseMapping (foldMapping, lowerMapping, upperMapping)
@@ -45,8 +43,6 @@ import Data.Text.Internal.Unsafe.Char (unsafeWrite, unsafeChr8)
 import qualified Prelude as P
 import Data.Text.Unsafe (Iter(..), iterArray)
 import Data.Word (Word8)
-import Foreign.C.Types
-import GHC.Base (ByteArray#)
 import qualified GHC.Exts as Exts
 import GHC.Int (Int64(..))
 
@@ -77,25 +73,6 @@ mapNonEmpty f = go
                 d' <- unsafeWrite dst dstOff (safe (f c))
                 inner (srcOff + d) (dstOff + d')
 {-# INLINE mapNonEmpty #-}
-
--- | /O(n)/ Reverse the characters of a string.
--- Assume that the @Text@ is non-empty. The returned @Text@ is guaranteed to be non-empty.
-reverseNonEmpty ::
-  Text -> Text
-reverseNonEmpty (Text (A.ByteArray ba) off len) = runST $ do
-      marr@(A.MutableByteArray mba) <- A.new len
-      unsafeIOToST $ c_reverse mba ba (intToCSize off) (intToCSize len)
-      brr <- A.unsafeFreeze marr
-      return $ Text brr 0 len
-{-# INLINE reverseNonEmpty #-}
-
--- | The input buffer (src :: ByteArray#, off :: CSize, len :: CSize)
--- must specify a valid UTF-8 sequence, this condition is not checked.
-foreign import ccall unsafe "_hs_text_reverse" c_reverse
-    :: Exts.MutableByteArray# s -> ByteArray# -> CSize -> CSize -> IO ()
-
-intToCSize :: Int -> CSize
-intToCSize = P.fromIntegral
 
 caseConvert :: (Word8 -> Word8) -> (Exts.Char# -> _ {- unboxed Int64 -}) -> Text -> Text
 caseConvert ascii remap (Text src o l) = runST $ do
