@@ -34,9 +34,6 @@ import Prelude (Char, Bool(..), Int,
                 Monad(..), pure,
                 (+), (-), ($),
                 not, return, otherwise, IO)
-#if defined(ASSERTS)
-import Control.Exception (assert)
-#endif
 import Data.Bits ((.&.), shiftR, shiftL)
 import Control.Monad.ST (ST, runST)
 import Control.Monad.ST.Unsafe (unsafeIOToST)
