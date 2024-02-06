@@ -15,6 +15,7 @@ import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.QuickCheck (testProperty)
 import Tests.QuickCheckUtils
 import qualified Data.List as L
+import qualified Data.List.NonEmpty as NonEmptyList
 import qualified Data.Text as T
 import qualified Data.Text.Internal.Fusion as S
 import qualified Data.Text.Internal.Fusion.Common as S
@@ -156,9 +157,13 @@ t_groupBy (applyFun2 -> p)
 tl_groupBy (applyFun2 -> p)
                   = L.groupBy p   `eqP` (map unpackS . TL.groupBy p)
 t_inits           = L.inits       `eqP` (map unpackS . T.inits)
+t_initsNE         = NonEmptyList.inits `eqP` (fmap unpackS . T.initsNE)
 tl_inits          = L.inits       `eqP` (map unpackS . TL.inits)
+tl_initsNE        = NonEmptyList.inits `eqP` (fmap unpackS . TL.initsNE)
 t_tails           = L.tails       `eqP` (map unpackS . T.tails)
+t_tailsNE         = NonEmptyList.tails `eqP` (fmap unpackS . T.tailsNE)
 tl_tails          = L.tails       `eqPSqrt` (map unpackS . TL.tails)
+tl_tailsNE        = NonEmptyList.tails `eqP` (fmap unpackS . TL.tailsNE)
 
 spanML :: Monad m => (b -> m Bool) -> [b] -> m ([b], [b])
 spanML p s = go [] s
@@ -361,9 +366,13 @@ testSubstrings =
       testProperty "t_groupBy" t_groupBy,
       testProperty "tl_groupBy" tl_groupBy,
       testProperty "t_inits" t_inits,
+      testProperty "t_initsNE" t_initsNE,
       testProperty "tl_inits" tl_inits,
+      testProperty "tl_initsNE" tl_initsNE,
       testProperty "t_tails" t_tails,
+      testProperty "t_tailsNE" t_tailsNE,
       testProperty "tl_tails" tl_tails,
+      testProperty "tl_tailsNE" tl_tailsNE,
       testProperty "t_spanM" t_spanM,
       testProperty "t_spanEndM" t_spanEndM,
       testProperty "tl_spanM" tl_spanM,

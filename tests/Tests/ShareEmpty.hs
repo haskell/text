@@ -15,6 +15,7 @@ import Test.Tasty (TestTree, testGroup)
 import GHC.Exts
 import GHC.Stack
 import qualified Data.List as L
+import qualified Data.List.NonEmpty as NonEmptyList
 import qualified Data.Text as T
 
 
@@ -105,10 +106,13 @@ tests = testGroup "empty Text values are shared"
       assertPtrEqEmpty . snd =<< T.spanEndM (const $ pure False) "123"
   , testCase "groupBy _ empty = [empty]" $ mapM_ assertPtrEqEmpty $ T.groupBy (==) empty
   , testCase "inits empty = [empty]" $ mapM_ assertPtrEqEmpty $ T.inits empty
+  , testCase "initsNE empty = singleton empty" $ mapM_ assertPtrEqEmpty $ T.initsNE empty
   , testCase "inits _ = [empty, ...]" $ assertPtrEqEmpty $ L.head $ T.inits "123"
+  , testCase "initsNE _ = empty :| ..." $ assertPtrEqEmpty $ NonEmptyList.head $ T.initsNE "123"
   , testCase "tails empty = [empty]" $ mapM_ assertPtrEqEmpty $ T.tails empty
+  , testCase "tailsNE empty = singleton empty" $ mapM_ assertPtrEqEmpty $ T.tailsNE empty
   , testCase "tails _ = [..., empty]" $ assertPtrEqEmpty $ L.last $ T.tails "123"
-  , testCase "tails _ = [..., empty]" $ assertPtrEqEmpty $ L.last $ T.tails "123"
+  , testCase "tailsNE _ = reverse (empty :| …)" $ assertPtrEqEmpty $ NonEmptyList.last $ T.tailsNE "123"
   , testCase "split _ empty = [empty]" $ mapM_ assertPtrEqEmpty $ T.split (== 'a') ""
   , testCase "filter (const False) _ = empty" $ assertPtrEqEmpty $ T.filter (const False) "1234"
   , testCase "zipWith const empty empty = empty" $ assertPtrEqEmpty $ T.zipWith const "" ""
