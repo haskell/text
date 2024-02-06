@@ -221,6 +221,7 @@ import Data.Data (Data(gfoldl, toConstr, gunfold, dataTypeOf), constrIndex,
 import Data.Binary (Binary(get, put))
 import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NE
+import Data.Maybe (fromMaybe)
 import Data.Monoid (Monoid(..))
 import Data.Semigroup (Semigroup(..))
 import Data.String (IsString(..))
@@ -1437,7 +1438,7 @@ inits = (Empty :) . inits'
 -- | /O(n)/ Return all initial segments of the given 'Text',
 -- shortest first.
 initsNE :: Text -> NonEmpty Text
-initsNE = P.error "Not implemented."
+initsNE = fromMaybe P.undefined . NE.nonEmpty . inits
 
 -- | /O(n)/ Return all final segments of the given 'Text', longest
 -- first.
@@ -1450,7 +1451,7 @@ tails ts@(Chunk t ts')
 -- | /O(n)/ Return all final segments of the given 'Text', longest
 -- first.
 tailsNE :: Text -> NonEmpty Text
-tailsNE = P.error "Not implemented."
+tailsNE = fromMaybe P.undefined . NE.nonEmpty . tails
 
 -- $split
 --

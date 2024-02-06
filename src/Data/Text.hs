@@ -230,6 +230,7 @@ import Control.Monad.ST (ST, runST)
 import qualified Data.Text.Array as A
 import qualified Data.List as L hiding (head, tail)
 import qualified Data.List.NonEmpty as NonEmptyList
+import Data.Maybe (fromMaybe)
 import Data.Binary (Binary(get, put))
 import Data.Monoid (Monoid(..))
 import Data.Semigroup (Semigroup(..))
@@ -1534,7 +1535,7 @@ inits t = empty : case t of
 -- | /O(n)/ Return all initial segments of the given 'Text', shortest
 -- first.
 initsNE :: Text -> NonEmptyList.NonEmpty Text
-initsNE = P.error "Not implemented."
+initsNE = fromMaybe P.undefined . NonEmptyList.nonEmpty . inits
 
 -- | /O(n)/ Return all final segments of the given 'Text', longest
 -- first.
@@ -1545,7 +1546,7 @@ tails t | null t    = [empty]
 -- | /O(n)/ Return all final segments of the given 'Text', longest
 -- first.
 tailsNE :: Text -> NonEmptyList.NonEmpty Text
-tailsNE = P.error "Not implemented."
+tailsNE = fromMaybe P.undefined . NonEmptyList.nonEmpty . tails
 
 -- $split
 --
