@@ -1534,7 +1534,6 @@ inits t = empty : case t of
 -- | /O(n)/ Return all initial segments of the given 'Text', shortest
 -- first.
 initsNE :: Text -> NonEmptyList.NonEmpty Text
--- see Note [Avoid NonEmpty combinators]
 initsNE = P.error "Not implemented."
 
 -- | /O(n)/ Return all final segments of the given 'Text', longest
