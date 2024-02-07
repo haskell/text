@@ -221,7 +221,6 @@ import Data.Data (Data(gfoldl, toConstr, gunfold, dataTypeOf), constrIndex,
 import Data.Binary (Binary(get, put))
 import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NE
-import Data.Maybe (fromMaybe)
 import Data.Monoid (Monoid(..))
 import Data.Semigroup (Semigroup(..))
 import Data.String (IsString(..))

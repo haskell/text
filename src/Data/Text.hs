@@ -230,7 +230,6 @@ import Control.Monad.ST (ST, runST)
 import qualified Data.Text.Array as A
 import qualified Data.List as L hiding (head, tail)
 import qualified Data.List.NonEmpty as NonEmptyList
-import Data.Maybe (fromMaybe)
 import Data.Binary (Binary(get, put))
 import Data.Monoid (Monoid(..))
 import Data.Semigroup (Semigroup(..))
