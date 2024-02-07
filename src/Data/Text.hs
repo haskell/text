@@ -1525,11 +1525,7 @@ group = groupBy (==)
 -- | /O(n)/ Return all initial segments of the given 'Text', shortest
 -- first.
 inits :: Text -> [Text]
-inits t = empty : case t of
-  Text arr off len ->
-    let loop i | i >= len = []
-               | otherwise = let !j = i + iter_ t i in Text arr off j : loop j
-    in loop 0
+inits = NonEmptyList.toList . initsNE
 
 -- | /O(n)/ Return all initial segments of the given 'Text', shortest
 -- first.

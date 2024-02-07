@@ -1429,10 +1429,7 @@ groupBy eq (Chunk t ts) = cons x ys : groupBy eq zs
 -- | /O(n)/ Return all initial segments of the given 'Text',
 -- shortest first.
 inits :: Text -> [Text]
-inits = (Empty :) . inits'
-  where inits' Empty        = []
-        inits' (Chunk t ts) = L.map (\t' -> Chunk t' Empty) (L.drop 1 (T.inits t))
-                           ++ L.map (Chunk t) (inits' ts)
+inits = NE.toList . initsNE
 
 -- | /O(n)/ Return all initial segments of the given 'Text',
 -- shortest first.
