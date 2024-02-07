@@ -1442,10 +1442,7 @@ initsNE = (Empty NE.:|) . inits'
 -- | /O(n)/ Return all final segments of the given 'Text', longest
 -- first.
 tails :: Text -> [Text]
-tails Empty         = Empty : []
-tails ts@(Chunk t ts')
-  | T.length t == 1 = ts : tails ts'
-  | otherwise       = ts : tails (Chunk (T.unsafeTail t) ts')
+tails = NE.toList . tailsNE
 
 -- | /O(n)/ Return all final segments of the given 'Text', longest
 -- first.

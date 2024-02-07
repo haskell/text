@@ -1540,8 +1540,7 @@ initsNE t = empty NonEmptyList.:| case t of
 -- | /O(n)/ Return all final segments of the given 'Text', longest
 -- first.
 tails :: Text -> [Text]
-tails t | null t    = [empty]
-        | otherwise = t : tails (unsafeTail t)
+tails = NonEmptyList.toList . tailsNE
 
 -- | /O(n)/ Return all final segments of the given 'Text', longest
 -- first.
