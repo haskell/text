@@ -1535,7 +1535,12 @@ inits t = empty : case t of
 -- | /O(n)/ Return all initial segments of the given 'Text', shortest
 -- first.
 initsNE :: Text -> NonEmptyList.NonEmpty Text
-initsNE = fromMaybe P.undefined . NonEmptyList.nonEmpty . inits
+initsNE t = empty NonEmptyList.:| case t of
+  Text arr off len ->
+    let loop i
+          | i >= len = []
+          | otherwise = let !j = i + iter_ t i in Text arr off j : loop j
+    in loop 0
 
 -- | /O(n)/ Return all final segments of the given 'Text', longest
 -- first.
@@ -1546,7 +1551,9 @@ tails t | null t    = [empty]
 -- | /O(n)/ Return all final segments of the given 'Text', longest
 -- first.
 tailsNE :: Text -> NonEmptyList.NonEmpty Text
-tailsNE = fromMaybe P.undefined . NonEmptyList.nonEmpty . tails
+tailsNE t
+  | null t = NonEmptyList.singleton empty
+  | otherwise = t NonEmptyList.:| tails (unsafeTail t)
 
 -- $split
 --

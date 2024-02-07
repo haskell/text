@@ -1438,7 +1438,10 @@ inits = (Empty :) . inits'
 -- | /O(n)/ Return all initial segments of the given 'Text',
 -- shortest first.
 initsNE :: Text -> NonEmpty Text
-initsNE = fromMaybe P.undefined . NE.nonEmpty . inits
+initsNE = (Empty NE.:|) . inits'
+  where inits' Empty        = []
+        inits' (Chunk t ts) = L.map (\t' -> Chunk t' Empty) (L.drop 1 (T.inits t))
+                           ++ L.map (Chunk t) (inits' ts)
 
 -- | /O(n)/ Return all final segments of the given 'Text', longest
 -- first.
@@ -1451,7 +1454,10 @@ tails ts@(Chunk t ts')
 -- | /O(n)/ Return all final segments of the given 'Text', longest
 -- first.
 tailsNE :: Text -> NonEmpty Text
-tailsNE = fromMaybe P.undefined . NE.nonEmpty . tails
+tailsNE Empty = Empty :| []
+tailsNE ts@(Chunk t ts')
+  | T.length t == 1 = ts :| tails ts'
+  | otherwise       = ts :| tails (Chunk (T.unsafeTail t) ts')
 
 -- $split
 --
