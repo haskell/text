@@ -1546,7 +1546,7 @@ tails = NonEmptyList.toList . tailsNE
 -- first.
 tailsNE :: Text -> NonEmptyList.NonEmpty Text
 tailsNE t
-  | null t = NonEmptyList.singleton empty
+  | null t = empty NonEmptyList.:| []
   | otherwise = t NonEmptyList.:| tails (unsafeTail t)
 
 -- $split
