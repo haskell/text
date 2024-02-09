@@ -1525,7 +1525,7 @@ group = groupBy (==)
 -- | /O(n)/ Return all initial segments of the given 'Text', shortest
 -- first.
 inits :: Text -> [Text]
-inits = NonEmptyList.toList . initsNE
+inits = (NonEmptyList.toList $!) . initsNE
 
 -- | /O(n)/ Return all initial segments of the given 'Text', shortest
 -- first.
@@ -1540,7 +1540,7 @@ initsNE t = empty NonEmptyList.:| case t of
 -- | /O(n)/ Return all final segments of the given 'Text', longest
 -- first.
 tails :: Text -> [Text]
-tails = NonEmptyList.toList . tailsNE
+tails = (NonEmptyList.toList $!) . tailsNE
 
 -- | /O(n)/ Return all final segments of the given 'Text', longest
 -- first.
