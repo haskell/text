@@ -1429,7 +1429,7 @@ groupBy eq (Chunk t ts) = cons x ys : groupBy eq zs
 -- | /O(n)/ Return all initial segments of the given 'Text',
 -- shortest first.
 inits :: Text -> [Text]
-inits = NE.toList . initsNE
+inits = (NE.toList P.$!) . initsNE
 
 -- | /O(n)/ Return all initial segments of the given 'Text',
 -- shortest first.
@@ -1442,7 +1442,7 @@ initsNE = (Empty NE.:|) . inits'
 -- | /O(n)/ Return all final segments of the given 'Text', longest
 -- first.
 tails :: Text -> [Text]
-tails = NE.toList . tailsNE
+tails = (NE.toList P.$!) . tailsNE
 
 -- | /O(n)/ Return all final segments of the given 'Text', longest
 -- first.
