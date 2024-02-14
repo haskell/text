@@ -176,6 +176,13 @@ t529 = do
     (T.pack (chr 33 : replicate 31 (chr 0) ++ [chr 65533, chr 0]))
     (decode (B.pack (33 : replicate 31 0 ++ [128, 0])))
 
+-- See Github #559
+-- filter/filter fusion rules should apply predicates in the right order.
+t559 :: IO ()
+t559 = do
+  T.filter undefined (T.filter (const False) "a") @?= ""
+  LT.filter undefined (LT.filter (const False) "a") @?= ""
+
 tests :: F.TestTree
 tests = F.testGroup "Regressions"
     [ F.testCase "hGetContents_crash" hGetContents_crash
@@ -193,4 +200,5 @@ tests = F.testGroup "Regressions"
     , F.testCase "t525" t525
     , F.testCase "t528" t528
     , F.testCase "t529" t529
+    , F.testCase "t559" t559
     ]

@@ -1686,7 +1686,7 @@ filter p = filter_ text p
 
 {-# RULES
 "TEXT filter/filter -> filter" forall p q t.
-    filter p (filter q t) = filter (\c -> p c && q c) t
+    filter p (filter q t) = filter (\c -> q c && p c) t
 #-}
 
 -- | /O(n+m)/ Find the first instance of @needle@ (which must be

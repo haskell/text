@@ -1690,7 +1690,7 @@ filter p = foldrChunks (chunk . filter_ T.Text p) Empty
 
 {-# RULES
 "TEXT filter/filter -> filter" forall p q t.
-    filter p (filter q t) = filter (\c -> p c && q c) t
+    filter p (filter q t) = filter (\c -> q c && p c) t
 #-}
 
 -- | /O(n)/ The 'find' function takes a predicate and a 'Text', and
