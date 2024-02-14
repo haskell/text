@@ -244,8 +244,10 @@ validateUtf8Chunk bs = validateUtf8ChunkFrom 0 bs (,)
 {-# INLINE validateUtf8ChunkFrom #-}
 validateUtf8ChunkFrom :: forall r. Int -> ByteString -> (Int -> Maybe Utf8State -> r) -> r
 validateUtf8ChunkFrom ofs bs k
-  -- B.isValidUtf8 is buggy before bytestring-0.11.5.0
-#if defined(SIMDUTF) || MIN_VERSION_bytestring(0,11,5)
+  -- B.isValidUtf8 is buggy before bytestring-0.11.5.3 / bytestring-0.12.1.0.
+  -- MIN_VERSION_bytestring does not allow us to differentiate
+  -- between 0.11.5.2 and 0.11.5.3 so no choice except demanding 0.12.1+.
+#if defined(SIMDUTF) || MIN_VERSION_bytestring(0,12,1)
   | guessUtf8Boundary > 0 &&
     -- the rest of the bytestring is valid utf-8 up to the boundary
     (

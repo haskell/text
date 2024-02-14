@@ -47,7 +47,10 @@ isValidUtf8ByteString :: ByteString -> Bool
 isValidUtf8ByteString bs = withBS bs $ \fp len -> unsafeDupablePerformIO $
   unsafeWithForeignPtr fp $ \ptr -> (/= 0) <$> c_is_valid_utf8_ptr_unsafe ptr (fromIntegral len)
 #else
-#if MIN_VERSION_bytestring(0,11,2)
+-- B.isValidUtf8 is buggy before bytestring-0.11.5.3 / bytestring-0.12.1.0.
+-- MIN_VERSION_bytestring does not allow us to differentiate
+-- between 0.11.5.2 and 0.11.5.3 so no choice except demanding 0.12.1+.
+#if MIN_VERSION_bytestring(0,12,1)
 isValidUtf8ByteString = B.isValidUtf8
 #else
 isValidUtf8ByteString = N.isValidUtf8ByteStringHaskell
