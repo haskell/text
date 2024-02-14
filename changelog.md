@@ -1,3 +1,18 @@
+### 2.1.1
+
+* Add pure Haskell implementations as an alternative to C-based ones,
+  suitable for JavaScript backend.
+
+* [Add type synonyms for lazy and strict text flavours](https://github.com/haskell/text/pull/547)
+
+* [Share empty `Text` values](https://github.com/haskell/text/pull/493)
+
+* [Fix bug in `isValidUtf8ByteArray`](https://github.com/haskell/text/pull/553)
+
+* [Optimize the implementation of `Data.Text.concat`](https://github.com/haskell/text/pull/551)
+
+* [Fix `filter/filter` rules for `Text` and lazy `Text`](https://github.com/haskell/text/pull/560)
+
 ### 2.1
 
 * [Switch `Data.Text.Array` to `Data.Array.Byte`](https://github.com/haskell/text/pull/474)
