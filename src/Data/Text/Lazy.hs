@@ -1438,7 +1438,7 @@ inits = (NE.toList P.$!) . initsNE
 initsNE :: Text -> NonEmpty Text
 initsNE = (Empty NE.:|) . inits'
   where inits' Empty        = []
-        inits' (Chunk t ts) = L.map (\t' -> Chunk t' Empty) (L.drop 1 (T.inits t))
+        inits' (Chunk t ts) = L.map (\t' -> Chunk t' Empty) (NE.tail (T.initsNE t))
                            ++ L.map (Chunk t) (inits' ts)
 
 -- | /O(n)/ Return all final segments of the given 'Text', longest
