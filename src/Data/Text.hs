@@ -1529,6 +1529,8 @@ inits = (NonEmptyList.toList $!) . initsNE
 
 -- | /O(n)/ Return all initial segments of the given 'Text', shortest
 -- first.
+--
+-- @since 2.1.2
 initsNE :: Text -> NonEmptyList.NonEmpty Text
 initsNE t = empty NonEmptyList.:| case t of
   Text arr off len ->
@@ -1544,6 +1546,8 @@ tails = (NonEmptyList.toList $!) . tailsNE
 
 -- | /O(n)/ Return all final segments of the given 'Text', longest
 -- first.
+--
+-- @since 2.1.2
 tailsNE :: Text -> NonEmptyList.NonEmpty Text
 tailsNE t
   | null t = empty NonEmptyList.:| []

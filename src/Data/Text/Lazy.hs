@@ -1433,6 +1433,8 @@ inits = (NE.toList P.$!) . initsNE
 
 -- | /O(n)/ Return all initial segments of the given 'Text',
 -- shortest first.
+--
+-- @since 2.1.2
 initsNE :: Text -> NonEmpty Text
 initsNE = (Empty NE.:|) . inits'
   where inits' Empty        = []
@@ -1446,6 +1448,8 @@ tails = (NE.toList P.$!) . tailsNE
 
 -- | /O(n)/ Return all final segments of the given 'Text', longest
 -- first.
+--
+-- @since 2.1.2
 tailsNE :: Text -> NonEmpty Text
 tailsNE Empty = Empty :| []
 tailsNE ts@(Chunk t ts')
