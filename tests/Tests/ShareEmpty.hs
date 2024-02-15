@@ -112,7 +112,7 @@ tests = testGroup "empty Text values are shared"
   , testCase "tails empty = [empty]" $ mapM_ assertPtrEqEmpty $ T.tails empty
   , testCase "tailsNE empty = singleton empty" $ mapM_ assertPtrEqEmpty $ T.tailsNE empty
   , testCase "tails _ = [..., empty]" $ assertPtrEqEmpty $ L.last $ T.tails "123"
-  , testCase "tailsNE _ = reverse (empty :| …)" $ assertPtrEqEmpty $ NonEmptyList.last $ T.tailsNE "123"
+  , testCase "tailsNE _ = reverse (empty :| ...)" $ assertPtrEqEmpty $ NonEmptyList.last $ T.tailsNE "123"
   , testCase "split _ empty = [empty]" $ mapM_ assertPtrEqEmpty $ T.split (== 'a') ""
   , testCase "filter (const False) _ = empty" $ assertPtrEqEmpty $ T.filter (const False) "1234"
   , testCase "zipWith const empty empty = empty" $ assertPtrEqEmpty $ T.zipWith const "" ""
