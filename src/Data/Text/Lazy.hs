@@ -1426,12 +1426,12 @@ groupBy eq (Chunk t ts) = cons x ys : groupBy eq zs
                                 x  = T.unsafeHead t
                                 xs = chunk (T.unsafeTail t) ts
 
--- | /O(n)/ Return all initial segments of the given 'Text',
+-- | /O(n²)/ Return all initial segments of the given 'Text',
 -- shortest first.
 inits :: Text -> [Text]
 inits = (NE.toList P.$!) . initsNE
 
--- | /O(n)/ Return all initial segments of the given 'Text',
+-- | /O(n²)/ Return all initial segments of the given 'Text',
 -- shortest first.
 --
 -- @since 2.1.2
