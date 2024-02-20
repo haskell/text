@@ -156,7 +156,9 @@ module Data.Text.Lazy
     , group
     , groupBy
     , inits
+    , initsNE
     , tails
+    , tailsNE
 
     -- ** Breaking into many substrings
     -- $split
@@ -1424,21 +1426,35 @@ groupBy eq (Chunk t ts) = cons x ys : groupBy eq zs
                                 x  = T.unsafeHead t
                                 xs = chunk (T.unsafeTail t) ts
 
--- | /O(n)/ Return all initial segments of the given 'Text',
+-- | /O(n²)/ Return all initial segments of the given 'Text',
 -- shortest first.
 inits :: Text -> [Text]
-inits = (Empty :) . inits'
+inits = (NE.toList P.$!) . initsNE
+
+-- | /O(n²)/ Return all initial segments of the given 'Text',
+-- shortest first.
+--
+-- @since 2.1.2
+initsNE :: Text -> NonEmpty Text
+initsNE = (Empty NE.:|) . inits'
   where inits' Empty        = []
-        inits' (Chunk t ts) = L.map (\t' -> Chunk t' Empty) (L.drop 1 (T.inits t))
+        inits' (Chunk t ts) = L.map (\t' -> Chunk t' Empty) (NE.tail (T.initsNE t))
                            ++ L.map (Chunk t) (inits' ts)
 
 -- | /O(n)/ Return all final segments of the given 'Text', longest
 -- first.
 tails :: Text -> [Text]
-tails Empty         = Empty : []
-tails ts@(Chunk t ts')
-  | T.length t == 1 = ts : tails ts'
-  | otherwise       = ts : tails (Chunk (T.unsafeTail t) ts')
+tails = (NE.toList P.$!) . tailsNE
+
+-- | /O(n)/ Return all final segments of the given 'Text', longest
+-- first.
+--
+-- @since 2.1.2
+tailsNE :: Text -> NonEmpty Text
+tailsNE Empty = Empty :| []
+tailsNE ts@(Chunk t ts')
+  | T.length t == 1 = ts :| tails ts'
+  | otherwise       = ts :| tails (Chunk (T.unsafeTail t) ts')
 
 -- $split
 --

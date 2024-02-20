@@ -155,7 +155,9 @@ module Data.Text
     , group
     , groupBy
     , inits
+    , initsNE
     , tails
+    , tailsNE
 
     -- ** Breaking into many substrings
     -- $split
@@ -227,6 +229,7 @@ import Control.Monad (foldM)
 import Control.Monad.ST (ST, runST)
 import qualified Data.Text.Array as A
 import qualified Data.List as L hiding (head, tail)
+import qualified Data.List.NonEmpty as NonEmptyList
 import Data.Binary (Binary(get, put))
 import Data.Monoid (Monoid(..))
 import Data.Semigroup (Semigroup(..))
@@ -1522,17 +1525,33 @@ group = groupBy (==)
 -- | /O(n)/ Return all initial segments of the given 'Text', shortest
 -- first.
 inits :: Text -> [Text]
-inits t = empty : case t of
+inits = (NonEmptyList.toList $!) . initsNE
+
+-- | /O(n)/ Return all initial segments of the given 'Text', shortest
+-- first.
+--
+-- @since 2.1.2
+initsNE :: Text -> NonEmptyList.NonEmpty Text
+initsNE t = empty NonEmptyList.:| case t of
   Text arr off len ->
-    let loop i | i >= len = []
-               | otherwise = let !j = i + iter_ t i in Text arr off j : loop j
+    let loop i
+          | i >= len = []
+          | otherwise = let !j = i + iter_ t i in Text arr off j : loop j
     in loop 0
 
 -- | /O(n)/ Return all final segments of the given 'Text', longest
 -- first.
 tails :: Text -> [Text]
-tails t | null t    = [empty]
-        | otherwise = t : tails (unsafeTail t)
+tails = (NonEmptyList.toList $!) . tailsNE
+
+-- | /O(n)/ Return all final segments of the given 'Text', longest
+-- first.
+--
+-- @since 2.1.2
+tailsNE :: Text -> NonEmptyList.NonEmpty Text
+tailsNE t
+  | null t = empty NonEmptyList.:| []
+  | otherwise = t NonEmptyList.:| tails (unsafeTail t)
 
 -- $split
 --
