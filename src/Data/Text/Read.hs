@@ -140,8 +140,16 @@ signed f = runP (signa (P f))
 -- >rational "3e"    == Right (3.0, "e")
 rational :: Fractional a => Reader a
 {-# SPECIALIZE rational :: Reader Double #-}
-rational = floaty $ \real frac fracDenom -> fromRational $
-                     real % 1 + frac % fracDenom
+rational = floaty $ \real frac fracDenom power ->
+  -- We must be careful to prevent DDoS attacks: if the return type is 'Double',
+  -- a client rightfully expects 'rational' to operate within bounded memory.
+  -- Thus if power is small, we can compute fraction with full precision and divide.
+  -- Otherwise divide first, apply fromRational and scale last:
+  -- the small loss of precision for Double does not matter much because the result is
+  -- likely infinity or zero anyway.
+  if abs power < 1000
+  then fromRational ((real % 1 + frac % fracDenom) * (10 ^^ power))
+  else fromRational (real % 1 + frac % fracDenom) * (10 ^^ power)
 
 -- | Read a rational number.
 --
@@ -156,9 +164,9 @@ rational = floaty $ \real frac fracDenom -> fromRational $
 -- around the 15th decimal place.  For 0.001% of numbers, this
 -- function will lose precision at the 13th or 14th decimal place.
 double :: Reader Double
-double = floaty $ \real frac fracDenom ->
-                   fromInteger real +
-                   fromInteger frac / fromInteger fracDenom
+double = floaty $ \real frac fracDenom power ->
+                   (fromInteger real +
+                   fromInteger frac / fromInteger fracDenom) * (10 ^^ power)
 
 signa :: Num a => Parser a -> Parser a
 {-# SPECIALIZE signa :: Parser Int -> Parser Int #-}
@@ -177,7 +185,7 @@ charAscii p = P $ \(Text arr off len) -> let c = A.unsafeIndex arr off in
   then Right (c, Text arr (off + 1) (len - 1))
   else Left "character does not match"
 
-floaty :: Fractional a => (Integer -> Integer -> Integer -> a) -> Reader a
+floaty :: Fractional a => (Integer -> Integer -> Integer -> Int -> a) -> Reader a
 {-# INLINE floaty #-}
 floaty f = runP $ do
   sign <- perhaps (ord8 '+') $ charAscii (\c -> c == ord8 '-' || c == ord8 '+')
@@ -193,9 +201,7 @@ floaty f = runP $ do
           then if power == 0
                then fromInteger real
                else fromInteger real * (10 ^^ power)
-          else if power == 0
-               then f real fraction (10 ^ fracDigits)
-               else f real fraction (10 ^ fracDigits) * (10 ^^ power)
+          else f real fraction (10 ^ fracDigits) power
   return $! if sign == ord8 '+'
             then n
             else -n
