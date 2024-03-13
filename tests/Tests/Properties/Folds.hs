@@ -1,14 +1,23 @@
 -- | Test folds, scans, and unfolds
 
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE ViewPatterns #-}
 
 {-# OPTIONS_GHC -fno-warn-missing-signatures #-}
+
+#ifdef MIN_VERSION_tasty_inspection_testing
+{-# LANGUAGE TemplateHaskell #-}
+{-# OPTIONS_GHC -O -dsuppress-all -dno-suppress-type-signatures -fplugin=Test.Tasty.Inspection.Plugin #-}
+#endif
+
 module Tests.Properties.Folds
     ( testFolds
     ) where
 
 import Control.Arrow (second)
 import Control.Exception (ErrorCall, evaluate, try)
+import Data.Functor.Identity (Identity(..))
+import Control.Monad.Trans.State (runState, state)
 import Data.Word (Word8, Word16)
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.HUnit (testCase, assertFailure, assertBool)
@@ -20,6 +29,11 @@ import qualified Data.Text.Internal.Fusion as S
 import qualified Data.Text.Internal.Fusion.Common as S
 import qualified Data.Text.Lazy as TL
 import qualified Data.Char as Char
+
+#ifdef MIN_VERSION_tasty_inspection_testing
+import Test.Tasty.Inspection (inspectTest, (==~))
+import GHC.Exts (inline)
+#endif
 
 -- Folds
 
@@ -193,6 +207,32 @@ tl_unfoldrN n m   = (L.take i . L.unfoldr (unf j)) `eq`
     where i = fromIntegral (n :: Word16)
           j = fromIntegral (m :: Word16)
 
+-- Monadic folds
+
+-- Parametric polymorphism allows us to only test foldlM' specialized to
+-- one function in the state monad (called @logger@ in the following tests)
+-- that just logs the arguments it was applied to and produces a fresh
+-- accumulator. That alone determines the general behavior of foldlM' with an
+-- arbitrary function in any monad.
+-- Reference: "Testing Polymorphic Properties" by Bernardy et al.
+-- https://publications.lib.chalmers.se/records/fulltext/local_99387.pdf
+
+t_foldlM' = (\l -> (length l, zip [0 ..] l)) `eqP` (fmap reverse . (`runState` []) . T.foldlM' logger 0)
+  where logger i c = state (\cs -> (length cs + 1, (i, c) : cs)) -- list in reverse order
+tl_foldlM' = (\l -> (length l, zip [0 ..] l)) `eqP` (fmap reverse . (`runState` []) . TL.foldlM' logger 0)
+  where logger i c = state (\cs -> (length cs + 1, (i, c) : cs)) -- list in reverse order
+
+#ifdef MIN_VERSION_tasty_inspection_testing
+-- As a sanity check for performance, the simplified Core
+-- foldlM' specialized to Identity is the same as foldl'.
+
+_S_foldl'_from_foldlM' :: (a -> Char -> a) -> a -> S.Stream Char -> a
+_S_foldl'_from_foldlM' f x = runIdentity . S.foldlM' (\i c -> Identity (f i c)) x
+
+_S_foldl' :: (a -> Char -> a) -> a -> S.Stream Char -> a
+_S_foldl' = inline S.foldl'
+#endif
+
 isAscii_border :: IO ()
 isAscii_border = do
     let text  = T.drop 2 $ T.pack "XX1234五"
@@ -221,6 +261,11 @@ testFolds =
       testProperty "sf_foldr1" sf_foldr1,
       testProperty "t_foldr1" t_foldr1,
       testProperty "tl_foldr1" tl_foldr1,
+      testProperty "t_foldlM'" t_foldlM',
+      testProperty "tl_foldlM'" tl_foldlM',
+#ifdef MIN_VERSION_tasty_inspection_testing
+      $(inspectTest ('_S_foldl'_from_foldlM' ==~ '_S_foldl')),
+#endif
       testCase "fold_apart" fold_apart,
 
       testGroup "special" [
