@@ -209,7 +209,7 @@ fromString str = Builder $ \k (Buffer p0 o0 u0 l0) ->
     in loop p0 o0 u0 l0 str
   where
     chunkSize = smallChunkSize
-{-# INLINE fromString #-}
+{-# INLINEABLE fromString #-}
 
 -- | /O(1)./ A @Builder@ taking a lazy @Text@, satisfying
 --
