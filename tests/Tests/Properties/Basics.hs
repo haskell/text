@@ -4,6 +4,7 @@
 
 {-# OPTIONS_GHC -Wno-missing-signatures    #-}
 {-# OPTIONS_GHC -Wno-warnings-deprecations #-}
+{-# OPTIONS_GHC -Wno-x-partial #-}
 
 module Tests.Properties.Basics
     ( testBasics
