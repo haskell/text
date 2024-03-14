@@ -1443,10 +1443,18 @@ inits = (NE.toList P.$!) . initsNE
 --
 -- @since 2.1.2
 initsNE :: Text -> NonEmpty Text
-initsNE = (Empty NE.:|) . inits'
-  where inits' Empty        = []
-        inits' (Chunk t ts) = L.map (\t' -> Chunk t' Empty) (NE.tail (T.initsNE t))
-                           ++ L.map (Chunk t) (inits' ts)
+initsNE ts0 = Empty NE.:| inits' 0 ts0
+  where
+    inits' :: Int64  -- Number of previous chunks i
+           -> Text   -- The remainder after dropping i chunks from ts0
+           -> [Text] -- Prefixes longer than the first i chunks of ts0.
+    inits' _ Empty        = []
+    inits' i (Chunk t ts) = L.map (takeChunks i ts0) (NE.tail (T.initsNE t))
+                            ++ inits' (i + 1) ts
+
+takeChunks :: Int64 -> Text -> T.Text -> Text
+takeChunks !i (Chunk t ts) lastChunk | i > 0 = Chunk t (takeChunks (i - 1) ts lastChunk)
+takeChunks _ _ lastChunk = Chunk lastChunk Empty
 
 -- | /O(n)/ Return all final segments of the given 'Text', longest
 -- first.
