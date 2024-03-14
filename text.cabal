@@ -333,6 +333,7 @@ benchmark text-benchmarks
     Benchmarks.Equality
     Benchmarks.FileRead
     Benchmarks.FoldLines
+    Benchmarks.Micro
     Benchmarks.Multilang
     Benchmarks.Programs.BigTable
     Benchmarks.Programs.Cut
