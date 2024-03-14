@@ -1239,7 +1239,7 @@ splitAt :: Int64 -> Text -> (Text, Text)
 splitAt = loop
   where
     loop :: Int64 -> Text -> (Text, Text)
-    loop _ Empty      = (empty, empty)
+    loop !_ Empty     = (empty, empty)
     loop n t | n <= 0 = (empty, t)
     loop n (Chunk t ts)
          | n < len   = let (t',t'') = T.splitAt (int64ToInt n) t
@@ -1252,7 +1252,7 @@ splitAt = loop
 -- element is a prefix of @t@ whose chunks contain @n@ 'Word8'
 -- values, and whose second is the remainder of the string.
 splitAtWord :: Int64 -> Text -> PairS Text Text
-splitAtWord _ Empty = empty :*: empty
+splitAtWord !_ Empty = empty :*: empty
 splitAtWord x (Chunk c@(T.Text arr off len) cs)
     | y >= len  = let h :*: t = splitAtWord (x-intToInt64 len) cs
                   in  Chunk c h :*: t
