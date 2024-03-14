@@ -1448,9 +1448,9 @@ initsNE ts0 = Empty NE.:| inits' 0 ts0
     inits' :: Int64  -- Number of previous chunks i
            -> Text   -- The remainder after dropping i chunks from ts0
            -> [Text] -- Prefixes longer than the first i chunks of ts0.
-    inits' _ Empty        = []
-    inits' i (Chunk t ts) = L.map (takeChunks i ts0) (NE.tail (T.initsNE t))
-                            ++ inits' (i + 1) ts
+    inits' !i (Chunk t ts) = L.map (takeChunks i ts0) (NE.tail (T.initsNE t))
+                          ++ inits' (i + 1) ts
+    inits' _ Empty         = []
 
 takeChunks :: Int64 -> Text -> T.Text -> Text
 takeChunks !i (Chunk t ts) lastChunk | i > 0 = Chunk t (takeChunks (i - 1) ts lastChunk)
