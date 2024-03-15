@@ -24,7 +24,7 @@ jobs:
           args: "find . -mindepth 1 -maxdepth 1 -exec rm -rf -- {} +"
 
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       # GHC 9.2.2 is the last version available on arm32v7 at the moment.
       # Check https://github.com/haskell/ghcup-metadata/blob/develop/ghcup-0.0.7.yaml
