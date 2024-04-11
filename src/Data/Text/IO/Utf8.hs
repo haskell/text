@@ -25,15 +25,16 @@ module Data.Text.IO.Utf8
     , putStrLn
     ) where
 
-import Prelude hiding (readFile, writeFile, appendFile, interact, getContents, getLine, putStr, putStrLn)
+import Prelude ()
 import Control.Exception (evaluate)
-import Control.Monad ((<=<))
+import Control.Monad ((<=<), (=<<))
 import Data.ByteString (ByteString)
 import qualified Data.ByteString.Char8 as B
+import Data.Function ((.))
 import Data.Text (Text)
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import GHC.IO.Handle (Handle)
-import qualified Data.ByteString.Char8 as B.Char8
+import System.IO (IO, FilePath)
 
 decodeUtf8IO :: ByteString -> IO Text
 decodeUtf8IO = evaluate . decodeUtf8
@@ -67,7 +68,7 @@ hPutStr h = B.hPutStr h . encodeUtf8
 
 -- | Write a string to a handle, followed by a newline.
 hPutStrLn :: Handle -> Text -> IO ()
-hPutStrLn h t = hPutStr h t >> B.hPutStr h (B.Char8.singleton '\n')
+hPutStrLn h = B.hPutStrLn h . encodeUtf8
 
 -- | The 'interact' function takes a function of type @Text -> Text@
 -- as its argument. The entire input from the standard input device is
@@ -90,4 +91,4 @@ putStr = B.putStr . encodeUtf8
 
 -- | Write a string to 'stdout', followed by a newline.
 putStrLn :: Text -> IO ()
-putStrLn t = B.putStr (encodeUtf8 t) >> B.putStr (B.Char8.singleton '\n')
+putStrLn = B.putStrLn . encodeUtf8
