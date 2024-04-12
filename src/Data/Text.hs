@@ -372,6 +372,8 @@ instance Read Text where
 -- | @since 1.2.2.0
 instance Semigroup Text where
     (<>) = append
+    stimes = replicate . P.fromIntegral
+    sconcat = concat . NonEmptyList.toList
 
 instance Monoid Text where
     mempty  = empty
