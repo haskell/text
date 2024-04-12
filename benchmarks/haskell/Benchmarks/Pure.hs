@@ -26,6 +26,8 @@ import qualified Data.Text.Encoding as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Builder as TB
 import qualified Data.Text.Lazy.Encoding as TL
+import Data.Semigroup
+import Data.List.NonEmpty (NonEmpty((:|)))
 
 data Env = Env
     { bsa :: !BS.ByteString
@@ -82,6 +84,14 @@ benchmark kind ~Env{..} =
         , bgroup "concat"
             [ benchT   $ nf T.concat tl
             , benchTL  $ nf TL.concat tll
+            ]
+        , bgroup "sconcat"
+            [ benchT   $ nf sconcat (T.empty :| tl)
+            , benchTL  $ nf sconcat (TL.empty :| tll)
+            ]
+        , bgroup "stimes"
+            [ benchT   $ nf (stimes (10 :: Int)) ta
+            , benchTL  $ nf (stimes (10 :: Int)) tla
             ]
         , bgroup "cons"
             [ benchT   $ nf (T.cons c) ta
