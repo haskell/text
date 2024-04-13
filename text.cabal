@@ -284,6 +284,7 @@ test-suite tests
     Tests.Properties.Substrings
     Tests.Properties.Text
     Tests.Properties.Transcoding
+    Tests.Properties.CornerCases
     Tests.Properties.Validate
     Tests.QuickCheckUtils
     Tests.RebindableSyntaxTest

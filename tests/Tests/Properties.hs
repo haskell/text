@@ -17,6 +17,7 @@ import Tests.Properties.Read (testRead)
 import Tests.Properties.Text (testText)
 import Tests.Properties.Transcoding (testTranscoding)
 import Tests.Properties.Validate (testValidate)
+import Tests.Properties.CornerCases (testCornerCases)
 
 tests :: TestTree
 tests =
@@ -30,5 +31,6 @@ tests =
     testBuilder,
     testLowLevel,
     testRead,
+    testCornerCases,
     testValidate
   ]
