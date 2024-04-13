@@ -39,6 +39,7 @@ module Data.Text.Internal.Builder
    ( -- * Public API
      -- ** The Builder type
      Builder
+   , LazyTextBuilder
    , toLazyText
    , toLazyTextWith
 
@@ -95,6 +96,8 @@ newtype Builder = Builder {
                 -> Buffer s
                 -> ST s [S.Text]
    }
+
+type LazyTextBuilder = Builder
 
 instance Semigroup Builder where
    (<>) = append
