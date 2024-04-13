@@ -272,8 +272,7 @@ import Data.Word (Word8)
 import Foreign.C.Types
 import GHC.Base (eqInt, neInt, gtInt, geInt, ltInt, leInt)
 import qualified GHC.Exts as Exts
-import GHC.Int (Int8, Int (I#))
-import GHC.Num.Integer (Integer(IS, IP, IN))
+import GHC.Int (Int8)
 import GHC.Stack (HasCallStack)
 import qualified Language.Haskell.TH.Lib as TH
 import qualified Language.Haskell.TH.Syntax as TH
@@ -376,10 +375,11 @@ instance Semigroup Text where
 
     -- | Beware: this function will evaluate to error if the given number does
     -- not fit into an @Int@.
-    stimes howManyTimes = case P.toInteger howManyTimes of
-      IS howManyTimesInt# -> replicate (I# howManyTimesInt#)
-      IP _ -> P.error "Data.Text.stimes: given number does not fit into an Int!"
-      IN _ -> P.const empty
+    stimes howManyTimes =
+        let howManyTimesInt = P.fromIntegral howManyTimes :: Int
+        in  if P.fromIntegral howManyTimesInt == howManyTimes
+            then replicate howManyTimesInt
+            else P.error "Data.Text.stimes: given number does not fit into an Int!"
 
     sconcat = concat . NonEmptyList.toList
 
