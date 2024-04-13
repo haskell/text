@@ -15,6 +15,7 @@
 
 module Data.Text.Internal.StrictBuilder
   ( StrictBuilder(..)
+  , StrictTextBuilder
   , toText
   , fromChar
   , fromText
@@ -48,6 +49,8 @@ data StrictBuilder = StrictBuilder
   { sbLength :: {-# UNPACK #-} !Int
   , sbWrite :: forall s. A.MArray s -> Int -> ST s ()
   }
+
+type StrictTextBuilder = StrictBuilder
 
 -- | Use 'StrictBuilder' to build 'Text'.
 --

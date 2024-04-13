@@ -39,6 +39,7 @@
 module Data.Text.Lazy.Builder
    ( -- * The Builder type
      Builder
+   , LazyTextBuilder
    , toLazyText
    , toLazyTextWith
 

@@ -27,6 +27,7 @@ module Data.Text.Internal.Encoding
   , Utf8State
   , startUtf8State
   , StrictBuilder()
+  , StrictTextBuilder
   , strictBuilderToText
   , textToStrictBuilder
 
@@ -50,7 +51,7 @@ import Data.Text.Encoding.Error (OnDecodeError)
 import Data.Text.Internal (Text(..))
 import Data.Text.Internal.Encoding.Utf8
   (DecoderState, utf8AcceptState, utf8RejectState, updateDecoderState)
-import Data.Text.Internal.StrictBuilder (StrictBuilder)
+import Data.Text.Internal.StrictBuilder (StrictBuilder, StrictTextBuilder)
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Internal as BI
 import qualified Data.ByteString.Short.Internal as SBS
