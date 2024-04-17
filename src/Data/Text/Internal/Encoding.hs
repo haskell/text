@@ -26,8 +26,8 @@ module Data.Text.Internal.Encoding
   , decodeUtf8With2
   , Utf8State
   , startUtf8State
-  , StrictBuilder()
-  , StrictTextBuilder
+  , StrictTextBuilder()
+  , StrictBuilder
   , strictBuilderToText
   , textToStrictBuilder
 
@@ -73,13 +73,13 @@ import Foreign.Ptr (Ptr)
 -- | Use 'StrictBuilder' to build 'Text'.
 --
 -- @since 2.0.2
-strictBuilderToText :: StrictBuilder -> Text
+strictBuilderToText :: StrictTextBuilder -> Text
 strictBuilderToText = SB.toText
 
 -- | Copy 'Text' in a 'StrictBuilder'
 --
 -- @since 2.0.2
-textToStrictBuilder :: Text -> StrictBuilder
+textToStrictBuilder :: Text -> StrictTextBuilder
 textToStrictBuilder = SB.fromText
 
 -- | State of decoding a 'ByteString' in UTF-8.
@@ -353,11 +353,11 @@ validateUtf8MoreCont st@(Utf8State s0 part) bs k
       | otherwise = k (- partUtf8Len part) (Just (Utf8State s (partUtf8UnsafeAppend part bs)))
 
 -- Eta-expanded to inline partUtf8Foldr
-partUtf8ToStrictBuilder :: PartialUtf8CodePoint -> StrictBuilder
+partUtf8ToStrictBuilder :: PartialUtf8CodePoint -> StrictTextBuilder
 partUtf8ToStrictBuilder c =
   partUtf8Foldr ((<>) . SB.unsafeFromWord8) mempty c
 
-utf8StateToStrictBuilder :: Utf8State -> StrictBuilder
+utf8StateToStrictBuilder :: Utf8State -> StrictTextBuilder
 utf8StateToStrictBuilder = partUtf8ToStrictBuilder . partialUtf8CodePoint
 
 -- | Decode another chunk in an ongoing UTF-8 stream.
@@ -414,7 +414,7 @@ utf8StateToStrictBuilder = partUtf8ToStrictBuilder . partialUtf8CodePoint
 --     s2b (pre1 '<>' pre2) = s2b pre3
 --     ms2 = ms3
 --     @
-decodeUtf8More :: Utf8State -> ByteString -> (StrictBuilder, ByteString, Maybe Utf8State)
+decodeUtf8More :: Utf8State -> ByteString -> (StrictTextBuilder, ByteString, Maybe Utf8State)
 decodeUtf8More s bs =
   validateUtf8MoreCont s bs $ \len ms ->
     let builder | len <= 0 = mempty
@@ -445,7 +445,7 @@ decodeUtf8More s bs =
 -- @
 -- 'Data.Text.Encoding.encodeUtf8' ('Data.Text.Encoding.strictBuilderToText' builder) '<>' rest = chunk
 -- @
-decodeUtf8Chunk :: ByteString -> (StrictBuilder, ByteString, Maybe Utf8State)
+decodeUtf8Chunk :: ByteString -> (StrictTextBuilder, ByteString, Maybe Utf8State)
 decodeUtf8Chunk = decodeUtf8More startUtf8State
 
 -- | Call the error handler on each byte of the partial code point stored in
@@ -455,14 +455,14 @@ decodeUtf8Chunk = decodeUtf8More startUtf8State
 --
 -- @since 2.0.2
 {-# INLINE skipIncomplete #-}
-skipIncomplete :: OnDecodeError -> String -> Utf8State -> StrictBuilder
+skipIncomplete :: OnDecodeError -> String -> Utf8State -> StrictTextBuilder
 skipIncomplete onErr msg s =
   partUtf8Foldr
     ((<>) . handleUtf8Error onErr msg)
     mempty (partialUtf8CodePoint s)
 
 {-# INLINE handleUtf8Error #-}
-handleUtf8Error :: OnDecodeError -> String -> Word8 -> StrictBuilder
+handleUtf8Error :: OnDecodeError -> String -> Word8 -> StrictTextBuilder
 handleUtf8Error onErr msg w = case onErr msg (Just w) of
   Just c -> SB.fromChar c
   Nothing -> mempty
@@ -506,7 +506,7 @@ decodeUtf8With2 ::
 #if defined(ASSERTS)
   HasCallStack =>
 #endif
-  OnDecodeError -> String -> Utf8State -> ByteString -> (StrictBuilder, ByteString, Utf8State)
+  OnDecodeError -> String -> Utf8State -> ByteString -> (StrictTextBuilder, ByteString, Utf8State)
 decodeUtf8With2 onErr msg s0 bs = loop s0 0 mempty
   where
     loop s i !builder =

@@ -1,6 +1,7 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 
 -- |
 -- Module      : Data.Text.Internal.Builder
@@ -14,8 +15,8 @@
 -- @since 2.0.2
 
 module Data.Text.Internal.StrictBuilder
-  ( StrictBuilder(..)
-  , StrictTextBuilder
+  ( StrictTextBuilder(..)
+  , StrictBuilder
   , toText
   , fromChar
   , fromText
@@ -44,20 +45,24 @@ import qualified Data.Text.Internal.Unsafe.Char as Char
 
 -- | A delayed representation of strict 'Text'.
 --
--- @since 2.0.2
-data StrictBuilder = StrictBuilder
+-- @since 2.1.2
+data StrictTextBuilder = StrictTextBuilder
   { sbLength :: {-# UNPACK #-} !Int
   , sbWrite :: forall s. A.MArray s -> Int -> ST s ()
   }
 
-type StrictTextBuilder = StrictBuilder
+-- | A delayed representation of strict 'Text'.
+--
+-- @since 2.0.2
+{-# DEPRECATED StrictBuilder "Use StrictTextBuilder instead" #-}
+type StrictBuilder = StrictTextBuilder
 
 -- | Use 'StrictBuilder' to build 'Text'.
 --
 -- @since 2.0.2
-toText :: StrictBuilder -> Text
-toText (StrictBuilder 0 _) = empty
-toText (StrictBuilder n write) = runST (do
+toText :: StrictTextBuilder -> Text
+toText (StrictTextBuilder 0 _) = empty
+toText (StrictTextBuilder n write) = runST (do
   dst <- A.new n
   write dst 0
   arr <- A.unsafeFreeze dst
@@ -66,21 +71,21 @@ toText (StrictBuilder n write) = runST (do
 -- | Concatenation of 'StrictBuilder' is right-biased:
 -- the right builder will be run first. This allows a builder to
 -- run tail-recursively when it was accumulated left-to-right.
-instance Semigroup StrictBuilder where
+instance Semigroup StrictTextBuilder where
   (<>) = appendRStrictBuilder
 
-instance Monoid StrictBuilder where
+instance Monoid StrictTextBuilder where
   mempty = emptyStrictBuilder
   mappend = (<>)
 
-emptyStrictBuilder :: StrictBuilder
-emptyStrictBuilder = StrictBuilder 0 (\_ _ -> pure ())
+emptyStrictBuilder :: StrictTextBuilder
+emptyStrictBuilder = StrictTextBuilder 0 (\_ _ -> pure ())
 
-appendRStrictBuilder :: StrictBuilder -> StrictBuilder -> StrictBuilder
-appendRStrictBuilder (StrictBuilder 0 _) b2 = b2
-appendRStrictBuilder b1 (StrictBuilder 0 _) = b1
-appendRStrictBuilder (StrictBuilder n1 write1) (StrictBuilder n2 write2) =
-  StrictBuilder (n1 + n2) (\dst ofs -> do
+appendRStrictBuilder :: StrictTextBuilder -> StrictTextBuilder -> StrictTextBuilder
+appendRStrictBuilder (StrictTextBuilder 0 _) b2 = b2
+appendRStrictBuilder b1 (StrictTextBuilder 0 _) = b1
+appendRStrictBuilder (StrictTextBuilder n1 write1) (StrictTextBuilder n2 write2) =
+  StrictTextBuilder (n1 + n2) (\dst ofs -> do
     write2 dst (ofs + n1)
     write1 dst ofs)
 
@@ -94,16 +99,16 @@ copyFromByteString dst ofs src = withBS src $ \ srcFPtr len ->
 -- Unsafe: This may not be valid UTF-8 text.
 --
 -- @since 2.0.2
-unsafeFromByteString :: ByteString -> StrictBuilder
+unsafeFromByteString :: ByteString -> StrictTextBuilder
 unsafeFromByteString bs =
-  StrictBuilder (B.length bs) (\dst ofs -> copyFromByteString dst ofs bs)
+  StrictTextBuilder (B.length bs) (\dst ofs -> copyFromByteString dst ofs bs)
 
 -- |
 -- @since 2.0.2
 {-# INLINE fromChar #-}
-fromChar :: Char -> StrictBuilder
+fromChar :: Char -> StrictTextBuilder
 fromChar c =
-  StrictBuilder (utf8Length c) (\dst ofs -> void (Char.unsafeWrite dst ofs (safe c)))
+  StrictTextBuilder (utf8Length c) (\dst ofs -> void (Char.unsafeWrite dst ofs (safe c)))
 
 -- $unsafe
 -- For internal purposes, we abuse 'StrictBuilder' as a delayed 'Array' rather
@@ -112,13 +117,13 @@ fromChar c =
 -- | Unsafe: This may not be valid UTF-8 text.
 --
 -- @since 2.0.2
-unsafeFromWord8 :: Word8 -> StrictBuilder
+unsafeFromWord8 :: Word8 -> StrictTextBuilder
 unsafeFromWord8 !w =
-  StrictBuilder 1 (\dst ofs -> A.unsafeWrite dst ofs w)
+  StrictTextBuilder 1 (\dst ofs -> A.unsafeWrite dst ofs w)
 
 -- | Copy 'Text' in a 'StrictBuilder'
 --
 -- @since 2.0.2
-fromText :: Text -> StrictBuilder
-fromText (Text src srcOfs n) = StrictBuilder n (\dst dstOfs ->
+fromText :: Text -> StrictTextBuilder
+fromText (Text src srcOfs n) = StrictTextBuilder n (\dst dstOfs ->
   A.copyI n dst dstOfs src srcOfs)
