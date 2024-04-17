@@ -1,3 +1,7 @@
+### 2.1.2
+
+* [Add type synonym for lazy builders. Deprecated `StrictBuilder` for `StrictTextBuilder`](https://github.com/haskell/text/pull/581)
+
 ### 2.1.1
 
 * Add pure Haskell implementations as an alternative to C-based ones,
