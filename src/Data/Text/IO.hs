@@ -33,6 +33,8 @@ module Data.Text.IO
     , hGetChunk
     , hGetLine
     , hPutStr
+    , hPutStrInit
+    , hPutStr'
     , hPutStrLn
     -- * Special cases for standard input and output
     , interact
@@ -174,20 +176,28 @@ hGetLine = hGetLineWith T.concat
 
 -- | Write a string to a handle.
 hPutStr :: Handle -> Text -> IO ()
--- This function is lifted almost verbatim from GHC.IO.Handle.Text.
-hPutStr h t = do
-  (buffer_mode, nl) <-
-       wantWritableHandle "hPutStr" h $ \h_ -> do
-                     bmode <- getSpareBuffer h_
-                     return (bmode, haOutputNL h_)
-  let str = stream t
-  case buffer_mode of
-     (NoBuffering, _)        -> hPutChars h str
-     (LineBuffering, buf)    -> writeLines h nl buf str
-     (BlockBuffering _, buf)
-         | nl == CRLF        -> writeBlocksCRLF h buf str
-         | otherwise         -> writeBlocksRaw h buf str
+hPutStr h t = hPutStrInit h $ \mode buf nl -> hPutStr' h mode buf nl t
 
+{-# INLINE hPutStrInit #-}
+hPutStrInit :: Handle -> (BufferMode -> Buffer CharBufElem -> Newline -> IO ()) -> IO ()
+hPutStrInit h f = do
+  (mode, buf, nl) <- wantWritableHandle "hPutStr" h $ \h_ -> do
+    (mode, buf) <- getSpareBuffer h_
+    let nl = haOutputNL h_
+    return (mode, buf, nl)
+  f mode buf nl
+
+{-# INLINE hPutStr' #-}
+hPutStr' :: Handle -> BufferMode -> Buffer CharBufElem -> Newline -> Text -> IO ()
+hPutStr' h mode buf nl t = case mode of
+  NoBuffering      -> hPutChars h str
+  LineBuffering    -> writeLines h nl buf str
+  BlockBuffering _
+    | nl == CRLF   -> writeBlocksCRLF h buf str
+    | otherwise    -> writeBlocksRaw h buf str
+  where str = stream t
+
+{-# INLINE hPutChars #-}
 hPutChars :: Handle -> Stream Char -> IO ()
 hPutChars h (Stream next0 s0 _len) = loop s0
   where
@@ -206,6 +216,7 @@ hPutChars h (Stream next0 s0 _len) = loop s0
 -- performance improvement.  Lifting out the raw/cooked newline
 -- handling gave a few more percent on top.
 
+{-# INLINE writeLines #-}
 writeLines :: Handle -> Newline -> Buffer CharBufElem -> Stream Char -> IO ()
 writeLines h nl buf0 (Stream next0 s0 _len) = outer s0 buf0
  where
@@ -226,6 +237,7 @@ writeLines h nl buf0 (Stream next0 s0 _len) = outer s0 buf0
           | otherwise    -> writeCharBuf raw n x >>= inner s'
     commit = commitBuffer h raw len
 
+{-# INLINE writeBlocksCRLF #-}
 writeBlocksCRLF :: Handle -> Buffer CharBufElem -> Stream Char -> IO ()
 writeBlocksCRLF h buf0 (Stream next0 s0 _len) = outer s0 buf0
  where
@@ -242,6 +254,7 @@ writeBlocksCRLF h buf0 (Stream next0 s0 _len) = outer s0 buf0
           | otherwise    -> writeCharBuf raw n x >>= inner s'
     commit = commitBuffer h raw len
 
+{-# INLINE writeBlocksRaw #-}
 writeBlocksRaw :: Handle -> Buffer CharBufElem -> Stream Char -> IO ()
 writeBlocksRaw h buf0 (Stream next0 s0 _len) = outer s0 buf0
  where
@@ -257,6 +270,7 @@ writeBlocksRaw h buf0 (Stream next0 s0 _len) = outer s0 buf0
     commit = commitBuffer h raw len
 
 -- This function is completely lifted from GHC.IO.Handle.Text.
+{-# INLINE getSpareBuffer #-}
 getSpareBuffer :: Handle__ -> IO (BufferMode, CharBuffer)
 getSpareBuffer Handle__{haCharBuffer=ref,
                         haBuffers=spare_ref,

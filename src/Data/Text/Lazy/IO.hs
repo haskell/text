@@ -129,7 +129,8 @@ hGetLine = hGetLineWith L.fromChunks
 
 -- | Write a string to a handle.
 hPutStr :: Handle -> Text -> IO ()
-hPutStr h = mapM_ (T.hPutStr h) . L.toChunks
+hPutStr h t = T.hPutStrInit h $ \mode buf nl ->
+  mapM_ (T.hPutStr' h mode buf nl) (L.toChunks t)
 
 -- | Write a string to a handle, followed by a newline.
 hPutStrLn :: Handle -> Text -> IO ()
