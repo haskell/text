@@ -332,6 +332,7 @@ benchmark text-benchmarks
     Benchmarks.EncodeUtf8
     Benchmarks.Equality
     Benchmarks.FileRead
+    Benchmarks.FileWrite
     Benchmarks.FoldLines
     Benchmarks.Micro
     Benchmarks.Multilang

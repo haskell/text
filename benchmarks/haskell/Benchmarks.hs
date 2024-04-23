@@ -19,6 +19,7 @@ import qualified Benchmarks.DecodeUtf8 as DecodeUtf8
 import qualified Benchmarks.EncodeUtf8 as EncodeUtf8
 import qualified Benchmarks.Equality as Equality
 import qualified Benchmarks.FileRead as FileRead
+import qualified Benchmarks.FileWrite as FileWrite
 import qualified Benchmarks.FoldLines as FoldLines
 import qualified Benchmarks.Micro as Micro
 import qualified Benchmarks.Multilang as Multilang
@@ -59,6 +60,9 @@ main = do
     let tf = ("benchmarks/text-test-data" </>)
     -- Cannot use envWithCleanup, because there is no instance NFData Handle
     (sinkFn, sink) <- mkSink
+    (fileWriteBenchmarks, fileWriteCleanup) <- FileWrite.mkFileWriteBenchmarks $ do
+      (fp, h) <- mkSink
+      return (h, rmSink fp)
     defaultMain
         [ Builder.benchmark
         , Concat.benchmark
@@ -77,6 +81,7 @@ main = do
             ]
         , env (Equality.initEnv (tf "japanese.txt")) Equality.benchmark
         , FileRead.benchmark (tf "russian.txt")
+        , fileWriteBenchmarks
         , FoldLines.benchmark (tf "russian.txt")
         , Multilang.benchmark
         , bgroup "Pure"
@@ -102,3 +107,4 @@ main = do
             ]
         ]
     rmSink sinkFn
+    fileWriteCleanup
