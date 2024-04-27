@@ -40,8 +40,10 @@ module Data.Text.Internal.Builder
      -- ** The Builder type
      Builder
    , LazyTextBuilder
+   , getTexts
    , toLazyText
    , toLazyTextWith
+   , starter
 
      -- ** Constructing Builders
    , singleton
@@ -92,12 +94,19 @@ import GHC.Stack (HasCallStack)
 newtype Builder = Builder {
      -- Invariant (from Data.Text.Lazy):
      --      The lists include no null Texts.
-     runBuilder :: forall s. (Buffer s -> ST s [S.Text])
+     runBuilder :: forall s
+                .  (Int -> (Int -> ST s (A.MArray s)) -> Buffer s -> ST s [S.Text])
+                -> Int -- buffer size
+                -> (Int -> ST s (A.MArray s)) -- new array
                 -> Buffer s
                 -> ST s [S.Text]
    }
 
 type LazyTextBuilder = Builder
+
+getTexts :: Int -> (Int -> ST s (A.MArray s)) -> Builder -> ST s [S.Text]
+getTexts chunkSize new b =
+  newBuffer new chunkSize >>= runBuilder (b `append` flush) starter chunkSize new
 
 instance Semigroup Builder where
    (<>) = append
@@ -136,7 +145,7 @@ instance Ord Builder where
 --  * @'toLazyText' 'empty' = 'L.empty'@
 --
 empty :: Builder
-empty = Builder (\ k buf -> k buf)
+empty = Builder (\ k new buf -> k new buf)
 {-# INLINE empty #-}
 
 -- | /O(1)./ A @Builder@ taking a single character, satisfying
@@ -160,6 +169,7 @@ singleton c = writeAtMost 4 $ \ marr o -> unsafeWrite marr o (safe c)
 --
 append :: Builder -> Builder -> Builder
 append (Builder f) (Builder g) = Builder (f . g)
+--append (Builder f) (Builder g) = Builder $ \ k new buf -> f (g k) new buf
 {-# INLINE [0] append #-}
 
 -- TODO: Experiment to find the right threshold.
@@ -196,22 +206,20 @@ fromText t@(Text arr off l)
 --
 -- @since 1.2.0.0
 fromString :: String -> Builder
-fromString str = Builder $ \k (Buffer p0 o0 u0 l0) ->
-    let loop !marr !o !u !l [] = k (Buffer marr o u l)
+fromString str = Builder $ \k chunkSize new (Buffer p0 o0 u0 l0) ->
+    let loop !marr !o !u !l [] = k chunkSize new (Buffer marr o u l)
         loop marr o u l s@(c:cs)
             | l <= 3 = do
                 A.shrinkM marr (o + u)
                 arr <- A.unsafeFreeze marr
                 let !t = Text arr o u
-                marr' <- A.new chunkSize
+                marr' <- new chunkSize
                 ts <- inlineInterleaveST (loop marr' 0 0 chunkSize s)
                 return $ t : ts
             | otherwise = do
                 n <- unsafeWrite marr (o+u) (safe c)
                 loop marr o (u+n) (l-n) cs
     in loop p0 o0 u0 l0 str
-  where
-    chunkSize = smallChunkSize
 {-# INLINEABLE fromString #-}
 
 -- | /O(1)./ A @Builder@ taking a lazy @Text@, satisfying
@@ -246,18 +254,21 @@ toLazyText = toLazyTextWith smallChunkSize
 -- buffers will be the default buffer size.
 toLazyTextWith :: Int -> Builder -> L.Text
 toLazyTextWith chunkSize m = L.fromChunks (runST $
-  newBuffer chunkSize >>= runBuilder (m `append` flush) (const (return [])))
+  newBuffer A.new chunkSize >>= runBuilder (m `append` flush) starter smallChunkSize A.new)
+
+starter :: Monad m => a -> b -> c -> m [d]
+starter _ _ _ = return []
 
 -- | /O(1)./ Pop the strict @Text@ we have constructed so far, if any,
 -- yielding a new chunk in the result lazy @Text@.
 flush :: Builder
-flush = Builder $ \ k buf@(Buffer p o u l) ->
+flush = Builder $ \ k cs new buf@(Buffer p o u l) ->
     if u == 0
-    then k buf
+    then k cs new buf
     else do arr <- A.unsafeFreeze p
             let !b = Buffer p (o+u) 0 l
                 !t = Text arr o u
-            ts <- inlineInterleaveST (k b)
+            ts <- inlineInterleaveST (k cs new b)
             return $! t : ts
 {-# INLINE [1] flush #-}
 -- defer inlining so that flush/flush rule may fire.
@@ -266,18 +277,18 @@ flush = Builder $ \ k buf@(Buffer p o u l) ->
 
 -- | Sequence an ST operation on the buffer
 withBuffer :: (forall s. Buffer s -> ST s (Buffer s)) -> Builder
-withBuffer f = Builder $ \k buf -> f buf >>= k
+withBuffer f = Builder $ \k cs new buf -> f buf >>= k cs new
 {-# INLINE withBuffer #-}
 
 -- | Get the size of the buffer
 withSize :: (Int -> Builder) -> Builder
-withSize f = Builder $ \ k buf@(Buffer _ _ _ l) ->
-    runBuilder (f l) k buf
+withSize f = Builder $ \ k cs new buf@(Buffer _ _ _ l) ->
+    runBuilder (f l) k cs new buf
 {-# INLINE withSize #-}
 
 -- | Map the resulting list of texts.
 mapBuilder :: ([S.Text] -> [S.Text]) -> Builder
-mapBuilder f = Builder (fmap f .)
+mapBuilder f = Builder $ \ k cs new b -> f <$> k cs new b
 
 ------------------------------------------------------------------------
 
@@ -286,7 +297,7 @@ ensureFree :: Int -> Builder
 ensureFree !n = withSize $ \ l ->
     if n <= l
     then empty
-    else flush `append'` withBuffer (const (newBuffer (max n smallChunkSize)))
+    else flush `append'` Builder (\k chunkSize new _ -> k chunkSize new =<< newBuffer new (max n chunkSize))
 {-# INLINE [0] ensureFree #-}
 
 writeAtMost :: Int -> (forall s. A.MArray s -> Int -> ST s Int) -> Builder
@@ -305,9 +316,9 @@ writeBuffer f (Buffer p o u l) = do
     return $! Buffer p o (u+n) (l-n)
 {-# INLINE writeBuffer #-}
 
-newBuffer :: Int -> ST s (Buffer s)
-newBuffer size = do
-    arr <- A.new size
+newBuffer :: (Int -> ST s (A.MArray s)) -> Int -> ST s (Buffer s)
+newBuffer new size = do
+    arr <- new size
     return $! Buffer arr 0 0 size
 {-# INLINE newBuffer #-}
 

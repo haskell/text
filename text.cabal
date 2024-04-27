@@ -195,6 +195,7 @@ library
     Data.Text.Lazy
     Data.Text.Lazy.Builder
     Data.Text.Lazy.Builder.Int
+    Data.Text.Lazy.Builder.IO
     Data.Text.Lazy.Builder.RealFloat
     Data.Text.Lazy.Encoding
     Data.Text.Lazy.IO
