@@ -11,18 +11,18 @@ module Benchmarks.FileWrite
     ( mkFileWriteBenchmarks
     ) where
 
-import System.IO
-import Data.String (fromString)
-import qualified Data.Text.Lazy as LT
-import Test.Tasty.Bench (Benchmark, bgroup, bench, nfAppIO)
-import qualified Data.Text.IO as T
-import qualified Data.Text.Lazy.IO as LT
 import Control.DeepSeq (NFData, deepseq)
+import Data.Bifunctor (first)
 import Data.Functor ((<&>))
+import Data.String (fromString)
 import Data.Text (StrictText)
 import Data.Text.Lazy (LazyText)
+import System.IO (Handle, Newline(CRLF,LF), NewlineMode(NewlineMode), BufferMode(NoBuffering,LineBuffering,BlockBuffering), hSetBuffering, hSetNewlineMode)
+import Test.Tasty.Bench (Benchmark, bgroup, bench, nfAppIO)
+import qualified Data.Text.IO as T
 import qualified Data.Text.IO.Utf8 as Utf8
-import Data.Bifunctor (first)
+import qualified Data.Text.Lazy as LT
+import qualified Data.Text.Lazy.IO as LT
 
 mkFileWriteBenchmarks :: IO (Handle, IO ()) -> IO (Benchmark, IO ())
 mkFileWriteBenchmarks mkSinkNRemove = do
@@ -41,7 +41,7 @@ mkFileWriteBenchmarks mkSinkNRemove = do
         hSetBuffering blockBufH $ BlockBuffering Nothing
         hSetNewlineMode blockBufH nlm
 
-        return
+        pure
           ( bgroup (groupName <> " " <> show nl) $ lengths <&> \n -> let
               st = LT.toStrict lt
               lt = LT.take n writeDate
@@ -66,5 +66,6 @@ mkFileWriteBenchmarks mkSinkNRemove = do
     , testGroup "Utf-8  hPutStr" Utf8.hPutStr strict LF
     ]
 
-strict = fst
-lazy = snd
+  where
+  strict = fst
+  lazy = snd
