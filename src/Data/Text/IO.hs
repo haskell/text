@@ -252,7 +252,7 @@ writeBlocksRaw h buf0 (Stream next0 s0 _len) = outer s0 buf0
         Done -> commit n False{-no flush-} True{-release-} >> return ()
         Skip s' -> inner s' n
         Yield x s'
-          | n + 1 >= len -> commit n True{-needs flush-} False >>= outer s
+          | n >= len -> commit n True{-needs flush-} False >>= outer s
           | otherwise    -> writeCharBuf raw n x >>= inner s'
     commit = commitBuffer h raw len
 
