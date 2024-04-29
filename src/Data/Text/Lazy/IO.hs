@@ -1,5 +1,8 @@
 {-# LANGUAGE BangPatterns, CPP, RecordWildCards #-}
 {-# LANGUAGE Trustworthy #-}
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE NamedFieldPuns #-}
 -- |
 -- Module      : Data.Text.Lazy.IO
 -- Copyright   : (c) 2009, 2010 Bryan O'Sullivan,
@@ -50,7 +53,7 @@ import Control.Monad (when)
 import Data.IORef (readIORef)
 import Data.Text.Internal.IO (hGetLineWith, readChunk)
 import Data.Text.Internal.Lazy (chunk, empty)
-import GHC.IO.Buffer (isEmptyBuffer)
+import GHC.IO.Buffer (isEmptyBuffer, Buffer(Buffer,bufRaw,bufSize))
 import GHC.IO.Exception (IOException(..), IOErrorType(..), ioException)
 import GHC.IO.Handle.Internals (augmentIOError, hClose_help,
                                 wantReadableHandle, withHandle)
@@ -58,6 +61,12 @@ import GHC.IO.Handle.Types (Handle__(..), HandleType(..))
 import System.IO (BufferMode(..), hGetBuffering, hSetBuffering)
 import System.IO.Error (isEOFError)
 import System.IO.Unsafe (unsafeInterleaveIO)
+import Data.Text.Internal.Fusion (stream)
+import Data.Text.Internal.Fusion.Types (Stream(Stream), Step(Done))
+import qualified Data.Text.Internal.Fusion.Types as F
+import Unsafe.Coerce (unsafeCoerce)
+import Data.Foldable (foldrM)
+import Data.Functor (void)
 
 -- | Read a file and return its contents as a string.  The file is
 -- read lazily, as with 'getContents'.
@@ -129,8 +138,11 @@ hGetLine = hGetLineWith L.fromChunks
 
 -- | Write a string to a handle.
 hPutStr :: Handle -> Text -> IO ()
-hPutStr h t = T.hPutStrInit h $ \mode buf nl ->
-  mapM_ (T.hPutStr' h mode buf nl) (L.toChunks t)
+hPutStr h t = T.hPutStrInit h $ \mode buf nl -> do
+  (n, b) <- foldrM (\t (n, buf) -> T.hPutStr' h mode nl buf n (stream t)) (0, buf) (L.toChunks t)
+  when (mode /= NoBuffering) $ let
+    Buffer{bufRaw,bufSize} = b
+    in void $ T.commitBuffer h bufRaw bufSize n False True
 
 -- | Write a string to a handle, followed by a newline.
 hPutStrLn :: Handle -> Text -> IO ()

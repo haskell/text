@@ -1,5 +1,6 @@
 {-# LANGUAGE BangPatterns, CPP, RecordWildCards, ScopedTypeVariables #-}
 {-# LANGUAGE Trustworthy #-}
+{-# LANGUAGE NamedFieldPuns #-}
 -- |
 -- Module      : Data.Text.IO
 -- Copyright   : (c) 2009, 2010 Bryan O'Sullivan,
@@ -35,6 +36,7 @@ module Data.Text.IO
     , hPutStr
     , hPutStrInit
     , hPutStr'
+    , commitBuffer
     , hPutStrLn
     -- * Special cases for standard input and output
     , interact
@@ -67,6 +69,7 @@ import GHC.IO.Handle.Types (BufferList(..), BufferMode(..), Handle__(..),
                             HandleType(..), Newline(..))
 import System.IO (hGetBuffering, hFileSize, hSetBuffering, hTell)
 import System.IO.Error (isEOFError)
+import Data.Functor (void)
 
 -- | The 'readFile' function reads a file and returns the contents of
 -- the file as a string.  The entire file is read strictly, as with
@@ -176,10 +179,14 @@ hGetLine = hGetLineWith T.concat
 
 -- | Write a string to a handle.
 hPutStr :: Handle -> Text -> IO ()
-hPutStr h t = hPutStrInit h $ \mode buf nl -> hPutStr' h mode buf nl t
+hPutStr h t = hPutStrInit h $ \mode buf nl -> do
+  (n, b) <- hPutStr' h mode nl buf 0 (stream t)
+  when (mode /= NoBuffering) $ let
+    Buffer{bufRaw,bufSize} = b
+    in void $ commitBuffer h bufRaw bufSize n False True
 
 {-# INLINE hPutStrInit #-}
-hPutStrInit :: Handle -> (BufferMode -> Buffer CharBufElem -> Newline -> IO ()) -> IO ()
+hPutStrInit :: Handle -> (BufferMode -> CharBuffer -> Newline -> IO ()) -> IO ()
 hPutStrInit h f = do
   (mode, buf, nl) <- wantWritableHandle "hPutStr" h $ \h_ -> do
     (mode, buf) <- getSpareBuffer h_
@@ -188,21 +195,20 @@ hPutStrInit h f = do
   f mode buf nl
 
 {-# INLINE hPutStr' #-}
-hPutStr' :: Handle -> BufferMode -> Buffer CharBufElem -> Newline -> Text -> IO ()
-hPutStr' h mode buf nl t = case mode of
-  NoBuffering      -> hPutChars h str
-  LineBuffering    -> writeLines h nl buf str
+hPutStr' :: Handle -> BufferMode -> Newline -> CharBuffer -> Int -> Stream Char -> IO (Int, CharBuffer)
+hPutStr' h mode nl = case mode of
+  NoBuffering      -> \_ _ -> hPutChars h 
+  LineBuffering    -> writeLines h nl
   BlockBuffering _
-    | nl == CRLF   -> writeBlocksCRLF h buf str
-    | otherwise    -> writeBlocksRaw h buf str
-  where str = stream t
+    | nl == CRLF   -> writeBlocksCRLF h
+    | otherwise    -> writeBlocksRaw h
 
 {-# INLINE hPutChars #-}
-hPutChars :: Handle -> Stream Char -> IO ()
+hPutChars :: Handle -> Stream Char -> IO (Int, CharBuffer)
 hPutChars h (Stream next0 s0 _len) = loop s0
   where
     loop !s = case next0 s of
-                Done       -> return ()
+                Done       -> return (0, error "no buffer for hPutChars")
                 Skip s'    -> loop s'
                 Yield x s' -> hPutChar h x >> loop s'
 
@@ -217,14 +223,14 @@ hPutChars h (Stream next0 s0 _len) = loop s0
 -- handling gave a few more percent on top.
 
 {-# INLINE writeLines #-}
-writeLines :: Handle -> Newline -> Buffer CharBufElem -> Stream Char -> IO ()
-writeLines h nl buf0 (Stream next0 s0 _len) = outer s0 buf0
+writeLines :: Handle -> Newline -> CharBuffer -> Int -> Stream Char -> IO (Int, CharBuffer)
+writeLines h nl buf0 n (Stream next0 s0 _len) = outer s0 buf0
  where
-  outer s1 Buffer{bufRaw=raw, bufSize=len} = inner s1 (0::Int)
+  outer s1 buf@Buffer{bufRaw=raw, bufSize=len} = inner s1 n
    where
     inner !s !n =
       case next0 s of
-        Done -> commit n False{-no flush-} True{-release-} >> return ()
+        Done -> return (n, buf)
         Skip s' -> inner s' n
         Yield x s'
           | n + 1 >= len -> commit n True{-needs flush-} False >>= outer s
@@ -238,14 +244,14 @@ writeLines h nl buf0 (Stream next0 s0 _len) = outer s0 buf0
     commit = commitBuffer h raw len
 
 {-# INLINE writeBlocksCRLF #-}
-writeBlocksCRLF :: Handle -> Buffer CharBufElem -> Stream Char -> IO ()
-writeBlocksCRLF h buf0 (Stream next0 s0 _len) = outer s0 buf0
+writeBlocksCRLF :: Handle -> CharBuffer -> Int -> Stream Char -> IO (Int, CharBuffer)
+writeBlocksCRLF h buf0 n (Stream next0 s0 _len) = outer s0 buf0
  where
-  outer s1 Buffer{bufRaw=raw, bufSize=len} = inner s1 (0::Int)
+  outer s1 buf@Buffer{bufRaw=raw, bufSize=len} = inner s1 n
    where
     inner !s !n =
       case next0 s of
-        Done -> commit n False{-no flush-} True{-release-} >> return ()
+        Done -> return (n, buf)
         Skip s' -> inner s' n
         Yield x s'
           | n + 1 >= len -> commit n True{-needs flush-} False >>= outer s
@@ -255,14 +261,14 @@ writeBlocksCRLF h buf0 (Stream next0 s0 _len) = outer s0 buf0
     commit = commitBuffer h raw len
 
 {-# INLINE writeBlocksRaw #-}
-writeBlocksRaw :: Handle -> Buffer CharBufElem -> Stream Char -> IO ()
-writeBlocksRaw h buf0 (Stream next0 s0 _len) = outer s0 buf0
+writeBlocksRaw :: Handle -> CharBuffer -> Int -> Stream Char -> IO (Int, CharBuffer)
+writeBlocksRaw h buf0 n (Stream next0 s0 _len) = outer s0 buf0
  where
-  outer s1 Buffer{bufRaw=raw, bufSize=len} = inner s1 (0::Int)
+  outer s1 buf@Buffer{bufRaw=raw, bufSize=len} = inner s1 n
    where
     inner !s !n =
       case next0 s of
-        Done -> commit n False{-no flush-} True{-release-} >> return ()
+        Done -> return (n, buf)
         Skip s' -> inner s' n
         Yield x s'
           | n + 1 >= len -> commit n True{-needs flush-} False >>= outer s
