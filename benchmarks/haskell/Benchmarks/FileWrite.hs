@@ -13,6 +13,7 @@ module Benchmarks.FileWrite
 
 import Control.DeepSeq (NFData, deepseq)
 import Data.Bifunctor (first)
+import Data.Semigroup ((<>))
 import Data.String (fromString)
 import Data.Text (StrictText)
 import Data.Text.Lazy (LazyText)
