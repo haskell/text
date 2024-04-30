@@ -48,6 +48,7 @@ import System.IO (Handle, IOMode(..), hPutChar, openFile, stdin, stdout,
                   withFile)
 import qualified Data.Text.IO as T
 import qualified Data.Text.Lazy as L
+import qualified Data.Text.Internal.Lazy as L
 import qualified Control.Exception as E
 import Control.Monad (when)
 import Data.IORef (readIORef)
@@ -65,7 +66,7 @@ import Data.Text.Internal.Fusion (stream)
 import Data.Text.Internal.Fusion.Types (Stream(Stream), Step(Done))
 import qualified Data.Text.Internal.Fusion.Types as F
 import Unsafe.Coerce (unsafeCoerce)
-import Data.Foldable (foldrM)
+import Data.Foldable (foldlM)
 import Data.Functor (void)
 
 -- | Read a file and return its contents as a string.  The file is
@@ -138,9 +139,10 @@ hGetLine = hGetLineWith L.fromChunks
 
 -- | Write a string to a handle.
 hPutStr :: Handle -> Text -> IO ()
+hPutStr _ L.Empty = pure ()
 hPutStr h t = T.hPutStrInit h $ \mode buf nl -> do
-  (n, b) <- foldrM (\t (n, buf) -> T.hPutStr' h mode nl buf n (stream t)) (0, buf) (L.toChunks t)
-  when (mode /= NoBuffering) $ let
+  (n, b) <- foldlM (\(n, buf) t -> T.hPutStr' h mode nl buf n (stream t)) (0, buf) (L.toChunks t)
+  when (mode /= NoBuffering && n /= 0) $ let
     Buffer{bufRaw,bufSize} = b
     in void $ T.commitBuffer h bufRaw bufSize n False True
 

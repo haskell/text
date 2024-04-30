@@ -55,7 +55,7 @@ import qualified Control.Exception as E
 import Control.Monad (liftM2, when)
 import Data.IORef (readIORef, writeIORef)
 import qualified Data.Text as T
-import Data.Text.Internal.Fusion (stream)
+import Data.Text.Internal.Fusion (stream, unstream)
 import Data.Text.Internal.Fusion.Types (Step(..), Stream(..))
 import Data.Text.Internal.IO (hGetLineWith, readChunk)
 import GHC.IO.Buffer (Buffer(..), BufferState(..), CharBufElem, CharBuffer,
@@ -224,37 +224,37 @@ hPutChars h (Stream next0 s0 _len) = loop s0
 
 {-# INLINE writeLines #-}
 writeLines :: Handle -> Newline -> CharBuffer -> Int -> Stream Char -> IO (Int, CharBuffer)
-writeLines h nl buf0 n (Stream next0 s0 _len) = outer s0 buf0
+writeLines h nl buf0 n (Stream next0 s0 _len) = outer s0 n buf0
  where
-  outer s1 buf@Buffer{bufRaw=raw, bufSize=len} = inner s1 n
+  outer s1 n buf@Buffer{bufRaw=raw, bufSize=len} = inner s1 n
    where
     inner !s !n =
       case next0 s of
         Done -> return (n, buf)
         Skip s' -> inner s' n
         Yield x s'
-          | n + 1 >= len -> commit n True{-needs flush-} False >>= outer s
+          | n + 1 >= len -> commit n True{-needs flush-} False >>= outer s 0
           | x == '\n'    -> do
                    n' <- if nl == CRLF
                          then do n1 <- writeCharBuf raw n '\r'
                                  writeCharBuf raw n1 '\n'
                          else writeCharBuf raw n x
-                   commit n' True{-needs flush-} False >>= outer s'
+                   commit n' True{-needs flush-} False >>= outer s' 0
           | otherwise    -> writeCharBuf raw n x >>= inner s'
     commit = commitBuffer h raw len
 
 {-# INLINE writeBlocksCRLF #-}
 writeBlocksCRLF :: Handle -> CharBuffer -> Int -> Stream Char -> IO (Int, CharBuffer)
-writeBlocksCRLF h buf0 n (Stream next0 s0 _len) = outer s0 buf0
+writeBlocksCRLF h buf0 n (Stream next0 s0 _len) = outer s0 n buf0
  where
-  outer s1 buf@Buffer{bufRaw=raw, bufSize=len} = inner s1 n
+  outer s1 n buf@Buffer{bufRaw=raw, bufSize=len} = inner s1 n
    where
     inner !s !n =
       case next0 s of
         Done -> return (n, buf)
         Skip s' -> inner s' n
         Yield x s'
-          | n + 1 >= len -> commit n True{-needs flush-} False >>= outer s
+          | n + 1 >= len -> commit n True{-needs flush-} False >>= outer s 0
           | x == '\n'    -> do n1 <- writeCharBuf raw n '\r'
                                writeCharBuf raw n1 '\n' >>= inner s'
           | otherwise    -> writeCharBuf raw n x >>= inner s'
@@ -262,16 +262,16 @@ writeBlocksCRLF h buf0 n (Stream next0 s0 _len) = outer s0 buf0
 
 {-# INLINE writeBlocksRaw #-}
 writeBlocksRaw :: Handle -> CharBuffer -> Int -> Stream Char -> IO (Int, CharBuffer)
-writeBlocksRaw h buf0 n (Stream next0 s0 _len) = outer s0 buf0
+writeBlocksRaw h buf0 n str@(Stream next0 s0 _len) = outer s0 n buf0
  where
-  outer s1 buf@Buffer{bufRaw=raw, bufSize=len} = inner s1 n
+  outer s1 n buf@Buffer{bufRaw=raw, bufSize=len} = inner s1 n
    where
     inner !s !n =
       case next0 s of
         Done -> return (n, buf)
         Skip s' -> inner s' n
         Yield x s'
-          | n + 1 >= len -> commit n True{-needs flush-} False >>= outer s
+          | n + 1 >= len -> commit n True{-needs flush-} False >>= outer s 0
           | otherwise    -> writeCharBuf raw n x >>= inner s'
     commit = commitBuffer h raw len
 
