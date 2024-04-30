@@ -19,6 +19,7 @@ import Data.Text (StrictText)
 import Data.Text.Lazy (LazyText)
 import System.IO (Handle, Newline(CRLF,LF), NewlineMode(NewlineMode), BufferMode(NoBuffering,LineBuffering,BlockBuffering), hSetBuffering, hSetNewlineMode)
 import Test.Tasty.Bench (Benchmark, bgroup, bench, nfAppIO)
+import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import qualified Data.Text.IO.Utf8 as Utf8
 import qualified Data.Text.Lazy as LT
@@ -60,15 +61,18 @@ mkFileWriteBenchmarks mkSinkNRemove = do
     . foldr (\(b,r) (bs,rs) -> (b:bs,r>>rs)) ([], return ())
     <$> sequence
     [ testGroup "Strict hPutStr" T.hPutStr    strict LF
-    , testGroup "Lazy   hPutStr" LT.hPutStr   lazy   LF
+    , testGroup "Lazy   hPutStr large chunks" LT.hPutStr   lazyLargeChunks   LF
+    , testGroup "Lazy   hPutStr small chunks" LT.hPutStr   lazySmallChunks   LF
     , testGroup "Strict hPutStr" T.hPutStr    strict CRLF
-    , testGroup "Lazy   hPutStr" LT.hPutStr   lazy   CRLF
+    , testGroup "Lazy   hPutStr large chunks" LT.hPutStr   lazyLargeChunks   CRLF
+    , testGroup "Lazy   hPutStr small chunks" LT.hPutStr   lazySmallChunks   CRLF
     , testGroup "Utf-8  hPutStr" Utf8.hPutStr strict LF
     ]
 
   where
   strict = fst
-  lazy = snd
+  lazyLargeChunks = snd
+  lazySmallChunks = LT.fromChunks . T.chunksOf 10 . fst
 
 (<&>) :: Functor f => f a -> (a -> b) -> f b
 (<&>) = flip fmap
