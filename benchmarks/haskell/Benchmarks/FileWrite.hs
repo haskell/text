@@ -13,7 +13,6 @@ module Benchmarks.FileWrite
 
 import Control.DeepSeq (NFData, deepseq)
 import Data.Bifunctor (first)
-import Data.Functor ((<&>))
 import Data.String (fromString)
 import Data.Text (StrictText)
 import Data.Text.Lazy (LazyText)
@@ -69,3 +68,6 @@ mkFileWriteBenchmarks mkSinkNRemove = do
   where
   strict = fst
   lazy = snd
+
+(<&>) :: Functor f => f a -> (a -> b) -> f b
+(<&>) = flip fmap
