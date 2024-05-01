@@ -142,9 +142,8 @@ hPutStr :: Handle -> Text -> IO ()
 hPutStr _ L.Empty = pure ()
 hPutStr h t = T.hPutStrInit h $ \mode buf nl -> do
   (n, b) <- foldlM (\(n, buf) t -> T.hPutStr' h mode nl buf n (stream t)) (0, buf) (L.toChunks t)
-  when (mode /= NoBuffering && n /= 0) $ let
-    Buffer{bufRaw,bufSize} = b
-    in void $ T.commitBuffer h bufRaw bufSize n False True
+  let Buffer{bufRaw,bufSize} = b
+  when (n /= 0) $ void $ T.commitBuffer h bufRaw bufSize n False True
 
 -- | Write a string to a handle, followed by a newline.
 hPutStrLn :: Handle -> Text -> IO ()

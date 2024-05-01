@@ -177,13 +177,13 @@ chooseGoodBuffering h = do
 hGetLine :: Handle -> IO Text
 hGetLine = hGetLineWith T.concat
 
+
 -- | Write a string to a handle.
 hPutStr :: Handle -> Text -> IO ()
 hPutStr h t = hPutStrInit h $ \mode buf nl -> do
   (n, b) <- hPutStr' h mode nl buf 0 (stream t)
-  when (mode /= NoBuffering) $ let
-    Buffer{bufRaw,bufSize} = b
-    in void $ commitBuffer h bufRaw bufSize n False True
+  let Buffer{bufRaw,bufSize} = b
+  when (n /= 0) $ void $ commitBuffer h bufRaw bufSize n False True
 
 {-# INLINE hPutStrInit #-}
 hPutStrInit :: Handle -> (BufferMode -> CharBuffer -> Newline -> IO ()) -> IO ()
