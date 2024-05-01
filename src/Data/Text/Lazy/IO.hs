@@ -1,8 +1,7 @@
-{-# LANGUAGE BangPatterns, CPP, RecordWildCards #-}
-{-# LANGUAGE Trustworthy #-}
-{-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE Trustworthy #-}
+{-# OPTIONS_GHC -Wno-name-shadowing #-}
 -- |
 -- Module      : Data.Text.Lazy.IO
 -- Copyright   : (c) 2009, 2010 Bryan O'Sullivan,
@@ -63,9 +62,6 @@ import System.IO (BufferMode(..), hGetBuffering, hSetBuffering)
 import System.IO.Error (isEOFError)
 import System.IO.Unsafe (unsafeInterleaveIO)
 import Data.Text.Internal.Fusion (stream)
-import Data.Text.Internal.Fusion.Types (Stream(Stream), Step(Done))
-import qualified Data.Text.Internal.Fusion.Types as F
-import Unsafe.Coerce (unsafeCoerce)
 import Data.Foldable (foldlM)
 import Data.Functor (void)
 

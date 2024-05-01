@@ -1,6 +1,7 @@
-{-# LANGUAGE BangPatterns, CPP, RecordWildCards, ScopedTypeVariables #-}
+{-# LANGUAGE BangPatterns, RecordWildCards, ScopedTypeVariables #-}
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE NamedFieldPuns #-}
+{-# OPTIONS_GHC -Wno-name-shadowing #-}
 -- |
 -- Module      : Data.Text.IO
 -- Copyright   : (c) 2009, 2010 Bryan O'Sullivan,
@@ -55,10 +56,10 @@ import qualified Control.Exception as E
 import Control.Monad (liftM2, when)
 import Data.IORef (readIORef, writeIORef)
 import qualified Data.Text as T
-import Data.Text.Internal.Fusion (stream, unstream)
+import Data.Text.Internal.Fusion (stream)
 import Data.Text.Internal.Fusion.Types (Step(..), Stream(..))
 import Data.Text.Internal.IO (hGetLineWith, readChunk)
-import GHC.IO.Buffer (Buffer(..), BufferState(..), CharBufElem, CharBuffer,
+import GHC.IO.Buffer (Buffer(..), BufferState(..), CharBuffer,
                       RawCharBuffer, emptyBuffer, isEmptyBuffer, newCharBuffer,
                       writeCharBuf)
 import GHC.IO.Exception (IOException(ioe_type), IOErrorType(InappropriateType))
@@ -262,7 +263,7 @@ writeBlocksCRLF h buf0 n (Stream next0 s0 _len) = outer s0 n buf0
 
 {-# INLINE writeBlocksRaw #-}
 writeBlocksRaw :: Handle -> CharBuffer -> Int -> Stream Char -> IO (Int, CharBuffer)
-writeBlocksRaw h buf0 n str@(Stream next0 s0 _len) = outer s0 n buf0
+writeBlocksRaw h buf0 n (Stream next0 s0 _len) = outer s0 n buf0
  where
   outer s1 n buf@Buffer{bufRaw=raw, bufSize=len} = inner s1 n
    where
