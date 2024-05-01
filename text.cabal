@@ -93,6 +93,11 @@ flag pure-haskell
   default: False
   manual: True
 
+flag ExtendedBenchmarks
+  description: Runs extra benchmarks which can be very slow.
+  default: False
+  manual: True
+
 library
   if arch(javascript) || flag(pure-haskell)
     cpp-options: -DPURE_HASKELL
@@ -312,6 +317,8 @@ benchmark text-benchmarks
   ghc-options:    -Wall -O2 -rtsopts "-with-rtsopts=-A32m"
   if impl(ghc >= 8.6)
     ghc-options:  -fproc-alignment=64
+  if flag(ExtendedBenchmarks)
+    cpp-options: -DExtendedBenchmarks
 
   build-depends:  base,
                   bytestring >= 0.10.4,

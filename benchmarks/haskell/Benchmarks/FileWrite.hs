@@ -5,7 +5,8 @@
 -- * Writing a file to the disk
 --
 
-{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE CPP #-}
 
 module Benchmarks.FileWrite
     ( mkFileWriteBenchmarks
@@ -13,66 +14,119 @@ module Benchmarks.FileWrite
 
 import Control.DeepSeq (NFData, deepseq)
 import Data.Bifunctor (first)
+import Data.List (intercalate, intersperse)
 import Data.Semigroup ((<>))
 import Data.String (fromString)
 import Data.Text (StrictText)
-import Data.Text.Lazy (LazyText)
+import Data.Text.Internal.Lazy (LazyText, defaultChunkSize)
 import System.IO (Handle, Newline(CRLF,LF), NewlineMode(NewlineMode), BufferMode(NoBuffering,LineBuffering,BlockBuffering), hSetBuffering, hSetNewlineMode)
 import Test.Tasty.Bench (Benchmark, bgroup, bench, nfAppIO)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import qualified Data.Text.IO.Utf8 as Utf8
-import qualified Data.Text.Lazy as LT
-import qualified Data.Text.Lazy.IO as LT
+import qualified Data.Text.Lazy as L
+import qualified Data.Text.Lazy.IO as L
 
 mkFileWriteBenchmarks :: IO (Handle, IO ()) -> IO (Benchmark, IO ())
 mkFileWriteBenchmarks mkSinkNRemove = do
-  let writeDate = LT.cycle $ fromString [minBound..maxBound]
-      lengths = [0..5] <> [10,20..100] <> [1000,10000,100000]
-      testGroup :: NFData text => String -> (Handle -> text -> IO ()) -> ((StrictText,LazyText) -> text) -> Newline -> IO (Benchmark, IO ())
-      testGroup groupName hPutStr select nl = do
-        let nlm = NewlineMode nl nl
-        (!noBufH, noBufRm) <- mkSinkNRemove
-        hSetBuffering noBufH NoBuffering
-        hSetNewlineMode noBufH nlm
-        (!lineBufH, lineBufRm) <- mkSinkNRemove
-        hSetBuffering lineBufH LineBuffering
-        hSetNewlineMode lineBufH nlm
-        (!blockBufH, blockBufRm) <- mkSinkNRemove
-        hSetBuffering blockBufH $ BlockBuffering Nothing
-        hSetNewlineMode blockBufH nlm
+  let writeData = L.cycle $ fromString [minBound..maxBound]
 
+#ifdef ExtendedBenchmarks
+      lengths = [0..5] <> [10,20..100] <> [1000,3000,10000,100000]
+#else
+      lengths = [0,1,100,3000,10000,100000]
+#endif
+
+      testGroup :: NFData text => (Handle -> text -> IO ()) -> ((String, StrictText -> text)) -> Newline -> BufferMode -> IO (Benchmark, IO ())
+      testGroup hPutStr (textCharacteristics, select) nl mode = do
+        (h, removeFile) <- mkSinkNRemove
+        hSetBuffering h mode
+        hSetNewlineMode h $ NewlineMode nl nl
         pure
-          ( bgroup (groupName <> " " <> show nl) $ lengths <&> \n -> let
-              st = LT.toStrict lt
-              lt = LT.take n writeDate
-              t = select (st, lt)
-              in bgroup ("length " <> show n) $ deepseq t
-                [ bench "NoBuffering"    $ nfAppIO (hPutStr noBufH)    t
-                , bench "LineBuffering"  $ nfAppIO (hPutStr lineBufH)  t
-                , bench "BlockBuffering" $ nfAppIO (hPutStr blockBufH) t
-                ]
-          , do
-              noBufRm
-              lineBufRm
-              blockBufRm
+          ( bgroup (intercalate " " [textCharacteristics, show nl, show mode]) $
+            lengths <&> \n -> let
+              t = select $ L.toStrict $ L.take n writeData
+              in bench ("length " <> show n)
+                $ deepseq t
+                $ nfAppIO (hPutStr h) t
+          , removeFile
           )
-  first (bgroup "FileWrite")
-    . foldr (\(b,r) (bs,rs) -> (b:bs,r>>rs)) ([], return ())
-    <$> sequence
-    [ testGroup "Strict hPutStr" T.hPutStr    strict LF
-    , testGroup "Lazy   hPutStr large chunks" LT.hPutStr   lazyLargeChunks   LF
-    , testGroup "Lazy   hPutStr small chunks" LT.hPutStr   lazySmallChunks   LF
-    , testGroup "Strict hPutStr" T.hPutStr    strict CRLF
-    , testGroup "Lazy   hPutStr large chunks" LT.hPutStr   lazyLargeChunks   CRLF
-    , testGroup "Lazy   hPutStr small chunks" LT.hPutStr   lazySmallChunks   CRLF
-    , testGroup "Utf-8  hPutStr" Utf8.hPutStr strict LF
+
+  sequenceGroup "FileWrite hPutStr"
+#ifdef ExtendedBenchmarks
+    [ testGroup T.hPutStr strict                  LF   NoBuffering
+    , testGroup L.hPutStr lazy                    LF   NoBuffering
+
+    , testGroup T.hPutStr strict                  LF   LineBuffering
+    , testGroup T.hPutStr strict                  CRLF LineBuffering
+    , testGroup T.hPutStr strictNewlines          LF   LineBuffering
+    , testGroup T.hPutStr strictNewlines          CRLF LineBuffering
+
+    , testGroup L.hPutStr lazy                    LF   LineBuffering
+    , testGroup L.hPutStr lazy                    CRLF LineBuffering
+    , testGroup L.hPutStr lazySmallChunks         LF   LineBuffering
+    , testGroup L.hPutStr lazySmallChunks         CRLF LineBuffering
+    , testGroup L.hPutStr lazyNewlines            LF   LineBuffering
+    , testGroup L.hPutStr lazyNewlines            CRLF LineBuffering
+    , testGroup L.hPutStr lazySmallChunksNewlines LF   LineBuffering
+    , testGroup L.hPutStr lazySmallChunksNewlines CRLF LineBuffering
+
+    , testGroup T.hPutStr strict                  LF   (BlockBuffering Nothing)
+    , testGroup T.hPutStr strict                  CRLF (BlockBuffering Nothing)
+    , testGroup T.hPutStr strictNewlines          LF   (BlockBuffering Nothing)
+    , testGroup T.hPutStr strictNewlines          CRLF (BlockBuffering Nothing)
+
+    , testGroup L.hPutStr lazy                    LF   (BlockBuffering Nothing)
+    , testGroup L.hPutStr lazy                    CRLF (BlockBuffering Nothing)
+    , testGroup L.hPutStr lazySmallChunks         LF   (BlockBuffering Nothing)
+    , testGroup L.hPutStr lazySmallChunks         CRLF (BlockBuffering Nothing)
+    , testGroup L.hPutStr lazyNewlines            LF   (BlockBuffering Nothing)
+    , testGroup L.hPutStr lazyNewlines            CRLF (BlockBuffering Nothing)
+    , testGroup L.hPutStr lazySmallChunksNewlines LF   (BlockBuffering Nothing)
+    , testGroup L.hPutStr lazySmallChunksNewlines CRLF (BlockBuffering Nothing)
+
+    , sequenceGroup "UTF-8"
+      [ testGroup Utf8.hPutStr strict LF NoBuffering
+      , testGroup Utf8.hPutStr strict LF LineBuffering
+      , testGroup Utf8.hPutStr strict LF (BlockBuffering Nothing)
+      ]
     ]
+#else
+    [ testGroup T.hPutStr strictNewlines LF LineBuffering
+    , testGroup T.hPutStr strictNewlines CRLF LineBuffering
+
+    , testGroup T.hPutStr strict LF (BlockBuffering Nothing)
+    , testGroup T.hPutStr strictNewlines CRLF (BlockBuffering Nothing)
+
+    , testGroup L.hPutStr lazyNewlines LF LineBuffering
+    , testGroup L.hPutStr lazyNewlines CRLF LineBuffering
+
+    , testGroup L.hPutStr lazy LF (BlockBuffering Nothing)
+    , testGroup L.hPutStr lazyNewlines CRLF (BlockBuffering Nothing)
+
+    , sequenceGroup "UTF-8"
+      [ testGroup Utf8.hPutStr strict LF LineBuffering
+      , testGroup Utf8.hPutStr strict LF (BlockBuffering Nothing)
+      ]
+    ]
+#endif
 
   where
-  strict = fst
-  lazyLargeChunks = snd
-  lazySmallChunks = LT.fromChunks . T.chunksOf 10 . fst
+  lazy, lazyNewlines, lazySmallChunks, lazySmallChunksNewlines :: (String, StrictText -> LazyText)
+  lazy                    = ("lazy",                            L.fromChunks . T.chunksOf defaultChunkSize)
+  lazyNewlines            = ("lazy many newlines",              snd lazy . snd strictNewlines)
+  lazySmallChunks         = ("lazy small chunks",               L.fromChunks . T.chunksOf 10)
+  lazySmallChunksNewlines = ("lazy small chunks many newlines", snd lazySmallChunks . snd strictNewlines)
+
+  strict, strictNewlines :: (String, StrictText -> StrictText)
+  strict                  = ("strict",                          id)
+  strictNewlines          = ("strict many newlines",            mconcat . intersperse "\n" . T.chunksOf 5)
+
+  sequenceGroup groupName tgs
+    =   first (bgroup groupName)
+    .   foldr (\(b,r) (bs,rs) -> (b:bs,r>>rs)) ([], return ())
+    <$> sequence tgs
 
 (<&>) :: Functor f => f a -> (a -> b) -> f b
 (<&>) = flip fmap
+
