@@ -35,7 +35,7 @@ import Data.Char (isSpace)
 import Data.Text.Foreign (I8)
 import Data.Text.Lazy.Builder.RealFloat (FPFormat(..))
 import Data.Word (Word8, Word16)
-import Test.QuickCheck (Arbitrary(..), arbitraryUnicodeChar, arbitraryBoundedEnum, getUnicodeString, arbitrarySizedIntegral, shrinkIntegral, Property, ioProperty, discard, counterexample, scale, (===), (.&&.), NonEmptyList(..), forAll)
+import Test.QuickCheck (Arbitrary(..), arbitraryUnicodeChar, arbitraryBoundedEnum, getUnicodeString, arbitrarySizedIntegral, shrinkIntegral, Property, ioProperty, discard, counterexample, scale, (===), (.&&.), NonEmptyList(..), forAll, withMaxSuccess)
 import Test.QuickCheck.Gen (Gen, choose, chooseAny, elements, frequency, listOf, oneof, resize, sized)
 import Tests.Utils
 import qualified Data.ByteString as B
@@ -249,7 +249,7 @@ write_read :: (Eq a, Show a)
            -> Property
 write_read _ _ _ _ (IO.NewlineMode IO.LF IO.CRLF) _ _ = discard
 write_read unline filt writer reader nl buf ts
-  = forAll (elements encodings) $ \enc -> ioProperty $ do
+  = withMaxSuccess 1000 $ forAll (elements encodings) $ \enc -> ioProperty $ do
     withTempFile $ \_ h -> do
     IO.hSetEncoding h enc
     IO.hSetNewlineMode h nl
