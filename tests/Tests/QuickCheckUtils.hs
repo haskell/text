@@ -31,13 +31,11 @@ module Tests.QuickCheckUtils
     ) where
 
 import Control.Arrow ((***))
-import Control.DeepSeq (NFData (..), deepseq)
-import Control.Exception (bracket)
 import Data.Char (isSpace)
 import Data.Text.Foreign (I8)
 import Data.Text.Lazy.Builder.RealFloat (FPFormat(..))
 import Data.Word (Word8, Word16)
-import Test.QuickCheck (Arbitrary(..), arbitraryUnicodeChar, arbitraryBoundedEnum, getUnicodeString, arbitrarySizedIntegral, shrinkIntegral, Property, ioProperty, discard, counterexample, scale, (===), (.&&.), NonEmptyList(..))
+import Test.QuickCheck (Arbitrary(..), arbitraryUnicodeChar, arbitraryBoundedEnum, getUnicodeString, arbitrarySizedIntegral, shrinkIntegral, Property, ioProperty, discard, counterexample, scale, (===), (.&&.), NonEmptyList(..), forAll)
 import Test.QuickCheck.Gen (Gen, choose, chooseAny, elements, frequency, listOf, oneof, resize, sized)
 import Tests.Utils
 import qualified Data.ByteString as B
@@ -240,7 +238,7 @@ instance Arbitrary IO.BufferMode where
 --   sometimes contain line endings.)
 -- * Newline translation mode.
 -- * Buffering.
-write_read :: (NFData a, Eq a, Show a)
+write_read :: (Eq a, Show a)
            => ([b] -> a)
            -> ((Char -> Bool) -> a -> b)
            -> (IO.Handle -> a -> IO ())
@@ -250,23 +248,19 @@ write_read :: (NFData a, Eq a, Show a)
            -> [a]
            -> Property
 write_read _ _ _ _ (IO.NewlineMode IO.LF IO.CRLF) _ _ = discard
-write_read unline filt writer reader nl buf ts = ioProperty $
-    (===t) <$> act
+write_read unline filt writer reader nl buf ts
+  = forAll (elements encodings) $ \enc -> ioProperty $ do
+    withTempFile $ \_ h -> do
+    IO.hSetEncoding h enc
+    IO.hSetNewlineMode h nl
+    IO.hSetBuffering h buf
+    () <- writer h t
+    IO.hSeek h IO.AbsoluteSeek 0
+    r <- reader h
+    pure $ r === t
   where
     t = unline . map (filt (not . (`elem` "\r\n"))) $ ts
-
-    act = withTempFile $ \path h -> do
-            IO.hSetEncoding h IO.utf8
-            IO.hSetNewlineMode h nl
-            IO.hSetBuffering h buf
-            () <- writer h t
-            IO.hClose h
-            bracket (IO.openFile path IO.ReadMode) IO.hClose $ \h' -> do
-              IO.hSetEncoding h' IO.utf8
-              IO.hSetNewlineMode h' nl
-              IO.hSetBuffering h' buf
-              r <- reader h'
-              r `deepseq` return r
+    encodings = [IO.utf8, IO.utf8_bom, IO.utf16, IO.utf16le, IO.utf16be, IO.utf32, IO.utf32le, IO.utf32be]
 
 -- Generate various Unicode space characters with high probability
 arbitrarySpacyChar :: Gen Char
