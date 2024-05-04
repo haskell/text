@@ -20,7 +20,7 @@ import Data.String (fromString)
 import Data.Text (StrictText)
 import Data.Text.Internal.Lazy (LazyText, defaultChunkSize)
 import System.IO (Handle, Newline(CRLF,LF), NewlineMode(NewlineMode), BufferMode(NoBuffering,LineBuffering,BlockBuffering), hSetBuffering, hSetNewlineMode)
-import Test.Tasty.Bench (Benchmark, bgroup, bench, nfAppIO)
+import Test.Tasty.Bench (Benchmark, bgroup, bench, whnfAppIO)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import qualified Data.Text.IO.Utf8 as Utf8
@@ -48,7 +48,7 @@ mkFileWriteBenchmarks mkSinkNRemove = do
               t = select $ L.toStrict $ L.take n writeData
               in bench ("length " <> show n)
                 $ deepseq t
-                $ nfAppIO (hPutStr h) t
+                $ whnfAppIO (hPutStr h) t
           , removeFile
           )
 
