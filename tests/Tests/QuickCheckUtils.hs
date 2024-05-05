@@ -261,7 +261,7 @@ write_read unline filt writer reader nl buf ts
     IO.hSeek h IO.AbsoluteSeek 0
     r <- reader h
     let isEq = r == t
-    deepseq isEq $ pure $ counterexample (show r <> bool " /= " " == " isEq <> show t) isEq
+    deepseq isEq $ pure $ counterexample (show r ++ bool " /= " " == " isEq ++ show t) isEq
   where
     t = unline . map (filt (not . (`elem` "\r\n"))) $ ts
     encodings = [IO.utf8, IO.utf8_bom, IO.utf16, IO.utf16le, IO.utf16be, IO.utf32, IO.utf32le, IO.utf32be]
