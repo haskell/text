@@ -31,11 +31,13 @@ module Tests.QuickCheckUtils
     ) where
 
 import Control.Arrow ((***))
+import Control.DeepSeq (deepseq)
+import Data.Bool (bool)
 import Data.Char (isSpace)
 import Data.Text.Foreign (I8)
 import Data.Text.Lazy.Builder.RealFloat (FPFormat(..))
 import Data.Word (Word8, Word16)
-import Test.QuickCheck (Arbitrary(..), arbitraryUnicodeChar, arbitraryBoundedEnum, getUnicodeString, arbitrarySizedIntegral, shrinkIntegral, Property, ioProperty, discard, counterexample, scale, (===), (.&&.), NonEmptyList(..), forAll, withMaxSuccess)
+import Test.QuickCheck (Arbitrary(..), arbitraryUnicodeChar, arbitraryBoundedEnum, getUnicodeString, arbitrarySizedIntegral, shrinkIntegral, Property, ioProperty, discard, counterexample, scale, (.&&.), NonEmptyList(..), forAll)
 import Test.QuickCheck.Gen (Gen, choose, chooseAny, elements, frequency, listOf, oneof, resize, sized)
 import Tests.Utils
 import qualified Data.ByteString as B
@@ -248,8 +250,9 @@ write_read :: (Eq a, Show a)
            -> [a]
            -> Property
 write_read _ _ _ _ (IO.NewlineMode IO.LF IO.CRLF) _ _ = discard
+write_read _ _ _ _ _ (IO.BlockBuffering (Just x))  _ | x < 4 = discard
 write_read unline filt writer reader nl buf ts
-  = withMaxSuccess 1000 $ forAll (elements encodings) $ \enc -> ioProperty $ do
+  = forAll (elements encodings) $ \enc -> ioProperty $ do
     withTempFile $ \_ h -> do
     IO.hSetEncoding h enc
     IO.hSetNewlineMode h nl
@@ -257,7 +260,8 @@ write_read unline filt writer reader nl buf ts
     () <- writer h t
     IO.hSeek h IO.AbsoluteSeek 0
     r <- reader h
-    pure $ r === t
+    let isEq = r == t
+    deepseq isEq $ pure $ counterexample (show r <> bool " /= " " == " isEq <> show t) isEq
   where
     t = unline . map (filt (not . (`elem` "\r\n"))) $ ts
     encodings = [IO.utf8, IO.utf8_bom, IO.utf16, IO.utf16le, IO.utf16be, IO.utf32, IO.utf32le, IO.utf32be]

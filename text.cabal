@@ -292,6 +292,7 @@ test-suite tests
     QuickCheck >= 2.12.6 && < 2.15,
     base <5,
     bytestring,
+    deepseq,
     directory,
     ghc-prim,
     tasty,
