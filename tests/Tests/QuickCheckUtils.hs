@@ -5,6 +5,9 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
@@ -37,8 +40,11 @@ import Data.Char (isSpace)
 import Data.Text.Foreign (I8)
 import Data.Text.Lazy.Builder.RealFloat (FPFormat(..))
 import Data.Word (Word8, Word16)
-import Test.QuickCheck (Arbitrary(..), arbitraryUnicodeChar, arbitraryBoundedEnum, getUnicodeString, arbitrarySizedIntegral, shrinkIntegral, Property, ioProperty, discard, counterexample, scale, (.&&.), NonEmptyList(..), forAll)
+import GHC.IO.Encoding.Types (TextEncoding(TextEncoding,textEncodingName))
+import Test.QuickCheck (Arbitrary(..), arbitraryUnicodeChar, arbitraryBoundedEnum, getUnicodeString, arbitrarySizedIntegral, shrinkIntegral, Property, ioProperty, discard, counterexample, scale, (.&&.), NonEmptyList(..))
 import Test.QuickCheck.Gen (Gen, choose, chooseAny, elements, frequency, listOf, oneof, resize, sized)
+import Test.Tasty (TestTree, testGroup)
+import Test.Tasty.QuickCheck (testProperty)
 import Tests.Utils
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
@@ -240,31 +246,36 @@ instance Arbitrary IO.BufferMode where
 --   sometimes contain line endings.)
 -- * Newline translation mode.
 -- * Buffering.
-write_read :: (Eq a, Show a)
-           => ([b] -> a)
-           -> ((Char -> Bool) -> a -> b)
-           -> (IO.Handle -> a -> IO ())
-           -> (IO.Handle -> IO a)
-           -> IO.NewlineMode
-           -> IO.BufferMode
-           -> [a]
-           -> Property
-write_read _ _ _ _ (IO.NewlineMode IO.LF IO.CRLF) _ _ = discard
-write_read _ _ _ _ _ (IO.BlockBuffering (Just x))  _ | x < 4 = discard
-write_read unline filt writer reader nl buf ts
-  = forAll (elements encodings) $ \enc -> ioProperty $ do
-    withTempFile $ \_ h -> do
+write_read :: forall a b c.
+  (Eq a, Show a, Show c, Arbitrary c)
+  => ([b] -> a)
+  -> ((Char -> Bool) -> b -> b)
+  -> (IO.Handle -> a -> IO ())
+  -> (IO.Handle -> IO a)
+  -> (c -> [b])
+  -> [TestTree]
+write_read unline filt writer reader modData
+  = encodings <&> \enc@TextEncoding {textEncodingName} -> testGroup textEncodingName
+    [ testProperty "NoBuffering" $ propTest enc (\() -> IO.NoBuffering) (const False)
+    , testProperty "LineBuffering" $ propTest enc (\() -> IO.LineBuffering) (const False)
+    , testProperty "BlockBuffering" $ propTest enc IO.BlockBuffering (maybe False (< 4))
+    ]
+  where
+  propTest :: TextEncoding -> (modeArg -> IO.BufferMode) -> (modeArg -> Bool) -> modeArg -> IO.NewlineMode -> c -> Property
+  propTest _   _               _           _      (IO.NewlineMode IO.LF IO.CRLF) _ = discard
+  propTest _   _               modeArgPred bufArg _                              _ | modeArgPred bufArg = discard
+  propTest enc mkBufferingMode _           bufArg nl                             d = ioProperty $ withTempFile $ \_ h -> do
+    let ts = modData d
+        t = unline . map (filt (not . (`elem` "\r\n"))) $ ts
     IO.hSetEncoding h enc
     IO.hSetNewlineMode h nl
-    IO.hSetBuffering h buf
+    IO.hSetBuffering h $ mkBufferingMode bufArg
     () <- writer h t
     IO.hSeek h IO.AbsoluteSeek 0
     r <- reader h
     let isEq = r == t
     deepseq isEq $ pure $ counterexample (show r ++ bool " /= " " == " isEq ++ show t) isEq
-  where
-    t = unline . map (filt (not . (`elem` "\r\n"))) $ ts
-    encodings = [IO.utf8, IO.utf8_bom, IO.utf16, IO.utf16le, IO.utf16be, IO.utf32, IO.utf32le, IO.utf32be]
+  encodings = [IO.utf8, IO.utf8_bom, IO.utf16, IO.utf16le, IO.utf16be, IO.utf32, IO.utf32le, IO.utf32be]
 
 -- Generate various Unicode space characters with high probability
 arbitrarySpacyChar :: Gen Char
@@ -285,3 +296,7 @@ newtype SkewedBool = Skewed { getSkewed :: Bool }
 
 instance Arbitrary SkewedBool where
   arbitrary = Skewed <$> frequency [(1, pure False), (5, pure True)]
+
+(<&>) :: [a] -> (a -> b) -> [b]
+(<&>) = flip fmap
+

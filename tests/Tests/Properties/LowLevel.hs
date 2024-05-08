@@ -100,17 +100,14 @@ t_literal_foo = T.pack "foo"
 -- tl_put_get = write_read TL.unlines TL.filter put get
 --   where put h = withRedirect h IO.stdout . TL.putStr
 --         get h = withRedirect h IO.stdin TL.getContents
-t_write_read = write_read T.unlines T.filter T.hPutStr T.hGetContents
-tl_write_read = write_read TL.unlines TL.filter TL.hPutStr TL.hGetContents
+t_write_read = write_read T.unlines T.filter T.hPutStr T.hGetContents id
+tl_write_read = write_read TL.unlines TL.filter TL.hPutStr TL.hGetContents id
 
-t_write_read_line m b t = write_read (T.concat . take 1) T.filter T.hPutStrLn
-                            T.hGetLine m b [t]
-tl_write_read_line m b t = write_read (TL.concat . take 1) TL.filter TL.hPutStrLn
-                             TL.hGetLine m b [t]
+t_write_read_line = write_read (T.concat . take 1) T.filter T.hPutStrLn T.hGetLine (: [])
+tl_write_read_line = write_read (TL.concat . take 1) TL.filter TL.hPutStrLn TL.hGetLine (: [])
 
-utf8_write_read = write_read T.unlines T.filter TU.hPutStr TU.hGetContents
-utf8_write_read_line m b t = write_read (T.concat . take 1) T.filter TU.hPutStrLn
-                            TU.hGetLine m b [t]
+utf8_write_read = write_read T.unlines T.filter TU.hPutStr TU.hGetContents id
+utf8_write_read_line = write_read (T.concat . take 1) T.filter TU.hPutStrLn TU.hGetLine (: [])
 
 testLowLevel :: TestTree
 testLowLevel =
@@ -143,12 +140,12 @@ testLowLevel =
     ],
 
     testGroup "input-output" [
-      testProperty "t_write_read" t_write_read,
-      testProperty "tl_write_read" tl_write_read,
-      testProperty "t_write_read_line" t_write_read_line,
-      testProperty "tl_write_read_line" tl_write_read_line,
-      testProperty "utf8_write_read" utf8_write_read,
-      testProperty "utf8_write_read_line" utf8_write_read_line
+      testGroup "t_write_read" t_write_read,
+      testGroup "tl_write_read" tl_write_read,
+      testGroup "t_write_read_line" t_write_read_line,
+      testGroup "tl_write_read_line" tl_write_read_line,
+      testGroup "utf8_write_read" utf8_write_read,
+      testGroup "utf8_write_read_line" utf8_write_read_line
       -- These tests are subject to I/O race conditions
       -- testProperty "t_put_get" t_put_get,
       -- testProperty "tl_put_get" tl_put_get
