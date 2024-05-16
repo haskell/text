@@ -34,14 +34,13 @@ module Tests.QuickCheckUtils
     ) where
 
 import Control.Arrow ((***))
-import Control.DeepSeq (deepseq)
 import Data.Bool (bool)
 import Data.Char (isSpace)
 import Data.Text.Foreign (I8)
 import Data.Text.Lazy.Builder.RealFloat (FPFormat(..))
 import Data.Word (Word8, Word16)
 import GHC.IO.Encoding.Types (TextEncoding(TextEncoding,textEncodingName))
-import Test.QuickCheck (Arbitrary(..), arbitraryUnicodeChar, arbitraryBoundedEnum, getUnicodeString, arbitrarySizedIntegral, shrinkIntegral, Property, ioProperty, discard, counterexample, scale, (.&&.), NonEmptyList(..), suchThat, forAll, getPositive)
+import Test.QuickCheck (Arbitrary(..), arbitraryUnicodeChar, arbitraryBoundedEnum, getUnicodeString, arbitrarySizedIntegral, shrinkIntegral, Property, ioProperty, discard, counterexample, scale, (.&&.), NonEmptyList(..), forAll, getPositive)
 import Test.QuickCheck.Gen (Gen, choose, chooseAny, elements, frequency, listOf, oneof, resize, sized)
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.QuickCheck (testProperty)
@@ -276,12 +275,12 @@ write_read unline filt writer reader modData
     IO.hSeek h IO.AbsoluteSeek 0
     r <- reader h
     let isEq = r == t
-    deepseq isEq $ pure $ counterexample (show r ++ bool " /= " " == " isEq ++ show t) isEq
+    seq isEq $ pure $ counterexample (show r ++ bool " /= " " == " isEq ++ show t) isEq
+
   encodings = [IO.utf8, IO.utf8_bom, IO.utf16, IO.utf16le, IO.utf16be, IO.utf32, IO.utf32le, IO.utf32be]
 
   blockBuffering :: Gen IO.BufferMode
-  blockBuffering = IO.BlockBuffering <$> (fmap (fmap getPositive) arbitrary) `suchThat` maybe True (> 4)
-
+  blockBuffering = IO.BlockBuffering <$> fmap (fmap $ min 4 . getPositive) arbitrary
 
 -- Generate various Unicode space characters with high probability
 arbitrarySpacyChar :: Gen Char
