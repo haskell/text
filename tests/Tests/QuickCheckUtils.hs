@@ -5,6 +5,9 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 
@@ -31,14 +34,16 @@ module Tests.QuickCheckUtils
     ) where
 
 import Control.Arrow ((***))
-import Control.DeepSeq (NFData (..), deepseq)
-import Control.Exception (bracket)
+import Data.Bool (bool)
 import Data.Char (isSpace)
 import Data.Text.Foreign (I8)
 import Data.Text.Lazy.Builder.RealFloat (FPFormat(..))
 import Data.Word (Word8, Word16)
-import Test.QuickCheck (Arbitrary(..), arbitraryUnicodeChar, arbitraryBoundedEnum, getUnicodeString, arbitrarySizedIntegral, shrinkIntegral, Property, ioProperty, discard, counterexample, scale, (===), (.&&.), NonEmptyList(..))
+import GHC.IO.Encoding.Types (TextEncoding(TextEncoding,textEncodingName))
+import Test.QuickCheck (Arbitrary(..), arbitraryUnicodeChar, arbitraryBoundedEnum, getUnicodeString, arbitrarySizedIntegral, shrinkIntegral, Property, ioProperty, discard, counterexample, scale, (.&&.), NonEmptyList(..), forAll, getPositive)
 import Test.QuickCheck.Gen (Gen, choose, chooseAny, elements, frequency, listOf, oneof, resize, sized)
+import Test.Tasty (TestTree, testGroup)
+import Test.Tasty.QuickCheck (testProperty)
 import Tests.Utils
 import qualified Data.ByteString as B
 import qualified Data.ByteString.Lazy as BL
@@ -53,6 +58,9 @@ import qualified System.IO as IO
 
 genWord8 :: Gen Word8
 genWord8 = chooseAny
+
+genWord16 :: Gen Word16
+genWord16 = chooseAny
 
 instance Arbitrary I8 where
     arbitrary     = arbitrarySizedIntegral
@@ -227,7 +235,7 @@ instance Arbitrary IO.BufferMode where
                         return IO.LineBuffering,
                         return (IO.BlockBuffering Nothing),
                         (IO.BlockBuffering . Just . (+1) . fromIntegral) `fmap`
-                        (arbitrary :: Gen Word16) ]
+                        genWord16 ]
 
 -- This test harness is complex!  What property are we checking?
 --
@@ -240,33 +248,39 @@ instance Arbitrary IO.BufferMode where
 --   sometimes contain line endings.)
 -- * Newline translation mode.
 -- * Buffering.
-write_read :: (NFData a, Eq a, Show a)
-           => ([b] -> a)
-           -> ((Char -> Bool) -> a -> b)
-           -> (IO.Handle -> a -> IO ())
-           -> (IO.Handle -> IO a)
-           -> IO.NewlineMode
-           -> IO.BufferMode
-           -> [a]
-           -> Property
-write_read _ _ _ _ (IO.NewlineMode IO.LF IO.CRLF) _ _ = discard
-write_read unline filt writer reader nl buf ts = ioProperty $
-    (===t) <$> act
+write_read :: forall a b c.
+  (Eq a, Show a, Show c, Arbitrary c)
+  => ([b] -> a)
+  -> ((Char -> Bool) -> b -> b)
+  -> (IO.Handle -> a -> IO ())
+  -> (IO.Handle -> IO a)
+  -> (c -> [b])
+  -> [TestTree]
+write_read unline filt writer reader modData
+  = encodings <&> \enc@TextEncoding {textEncodingName} -> testGroup textEncodingName
+    [ testProperty "NoBuffering" $ propTest enc (pure IO.NoBuffering)
+    , testProperty "LineBuffering" $ propTest enc (pure IO.LineBuffering)
+    , testProperty "BlockBuffering" $ propTest enc blockBuffering
+    ]
   where
-    t = unline . map (filt (not . (`elem` "\r\n"))) $ ts
+  propTest :: TextEncoding -> Gen IO.BufferMode -> IO.NewlineMode -> c -> Property
+  propTest _   _ (IO.NewlineMode IO.LF IO.CRLF) _ = discard
+  propTest enc genBufferMode nl d = forAll genBufferMode $ \mode -> ioProperty $ withTempFile $ \_ h -> do
+    let ts = modData d
+        t = unline . map (filt (not . (`elem` "\r\n"))) $ ts
+    IO.hSetEncoding h enc
+    IO.hSetNewlineMode h nl
+    IO.hSetBuffering h mode
+    () <- writer h t
+    IO.hSeek h IO.AbsoluteSeek 0
+    r <- reader h
+    let isEq = r == t
+    seq isEq $ pure $ counterexample (show r ++ bool " /= " " == " isEq ++ show t) isEq
 
-    act = withTempFile $ \path h -> do
-            IO.hSetEncoding h IO.utf8
-            IO.hSetNewlineMode h nl
-            IO.hSetBuffering h buf
-            () <- writer h t
-            IO.hClose h
-            bracket (IO.openFile path IO.ReadMode) IO.hClose $ \h' -> do
-              IO.hSetEncoding h' IO.utf8
-              IO.hSetNewlineMode h' nl
-              IO.hSetBuffering h' buf
-              r <- reader h'
-              r `deepseq` return r
+  encodings = [IO.utf8, IO.utf8_bom, IO.utf16, IO.utf16le, IO.utf16be, IO.utf32, IO.utf32le, IO.utf32be]
+
+  blockBuffering :: Gen IO.BufferMode
+  blockBuffering = IO.BlockBuffering <$> fmap (fmap $ min 4 . getPositive) arbitrary
 
 -- Generate various Unicode space characters with high probability
 arbitrarySpacyChar :: Gen Char
@@ -287,3 +301,7 @@ newtype SkewedBool = Skewed { getSkewed :: Bool }
 
 instance Arbitrary SkewedBool where
   arbitrary = Skewed <$> frequency [(1, pure False), (5, pure True)]
+
+(<&>) :: [a] -> (a -> b) -> [b]
+(<&>) = flip fmap
+
