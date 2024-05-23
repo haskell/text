@@ -40,7 +40,7 @@ import Data.Text.Foreign (I8)
 import Data.Text.Lazy.Builder.RealFloat (FPFormat(..))
 import Data.Word (Word8, Word16)
 import GHC.IO.Encoding.Types (TextEncoding(TextEncoding,textEncodingName))
-import Test.QuickCheck (Arbitrary(..), arbitraryUnicodeChar, arbitraryBoundedEnum, getUnicodeString, arbitrarySizedIntegral, shrinkIntegral, Property, ioProperty, discard, counterexample, scale, (.&&.), NonEmptyList(..), forAll, getPositive)
+import Test.QuickCheck (Arbitrary(..), arbitraryUnicodeChar, arbitraryBoundedEnum, getUnicodeString, arbitrarySizedIntegral, shrinkIntegral, Property, ioProperty, discard, counterexample, scale, (.&&.), NonEmptyList(..), forAll, getPositive, noShrinking)
 import Test.QuickCheck.Gen (Gen, choose, chooseAny, elements, frequency, listOf, oneof, resize, sized)
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.QuickCheck (testProperty)
@@ -258,9 +258,9 @@ write_read :: forall a b c.
   -> [TestTree]
 write_read unline filt writer reader modData
   = encodings <&> \enc@TextEncoding {textEncodingName} -> testGroup textEncodingName
-    [ testProperty "NoBuffering" $ propTest enc (pure IO.NoBuffering)
-    , testProperty "LineBuffering" $ propTest enc (pure IO.LineBuffering)
-    , testProperty "BlockBuffering" $ propTest enc blockBuffering
+    [ testProperty "NoBuffering" $ noShrinking $ propTest enc (pure IO.NoBuffering)
+    , testProperty "LineBuffering" $ noShrinking $ propTest enc (pure IO.LineBuffering)
+    , testProperty "BlockBuffering" $ noShrinking $ propTest enc blockBuffering
     ]
   where
   propTest :: TextEncoding -> Gen IO.BufferMode -> IO.NewlineMode -> c -> Property
