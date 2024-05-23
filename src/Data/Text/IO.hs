@@ -43,6 +43,7 @@ module Data.Text.IO
     , putStrLn
     ) where
 
+import Data.Bool (bool)
 import Data.Text (Text)
 import Prelude hiding (appendFile, getContents, getLine, interact,
                        putStr, putStrLn, readFile, writeFile)
@@ -185,9 +186,7 @@ hPutStr h t = do
   case buffer_mode of
      (NoBuffering, _)        -> hPutChars h str
      (LineBuffering, buf)    -> writeLines h nl buf str
-     (BlockBuffering _, buf)
-         | nl == CRLF        -> writeBlocksCRLF h buf str
-         | otherwise         -> writeBlocksRaw h buf str
+     (BlockBuffering _, buf) -> writeBlocks (nl == CRLF) h buf str
 
 hPutChars :: Handle -> Stream Char -> IO ()
 hPutChars h (Stream next0 s0 _len) = loop s0
@@ -227,8 +226,8 @@ writeLines h nl buf0 (Stream next0 s0 _len) = outer s0 buf0
           | otherwise    -> writeCharBuf bufRaw bufSize n x >>= inner s'
     commit = commitBuffer h buf
 
-writeBlocksCRLF :: Handle -> CharBuffer -> Stream Char -> IO ()
-writeBlocksCRLF h buf0 (Stream next0 s0 _len) = outer s0 buf0
+writeBlocks :: Bool -> Handle -> CharBuffer -> Stream Char -> IO ()
+writeBlocks isCRLF h buf0 (Stream next0 s0 _len) = outer s0 buf0
  where
   outer s1 buf@Buffer{..} = inner s1 (0::Int)
    where
@@ -237,24 +236,12 @@ writeBlocksCRLF h buf0 (Stream next0 s0 _len) = outer s0 buf0
         Done -> commit n False{-no flush-} True{-release-} >> return ()
         Skip s' -> inner s' n
         Yield x s'
-          | n + 1 >= bufSize -> commit n True{-needs flush-} False >>= outer s
-          | x == '\n'    -> do n1 <- writeCharBuf bufRaw bufSize n '\r'
-                               writeCharBuf bufRaw bufSize n1 '\n' >>= inner s'
-          | otherwise    -> writeCharBuf bufRaw bufSize n x >>= inner s'
-    commit = commitBuffer h buf
-
-writeBlocksRaw :: Handle -> CharBuffer -> Stream Char -> IO ()
-writeBlocksRaw h buf0 (Stream next0 s0 _len) = outer s0 buf0
- where
-  outer s1 buf@Buffer{..} = inner s1 (0::Int)
-   where
-    inner !s !n =
-      case next0 s of
-        Done -> commit n False{-no flush-} True{-release-} >> return ()
-        Skip s' -> inner s' n
-        Yield x s'
-          | n >= bufSize -> commit n True{-needs flush-} False >>= outer s
-          | otherwise    -> writeCharBuf bufRaw bufSize n x >>= inner s'
+          | n >= bufSize + bool 1 0 (isCRLF && x == '\n') ->
+            commit n True{-needs flush-} False >>= outer s
+          | isCRLF && x == '\n' -> do
+            n1 <- writeCharBuf bufRaw bufSize n '\r'
+            writeCharBuf bufRaw bufSize n1 '\n' >>= inner s'
+          | otherwise -> writeCharBuf bufRaw bufSize n x >>= inner s'
     commit = commitBuffer h buf
 
 -- | Only modifies the raw buffer and not the buffer attributes
