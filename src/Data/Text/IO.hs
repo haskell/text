@@ -236,7 +236,7 @@ writeBlocks isCRLF h buf0 (Stream next0 s0 _len) = outer s0 buf0
         Done -> commit n False{-no flush-} True{-release-} >> return ()
         Skip s' -> inner s' n
         Yield x s'
-          | n >= bufSize + bool 1 0 (isCRLF && x == '\n') ->
+          | n >= bufSize - bool 0 1 (isCRLF && x == '\n') ->
             commit n True{-needs flush-} False >>= outer s
           | isCRLF && x == '\n' -> do
             n1 <- writeCharBuf bufRaw bufSize n '\r'
