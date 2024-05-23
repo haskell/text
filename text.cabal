@@ -289,7 +289,7 @@ test-suite tests
     Tests.Utils
 
   build-depends:
-    QuickCheck >= 2.12.6 && < 2.15,
+    QuickCheck >= 2.12.6 && < 2.16,
     base <5,
     bytestring,
     deepseq,
