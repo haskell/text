@@ -258,14 +258,14 @@ write_read :: forall a b c.
   -> [TestTree]
 write_read unline filt writer reader modData
   = encodings <&> \enc@TextEncoding {textEncodingName} -> testGroup textEncodingName
-    [ testProperty "NoBuffering" $ noShrinking $ propTest enc (pure IO.NoBuffering)
-    , testProperty "LineBuffering" $ noShrinking $ propTest enc (pure IO.LineBuffering)
-    , testProperty "BlockBuffering" $ noShrinking $ propTest enc blockBuffering
+    [ testProperty "NoBuffering" $ propTest enc (pure IO.NoBuffering)
+    , testProperty "LineBuffering" $ propTest enc (pure IO.LineBuffering)
+    , testProperty "BlockBuffering" $ propTest enc blockBuffering
     ]
   where
-  propTest :: TextEncoding -> Gen IO.BufferMode -> IO.NewlineMode -> c -> Property
-  propTest _   _ (IO.NewlineMode IO.LF IO.CRLF) _ = discard
-  propTest enc genBufferMode nl d = forAll genBufferMode $ \mode -> ioProperty $ withTempFile $ \_ h -> do
+  propTest :: TextEncoding -> Gen IO.BufferMode -> NoShrink IO.NewlineMode -> c -> Property
+  propTest _   _ (NoShrink (IO.NewlineMode IO.LF IO.CRLF)) _ = discard
+  propTest enc genBufferMode (NoShrink nl) d = forAll (NoShrink <$> genBufferMode) $ \(NoShrink mode) -> ioProperty $ withTempFile $ \_ h -> do
     let ts = modData d
         t = unline . map (filt (not . (`elem` "\r\n"))) $ ts
     IO.hSetEncoding h enc
@@ -281,6 +281,10 @@ write_read unline filt writer reader modData
 
   blockBuffering :: Gen IO.BufferMode
   blockBuffering = IO.BlockBuffering <$> fmap (fmap $ min 4 . getPositive) arbitrary
+
+newtype NoShrink a = NoShrink a deriving Show
+instance Arbitrary a => Arbitrary (NoShrink a) where
+  arbitrary = NoShrink <$> arbitrary
 
 -- Generate various Unicode space characters with high probability
 arbitrarySpacyChar :: Gen Char
