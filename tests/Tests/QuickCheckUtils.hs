@@ -40,7 +40,7 @@ import Data.Text.Foreign (I8)
 import Data.Text.Lazy.Builder.RealFloat (FPFormat(..))
 import Data.Word (Word8, Word16)
 import GHC.IO.Encoding.Types (TextEncoding(TextEncoding,textEncodingName))
-import Test.QuickCheck (Arbitrary(..), arbitraryUnicodeChar, arbitraryBoundedEnum, getUnicodeString, arbitrarySizedIntegral, shrinkIntegral, Property, ioProperty, discard, counterexample, scale, (.&&.), NonEmptyList(..), forAll, getPositive)
+import Test.QuickCheck (Arbitrary(..), arbitraryUnicodeChar, arbitraryBoundedEnum, getUnicodeString, arbitrarySizedIntegral, shrinkIntegral, Property, ioProperty, discard, counterexample, scale, (.&&.), NonEmptyList(..), forAll, getPositive, noShrinking)
 import Test.QuickCheck.Gen (Gen, choose, chooseAny, elements, frequency, listOf, oneof, resize, sized)
 import Test.Tasty (TestTree, testGroup)
 import Test.Tasty.QuickCheck (testProperty)
@@ -263,9 +263,9 @@ write_read unline filt writer reader modData
     , testProperty "BlockBuffering" $ propTest enc blockBuffering
     ]
   where
-  propTest :: TextEncoding -> Gen IO.BufferMode -> IO.NewlineMode -> c -> Property
-  propTest _   _ (IO.NewlineMode IO.LF IO.CRLF) _ = discard
-  propTest enc genBufferMode nl d = forAll genBufferMode $ \mode -> ioProperty $ withTempFile $ \_ h -> do
+  propTest :: TextEncoding -> Gen IO.BufferMode -> NoShrink IO.NewlineMode -> c -> Property
+  propTest _   _ (NoShrink (IO.NewlineMode IO.LF IO.CRLF)) _ = discard
+  propTest enc genBufferMode (NoShrink nl) d = forAll (NoShrink <$> genBufferMode) $ \(NoShrink mode) -> ioProperty $ withTempFile $ \_ h -> do
     let ts = modData d
         t = unline . map (filt (not . (`elem` "\r\n"))) $ ts
     IO.hSetEncoding h enc
@@ -281,6 +281,10 @@ write_read unline filt writer reader modData
 
   blockBuffering :: Gen IO.BufferMode
   blockBuffering = IO.BlockBuffering <$> fmap (fmap $ min 4 . getPositive) arbitrary
+
+newtype NoShrink a = NoShrink a deriving Show
+instance Arbitrary a => Arbitrary (NoShrink a) where
+  arbitrary = NoShrink <$> arbitrary
 
 -- Generate various Unicode space characters with high probability
 arbitrarySpacyChar :: Gen Char
