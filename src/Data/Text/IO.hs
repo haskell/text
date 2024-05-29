@@ -1,6 +1,5 @@
 {-# LANGUAGE BangPatterns, CPP, RecordWildCards, ScopedTypeVariables #-}
 {-# LANGUAGE Trustworthy #-}
-{-# LANGUAGE NamedFieldPuns #-}
 -- |
 -- Module      : Data.Text.IO
 -- Copyright   : (c) 2009, 2010 Bryan O'Sullivan,
@@ -209,40 +208,40 @@ hPutChars h (Stream next0 s0 _len) = loop s0
 writeLines :: Handle -> Newline -> CharBuffer -> Stream Char -> IO ()
 writeLines h nl buf0 (Stream next0 s0 _len) = outer s0 buf0
  where
-  outer s1 buf@Buffer{..} = inner s1 (0::Int)
+  outer s1 Buffer{bufRaw=raw, bufSize=len} = inner s1 (0::Int)
    where
     inner !s !n =
       case next0 s of
         Done -> commit n False{-no flush-} True{-release-} >> return ()
         Skip s' -> inner s' n
         Yield x s'
-          | n + 1 >= bufSize -> commit n True{-needs flush-} False >>= outer s
+          | n + 1 >= len -> commit n True{-needs flush-} False >>= outer s
           | x == '\n'    -> do
                    n' <- if nl == CRLF
-                         then do n1 <- writeCharBuf bufRaw bufSize n '\r'
-                                 writeCharBuf bufRaw bufSize n1 '\n'
-                         else writeCharBuf bufRaw bufSize n x
+                         then do n1 <- writeCharBuf raw len n '\r'
+                                 writeCharBuf raw len n1 '\n'
+                         else writeCharBuf raw len n x
                    commit n' True{-needs flush-} False >>= outer s'
-          | otherwise    -> writeCharBuf bufRaw bufSize n x >>= inner s'
-    commit = commitBuffer h buf
+          | otherwise    -> writeCharBuf raw len n x >>= inner s'
+    commit = commitBuffer h raw len
 
 writeBlocks :: Bool -> Handle -> CharBuffer -> Stream Char -> IO ()
 writeBlocks isCRLF h buf0 (Stream next0 s0 _len) = outer s0 buf0
  where
-  outer s1 buf@Buffer{..} = inner s1 (0::Int)
+  outer s1 Buffer{bufRaw=raw, bufSize=len} = inner s1 (0::Int)
    where
     inner !s !n =
       case next0 s of
         Done -> commit n False{-no flush-} True{-release-} >> return ()
         Skip s' -> inner s' n
         Yield x s'
-          | n >= bufSize - bool 0 1 (isCRLF && x == '\n') ->
+          | n >= len - bool 0 1 (isCRLF && x == '\n') ->
             commit n True{-needs flush-} False >>= outer s
           | isCRLF && x == '\n' -> do
-            n1 <- writeCharBuf bufRaw bufSize n '\r'
-            writeCharBuf bufRaw bufSize n1 '\n' >>= inner s'
-          | otherwise -> writeCharBuf bufRaw bufSize n x >>= inner s'
-    commit = commitBuffer h buf
+            n1 <- writeCharBuf raw len n '\r'
+            writeCharBuf raw len n1 '\n' >>= inner s'
+          | otherwise -> writeCharBuf raw len n x >>= inner s'
+    commit = commitBuffer h raw len
 
 -- | Only modifies the raw buffer and not the buffer attributes
 writeCharBuf :: RawCharBuffer -> Int -> Int -> Char -> IO Int
@@ -270,11 +269,11 @@ getSpareBuffer Handle__{haCharBuffer=ref,
 
 
 -- This function is modified from GHC.Internal.IO.Handle.Text.
-commitBuffer :: Handle -> CharBuffer -> Int -> Bool -> Bool
+commitBuffer :: Handle -> RawCharBuffer -> Int -> Int -> Bool -> Bool
              -> IO CharBuffer
-commitBuffer hdl Buffer{bufRaw, bufSize} !count flush release =
+commitBuffer hdl !raw !sz !count flush release =
   wantWritableHandle "commitAndReleaseBuffer" hdl $
-     commitBuffer' bufRaw bufSize count flush release
+     commitBuffer' raw sz count flush release
 {-# INLINE commitBuffer #-}
 
 -- | Write a string to a handle, followed by a newline.
