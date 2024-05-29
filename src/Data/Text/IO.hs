@@ -42,7 +42,6 @@ module Data.Text.IO
     , putStrLn
     ) where
 
-import Data.Bool (bool)
 import Data.Text (Text)
 import Prelude hiding (appendFile, getContents, getLine, interact,
                        putStr, putStrLn, readFile, writeFile)
@@ -235,12 +234,11 @@ writeBlocks isCRLF h buf0 (Stream next0 s0 _len) = outer s0 buf0
         Done -> commit n False{-no flush-} True{-release-} >> return ()
         Skip s' -> inner s' n
         Yield x s'
-          | n >= len - bool 0 1 (isCRLF && x == '\n') ->
-            commit n True{-needs flush-} False >>= outer s
-          | isCRLF && x == '\n' -> do
-            n1 <- writeCharBuf raw len n '\r'
-            writeCharBuf raw len n1 '\n' >>= inner s'
-          | otherwise -> writeCharBuf raw len n x >>= inner s'
+          | isCRLF && x == '\n' && n + 1 < len -> do
+              n1 <- writeCharBuf raw len n '\r'
+              writeCharBuf raw len n1 '\n' >>= inner s'
+          | n < len -> writeCharBuf raw len n x >>= inner s'
+          | otherwise -> commit n True{-needs flush-} False >>= outer s
     commit = commitBuffer h raw len
 
 -- | Only modifies the raw buffer and not the buffer attributes
