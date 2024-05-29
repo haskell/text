@@ -54,9 +54,9 @@ import qualified Data.Text as T
 import Data.Text.Internal.Fusion (stream)
 import Data.Text.Internal.Fusion.Types (Step(..), Stream(..))
 import Data.Text.Internal.IO (hGetLineWith, readChunk)
-import GHC.IO.Buffer (Buffer(..), BufferState(..), CharBufElem, CharBuffer,
-                      RawCharBuffer, emptyBuffer, isEmptyBuffer, newCharBuffer,
-                      writeCharBuf)
+import GHC.IO.Buffer (Buffer(..), BufferState(..), RawCharBuffer, CharBuffer,
+                      emptyBuffer, isEmptyBuffer, newCharBuffer)
+import qualified GHC.IO.Buffer
 import GHC.IO.Exception (IOException(ioe_type), IOErrorType(InappropriateType))
 import GHC.IO.Handle.Internals (augmentIOError, hClose_help, wantReadableHandle,
                                 wantWritableHandle)
@@ -184,9 +184,7 @@ hPutStr h t = do
   case buffer_mode of
      (NoBuffering, _)        -> hPutChars h str
      (LineBuffering, buf)    -> writeLines h nl buf str
-     (BlockBuffering _, buf)
-         | nl == CRLF        -> writeBlocksCRLF h buf str
-         | otherwise         -> writeBlocksRaw h buf str
+     (BlockBuffering _, buf) -> writeBlocks (nl == CRLF) h buf str
 
 hPutChars :: Handle -> Stream Char -> IO ()
 hPutChars h (Stream next0 s0 _len) = loop s0
@@ -206,7 +204,7 @@ hPutChars h (Stream next0 s0 _len) = loop s0
 -- performance improvement.  Lifting out the raw/cooked newline
 -- handling gave a few more percent on top.
 
-writeLines :: Handle -> Newline -> Buffer CharBufElem -> Stream Char -> IO ()
+writeLines :: Handle -> Newline -> CharBuffer -> Stream Char -> IO ()
 writeLines h nl buf0 (Stream next0 s0 _len) = outer s0 buf0
  where
   outer s1 Buffer{bufRaw=raw, bufSize=len} = inner s1 (0::Int)
@@ -219,15 +217,15 @@ writeLines h nl buf0 (Stream next0 s0 _len) = outer s0 buf0
           | n + 1 >= len -> commit n True{-needs flush-} False >>= outer s
           | x == '\n'    -> do
                    n' <- if nl == CRLF
-                         then do n1 <- writeCharBuf raw n '\r'
-                                 writeCharBuf raw n1 '\n'
-                         else writeCharBuf raw n x
+                         then do n1 <- writeCharBuf raw len n '\r'
+                                 writeCharBuf raw len n1 '\n'
+                         else writeCharBuf raw len n x
                    commit n' True{-needs flush-} False >>= outer s'
-          | otherwise    -> writeCharBuf raw n x >>= inner s'
+          | otherwise    -> writeCharBuf raw len n x >>= inner s'
     commit = commitBuffer h raw len
 
-writeBlocksCRLF :: Handle -> Buffer CharBufElem -> Stream Char -> IO ()
-writeBlocksCRLF h buf0 (Stream next0 s0 _len) = outer s0 buf0
+writeBlocks :: Bool -> Handle -> CharBuffer -> Stream Char -> IO ()
+writeBlocks isCRLF h buf0 (Stream next0 s0 _len) = outer s0 buf0
  where
   outer s1 Buffer{bufRaw=raw, bufSize=len} = inner s1 (0::Int)
    where
@@ -236,25 +234,17 @@ writeBlocksCRLF h buf0 (Stream next0 s0 _len) = outer s0 buf0
         Done -> commit n False{-no flush-} True{-release-} >> return ()
         Skip s' -> inner s' n
         Yield x s'
-          | n + 1 >= len -> commit n True{-needs flush-} False >>= outer s
-          | x == '\n'    -> do n1 <- writeCharBuf raw n '\r'
-                               writeCharBuf raw n1 '\n' >>= inner s'
-          | otherwise    -> writeCharBuf raw n x >>= inner s'
+          | isCRLF && x == '\n' && n + 1 < len -> do
+              n1 <- writeCharBuf raw len n '\r'
+              writeCharBuf raw len n1 '\n' >>= inner s'
+          | n < len -> writeCharBuf raw len n x >>= inner s'
+          | otherwise -> commit n True{-needs flush-} False >>= outer s
     commit = commitBuffer h raw len
 
-writeBlocksRaw :: Handle -> Buffer CharBufElem -> Stream Char -> IO ()
-writeBlocksRaw h buf0 (Stream next0 s0 _len) = outer s0 buf0
- where
-  outer s1 Buffer{bufRaw=raw, bufSize=len} = inner s1 (0::Int)
-   where
-    inner !s !n =
-      case next0 s of
-        Done -> commit n False{-no flush-} True{-release-} >> return ()
-        Skip s' -> inner s' n
-        Yield x s'
-          | n + 1 >= len -> commit n True{-needs flush-} False >>= outer s
-          | otherwise    -> writeCharBuf raw n x >>= inner s'
-    commit = commitBuffer h raw len
+-- | Only modifies the raw buffer and not the buffer attributes
+writeCharBuf :: RawCharBuffer -> Int -> Int -> Char -> IO Int
+writeCharBuf bufRaw bufSize n c = E.assert (n >= 0 && n < bufSize) $
+  GHC.IO.Buffer.writeCharBuf bufRaw n c
 
 -- This function is completely lifted from GHC.IO.Handle.Text.
 getSpareBuffer :: Handle__ -> IO (BufferMode, CharBuffer)
@@ -276,7 +266,7 @@ getSpareBuffer Handle__{haCharBuffer=ref,
                 return (mode, new_buf)
 
 
--- This function is completely lifted from GHC.IO.Handle.Text.
+-- This function is modified from GHC.Internal.IO.Handle.Text.
 commitBuffer :: Handle -> RawCharBuffer -> Int -> Int -> Bool -> Bool
              -> IO CharBuffer
 commitBuffer hdl !raw !sz !count flush release =
