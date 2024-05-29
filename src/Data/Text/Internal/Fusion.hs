@@ -25,6 +25,7 @@ module Data.Text.Internal.Fusion
 
     -- * Creation and elimination
     , stream
+    , streamLn
     , unstream
     , reverseStream
 
@@ -49,7 +50,7 @@ module Data.Text.Internal.Fusion
     , countChar
     ) where
 
-import Prelude (Bool(..), Char, Maybe(..), Monad(..), Int,
+import Prelude (Bool(..), Char, Eq(..), Maybe(..), Monad(..), Int,
                 Num(..), Ord(..), ($),
                 otherwise)
 import Data.Bits (shiftL, shiftR)
@@ -97,6 +98,35 @@ stream (Text arr off len) = Stream next off (betweenSize (len `shiftR` 2) len)
               3 -> U8.chr3 n0 n1 n2
               _ -> U8.chr4 n0 n1 n2 n3
 {-# INLINE [0] stream #-}
+
+-- | /O(n)/ @'streamLn' t = 'stream' (t <> \'\\n\')@
+--
+-- @since 2.1.2
+streamLn ::
+#if defined(ASSERTS)
+  HasCallStack =>
+#endif
+  Text -> Stream Char
+streamLn (Text arr off len) = Stream next off (betweenSize (len `shiftR` 2) (len + 1))
+    where
+      !end = off+len
+      next !i
+          | i > end = Done
+          | i == end  = Yield '\n' (i + 1)
+          | otherwise = Yield chr (i + l)
+          where
+            n0 = A.unsafeIndex arr i
+            n1 = A.unsafeIndex arr (i + 1)
+            n2 = A.unsafeIndex arr (i + 2)
+            n3 = A.unsafeIndex arr (i + 3)
+
+            l  = U8.utf8LengthByLeader n0
+            chr = case l of
+              1 -> unsafeChr8 n0
+              2 -> U8.chr2 n0 n1
+              3 -> U8.chr3 n0 n1 n2
+              _ -> U8.chr4 n0 n1 n2 n3
+{-# INLINE [0] streamLn #-}
 
 -- | /O(n)/ Converts 'Text' into a 'Stream' 'Char', but iterates
 -- backwards through the text.

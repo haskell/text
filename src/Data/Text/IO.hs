@@ -51,7 +51,7 @@ import qualified Control.Exception as E
 import Control.Monad (liftM2, when)
 import Data.IORef (readIORef, writeIORef)
 import qualified Data.Text as T
-import Data.Text.Internal.Fusion (stream)
+import Data.Text.Internal.Fusion (stream, streamLn)
 import Data.Text.Internal.Fusion.Types (Step(..), Stream(..))
 import Data.Text.Internal.IO (hGetLineWith, readChunk)
 import GHC.IO.Buffer (Buffer(..), BufferState(..), RawCharBuffer, CharBuffer,
@@ -174,13 +174,15 @@ hGetLine = hGetLineWith T.concat
 
 -- | Write a string to a handle.
 hPutStr :: Handle -> Text -> IO ()
+hPutStr h = hPutStr' h . stream
+
 -- This function is lifted almost verbatim from GHC.IO.Handle.Text.
-hPutStr h t = do
+hPutStr' :: Handle -> Stream Char -> IO ()
+hPutStr' h str = do
   (buffer_mode, nl) <-
        wantWritableHandle "hPutStr" h $ \h_ -> do
                      bmode <- getSpareBuffer h_
                      return (bmode, haOutputNL h_)
-  let str = stream t
   case buffer_mode of
      (NoBuffering, _)        -> hPutChars h str
      (LineBuffering, buf)    -> writeLines h nl buf str
@@ -276,7 +278,7 @@ commitBuffer hdl !raw !sz !count flush release =
 
 -- | Write a string to a handle, followed by a newline.
 hPutStrLn :: Handle -> Text -> IO ()
-hPutStrLn h t = hPutStr h t >> hPutChar h '\n'
+hPutStrLn h = hPutStr' h . streamLn
 
 -- | The 'interact' function takes a function of type @Text -> Text@
 -- as its argument. The entire input from the standard input device is
