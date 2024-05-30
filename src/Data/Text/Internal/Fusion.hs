@@ -51,7 +51,7 @@ module Data.Text.Internal.Fusion
     ) where
 
 import Prelude (Bool(..), Char, Eq(..), Maybe(..), Monad(..), Int,
-                Num(..), Ord(..), ($),
+                Num(..), Ord(..), ($), (&&),
                 otherwise)
 import Data.Bits (shiftL, shiftR)
 import Data.Text.Internal (Text(..))
@@ -79,24 +79,7 @@ stream ::
   HasCallStack =>
 #endif
   Text -> Stream Char
-stream (Text arr off len) = Stream next off (betweenSize (len `shiftR` 2) len)
-    where
-      !end = off+len
-      next !i
-          | i >= end  = Done
-          | otherwise = Yield chr (i + l)
-          where
-            n0 = A.unsafeIndex arr i
-            n1 = A.unsafeIndex arr (i + 1)
-            n2 = A.unsafeIndex arr (i + 2)
-            n3 = A.unsafeIndex arr (i + 3)
-
-            l  = U8.utf8LengthByLeader n0
-            chr = case l of
-              1 -> unsafeChr8 n0
-              2 -> U8.chr2 n0 n1
-              3 -> U8.chr3 n0 n1 n2
-              _ -> U8.chr4 n0 n1 n2 n3
+stream t = stream' t False
 {-# INLINE [0] stream #-}
 
 -- | /O(n)/ @'streamLn' t = 'stream' (t <> \'\\n\')@
@@ -107,13 +90,22 @@ streamLn ::
   HasCallStack =>
 #endif
   Text -> Stream Char
-streamLn (Text arr off len) = Stream next off (betweenSize (len `shiftR` 2) (len + 1))
+streamLn t = stream' t True
+
+-- | Shared implementation of 'stream' and 'streamLn'.
+stream' ::
+#if defined(ASSERTS)
+  HasCallStack =>
+#endif
+  Text -> Bool -> Stream Char
+stream' (Text arr off len) addNl = Stream next off (betweenSize (len `shiftR` 2) maxLen)
     where
+      maxLen = if addNl then len + 1 else len
       !end = off+len
       next !i
-          | i > end = Done
-          | i == end  = Yield '\n' (i + 1)
-          | otherwise = Yield chr (i + l)
+          | i < end = Yield chr (i + l)
+          | addNl && i == end = Yield '\n' (i + 1)
+          | otherwise = Done
           where
             n0 = A.unsafeIndex arr i
             n1 = A.unsafeIndex arr (i + 1)
@@ -126,7 +118,7 @@ streamLn (Text arr off len) = Stream next off (betweenSize (len `shiftR` 2) (len
               2 -> U8.chr2 n0 n1
               3 -> U8.chr3 n0 n1 n2
               _ -> U8.chr4 n0 n1 n2 n3
-{-# INLINE [0] streamLn #-}
+{-# INLINE [0] stream' #-}
 
 -- | /O(n)/ Converts 'Text' into a 'Stream' 'Char', but iterates
 -- backwards through the text.
