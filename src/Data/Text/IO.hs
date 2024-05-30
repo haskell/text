@@ -49,14 +49,17 @@ import System.IO (Handle, IOMode(..), hPutChar, openFile, stdin, stdout,
                   withFile)
 import qualified Control.Exception as E
 import Control.Monad (liftM2, when)
+import qualified Data.ByteString as B
 import Data.IORef (readIORef, writeIORef)
 import qualified Data.Text as T
+import Data.Text.Encoding (encodeUtf8)
 import Data.Text.Internal.Fusion (stream)
 import Data.Text.Internal.Fusion.Types (Step(..), Stream(..))
 import Data.Text.Internal.IO (hGetLineWith, readChunk)
 import GHC.IO.Buffer (Buffer(..), BufferState(..), RawCharBuffer, CharBuffer,
                       emptyBuffer, isEmptyBuffer, newCharBuffer)
 import qualified GHC.IO.Buffer
+import GHC.IO.Encoding (textEncodingName)
 import GHC.IO.Exception (IOException(ioe_type), IOErrorType(InappropriateType))
 import GHC.IO.Handle.Internals (augmentIOError, hClose_help, wantReadableHandle,
                                 wantWritableHandle)
@@ -176,12 +179,14 @@ hGetLine = hGetLineWith T.concat
 hPutStr :: Handle -> Text -> IO ()
 -- This function is lifted almost verbatim from GHC.IO.Handle.Text.
 hPutStr h t = do
-  (buffer_mode, nl) <-
+  (buffer_mode, nl, isUTF8) <-
        wantWritableHandle "hPutStr" h $ \h_ -> do
                      bmode <- getSpareBuffer h_
-                     return (bmode, haOutputNL h_)
+                     let isUTF8 = maybe False ((== "UTF-8") . textEncodingName) $ haCodec h_
+                     return (bmode, haOutputNL h_, isUTF8)
   let str = stream t
   case buffer_mode of
+     _ | nl == LF && isUTF8  -> B.hPutStr h $ encodeUtf8 t
      (NoBuffering, _)        -> hPutChars h str
      (LineBuffering, buf)    -> writeLines h nl buf str
      (BlockBuffering _, buf) -> writeBlocks (nl == CRLF) h buf str
