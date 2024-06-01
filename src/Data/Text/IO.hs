@@ -1,5 +1,6 @@
 {-# LANGUAGE BangPatterns, CPP, RecordWildCards, ScopedTypeVariables #-}
 {-# LANGUAGE Trustworthy #-}
+{-# LANGUAGE MagicHash #-}
 -- |
 -- Module      : Data.Text.IO
 -- Copyright   : (c) 2009, 2010 Bryan O'Sullivan,
@@ -56,10 +57,11 @@ import Data.Text.Encoding (encodeUtf8)
 import Data.Text.Internal.Fusion (stream)
 import Data.Text.Internal.Fusion.Types (Step(..), Stream(..))
 import Data.Text.Internal.IO (hGetLineWith, readChunk)
+import GHC.Exts (reallyUnsafePtrEquality#, isTrue#)
 import GHC.IO.Buffer (Buffer(..), BufferState(..), RawCharBuffer, CharBuffer,
                       emptyBuffer, isEmptyBuffer, newCharBuffer)
 import qualified GHC.IO.Buffer
-import GHC.IO.Encoding (textEncodingName)
+import GHC.IO.Encoding (utf8)
 import GHC.IO.Exception (IOException(ioe_type), IOErrorType(InappropriateType))
 import GHC.IO.Handle.Internals (augmentIOError, hClose_help, wantReadableHandle,
                                 wantWritableHandle)
@@ -182,14 +184,16 @@ hPutStr h t = do
   (buffer_mode, nl, isUTF8) <-
        wantWritableHandle "hPutStr" h $ \h_ -> do
                      bmode <- getSpareBuffer h_
-                     let isUTF8 = maybe False ((== "UTF-8") . textEncodingName) $ haCodec h_
-                     return (bmode, haOutputNL h_, isUTF8)
+                     return (bmode, haOutputNL h_, eqUTF8 h_)
   let str = stream t
   case buffer_mode of
      _ | nl == LF && isUTF8  -> B.hPutStr h $ encodeUtf8 t
      (NoBuffering, _)        -> hPutChars h str
      (LineBuffering, buf)    -> writeLines h nl buf str
      (BlockBuffering _, buf) -> writeBlocks (nl == CRLF) h buf str
+
+  where
+  eqUTF8 = maybe False (\enc -> isTrue# (reallyUnsafePtrEquality# utf8 enc)) . haCodec
 
 hPutChars :: Handle -> Stream Char -> IO ()
 hPutChars h (Stream next0 s0 _len) = loop s0
