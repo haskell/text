@@ -46,16 +46,16 @@ copyright:      2009-2011 Bryan O'Sullivan, 2008-2009 Tom Harper, 2021 Andrew Le
 category:       Data, Text
 build-type:     Simple
 tested-with:
-    GHC == 8.2.2
     GHC == 8.4.4
     GHC == 8.6.5
     GHC == 8.8.4
     GHC == 8.10.7
     GHC == 9.0.2
     GHC == 9.2.8
-    GHC == 9.4.6
-    GHC == 9.6.2
-    GHC == 9.8.1
+    GHC == 9.4.8
+    GHC == 9.6.4
+    GHC == 9.8.2
+    GHC == 9.10.1
 
 extra-source-files:
     -- scripts/CaseFolding.txt
@@ -217,7 +217,7 @@ library
 
   build-depends:
     array            >= 0.3 && < 0.6,
-    base             >= 4.10 && < 5,
+    base             >= 4.11 && < 5,
     binary           >= 0.5 && < 0.9,
     bytestring       >= 0.10.4 && < 0.13,
     deepseq          >= 1.1 && < 1.6,
