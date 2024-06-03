@@ -40,12 +40,11 @@ import GHC.IO.Buffer (Buffer(..), BufferState(..), CharBuffer, RawCharBuffer,
                       bufferAdjustL, bufferElems, charSize, emptyBuffer,
                       isEmptyBuffer, newCharBuffer, readCharBuf, withRawBuffer,
                       writeCharBuf)
-import GHC.IO.Encoding (utf8)
 import GHC.IO.Handle.Internals (ioe_EOF, readTextDevice, wantReadableHandle_,
                                 wantWritableHandle)
 import GHC.IO.Handle.Text (commitBuffer')
 import GHC.IO.Handle.Types (BufferList(..), BufferMode(..), Handle__(..), Newline(..))
-import System.IO (Handle, hPutChar)
+import System.IO (Handle, hPutChar, utf8)
 import System.IO.Error (isEOFError)
 import qualified Data.Text as T
 
@@ -204,6 +203,10 @@ hPutStreamOrUtf8 h str mPutUtf8 = do
      (BlockBuffering _, buf) -> writeBlocks (nl == CRLF) h buf str
 
   where
+  -- If the encoding is UTF-8, it's most likely pointer-equal to
+  -- 'System.IO.utf8', letting us avoid a String comparison.
+  -- If it is somehow UTF-8 but not pointer-equal to 'utf8',
+  -- we will just take a slower branch, but the result is still correct.
   eqUTF8 = maybe False (\enc -> isTrue# (reallyUnsafePtrEquality# utf8 enc)) . haCodec
 {-# INLINE hPutStreamOrUtf8 #-}
 
