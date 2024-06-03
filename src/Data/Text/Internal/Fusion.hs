@@ -25,6 +25,7 @@ module Data.Text.Internal.Fusion
 
     -- * Creation and elimination
     , stream
+    , streamLn
     , unstream
     , reverseStream
 
@@ -49,8 +50,8 @@ module Data.Text.Internal.Fusion
     , countChar
     ) where
 
-import Prelude (Bool(..), Char, Maybe(..), Monad(..), Int,
-                Num(..), Ord(..), ($),
+import Prelude (Bool(..), Char, Eq(..), Maybe(..), Monad(..), Int,
+                Num(..), Ord(..), ($), (&&),
                 otherwise)
 import Data.Bits (shiftL, shiftR)
 import Data.Text.Internal (Text(..))
@@ -78,12 +79,33 @@ stream ::
   HasCallStack =>
 #endif
   Text -> Stream Char
-stream (Text arr off len) = Stream next off (betweenSize (len `shiftR` 2) len)
+stream t = stream' t False
+{-# INLINE [0] stream #-}
+
+-- | /O(n)/ @'streamLn' t = 'stream' (t <> \'\\n\')@
+--
+-- @since 2.1.2
+streamLn ::
+#if defined(ASSERTS)
+  HasCallStack =>
+#endif
+  Text -> Stream Char
+streamLn t = stream' t True
+
+-- | Shared implementation of 'stream' and 'streamLn'.
+stream' ::
+#if defined(ASSERTS)
+  HasCallStack =>
+#endif
+  Text -> Bool -> Stream Char
+stream' (Text arr off len) addNl = Stream next off (betweenSize (len `shiftR` 2) maxLen)
     where
+      maxLen = if addNl then len + 1 else len
       !end = off+len
       next !i
-          | i >= end  = Done
-          | otherwise = Yield chr (i + l)
+          | i < end = Yield chr (i + l)
+          | addNl && i == end = Yield '\n' (i + 1)
+          | otherwise = Done
           where
             n0 = A.unsafeIndex arr i
             n1 = A.unsafeIndex arr (i + 1)
@@ -96,7 +118,7 @@ stream (Text arr off len) = Stream next off (betweenSize (len `shiftR` 2) len)
               2 -> U8.chr2 n0 n1
               3 -> U8.chr3 n0 n1 n2
               _ -> U8.chr4 n0 n1 n2 n3
-{-# INLINE [0] stream #-}
+{-# INLINE [0] stream' #-}
 
 -- | /O(n)/ Converts 'Text' into a 'Stream' 'Char', but iterates
 -- backwards through the text.

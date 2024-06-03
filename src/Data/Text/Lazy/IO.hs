@@ -49,7 +49,7 @@ import qualified Control.Exception as E
 import Control.Monad (when)
 import Data.IORef (readIORef)
 import Data.Text.Internal.IO (hGetLineWith, readChunk)
-import Data.Text.Internal.Lazy (chunk, empty)
+import Data.Text.Internal.Lazy (Text(..), chunk, empty)
 import GHC.IO.Buffer (isEmptyBuffer)
 import GHC.IO.Exception (IOException(..), IOErrorType(..), ioException)
 import GHC.IO.Handle.Internals (augmentIOError, hClose_help,
@@ -133,7 +133,9 @@ hPutStr h = mapM_ (T.hPutStr h) . L.toChunks
 
 -- | Write a string to a handle, followed by a newline.
 hPutStrLn :: Handle -> Text -> IO ()
-hPutStrLn h t = hPutStr h t >> hPutChar h '\n'
+hPutStrLn h Empty = hPutChar h '\n'
+hPutStrLn h (Chunk t Empty) = T.hPutStrLn h t  -- print the newline after the last chunk atomically
+hPutStrLn h (Chunk t ts) = T.hPutStr h t >> hPutStrLn h ts
 
 -- | The 'interact' function takes a function of type @Text -> Text@
 -- as its argument. The entire input from the standard input device is

@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns, RecordWildCards #-}
+{-# LANGUAGE MagicHash #-}
 -- |
 -- Module      : Data.Text.Internal.IO
 -- Copyright   : (c) 2009, 2010 Bryan O'Sullivan,
@@ -18,22 +19,33 @@ module Data.Text.Internal.IO
     (
       hGetLineWith
     , readChunk
+    , hPutStream
+    , hPutStr
+    , hPutStrLn
     ) where
 
 import qualified Control.Exception as E
+import qualified Data.ByteString as B
+import Data.ByteString.Builder (hPutBuilder, charUtf8)
 import Data.IORef (readIORef, writeIORef)
 import Data.Text (Text)
-import Data.Text.Internal.Fusion (unstream)
+import Data.Text.Encoding (encodeUtf8, encodeUtf8Builder)
+import Data.Text.Internal.Fusion (stream, streamLn, unstream)
 import Data.Text.Internal.Fusion.Types (Step(..), Stream(..))
 import Data.Text.Internal.Fusion.Size (exactSize, maxSize)
 import Data.Text.Unsafe (inlinePerformIO)
 import Foreign.Storable (peekElemOff)
-import GHC.IO.Buffer (Buffer(..), CharBuffer, RawCharBuffer, bufferAdjustL,
-                      bufferElems, charSize, isEmptyBuffer, readCharBuf,
-                      withRawBuffer, writeCharBuf)
-import GHC.IO.Handle.Internals (ioe_EOF, readTextDevice, wantReadableHandle_)
-import GHC.IO.Handle.Types (Handle__(..), Newline(..))
-import System.IO (Handle)
+import GHC.Exts (reallyUnsafePtrEquality#, isTrue#)
+import GHC.IO.Buffer (Buffer(..), BufferState(..), CharBuffer, RawCharBuffer,
+                      bufferAdjustL, bufferElems, charSize, emptyBuffer,
+                      isEmptyBuffer, newCharBuffer, readCharBuf, withRawBuffer,
+                      writeCharBuf)
+import GHC.IO.Encoding (utf8)
+import GHC.IO.Handle.Internals (ioe_EOF, readTextDevice, wantReadableHandle_,
+                                wantWritableHandle)
+import GHC.IO.Handle.Text (commitBuffer')
+import GHC.IO.Handle.Types (BufferList(..), BufferMode(..), Handle__(..), Newline(..))
+import System.IO (Handle, hPutChar)
 import System.IO.Error (isEOFError)
 import qualified Data.Text as T
 
@@ -161,6 +173,127 @@ readChunk hh@Handle__{..} buf = do
                    return (t,bufR)
   writeIORef haCharBuffer (bufferAdjustL r buf')
   return t
+
+-- | Print a @Stream Char@.
+hPutStream :: Handle -> Stream Char -> IO ()
+hPutStream h str = hPutStreamOrUtf8 h str Nothing
+
+-- | Write a string to a handle.
+hPutStr :: Handle -> Text -> IO ()
+hPutStr h t = hPutStreamOrUtf8 h (stream t) (Just putUtf8)
+  where putUtf8 = B.hPutStr h (encodeUtf8 t)
+
+-- | Write a string to a handle, followed by a newline.
+hPutStrLn :: Handle -> Text -> IO ()
+hPutStrLn h t = hPutStreamOrUtf8 h (streamLn t) (Just putUtf8)
+  where putUtf8 = hPutBuilder h (encodeUtf8Builder t <> charUtf8 '\n')
+
+-- | 'hPutStream' with an optional special case when the output encoding is
+-- UTF-8 and without newline conversion.
+hPutStreamOrUtf8 :: Handle -> Stream Char -> Maybe (IO ()) -> IO ()
+-- This function is modified from GHC.IO.Handle.Text.
+hPutStreamOrUtf8 h str mPutUtf8 = do
+  (buffer_mode, nl, isUtf8) <-
+       wantWritableHandle "hPutStr" h $ \h_ -> do
+                     bmode <- getSpareBuffer h_
+                     return (bmode, haOutputNL h_, eqUTF8 h_)
+  case buffer_mode of
+     _ | Just putUtf8 <- mPutUtf8, nl == LF && isUtf8 -> putUtf8
+     (NoBuffering, _)        -> hPutChars h str
+     (LineBuffering, buf)    -> writeLines h nl buf str
+     (BlockBuffering _, buf) -> writeBlocks (nl == CRLF) h buf str
+
+  where
+  eqUTF8 = maybe False (\enc -> isTrue# (reallyUnsafePtrEquality# utf8 enc)) . haCodec
+{-# INLINE hPutStreamOrUtf8 #-}
+
+hPutChars :: Handle -> Stream Char -> IO ()
+hPutChars h (Stream next0 s0 _len) = loop s0
+  where
+    loop !s = case next0 s of
+                Done       -> return ()
+                Skip s'    -> loop s'
+                Yield x s' -> hPutChar h x >> loop s'
+
+-- The following functions are largely lifted from GHC.IO.Handle.Text,
+-- but adapted to a coinductive stream of data instead of an inductive
+-- list.
+--
+-- We have several variations of more or less the same code for
+-- performance reasons.  Splitting the original buffered write
+-- function into line- and block-oriented versions gave us a 2.1x
+-- performance improvement.  Lifting out the raw/cooked newline
+-- handling gave a few more percent on top.
+
+writeLines :: Handle -> Newline -> CharBuffer -> Stream Char -> IO ()
+writeLines h nl buf0 (Stream next0 s0 _len) = outer s0 buf0
+ where
+  outer s1 Buffer{bufRaw=raw, bufSize=len} = inner s1 (0::Int)
+   where
+    inner !s !n =
+      case next0 s of
+        Done -> commit n False{-no flush-} True{-release-} >> return ()
+        Skip s' -> inner s' n
+        Yield x s'
+          | n + 1 >= len -> commit n True{-needs flush-} False >>= outer s
+          | x == '\n'    -> do
+                   n' <- if nl == CRLF
+                         then do n1 <- writeCharBuf' raw len n '\r'
+                                 writeCharBuf' raw len n1 '\n'
+                         else writeCharBuf' raw len n x
+                   commit n' True{-needs flush-} False >>= outer s'
+          | otherwise    -> writeCharBuf' raw len n x >>= inner s'
+    commit = commitBuffer h raw len
+
+writeBlocks :: Bool -> Handle -> CharBuffer -> Stream Char -> IO ()
+writeBlocks isCRLF h buf0 (Stream next0 s0 _len) = outer s0 buf0
+ where
+  outer s1 Buffer{bufRaw=raw, bufSize=len} = inner s1 (0::Int)
+   where
+    inner !s !n =
+      case next0 s of
+        Done -> commit n False{-no flush-} True{-release-} >> return ()
+        Skip s' -> inner s' n
+        Yield x s'
+          | isCRLF && x == '\n' && n + 1 < len -> do
+              n1 <- writeCharBuf' raw len n '\r'
+              writeCharBuf' raw len n1 '\n' >>= inner s'
+          | n < len -> writeCharBuf' raw len n x >>= inner s'
+          | otherwise -> commit n True{-needs flush-} False >>= outer s
+    commit = commitBuffer h raw len
+
+-- | Only modifies the raw buffer and not the buffer attributes
+writeCharBuf' :: RawCharBuffer -> Int -> Int -> Char -> IO Int
+writeCharBuf' bufRaw bufSize n c = E.assert (n >= 0 && n < bufSize) $
+  writeCharBuf bufRaw n c
+
+-- This function is completely lifted from GHC.IO.Handle.Text.
+getSpareBuffer :: Handle__ -> IO (BufferMode, CharBuffer)
+getSpareBuffer Handle__{haCharBuffer=ref,
+                        haBuffers=spare_ref,
+                        haBufferMode=mode}
+ = do
+   case mode of
+     NoBuffering -> return (mode, error "no buffer!")
+     _ -> do
+          bufs <- readIORef spare_ref
+          buf  <- readIORef ref
+          case bufs of
+            BufferListCons b rest -> do
+                writeIORef spare_ref rest
+                return ( mode, emptyBuffer b (bufSize buf) WriteBuffer)
+            BufferListNil -> do
+                new_buf <- newCharBuffer (bufSize buf) WriteBuffer
+                return (mode, new_buf)
+
+
+-- This function is modified from GHC.Internal.IO.Handle.Text.
+commitBuffer :: Handle -> RawCharBuffer -> Int -> Int -> Bool -> Bool
+             -> IO CharBuffer
+commitBuffer hdl !raw !sz !count flush release =
+  wantWritableHandle "commitAndReleaseBuffer" hdl $
+     commitBuffer' raw sz count flush release
+{-# INLINE commitBuffer #-}
 
 sizeError :: String -> a
 sizeError loc = error $ "Data.Text.IO." ++ loc ++ ": bad internal buffer size"
