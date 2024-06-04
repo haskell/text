@@ -41,16 +41,15 @@ module Data.Text.Lazy.IO
 import Data.Text.Lazy (Text)
 import Prelude hiding (appendFile, getContents, getLine, interact,
                        putStr, putStrLn, readFile, writeFile)
-import System.IO (Handle, IOMode(..), hPutChar, openFile, stdin, stdout,
+import System.IO (Handle, IOMode(..), openFile, stdin, stdout,
                   withFile)
-import qualified Data.Text.IO as T
 import qualified Data.Text.Lazy as L
 import qualified Control.Exception as E
 import Control.Monad (when)
 import Data.IORef (readIORef)
 import Data.Text.Internal.IO (hGetLineWith, readChunk, hPutStream)
-import Data.Text.Internal.Lazy (Text(..), chunk, empty)
-import Data.Text.Internal.Lazy.Fusion (stream)
+import Data.Text.Internal.Lazy (chunk, empty)
+import Data.Text.Internal.Lazy.Fusion (stream, streamLn)
 import GHC.IO.Buffer (isEmptyBuffer)
 import GHC.IO.Exception (IOException(..), IOErrorType(..), ioException)
 import GHC.IO.Handle.Internals (augmentIOError, hClose_help,
@@ -134,9 +133,7 @@ hPutStr h = hPutStream h . stream
 
 -- | Write a string to a handle, followed by a newline.
 hPutStrLn :: Handle -> Text -> IO ()
-hPutStrLn h Empty = hPutChar h '\n'
-hPutStrLn h (Chunk t Empty) = T.hPutStrLn h t  -- print the newline after the last chunk atomically
-hPutStrLn h t = hPutStream h (stream t) >> hPutChar h '\n'
+hPutStrLn h t = hPutStream h $ streamLn t
 
 -- | The 'interact' function takes a function of type @Text -> Text@
 -- as its argument. The entire input from the standard input device is

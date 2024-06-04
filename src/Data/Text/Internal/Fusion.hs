@@ -79,7 +79,7 @@ stream ::
   HasCallStack =>
 #endif
   Text -> Stream Char
-stream t = stream' t False
+stream = stream' False
 {-# INLINE [0] stream #-}
 
 -- | /O(n)/ @'streamLn' t = 'stream' (t <> \'\\n\')@
@@ -90,15 +90,15 @@ streamLn ::
   HasCallStack =>
 #endif
   Text -> Stream Char
-streamLn t = stream' t True
+streamLn = stream' True
 
 -- | Shared implementation of 'stream' and 'streamLn'.
 stream' ::
 #if defined(ASSERTS)
   HasCallStack =>
 #endif
-  Text -> Bool -> Stream Char
-stream' (Text arr off len) addNl = Stream next off (betweenSize (len `shiftR` 2) maxLen)
+  Bool -> Text -> Stream Char
+stream' addNl (Text arr off len) = Stream next off (betweenSize (len `shiftR` 2) maxLen)
     where
       maxLen = if addNl then len + 1 else len
       !end = off+len
