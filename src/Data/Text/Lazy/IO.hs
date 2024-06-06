@@ -133,7 +133,7 @@ hPutStr h = hPutStream h . stream
 
 -- | Write a string to a handle, followed by a newline.
 hPutStrLn :: Handle -> Text -> IO ()
-hPutStrLn h t = hPutStream h $ streamLn t
+hPutStrLn h = hPutStream h . streamLn
 
 -- | The 'interact' function takes a function of type @Text -> Text@
 -- as its argument. The entire input from the standard input device is
