@@ -53,7 +53,7 @@ stream = stream' False
 
 -- | /O(n)/ @'streamLn' t = 'stream' (t <> \'\\n\')@
 --
--- @since ????
+-- @since 2.1.2
 streamLn ::
 #if defined(ASSERTS)
   HasCallStack =>
