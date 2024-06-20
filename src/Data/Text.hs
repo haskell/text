@@ -362,6 +362,16 @@ instance Read Text where
 instance Semigroup Text where
     (<>) = append
 
+    -- | Beware: this function will evaluate to error if the given number does
+    -- not fit into an @Int@.
+    stimes howManyTimes =
+        let howManyTimesInt = P.fromIntegral howManyTimes :: Int
+        in  if P.fromIntegral howManyTimesInt == howManyTimes
+            then replicate howManyTimesInt
+            else P.error "Data.Text.stimes: given number does not fit into an Int!"
+
+    sconcat = concat . NonEmptyList.toList
+
 instance Monoid Text where
     mempty  = empty
     mappend = (<>)
