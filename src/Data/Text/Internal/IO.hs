@@ -1,4 +1,5 @@
 {-# LANGUAGE BangPatterns, RecordWildCards #-}
+{-# LANGUAGE MagicHash #-}
 -- |
 -- Module      : Data.Text.Internal.IO
 -- Copyright   : (c) 2009, 2010 Bryan O'Sullivan,
@@ -19,16 +20,22 @@ module Data.Text.Internal.IO
       hGetLineWith
     , readChunk
     , hPutStream
+    , hPutStr
+    , hPutStrLn
     ) where
 
 import qualified Control.Exception as E
+import qualified Data.ByteString as B
+import Data.ByteString.Builder (hPutBuilder, charUtf8)
 import Data.IORef (readIORef, writeIORef)
 import Data.Text (Text)
-import Data.Text.Internal.Fusion (unstream)
+import Data.Text.Encoding (encodeUtf8, encodeUtf8Builder)
+import Data.Text.Internal.Fusion (stream, streamLn, unstream)
 import Data.Text.Internal.Fusion.Types (Step(..), Stream(..))
 import Data.Text.Internal.Fusion.Size (exactSize, maxSize)
 import Data.Text.Unsafe (inlinePerformIO)
 import Foreign.Storable (peekElemOff)
+import GHC.Exts (reallyUnsafePtrEquality#, isTrue#)
 import GHC.IO.Buffer (Buffer(..), BufferState(..), CharBuffer, RawCharBuffer,
                       bufferAdjustL, bufferElems, charSize, emptyBuffer,
                       isEmptyBuffer, newCharBuffer, readCharBuf, withRawBuffer,
@@ -37,7 +44,7 @@ import GHC.IO.Handle.Internals (ioe_EOF, readTextDevice, wantReadableHandle_,
                                 wantWritableHandle)
 import GHC.IO.Handle.Text (commitBuffer')
 import GHC.IO.Handle.Types (BufferList(..), BufferMode(..), Handle__(..), Newline(..))
-import System.IO (Handle, hPutChar)
+import System.IO (Handle, hPutChar, utf8)
 import System.IO.Error (isEOFError)
 import qualified Data.Text as T
 
@@ -168,16 +175,44 @@ readChunk hh@Handle__{..} buf = do
 
 -- | Print a @Stream Char@.
 hPutStream :: Handle -> Stream Char -> IO ()
--- This function is lifted almost verbatim from GHC.IO.Handle.Text.
-hPutStream h str = do
-  (buffer_mode, nl) <-
+hPutStream h str = hPutStreamOrUtf8 h str Nothing
+
+-- | Write a string to a handle.
+hPutStr :: Handle -> Text -> IO ()
+hPutStr h t = hPutStreamOrUtf8 h (stream t) (Just putUtf8)
+  where
+    putUtf8 = B.hPutStr h (encodeUtf8 t)
+
+-- | Write a string to a handle, followed by a newline.
+hPutStrLn :: Handle -> Text -> IO ()
+hPutStrLn h t = hPutStreamOrUtf8 h (streamLn t) (Just putUtf8)
+  where
+    -- Not using B.hPutStrLn because it's not necessarily atomic:
+    -- https://github.com/haskell/bytestring/issues/200
+    putUtf8 = hPutBuilder h (encodeUtf8Builder t <> charUtf8 '\n')
+
+-- | 'hPutStream' with an optional special case when the output encoding is
+-- UTF-8 and without newline conversion.
+hPutStreamOrUtf8 :: Handle -> Stream Char -> Maybe (IO ()) -> IO ()
+-- This function is modified from GHC.IO.Handle.Text.
+hPutStreamOrUtf8 h str mPutUtf8 = do
+  (buffer_mode, nl, isUtf8) <-
        wantWritableHandle "hPutStr" h $ \h_ -> do
                      bmode <- getSpareBuffer h_
-                     return (bmode, haOutputNL h_)
+                     return (bmode, haOutputNL h_, eqUTF8 h_)
   case buffer_mode of
+     _ | Just putUtf8 <- mPutUtf8, nl == LF && isUtf8 -> putUtf8
      (NoBuffering, _)        -> hPutChars h str
      (LineBuffering, buf)    -> writeLines h nl buf str
      (BlockBuffering _, buf) -> writeBlocks (nl == CRLF) h buf str
+
+  where
+  -- If the encoding is UTF-8, it's most likely pointer-equal to
+  -- 'System.IO.utf8', letting us avoid a String comparison.
+  -- If it is somehow UTF-8 but not pointer-equal to 'utf8',
+  -- we will just take a slower branch, but the result is still correct.
+  eqUTF8 = maybe False (\enc -> isTrue# (reallyUnsafePtrEquality# utf8 enc)) . haCodec
+{-# INLINE hPutStreamOrUtf8 #-}
 
 hPutChars :: Handle -> Stream Char -> IO ()
 hPutChars h (Stream next0 s0 _len) = loop s0

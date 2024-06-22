@@ -51,8 +51,7 @@ import qualified Control.Exception as E
 import Control.Monad (liftM2, when)
 import Data.IORef (readIORef)
 import qualified Data.Text as T
-import Data.Text.Internal.Fusion (stream, streamLn)
-import Data.Text.Internal.IO (hGetLineWith, readChunk, hPutStream)
+import Data.Text.Internal.IO (hGetLineWith, readChunk, hPutStr, hPutStrLn)
 import GHC.IO.Buffer (CharBuffer, isEmptyBuffer)
 import GHC.IO.Exception (IOException(ioe_type), IOErrorType(InappropriateType))
 import GHC.IO.Handle.Internals (augmentIOError, hClose_help, wantReadableHandle)
@@ -165,14 +164,6 @@ chooseGoodBuffering h = do
 -- | Read a single line from a handle.
 hGetLine :: Handle -> IO Text
 hGetLine = hGetLineWith T.concat
-
--- | Write a string to a handle.
-hPutStr :: Handle -> Text -> IO ()
-hPutStr h = hPutStream h . stream
-
--- | Write a string to a handle, followed by a newline.
-hPutStrLn :: Handle -> Text -> IO ()
-hPutStrLn h = hPutStream h . streamLn
 
 -- | The 'interact' function takes a function of type @Text -> Text@
 -- as its argument. The entire input from the standard input device is
