@@ -180,12 +180,16 @@ hPutStream h str = hPutStreamOrUtf8 h str Nothing
 -- | Write a string to a handle.
 hPutStr :: Handle -> Text -> IO ()
 hPutStr h t = hPutStreamOrUtf8 h (stream t) (Just putUtf8)
-  where putUtf8 = B.hPutStr h (encodeUtf8 t)
+  where
+    putUtf8 = B.hPutStr h (encodeUtf8 t)
 
 -- | Write a string to a handle, followed by a newline.
 hPutStrLn :: Handle -> Text -> IO ()
 hPutStrLn h t = hPutStreamOrUtf8 h (streamLn t) (Just putUtf8)
-  where putUtf8 = hPutBuilder h (encodeUtf8Builder t <> charUtf8 '\n')
+  where
+    -- Not using B.hPutStrLn because it's not necessarily atomic:
+    -- https://github.com/haskell/bytestring/issues/200
+    putUtf8 = hPutBuilder h (encodeUtf8Builder t <> charUtf8 '\n')
 
 -- | 'hPutStream' with an optional special case when the output encoding is
 -- UTF-8 and without newline conversion.
