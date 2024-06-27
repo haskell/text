@@ -28,6 +28,7 @@ import Test.QuickCheck hiding ((.&.))
 import Tests.QuickCheckUtils
 import Tests.Utils
 import qualified Data.Text as T
+import qualified Data.Text.Foreign as T
 import qualified Data.Text.IO as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.IO as TL
@@ -71,6 +72,14 @@ t_use_from t = ioProperty $ (==t) <$> useAsPtr t fromPtr
 t_use_from0 t = ioProperty $ do
   let t' = t `T.snoc` '\0'
   (== T.takeWhile (/= '\0') t') <$> useAsPtr t' (const . fromPtr0)
+
+t_peek_cstring t = ioProperty $ do
+  roundTrip <- T.withCString t T.peekCString
+  assertEqual "cstring" t roundTrip
+
+t_peek_cstring_len t = ioProperty $ do
+  roundTrip <- T.withCStringLen t T.peekCStringLen
+  assertEqual "cstring_len" t roundTrip
 
 t_copy t = T.copy t === t
 
@@ -125,6 +134,8 @@ testLowLevel =
       testProperty "t_use_from" t_use_from,
       testProperty "t_use_from0" t_use_from0,
       testProperty "t_copy" t_copy,
+      testProperty "t_peek_cstring" t_peek_cstring,
+      testProperty "t_peek_cstring_len" t_peek_cstring_len,
       testCase "t_literal_length1" t_literal_length1,
       testCase "t_literal_length2" t_literal_length2,
       testCase "t_literal_surrogates" t_literal_surrogates
@@ -151,4 +162,3 @@ testLowLevel =
       -- testProperty "tl_put_get" tl_put_get
     ]
   ]
-

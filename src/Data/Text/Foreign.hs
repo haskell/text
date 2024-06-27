@@ -21,6 +21,7 @@ module Data.Text.Foreign
     , useAsPtr
     , asForeignPtr
     -- ** Encoding as UTF-8
+    , peekCString
     , withCString
     , peekCStringLen
     , withCStringLen
@@ -34,7 +35,7 @@ module Data.Text.Foreign
     ) where
 
 import Control.Monad.ST.Unsafe (unsafeSTToIO)
-import Data.ByteString.Unsafe (unsafePackCStringLen, unsafeUseAsCStringLen)
+import Data.ByteString.Unsafe (unsafePackCStringLen, unsafePackCString, unsafeUseAsCStringLen)
 import Data.Text.Encoding (decodeUtf8, encodeUtf8)
 import Data.Text.Internal (Text(..), empty)
 import Data.Text.Internal.Unsafe (unsafeWithForeignPtr)
@@ -177,6 +178,16 @@ withCString t@(Text _arr _off len) action =
 peekCStringLen :: CStringLen -> IO Text
 peekCStringLen cs = do
   bs <- unsafePackCStringLen cs
+  return $! decodeUtf8 bs
+
+-- | /O(n)/ Decode a null-terminated C string, which is assumed
+-- to have been encoded as UTF-8. If decoding fails, a
+-- 'UnicodeException' is thrown.
+--
+-- @since 2.1.2
+peekCString :: CString -> IO Text
+peekCString cs = do
+  bs <- unsafePackCString cs
   return $! decodeUtf8 bs
 
 -- | Marshal a 'Text' into a C string encoded as UTF-8 in temporary
