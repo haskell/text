@@ -1,7 +1,7 @@
 task:
   name: FreeBSD
   freebsd_instance:
-    image_family: freebsd-13-2
+    image_family: freebsd-14-0
   # See https://github.com/haskell/text/pull/475#issuecomment-1272359694
   install_script:
     - sed -i.bak -e 's/quarterly/latest/' /etc/pkg/FreeBSD.conf
