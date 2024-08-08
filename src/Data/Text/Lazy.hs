@@ -201,12 +201,15 @@ module Data.Text.Lazy
     , zip
     , zipWith
 
+    -- * Showing values
+    , show
+
     -- -* Ordered text
     -- , sort
     ) where
 
 import Prelude (Char, Bool(..), Maybe(..), String,
-                Eq, (==), Ord(..), Ordering(..), Read(..), Show(..),
+                Eq, (==), Ord(..), Ordering(..), Read(..), Show(showsPrec),
                 Monad(..), pure, (<$>),
                 (&&), (+), (-), (.), ($), (++),
                 error, flip, fmap, fromIntegral, not, otherwise, quot)
@@ -1791,6 +1794,10 @@ zipWith :: (Char -> Char -> Char) -> Text -> Text -> Text
 zipWith f t1 t2 = unstream (S.zipWith g (stream t1) (stream t2))
     where g a b = safe (f a b)
 {-# INLINE [0] zipWith #-}
+
+-- | Convert a value to lazy 'Text'.
+show :: Show a => a -> Text
+show = pack . P.show
 
 revChunks :: [T.Text] -> Text
 revChunks = L.foldl' (flip chunk) Empty
