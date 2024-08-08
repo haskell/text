@@ -202,6 +202,9 @@ module Data.Text
     , zip
     , zipWith
 
+    -- * Showing values
+    , show
+
     -- -* Ordered text
     -- , sort
 
@@ -215,7 +218,7 @@ module Data.Text
 
 import Prelude (Char, Bool(..), Int, Maybe(..), String,
                 Eq, (==), (/=), Ord(..), Ordering(..), (++),
-                Monad(..), pure, Read(..),
+                Monad(..), pure, Read(..), Show,
                 (&&), (||), (+), (-), (.), ($), ($!), (>>),
                 not, return, otherwise, quot)
 import Control.DeepSeq (NFData(rnf))
@@ -2049,6 +2052,10 @@ emptyError fun = P.error $ "Data.Text." ++ fun ++ ": empty input"
 
 overflowError :: HasCallStack => String -> a
 overflowError fun = P.error $ "Data.Text." ++ fun ++ ": size overflow"
+
+-- | Convert a value to 'Text'.
+show :: Show a => a -> Text
+show = pack . P.show
 
 -- | /O(n)/ Make a distinct copy of the given string, sharing no
 -- storage with the original string.
