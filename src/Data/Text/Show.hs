@@ -1,6 +1,8 @@
-{-# LANGUAGE CPP, MagicHash #-}
-{-# LANGUAGE Trustworthy #-}
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE CApiFFI #-}
+{-# LANGUAGE CPP #-}
+{-# LANGUAGE MagicHash #-}
+{-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE ViewPatterns #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
@@ -26,12 +28,11 @@ module Data.Text.Show
 import Control.Monad.ST (ST, runST)
 import Data.Text.Internal (Text(..), empty, safe, pack)
 import Data.Text.Internal.Encoding.Utf8 (utf8Length)
-import Data.Text.Internal.Fusion (stream)
 import Data.Text.Internal.Unsafe.Char (unsafeWrite)
+import Data.Text.Unsafe (Iter(..), iterArray)
 import GHC.Exts (Ptr(..), Int(..), Addr#, indexWord8OffAddr#)
 import GHC.Word (Word8(..))
 import qualified Data.Text.Array as A
-import qualified Data.Text.Internal.Fusion.Common as S
 #if !MIN_VERSION_ghc_prim(0,7,0)
 import Foreign.C.String (CString)
 import Foreign.C.Types (CSize(..))
@@ -52,7 +53,11 @@ unpack ::
   HasCallStack =>
 #endif
   Text -> String
-unpack = S.unstreamList . stream
+unpack (Text arr off len) = go off
+  where
+    go !i
+      | i >= off + len = []
+      | otherwise = let !(Iter c l) = iterArray arr i in c : go (i + l)
 {-# INLINE [1] unpack #-}
 
 -- | /O(n)/ Convert a null-terminated
