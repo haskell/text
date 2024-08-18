@@ -73,7 +73,7 @@ t_use_from0 t = ioProperty $ do
   let t' = t `T.snoc` '\0'
   (== T.takeWhile (/= '\0') t') <$> useAsPtr t' (const . fromPtr0)
 
-t_peek_cstring t = ioProperty $ do
+t_peek_cstring t = T.all (/= '\0') t ==> ioProperty $ do
   roundTrip <- T.withCString t T.peekCString
   assertEqual "cstring" t roundTrip
 

@@ -158,6 +158,9 @@ asForeignPtr t@(Text _arr _off len) = do
 -- | Marshal a 'Text' into a C string with a trailing NUL byte,
 -- encoded as UTF-8 in temporary storage.
 --
+-- The 'Text' itself must not contain any NUL bytes, this precondition
+-- is not checked. Cf. 'withCStringLen'.
+--
 -- The temporary storage is freed when the subcomputation terminates
 -- (either normally or via an exception), so the pointer to the
 -- temporary storage must /not/ be used after this function returns.
