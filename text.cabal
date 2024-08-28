@@ -103,9 +103,12 @@ library
     cpp-options: -DPURE_HASKELL
   else
     c-sources:  cbits/is_ascii.c
-                cbits/measure_off.c
                 cbits/reverse.c
                 cbits/utils.c
+    if (arch(aarch64))
+      c-sources: cbits/aarch64/measure_off.c
+    else
+      c-sources: cbits/measure_off.c
 
   hs-source-dirs: src
 
