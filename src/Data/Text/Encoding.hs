@@ -393,6 +393,8 @@ decodeUtf8' = unsafeDupablePerformIO . try . evaluate . decodeUtf8With strictDec
 --
 -- Any invalid input bytes will be replaced with the Unicode replacement
 -- character U+FFFD.
+--
+-- @since 2.0
 decodeUtf8Lenient :: ByteString -> Text
 decodeUtf8Lenient = decodeUtf8With lenientDecode
 
