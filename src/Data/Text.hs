@@ -255,7 +255,7 @@ import qualified Prelude as P
 import Data.Text.Unsafe (Iter(..), iter, iter_, lengthWord8, reverseIter,
                          reverseIter_, unsafeHead, unsafeTail, iterArray, reverseIterArray)
 import Data.Text.Internal.Search (indices)
-import Data.Text.Internal.Transformation (mapNonEmpty, toCaseFoldNonEmpty, toLowerNonEmpty, toUpperNonEmpty, filter_)
+import Data.Text.Internal.Transformation (mapNonEmpty, toCaseFoldNonEmpty, toLowerNonEmpty, toUpperNonEmpty, toTitleNonEmpty, filter_)
 #if defined(__HADDOCK__)
 import Data.ByteString (ByteString)
 import qualified Data.Text.Lazy as L
@@ -900,7 +900,9 @@ toUpper = \t ->
 --
 -- @since 1.0.0.0
 toTitle :: Text -> Text
-toTitle t = unstream (S.toTitle (stream t))
+toTitle = \t ->
+  if null t then empty
+  else toTitleNonEmpty t
 {-# INLINE toTitle #-}
 
 -- | /O(n)/ Left-justify a string to the given length, using the

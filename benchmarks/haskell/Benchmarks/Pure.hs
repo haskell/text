@@ -192,6 +192,10 @@ benchmark kind ~Env{..} =
             [ benchT   $ nf T.toUpper ta
             , benchTL  $ nf TL.toUpper tla
             ]
+        , bgroup "toTitle"
+            [ benchT   $ nf T.toTitle ta
+            , benchTL  $ nf TL.toTitle tla
+            ]
         , bgroup "uncons"
             [ benchT   $ nf T.uncons ta
             , benchTL  $ nf TL.uncons tla
@@ -268,6 +272,10 @@ benchmark kind ~Env{..} =
             , bgroup "toUpper"
                 [ benchT   $ nf (T.length . T.toUpper) ta
                 , benchTL  $ nf (TL.length . TL.toUpper) tla
+                ]
+            , bgroup "toTitle"
+                [ benchT   $ nf (T.length . T.toTitle) ta
+                , benchTL  $ nf (TL.length . TL.toTitle) tla
                 ]
             , bgroup "words"
                 [ benchT   $ nf (L.length . T.words) ta

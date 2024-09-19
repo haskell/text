@@ -80,7 +80,11 @@ iter (Text arr off _len) i = iterArray arr (off + i)
 {-# INLINE iter #-}
 
 -- | @since 2.0
-iterArray :: A.Array -> Int -> Iter
+iterArray ::
+#if defined(ASSERTS)
+  HasCallStack =>
+#endif
+  A.Array -> Int -> Iter
 iterArray arr j = Iter chr l
   where m0 = A.unsafeIndex arr j
         m1 = A.unsafeIndex arr (j+1)
