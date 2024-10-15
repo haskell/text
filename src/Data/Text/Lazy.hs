@@ -223,6 +223,7 @@ import Data.Char (isSpace)
 import Data.Data (Data(gfoldl, toConstr, gunfold, dataTypeOf), constrIndex,
                   Constr, mkConstr, DataType, mkDataType, Fixity(Prefix))
 import Data.Binary (Binary(get, put))
+import Data.Binary.Put (putBuilder)
 import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NE
 import Data.Monoid (Monoid(..))
@@ -241,7 +242,7 @@ import Data.Text.Internal.Lazy (Text(..), chunk, empty, foldlChunks,
 import Data.Text.Internal (firstf, safe, text)
 import Data.Text.Internal.Reverse (reverseNonEmpty)
 import Data.Text.Internal.Transformation (mapNonEmpty, toCaseFoldNonEmpty, toLowerNonEmpty, toUpperNonEmpty, filter_)
-import Data.Text.Lazy.Encoding (decodeUtf8', encodeUtf8)
+import Data.Text.Lazy.Encoding (decodeUtf8', encodeUtf8Builder)
 import Data.Text.Internal.Lazy.Search (indices)
 import qualified GHC.CString as GHC
 import qualified GHC.Exts as Exts
@@ -352,7 +353,11 @@ instance NFData Text where
 
 -- | @since 1.2.1.0
 instance Binary Text where
-    put t = put (encodeUtf8 t)
+    put t = do
+      -- This needs to be in sync with the Binary instance for ByteString
+      -- in the binary package.
+      put (foldlChunks (\n c -> n + T.lengthWord8 c) 0 t)
+      putBuilder (encodeUtf8Builder t)
     get   = do
       bs <- get
       case decodeUtf8' bs of

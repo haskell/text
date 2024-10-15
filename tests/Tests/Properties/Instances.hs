@@ -6,6 +6,7 @@ module Tests.Properties.Instances
     ( testInstances
     ) where
 
+import Data.Binary (encode, decodeOrFail)
 import Data.String (IsString(fromString))
 import Test.QuickCheck
 import Test.Tasty (TestTree, testGroup)
@@ -43,6 +44,16 @@ tl_mempty         = mempty === (unpackS (mempty :: TL.Text))
 t_IsString        = fromString  `eqP` (T.unpack . fromString)
 tl_IsString       = fromString  `eqP` (TL.unpack . fromString)
 
+t_Binary s        =
+  case decodeOrFail . encode $ (s :: T.Text) of
+    Left _   -> counterexample (show (T.unpack s)) (property False)
+    Right (_, _, s') -> s === s'
+
+tl_Binary s       =
+  case decodeOrFail . encode $ (s :: TL.Text) of
+    Left _   -> counterexample (show (TL.unpack s)) (property False)
+    Right (_, _, s') -> s === s'
+
 testInstances :: TestTree
 testInstances =
   testGroup "instances" [
@@ -65,5 +76,7 @@ testInstances =
     testProperty "t_mempty" t_mempty,
     testProperty "tl_mempty" tl_mempty,
     testProperty "t_IsString" t_IsString,
-    testProperty "tl_IsString" tl_IsString
+    testProperty "tl_IsString" tl_IsString,
+    testProperty "t_Binary" t_Binary,
+    testProperty "tl_Binary" tl_Binary
   ]

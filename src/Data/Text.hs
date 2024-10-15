@@ -235,6 +235,7 @@ import qualified Data.Text.Array as A
 import qualified Data.List as L hiding (head, tail)
 import qualified Data.List.NonEmpty as NonEmptyList
 import Data.Binary (Binary(get, put))
+import Data.Binary.Put (putBuilder)
 import Data.Monoid (Monoid(..))
 import Data.Semigroup (Semigroup(..))
 import Data.String (IsString(..))
@@ -245,7 +246,7 @@ import Data.Text.Internal.Measure (measure_off)
 import Data.Text.Internal.Encoding.Utf8 (utf8Length, utf8LengthByLeader, chr3, ord2, ord3, ord4)
 import qualified Data.Text.Internal.Fusion as S
 import qualified Data.Text.Internal.Fusion.Common as S
-import Data.Text.Encoding (decodeUtf8', encodeUtf8)
+import Data.Text.Encoding (decodeUtf8', encodeUtf8Builder)
 import Data.Text.Internal.Fusion (stream, reverseStream, unstream)
 import Data.Text.Internal.Private (span_)
 import Data.Text.Internal (Text(..), StrictText, empty, firstf, mul, safe, text, append, pack)
@@ -394,7 +395,11 @@ instance NFData Text where rnf !_ = ()
 
 -- | @since 1.2.1.0
 instance Binary Text where
-    put t = put (encodeUtf8 t)
+    put t = do
+      -- This needs to be in sync with the Binary instance for ByteString
+      -- in the binary package.
+      put (lengthWord8 t)
+      putBuilder (encodeUtf8Builder t)
     get   = do
       bs <- get
       case decodeUtf8' bs of
@@ -556,7 +561,7 @@ null (Text _arr _off len) =
     len <= 0
 {-# INLINE [1] null #-}
 
-{-# RULES 
+{-# RULES
  "TEXT null/empty -> True" null empty = True
 #-}
 
@@ -1275,7 +1280,7 @@ take :: Int -> Text -> Text
 take n t@(Text arr off len)
     | n <= 0    = empty
     | n >= len || m >= len || m < 0  = t
-    | otherwise = Text arr off m 
+    | otherwise = Text arr off m
   where
     m = measureOff n t
 {-# INLINE [1] take #-}
@@ -1325,7 +1330,7 @@ drop :: Int -> Text -> Text
 drop n t@(Text arr off len)
     | n <= 0    = t
     | n >= len || m >= len || m < 0 = empty
-    | otherwise = Text arr (off+m) (len-m) 
+    | otherwise = Text arr (off+m) (len-m)
   where m = measureOff n t
 {-# INLINE [1] drop #-}
 
@@ -1434,7 +1439,7 @@ splitAt :: Int -> Text -> (Text, Text)
 splitAt n t@(Text arr off len)
     | n <= 0    = (empty, t)
     | n >= len || m >= len || m < 0  = (t, empty)
-    | otherwise = (Text arr off m, Text arr (off+m) (len-m)) 
+    | otherwise = (Text arr off m, Text arr (off+m) (len-m))
   where
     m = measureOff n t
 
