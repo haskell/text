@@ -294,6 +294,7 @@ test-suite tests
   build-depends:
     QuickCheck >= 2.12.6 && < 2.16,
     base <5,
+    binary,
     bytestring,
     deepseq,
     directory,
