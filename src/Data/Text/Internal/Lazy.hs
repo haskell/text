@@ -50,7 +50,9 @@ import qualified Data.Text.Internal as T
 import qualified Data.Text as T
 
 data Text = Empty
+          -- ^ Empty text.
           | Chunk {-# UNPACK #-} !T.Text Text
+          -- ^ Chunks must be non-empty, this invariant is not checked.
             deriving (Typeable)
 
 -- | Type synonym for the lazy flavour of 'Text'.

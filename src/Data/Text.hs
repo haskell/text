@@ -4,6 +4,8 @@
 {-# LANGUAGE UnliftedFFITypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE PartialTypeSignatures #-}
+{-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE ViewPatterns #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# OPTIONS_GHC -Wno-partial-type-signatures #-}
@@ -60,6 +62,11 @@ module Data.Text
     , unpack
     , singleton
     , empty
+
+    -- * Pattern matching
+    , pattern Empty
+    , pattern (:<)
+    , pattern (:>)
 
     -- * Basic interface
     , cons
@@ -564,6 +571,34 @@ null (Text _arr _off len) =
 {-# RULES
  "TEXT null/empty -> True" null empty = True
 #-}
+
+-- | Bidirectional pattern synonym for 'empty' and 'null' (both /O(1)/),
+-- to be used together with '(:<)' or '(:>)'.
+--
+-- @since 2.1.2
+pattern Empty :: Text
+pattern Empty <- (null -> True) where
+  Empty = empty
+
+-- | Bidirectional pattern synonym for 'cons' (/O(n)/) and 'uncons' (/O(1)/),
+-- to be used together with 'Empty'.
+--
+-- @since 2.1.2
+pattern (:<) :: Char -> Text -> Text
+pattern x :< xs <- (uncons -> Just (x, xs)) where
+  (:<) = cons
+infixr 5 :<
+{-# COMPLETE Empty, (:<) #-}
+
+-- | Bidirectional pattern synonym for 'snoc' (/O(n)/) and 'unsnoc' (/O(1)/)
+-- to be used together with 'Empty'.
+--
+-- @since 2.1.2
+pattern (:>) :: Text -> Char -> Text
+pattern xs :> x <- (unsnoc -> Just (xs, x)) where
+  (:>) = snoc
+infixl 5 :>
+{-# COMPLETE Empty, (:>) #-}
 
 -- | /O(1)/ Tests whether a 'Text' contains exactly one character.
 isSingleton :: Text -> Bool
