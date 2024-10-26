@@ -51,6 +51,8 @@ import qualified Data.Text as T
 
 data Text = Empty
           -- ^ Empty text.
+          --
+          -- @since 2.1.2
           | Chunk {-# UNPACK #-} !T.Text Text
           -- ^ Chunks must be non-empty, this invariant is not checked.
             deriving (Typeable)

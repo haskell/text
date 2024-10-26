@@ -1041,6 +1041,8 @@ foldl1' f t = S.foldl1' f (stream t)
 {-# INLINE foldl1' #-}
 
 -- | /O(n)/ A monadic version of 'foldl''.
+--
+-- @since 2.1.2
 foldlM' :: Monad m => (a -> Char -> m a) -> a -> Text -> m a
 foldlM' f z t = S.foldlM' f z (stream t)
 {-# INLINE foldlM' #-}
@@ -2096,6 +2098,8 @@ overflowError :: HasCallStack => String -> a
 overflowError fun = P.error $ "Data.Text." ++ fun ++ ": size overflow"
 
 -- | Convert a value to 'Text'.
+--
+-- @since 2.1.2
 show :: Show a => a -> Text
 show = pack . P.show
 

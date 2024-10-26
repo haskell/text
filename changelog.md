@@ -1,6 +1,36 @@
 ### 2.1.2
 
+* [Update case mappings for Unicode 16.0](https://github.com/haskell/text/pull/618)
+
 * [Add type synonym for lazy builders. Deprecated `StrictBuilder` for `StrictTextBuilder`](https://github.com/haskell/text/pull/581)
+
+* [Add `initsNE` and `tailsNE`](https://github.com/haskell/text/pull/558)
+
+* [Add `foldlM'`](https://github.com/haskell/text/pull/543)
+
+* [Add `Data.Text.Foreign.peekCString`](https://github.com/haskell/text/pull/599)
+
+* [Add `Data.Text.show` and `Data.Text.Lazy.show`](https://github.com/haskell/text/pull/608)
+
+* [Add pattern synonyms `Empty`, `(:<)`, and `(:>)`](https://github.com/haskell/text/pull/619)
+
+* [Improve precision of `Data.Text.Read.rational`](https://github.com/haskell/text/pull/565)
+
+* [`Data.Text.IO.Utf8`: use `B.putStrLn` instead of `B.putStr t >> B.putStr "\n"`](https://github.com/haskell/text/pull/579)
+
+* [`Data.Text.IO` and `Data.Text.Lazy.IO`: Make `putStrLn` more atomic with line or block buffering](https://github.com/haskell/text/pull/600)
+
+* [Integrate UTF-8 `hPutStr` to standard `hPutStr`](https://github.com/haskell/text/pull/589)
+
+* [Serialise `Text` without going through `ByteString`](https://github.com/haskell/text/pull/617)
+
+* [Make `splitAt` strict in its first argument, even if input is empty](https://github.com/haskell/text/pull/575)
+
+* [Improve lazy performance of `Data.Text.Lazy.inits`](https://github.com/haskell/text/pull/572)
+
+* [Implement `Data.Text.unpack` and `Data.Text.toTitle` directly, without streaming](https://github.com/haskell/text/pull/611)
+
+* [Make `fromString` `INLINEABLE` instead of `INLINE`](https://github.com/haskell/text/pull/571) to reduce the size of generated code.
 
 ### 2.1.1
 
