@@ -2,21 +2,19 @@ task:
   name: FreeBSD
   freebsd_instance:
     image_family: freebsd-14-0
-  # See https://github.com/haskell/text/pull/475#issuecomment-1272359694
   install_script:
-    - sed -i.bak -e 's/quarterly/latest/' /etc/pkg/FreeBSD.conf
-    - pkg install -y ghc hs-cabal-install git llvm14
+    - pkg install -y git gmake
+    - curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | BOOTSTRAP_HASKELL_NONINTERACTIVE=1 BOOTSTRAP_HASKELL_INSTALL_NO_STACK=1 sh
   script:
-    - cabal update
-    - cabal test --test-show-details=direct --ghc-options='-pgmc clang++14'
+    - export PATH="$HOME/.ghcup/bin:$PATH"
+    - cabal test --test-show-details=direct
 
 task:
   name: OpenBSD
   compute_engine_instance:
     image_project: pg-ci-images
-    # OpenBSD version should match
-    # https://github.com/anarazel/pg-vm-images/blob/main/packer/openbsd.pkrvars.hcl
-    image: family/pg-ci-openbsd-vanilla-7-2
+    # See https://github.com/anarazel/pg-vm-images/blob/main/packer/openbsd.pkrvars.hcl
+    image: family/pg-ci-openbsd-vanilla
     platform: openbsd
   install_script: pkg_add ghc cabal-install git
   script:
@@ -28,9 +26,8 @@ task:
   name: NetBSD
   compute_engine_instance:
     image_project: pg-ci-images
-    # NetBSD version should match
-    # https://github.com/anarazel/pg-vm-images/blob/main/packer/netbsd.pkrvars.hcl
-    image: family/pg-ci-netbsd-vanilla-9-3
+    # See https://github.com/anarazel/pg-vm-images/blob/main/packer/netbsd.pkrvars.hcl
+    image: family/pg-ci-netbsd-vanilla
     platform: netbsd
   install_script:
     # Folders should be updated in line with
