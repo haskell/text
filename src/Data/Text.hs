@@ -274,15 +274,11 @@ import GHC.Base (eqInt, neInt, gtInt, geInt, ltInt, leInt)
 import qualified GHC.Exts as Exts
 import GHC.Int (Int8)
 import GHC.Stack (HasCallStack)
-import qualified Language.Haskell.TH.Lib as TH
-import qualified Language.Haskell.TH.Syntax as TH
+import qualified Language.Haskell.TH.Lift as TH
 import Text.Printf (PrintfArg, formatArg, formatString)
 import System.Posix.Types (CSsize(..))
-
-#if MIN_VERSION_template_haskell(2,16,0)
 import Data.Text.Foreign (asForeignPtr)
 import System.IO.Unsafe (unsafePerformIO)
-#endif
 
 -- $setup
 -- >>> :set -package transformers
@@ -451,27 +447,18 @@ instance Data Text where
 
 -- | @since 1.2.4.0
 instance TH.Lift Text where
-#if MIN_VERSION_template_haskell(2,16,0)
   lift txt = do
     let (ptr, len) = unsafePerformIO $ asForeignPtr txt
     case len of
-        0 -> TH.varE 'empty
+        0 -> [| empty |]
         _ ->
           let
-            bytesQ = TH.litE . TH.bytesPrimL $ TH.mkBytes ptr 0 (P.fromIntegral len)
-            lenQ = liftInt (P.fromIntegral len)
-            liftInt n = (TH.appE (TH.conE 'Exts.I#) (TH.litE (TH.IntPrimL n)))
-          in TH.varE 'unpackCStringLen# `TH.appE` bytesQ `TH.appE` lenQ
-#else
-  lift = TH.appE (TH.varE 'pack) . TH.stringE . unpack
-#endif
-#if MIN_VERSION_template_haskell(2,17,0)
-  liftTyped = TH.unsafeCodeCoerce . TH.lift
-#elif MIN_VERSION_template_haskell(2,16,0)
-  liftTyped = TH.unsafeTExpCoerce . TH.lift
-#endif
+            bytesQ = TH.liftAddrCompat ptr 0 (P.fromIntegral len)
+            lenQ = TH.liftIntCompat (P.fromIntegral len)
+          in [| unpackCStringLen# $bytesQ $lenQ |]
 
-#if MIN_VERSION_template_haskell(2,16,0)
+  liftTyped = TH.defaultLiftTyped
+
 unpackCStringLen# :: Exts.Addr# -> Int -> Text
 unpackCStringLen# addr# l = Text ba 0 l
   where
@@ -480,7 +467,6 @@ unpackCStringLen# addr# l = Text ba 0 l
       A.copyFromPointer marr 0 (Exts.Ptr addr#) l
       A.unsafeFreeze marr
 {-# NOINLINE unpackCStringLen# #-} -- set as NOINLINE to avoid generated code bloat
-#endif
 
 -- | @since 1.2.2.0
 instance PrintfArg Text where

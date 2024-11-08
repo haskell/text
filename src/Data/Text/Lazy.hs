@@ -255,8 +255,7 @@ import qualified GHC.CString as GHC
 import qualified GHC.Exts as Exts
 import GHC.Prim (Addr#)
 import GHC.Stack (HasCallStack)
-import qualified Language.Haskell.TH.Lib as TH
-import qualified Language.Haskell.TH.Syntax as TH
+import qualified Language.Haskell.TH.Lift as TH
 import Text.Printf (PrintfArg, formatArg, formatString)
 
 -- $fusion
@@ -393,12 +392,8 @@ instance Data Text where
 
 -- | @since 1.2.4.0
 instance TH.Lift Text where
-  lift = TH.appE (TH.varE 'fromStrict) . TH.lift . toStrict
-#if MIN_VERSION_template_haskell(2,17,0)
-  liftTyped = TH.unsafeCodeCoerce . TH.lift
-#elif MIN_VERSION_template_haskell(2,16,0)
-  liftTyped = TH.unsafeTExpCoerce . TH.lift
-#endif
+  lift x = [| fromStrict $(TH.lift . toStrict $ x) |]
+  liftTyped = TH.defaultLiftTyped
 
 -- | @since 1.2.2.0
 instance PrintfArg Text where
