@@ -53,9 +53,10 @@ tested-with:
     GHC == 9.0.2
     GHC == 9.2.8
     GHC == 9.4.8
-    GHC == 9.6.4
+    GHC == 9.6.6
     GHC == 9.8.2
     GHC == 9.10.1
+    GHC == 9.12.1
 
 extra-source-files:
     -- scripts/CaseFolding.txt
@@ -224,8 +225,8 @@ library
     binary           >= 0.5 && < 0.9,
     bytestring       >= 0.10.4 && < 0.13,
     deepseq          >= 1.1 && < 1.6,
-    ghc-prim         >= 0.2 && < 0.12,
-    template-haskell >= 2.5 && < 2.23
+    ghc-prim         >= 0.2 && < 0.14,
+    template-haskell >= 2.5 && < 2.24
 
   if impl(ghc < 9.4)
     build-depends: data-array-byte >= 0.1 && < 0.2
