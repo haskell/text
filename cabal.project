@@ -1,3 +1,7 @@
 packages: .
 tests: True
 benchmarks: True
+
+if impl (ghc >= 9.12)
+  allow-newer:
+    , splitmix:base
