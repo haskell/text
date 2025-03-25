@@ -31,6 +31,7 @@ import Data.Text.Internal.Encoding.Utf8 (utf8Length)
 import Data.Text.Internal.Unsafe.Char (unsafeWrite)
 import Data.Text.Unsafe (Iter(..), iterArray)
 import GHC.Exts (Ptr(..), Int(..), Addr#, indexWord8OffAddr#)
+import qualified GHC.Exts as Exts
 import GHC.Word (Word8(..))
 import qualified Data.Text.Array as A
 #if !MIN_VERSION_ghc_prim(0,7,0)
@@ -53,12 +54,32 @@ unpack ::
   HasCallStack =>
 #endif
   Text -> String
-unpack (Text arr off len) = go off
+unpack t = foldrText (:) [] t
+{-# NOINLINE unpack #-}
+
+foldrText :: (Char -> b -> b) -> b -> Text -> b
+foldrText f z (Text arr off len) = go off
   where
     go !i
-      | i >= off + len = []
-      | otherwise = let !(Iter c l) = iterArray arr i in c : go (i + l)
-{-# INLINE [1] unpack #-}
+      | i >= off + len = z
+      | otherwise = let !(Iter c l) = iterArray arr i in f c (go (i + l))
+{-# INLINE foldrText #-}
+
+foldrTextFB :: (Char -> b -> b) -> b -> Text -> b
+foldrTextFB = foldrText
+{-# INLINE [0] foldrTextFB #-}
+
+-- List fusion rules for `unpack`:
+-- * `unpack` rewrites to `build` up till (but not including) phase 1. `build`
+--   fuses if `foldr` is applied to it.
+-- * If it doesn't fuse: In phase 1, `build` inlines to give us
+--   `foldrTextFB (:) []` and we rewrite that back to `unpack`.
+-- * If it fuses: In phase 0, `foldrTextFB` inlines and `foldrText` inlines. GHC
+--   optimizes the fused code.
+{-# RULES
+"Text.unpack"     [~1] forall t. unpack t = Exts.build (\lcons lnil -> foldrTextFB lcons lnil t)
+"Text.unpackBack" [1]  foldrTextFB (:) [] = unpack
+  #-}
 
 -- | /O(n)/ Convert a null-terminated
 -- <https://en.wikipedia.org/wiki/UTF-8#Modified_UTF-8 modified UTF-8>

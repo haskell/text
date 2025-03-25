@@ -208,6 +208,14 @@ benchmark kind ~Env{..} =
             [ benchT   $ nf (T.zipWith min tb) ta
             , benchTL  $ nf (TL.zipWith min tlb) tla
             ]
+        , bgroup "length . unpack" -- length should fuse with unpack
+            [ benchT   $ nf (L.length . T.unpack) ta
+            , benchTL  $ nf (L.length . TL.unpack) tla
+            ]
+        , bgroup "length . drop 1 . unpack" -- no list fusion because of drop 1
+            [ benchT   $ nf (L.length . L.drop 1 . T.unpack) ta
+            , benchTL  $ nf (L.length . L.drop 1 . TL.unpack) tla
+            ]
         , bgroup "length"
             [ bgroup "cons"
                 [ benchT   $ nf (T.length . T.cons c) ta
