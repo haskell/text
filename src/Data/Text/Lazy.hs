@@ -424,7 +424,23 @@ unpack ::
 #endif
   Text -> String
 unpack t = S.unstreamList (stream t)
-{-# INLINE [1] unpack #-}
+{-# NOINLINE unpack #-}
+
+foldrFB :: (Char -> b -> b) -> b -> Text -> b
+foldrFB = foldr
+{-# INLINE [0] foldrFB #-}
+
+-- List fusion rules for `unpack`:
+-- * `unpack` rewrites to `build` up till (but not including) phase 1. `build`
+--   fuses if `foldr` is applied to it.
+-- * If it doesn't fuse: In phase 1, `build` inlines to give us `foldrFB (:) []`
+--   and we rewrite that back to `unpack`.
+-- * If it fuses: In phase 0, `foldrFB` inlines and `foldr` inlines. GHC
+--   optimizes the fused code.
+{-# RULES
+"Text.Lazy.unpack"     [~1] forall t. unpack t = Exts.build (\lcons lnil -> foldrFB lcons lnil t)
+"Text.Lazy.unpackBack" [1]  foldrFB (:) [] = unpack
+  #-}
 
 -- | /O(n)/ Convert a literal string into a Text.
 unpackCString# :: Addr# -> Text
