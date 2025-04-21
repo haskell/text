@@ -22,8 +22,12 @@ testCornerCases =
         "stimes"
         $ let specimen = stimes :: Integer -> Text -> Text
           in  [ testProperty
-                  "given a negative number, return empty text"
-                  $ \(Negative number) text -> specimen number text == ""
+                  "given a negative number, evaluate to error call"
+                  $ \(Negative number) text ->
+                    (ioProperty . fmap isLeft . try @ErrorCall . evaluate) $
+                      specimen
+                        (fromIntegral (number :: Int))
+                        text
               , testProperty
                   "given a number that does not fit into Int, evaluate to error call"
                   $ \(NonNegative number) text ->
