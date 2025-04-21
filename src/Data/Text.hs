@@ -370,11 +370,12 @@ instance Read Text where
     readsPrec p str = [(pack x,y) | (x,y) <- readsPrec p str]
 
 -- | @since 1.2.2.0
+--
+-- Beware: @stimes@ will crash if the given number does not fit into
+-- an @Int@.
 instance Semigroup Text where
     (<>) = append
 
-    -- | Beware: this function will evaluate to error if the given number does
-    -- not fit into an @Int@.
     stimes howManyTimes
       | howManyTimes < 0 = P.error "Data.Text.stimes: given number is negative!"
       | otherwise =
