@@ -375,7 +375,9 @@ instance Semigroup Text where
 
     -- | Beware: this function will evaluate to error if the given number does
     -- not fit into an @Int@.
-    stimes howManyTimes =
+    stimes howManyTimes
+      | howManyTimes < 0 = P.error "Data.Text.stimes: given number is negative!"
+      | otherwise =
         let howManyTimesInt = P.fromIntegral howManyTimes :: Int
         in  if P.fromIntegral howManyTimesInt == howManyTimes
             then replicate howManyTimesInt

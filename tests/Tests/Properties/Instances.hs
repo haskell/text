@@ -7,6 +7,7 @@ module Tests.Properties.Instances
     ) where
 
 import Data.Binary (encode, decodeOrFail)
+import Data.Semigroup
 import Data.String (IsString(fromString))
 import Test.QuickCheck
 import Test.Tasty (TestTree, testGroup)
@@ -37,6 +38,9 @@ t_Show            = show     `eq` (show . T.pack)
 tl_Show           = show     `eq` (show . TL.pack)
 t_mappend s       = mappend s`eqP` (unpackS . mappend (T.pack s))
 tl_mappend s      = mappend s`eqP` (unpackS . mappend (TL.pack s))
+t_stimes          = \ number -> eq
+  ((stimes :: Int -> String -> String) number . unSqrt)
+  (unpackS . (stimes :: Int -> T.Text -> T.Text) number . T.pack . unSqrt)
 t_mconcat         = (mconcat . unSqrt) `eq` (unpackS . mconcat . L.map T.pack . unSqrt)
 tl_mconcat        = (mconcat . unSqrt) `eq` (unpackS . mconcat . L.map TL.pack . unSqrt)
 t_mempty          = mempty === (unpackS (mempty :: T.Text))
@@ -71,6 +75,7 @@ testInstances =
     testProperty "tl_Show" tl_Show,
     testProperty "t_mappend" t_mappend,
     testProperty "tl_mappend" tl_mappend,
+    testProperty "t_stimes" t_stimes,
     testProperty "t_mconcat" t_mconcat,
     testProperty "tl_mconcat" tl_mconcat,
     testProperty "t_mempty" t_mempty,
