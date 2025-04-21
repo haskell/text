@@ -1,7 +1,7 @@
 task:
   name: FreeBSD
   freebsd_instance:
-    image_family: freebsd-14-0
+    image_family: freebsd-14-2
   install_script:
     - pkg install -y git gmake
     - curl --proto '=https' --tlsv1.2 -sSf https://get-ghcup.haskell.org | BOOTSTRAP_HASKELL_NONINTERACTIVE=1 BOOTSTRAP_HASKELL_INSTALL_NO_STACK=1 sh
@@ -32,7 +32,7 @@ task:
   install_script:
     # Folders should be updated in line with
     # http://cdn.netbsd.org/pub/pkgsrc/packages/NetBSD/x86_64/
-    - export PKG_PATH="http://cdn.NetBSD.org/pub/pkgsrc/packages/NetBSD/$(uname -p)/$(uname -r|cut -f '1 2' -d.)/All/;http://cdn.netbsd.org/pub/pkgsrc/packages/NetBSD/x86_64/9.0_2023Q1/All/"
+    - export PKG_PATH="http://cdn.NetBSD.org/pub/pkgsrc/packages/NetBSD/$(uname -p)/$(uname -r|cut -f '1 2' -d.)/All/;http://cdn.netbsd.org/pub/pkgsrc/packages/NetBSD/x86_64/10.0_2025Q1/All/"
     - echo $PKG_PATH
     - pkg_add ghc cabal-install git
   script:
