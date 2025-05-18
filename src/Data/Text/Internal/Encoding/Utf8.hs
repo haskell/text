@@ -80,22 +80,13 @@ utf8Length :: Char -> Int
 utf8Length (C# c) = I# ((1# +# geChar# c (chr# 0x80#)) +# (geChar# c (chr# 0x800#) +# geChar# c (chr# 0x10000#)))
 {-# INLINE utf8Length #-}
 
--- This is a branchless version of
--- utf8LengthByLeader w
---   | w < 0x80  = 1
---   | w < 0xE0  = 2
---   | w < 0xF0  = 3
---   | otherwise = 4
---
--- c `xor` I# (c# <=# 0#) is a branchless equivalent of c `max` 1.
--- It is crucial to write c# <=# 0# and not c# ==# 0#, otherwise
--- GHC is tempted to "optimize" by introduction of branches.
-
 -- | @since 2.0
 utf8LengthByLeader :: Word8 -> Int
-utf8LengthByLeader w = c `xor` I# (c# <=# 0#)
-  where
-    !c@(I# c#) = countLeadingZeros (complement w)
+utf8LengthByLeader w
+  | w < 0x80  = 1
+  | w < 0xE0  = 2
+  | w < 0xF0  = 3
+  | otherwise = 4
 {-# INLINE utf8LengthByLeader #-}
 
 ord2 ::
