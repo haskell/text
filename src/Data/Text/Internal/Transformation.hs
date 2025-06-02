@@ -36,9 +36,9 @@ import Prelude (Char, Bool(..), Int,
                 Ord(..),
                 Monad(..), pure,
                 (+), (-), ($), (&&), (||), (==),
-                not, return, otherwise, fromIntegral, (/=), const)
+                not, return, otherwise)
 import Data.Bits ((.&.), shiftR, shiftL)
-import Data.Char (isLetter, isSpace, ord)
+import Data.Char (isLetter, isSpace)
 import Control.Monad.ST (ST, runST)
 import qualified Data.Text.Array as A
 import Data.Text.Internal.Encoding.Utf8 (utf8LengthByLeader, chr2, chr3, chr4)
@@ -47,7 +47,7 @@ import Data.Text.Internal (Text(..), safe)
 import Data.Text.Internal.Unsafe.Char (unsafeWrite, unsafeChr8)
 import qualified Prelude as P
 import Data.Text.Unsafe (Iter(..), iterArray)
-import Data.Word (Word8, Word)
+import Data.Word (Word8)
 import qualified GHC.Exts as Exts
 import GHC.Int (Int64(..))
 

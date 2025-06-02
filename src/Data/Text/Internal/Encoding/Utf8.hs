@@ -48,7 +48,7 @@ module Data.Text.Internal.Encoding.Utf8
 import Control.Exception (assert)
 import GHC.Stack (HasCallStack)
 #endif
-import Data.Bits (Bits(..), FiniteBits(..))
+import Data.Bits (Bits(..))
 import Data.Char (ord, chr)
 import GHC.Exts
 import GHC.Word (Word8(..))
