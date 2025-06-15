@@ -1,4 +1,4 @@
-{-# LANGUAGE CPP, DeriveDataTypeable #-}
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE Safe #-}
 -- |
 -- Module      : Data.Text.Encoding.Error
@@ -36,7 +36,6 @@ module Data.Text.Encoding.Error
 
 import Control.DeepSeq (NFData (..))
 import Control.Exception (Exception, throw)
-import Data.Typeable (Typeable)
 import Data.Word (Word8)
 import Numeric (showHex)
 
@@ -74,7 +73,7 @@ data UnicodeException =
   | EncodeError String (Maybe Char)
     -- ^ Tried to encode a character that could not be represented
     -- under the given encoding, or ran out of input in mid-encode.
-    deriving (Eq, Typeable)
+    deriving (Eq)
 
 {-# DEPRECATED EncodeError "This constructor is never used, and will be removed." #-}
 
