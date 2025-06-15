@@ -1,6 +1,5 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE CPP #-}
-{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE UnboxedTuples #-}
 {-# OPTIONS_HADDOCK not-home #-}
@@ -58,7 +57,6 @@ import Control.Monad.ST (ST, runST)
 import Data.Bits
 import Data.Int (Int32, Int64)
 import Data.Text.Internal.Unsafe.Char (ord, unsafeWrite)
-import Data.Typeable (Typeable)
 import qualified Data.Text.Array as A
 
 -- | A space efficient, packed, unboxed Unicode text type.
@@ -66,7 +64,6 @@ data Text = Text
     {-# UNPACK #-} !A.Array -- ^ bytearray encoded as UTF-8
     {-# UNPACK #-} !Int     -- ^ offset in bytes (not in Char!), pointing to a start of UTF-8 sequence
     {-# UNPACK #-} !Int     -- ^ length in bytes (not in Char!), pointing to an end of UTF-8 sequence
-    deriving (Typeable)
 
 -- | Type synonym for the strict flavour of 'Text'.
 type StrictText = Text

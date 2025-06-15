@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, DeriveDataTypeable #-}
+{-# LANGUAGE BangPatterns #-}
 {-# OPTIONS_HADDOCK not-home #-}
 
 -- |
@@ -43,7 +43,6 @@ module Data.Text.Internal.Lazy
 
 import Data.Bits (shiftL)
 import Data.Text ()
-import Data.Typeable (Typeable)
 import Foreign.Storable (sizeOf)
 import qualified Data.Text.Array as A
 import qualified Data.Text.Internal as T
@@ -55,7 +54,6 @@ data Text = Empty
           -- @since 2.1.2
           | Chunk {-# UNPACK #-} !T.Text Text
           -- ^ Chunks must be non-empty, this invariant is not checked.
-            deriving (Typeable)
 
 -- | Type synonym for the lazy flavour of 'Text'.
 type LazyText = Text

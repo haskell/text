@@ -1,4 +1,3 @@
-{-# LANGUAGE BangPatterns, DeriveDataTypeable #-}
 -- |
 -- Module      : Data.Text.Lazy.Internal
 -- Copyright   : (c) 2013 Bryan O'Sullivan
