@@ -1,6 +1,9 @@
 {-# LANGUAGE CPP, OverloadedStrings #-}
 {-# LANGUAGE Trustworthy #-}
 
+{-# OPTIONS_GHC -Wno-unrecognised-warning-flags #-}
+{-# OPTIONS_GHC -Wno-x-partial #-}
+
 -- |
 -- Module:    Data.Text.Lazy.Builder.RealFloat
 -- Copyright: (c) The University of Glasgow 1994-2002
