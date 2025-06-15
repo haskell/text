@@ -21,8 +21,9 @@ module Benchmarks.ReadNumbers
     , benchmark
     ) where
 
+import Data.Foldable (Foldable(..))
+import Prelude hiding (Foldable(..))
 import Test.Tasty.Bench (Benchmark, bgroup, bench, whnf)
-import Data.List (foldl')
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
 import qualified Data.Text.Lazy as TL
