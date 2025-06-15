@@ -13,9 +13,10 @@ module Benchmarks.WordFrequencies
     , benchmark
     ) where
 
-import Test.Tasty.Bench (Benchmark, bench, bgroup, whnf)
-import Data.List (foldl')
+import Data.Foldable (Foldable(..))
 import Data.Map (Map)
+import Prelude hiding (Foldable(..))
+import Test.Tasty.Bench (Benchmark, bench, bgroup, whnf)
 import qualified Data.Map as M
 import qualified Data.Text as T
 import qualified Data.Text.IO as T

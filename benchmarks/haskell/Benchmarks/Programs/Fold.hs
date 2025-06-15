@@ -17,8 +17,9 @@ module Benchmarks.Programs.Fold
     ( benchmark
     ) where
 
-import Data.List (foldl')
+import Data.Foldable (Foldable(..))
 import Data.List (intersperse)
+import Prelude hiding (Foldable(..))
 import System.IO (Handle)
 import Test.Tasty.Bench (Benchmark, bench, whnfIO)
 import qualified Data.Text as T
@@ -29,7 +30,7 @@ import qualified Data.Text.Lazy.IO as TL
 
 benchmark :: FilePath -> Handle -> Benchmark
 benchmark i o =
-    bench "Fold" $ whnfIO $ T.readFile i >>= TL.hPutStr o . fold 80
+    bench "Fold" $ whnfIO $ T.readFile i >>= TL.hPutStr o . foldText 80
 
 -- | We represent a paragraph by a word list
 --
@@ -37,8 +38,8 @@ type Paragraph = [T.Text]
 
 -- | Fold a text
 --
-fold :: Int -> T.Text -> TL.Text
-fold maxWidth = TLB.toLazyText . mconcat .
+foldText :: Int -> T.Text -> TL.Text
+foldText maxWidth = TLB.toLazyText . mconcat .
     intersperse "\n\n" . map (foldParagraph maxWidth) . paragraphs
 
 -- | Fold a paragraph

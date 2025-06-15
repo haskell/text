@@ -15,11 +15,10 @@ module Benchmarks.FileWrite
 import Control.DeepSeq (NFData, deepseq)
 import Data.Bifunctor (first)
 import Data.List (intercalate, intersperse)
-import Data.Semigroup ((<>))
 import Data.String (fromString)
 import Data.Text (StrictText)
 import Data.Text.Internal.Lazy (LazyText, defaultChunkSize)
-import System.IO (Handle, Newline(CRLF,LF), NewlineMode(NewlineMode), BufferMode(NoBuffering,LineBuffering,BlockBuffering), hSetBuffering, hSetNewlineMode)
+import System.IO (Handle, Newline(CRLF,LF), NewlineMode(NewlineMode), BufferMode(..), hSetBuffering, hSetNewlineMode)
 import Test.Tasty.Bench (Benchmark, bgroup, bench, whnfAppIO)
 import qualified Data.Text as T
 import qualified Data.Text.IO as T
@@ -112,11 +111,15 @@ mkFileWriteBenchmarks mkSinkNRemove = do
 #endif
 
   where
-  lazy, lazyNewlines, lazySmallChunks, lazySmallChunksNewlines :: (String, StrictText -> LazyText)
+  lazy, lazyNewlines :: (String, StrictText -> LazyText)
   lazy                    = ("lazy",                            L.fromChunks . T.chunksOf defaultChunkSize)
   lazyNewlines            = ("lazy many newlines",              snd lazy . snd strictNewlines)
+
+#ifdef ExtendedBenchmarks
+  lazySmallChunks, lazySmallChunksNewlines :: (String, StrictText -> LazyText)
   lazySmallChunks         = ("lazy small chunks",               L.fromChunks . T.chunksOf 10)
   lazySmallChunksNewlines = ("lazy small chunks many newlines", snd lazySmallChunks . snd strictNewlines)
+#endif
 
   strict, strictNewlines :: (String, StrictText -> StrictText)
   strict                  = ("strict",                          id)
