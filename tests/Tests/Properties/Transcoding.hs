@@ -1,7 +1,10 @@
 -- | Tests for encoding and decoding
 
 {-# LANGUAGE CPP, OverloadedStrings, ScopedTypeVariables #-}
-{-# OPTIONS_GHC -fno-warn-missing-signatures #-}
+{-# OPTIONS_GHC -Wno-missing-signatures #-}
+{-# OPTIONS_GHC -Wno-unrecognised-warning-flags #-}
+{-# OPTIONS_GHC -Wno-x-partial #-}
+
 module Tests.Properties.Transcoding
     ( testTranscoding
     ) where

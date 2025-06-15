@@ -229,9 +229,8 @@ split p xs = loop xs
       (l, []) -> [l]
       (l, _ : s') -> l : loop s'
 
-t_chunksOf_same_lengths k = conjoin . map ((===k) . T.length) . ini . T.chunksOf k
-  where ini [] = []
-        ini xs = init xs
+t_chunksOf_same_lengths k =
+  conjoin . map ((===k) . T.length) . drop 1 . reverse . T.chunksOf k
 
 t_chunksOf_length k t = len === T.length t .||. property (k <= 0 && len == 0)
   where len = L.sum . L.map T.length $ T.chunksOf k t
