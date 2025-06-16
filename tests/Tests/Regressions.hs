@@ -10,7 +10,7 @@ module Tests.Regressions
       tests
     ) where
 
-import Control.Exception (SomeException, handle)
+import Control.Exception (ErrorCall, SomeException, handle, evaluate)
 import Data.Char (isLetter, chr)
 import GHC.Exts (Int(..), sizeofByteArray#)
 import System.IO
@@ -19,6 +19,7 @@ import Test.Tasty.HUnit (assertBool, assertEqual, assertFailure)
 import qualified Data.ByteString as B
 import Data.ByteString.Char8 ()
 import qualified Data.ByteString.Lazy as LB
+import Data.Semigroup (stimes)
 import qualified Data.Text as T
 import qualified Data.Text.Array as TA
 import qualified Data.Text.Encoding as TE
@@ -181,6 +182,14 @@ t559 = do
   T.filter undefined (T.filter (const False) "a") @?= ""
   LT.filter undefined (LT.filter (const False) "a") @?= ""
 
+-- Github #633
+-- stimes checked for an `a` to `Int` to `a` roundtrip, but the `a` and `Int` values could represent different integers.
+t633 :: IO ()
+t633 =
+  handle (\(_ :: ErrorCall) -> return ()) $ do
+    _ <- evaluate (stimes (maxBound :: Word) "a" :: T.Text)
+    assertFailure "should fail"
+
 tests :: F.TestTree
 tests = F.testGroup "Regressions"
     [ F.testCase "hGetContents_crash" hGetContents_crash
@@ -199,4 +208,5 @@ tests = F.testGroup "Regressions"
     , F.testCase "t528" t528
     , F.testCase "t529" t529
     , F.testCase "t559" t559
+    , F.testCase "t633" t633
     ]
