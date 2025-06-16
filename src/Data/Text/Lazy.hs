@@ -328,6 +328,13 @@ instance Read Text where
 -- | @since 1.2.2.0
 instance Semigroup Text where
     (<>) = append
+    stimes n _ | n < 0 = P.error "Data.Text.Lazy.stimes: given number is negative!"
+    stimes n a =
+      let nInt64 = fromIntegral n :: Int64
+          len = if n == fromIntegral nInt64 && nInt64 >= 0 then nInt64 else P.maxBound
+          -- We clamp the length to maxBound :: Int64.
+          -- To tell the difference, the caller would have to skip through 2^63 chunks.
+      in replicate len a
 
 instance Monoid Text where
     mempty  = empty

@@ -41,6 +41,9 @@ tl_mappend s      = mappend s`eqP` (unpackS . mappend (TL.pack s))
 t_stimes          = \ number -> eq
   ((stimes :: Int -> String -> String) number . unSqrt)
   (unpackS . (stimes :: Int -> T.Text -> T.Text) number . T.pack . unSqrt)
+tl_stimes         = \ number -> eq
+  ((stimes :: Int -> String -> String) number . unSqrt)
+  (unpackS . (stimes :: Int -> TL.Text -> TL.Text) number . TL.pack . unSqrt)
 t_mconcat         = (mconcat . unSqrt) `eq` (unpackS . mconcat . L.map T.pack . unSqrt)
 tl_mconcat        = (mconcat . unSqrt) `eq` (unpackS . mconcat . L.map TL.pack . unSqrt)
 t_mempty          = mempty === (unpackS (mempty :: T.Text))
@@ -76,6 +79,7 @@ testInstances =
     testProperty "t_mappend" t_mappend,
     testProperty "tl_mappend" tl_mappend,
     testProperty "t_stimes" t_stimes,
+    testProperty "tl_stimes" tl_stimes,
     testProperty "t_mconcat" t_mconcat,
     testProperty "tl_mconcat" tl_mconcat,
     testProperty "t_mempty" t_mempty,
