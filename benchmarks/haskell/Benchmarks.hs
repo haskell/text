@@ -10,6 +10,7 @@ import System.FilePath ((</>))
 import System.IO
 
 #ifdef mingw32_HOST_OS
+import System.IO.Temp (emptySystemTempFile)
 import System.Directory (removeFile)
 #endif
 
@@ -40,11 +41,11 @@ import qualified Benchmarks.Programs.Throughput as Programs.Throughput
 mkSink :: IO (FilePath, Handle)
 mkSink = do
 #ifdef mingw32_HOST_OS
-    (sinkFn, sink) <- openTempFile "." "dev.null"
+    sinkFn <- emptySystemTempFile "dev.null"
 #else
     let sinkFn = "/dev/null"
-    sink <- openFile sinkFn  WriteMode
 #endif
+    sink <- openFile sinkFn WriteMode
     hSetEncoding sink utf8
     pure (sinkFn, sink)
 

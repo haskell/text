@@ -30,7 +30,7 @@ jobs:
         githubToken: ${{ github.token }}
         install: |
           apt-get update -y
-          apt-get install -y curl ghc libghc-tasty-quickcheck-dev libghc-tasty-hunit-dev
+          apt-get install -y curl ghc libghc-tasty-quickcheck-dev libghc-tasty-hunit-dev libghc-temporary-dev
         run: |
           curl -s https://hackage.haskell.org/package/data-array-byte-0.1/data-array-byte-0.1.tar.gz | tar xz
           ghc --version
