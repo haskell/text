@@ -380,7 +380,7 @@ instance Semigroup Text where
       | howManyTimes < 0 = P.error "Data.Text.stimes: given number is negative!"
       | otherwise =
         let howManyTimesInt = P.fromIntegral howManyTimes :: Int
-        in  if P.fromIntegral howManyTimesInt == howManyTimes
+        in  if P.fromIntegral howManyTimesInt == howManyTimes && howManyTimesInt >= 0
             then replicate howManyTimesInt
             else P.error "Data.Text.stimes: given number does not fit into an Int!"
 
