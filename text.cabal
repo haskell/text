@@ -299,12 +299,12 @@ test-suite tests
     binary,
     bytestring,
     deepseq,
-    directory,
     ghc-prim,
     tasty,
     tasty-hunit,
     tasty-quickcheck,
     template-haskell,
+    temporary,
     transformers,
     text
   if impl(ghc < 9.4)
@@ -313,7 +313,6 @@ test-suite tests
   -- ghc-9.2.1 library depends on parsec, which causes a circular dependency.
   if impl(ghc >= 8.2.1 && < 8.6 || >= 8.6.2 && < 9.2 || >= 9.2.2)
     build-depends: tasty-inspection-testing
-
   default-language: Haskell2010
   default-extensions: NondecreasingIndentation
 
@@ -333,6 +332,7 @@ benchmark text-benchmarks
                   directory,
                   filepath,
                   tasty-bench >= 0.2,
+                  temporary,
                   text,
                   transformers
 

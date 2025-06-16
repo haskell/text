@@ -8,11 +8,11 @@ module Tests.Utils
     , withTempFile
     ) where
 
-import Control.Exception (SomeException, bracket, bracket_, evaluate, try)
-import Control.Monad (when, unless)
+import Control.Exception (SomeException, bracket_, evaluate, try)
+import Control.Monad (when)
+import System.IO.Temp (withSystemTempFile)
 import GHC.IO.Handle.Internals (withHandle)
-import System.Directory (removeFile)
-import System.IO (Handle, hClose, hFlush, hIsOpen, hIsClosed, hIsWritable, openTempFile)
+import System.IO (Handle, hFlush, hIsOpen, hIsWritable)
 import Test.QuickCheck (Property, ioProperty, property, (===), counterexample)
 
 -- Ensure that two potentially bottom values (in the sense of crashing
@@ -31,12 +31,7 @@ infix 4 =^=
 {-# NOINLINE (=^=) #-}
 
 withTempFile :: (FilePath -> Handle -> IO a) -> IO a
-withTempFile = bracket (openTempFile "." "crashy.txt") cleanupTemp . uncurry
-  where
-    cleanupTemp (path,h) = do
-      closed <- hIsClosed h
-      unless closed $ hClose h
-      removeFile path
+withTempFile = withSystemTempFile "crashy.txt"
 
 withRedirect :: Handle -> Handle -> IO a -> IO a
 withRedirect tmp h = bracket_ swap swap
