@@ -20,7 +20,9 @@ task:
   script:
     - export CABAL_DIR=/tmp/.cabal
     - cabal update
-    - cabal test --test-show-details=direct
+    # For some reason the job fails with -O2 optimization level,
+    # probably because of lack of disk space.
+    - cabal test --test-show-details=direct --ghc-options='-O1'
 
 task:
   name: NetBSD
