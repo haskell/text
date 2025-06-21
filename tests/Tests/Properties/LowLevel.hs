@@ -109,13 +109,13 @@ t_literal_foo = T.pack "foo"
 -- tl_put_get = write_read TL.unlines TL.filter put get
 --   where put h = withRedirect h IO.stdout . TL.putStr
 --         get h = withRedirect h IO.stdin TL.getContents
-t_write_read = write_read T.unlines T.filter T.hPutStr T.hGetContents id
-tl_write_read = write_read TL.unlines TL.filter TL.hPutStr TL.hGetContents id
+t_write_read = write_read T.unlines T.filter T.hPutStr T.hGetContents unSqrt
+tl_write_read = write_read TL.unlines TL.filter TL.hPutStr TL.hGetContents unSqrt
 
 t_write_read_line = write_read (T.concat . take 1) T.filter T.hPutStrLn T.hGetLine (: [])
 tl_write_read_line = write_read (TL.concat . take 1) TL.filter TL.hPutStrLn TL.hGetLine (: [])
 
-utf8_write_read = write_read T.unlines T.filter TU.hPutStr TU.hGetContents id
+utf8_write_read = write_read T.unlines T.filter TU.hPutStr TU.hGetContents unSqrt
 utf8_write_read_line = write_read (T.concat . take 1) T.filter TU.hPutStrLn TU.hGetLine (: [])
 
 testLowLevel :: TestTree
