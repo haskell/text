@@ -10,12 +10,12 @@ module Tests.Regressions
       tests
     ) where
 
-import Control.Exception (ErrorCall, SomeException, handle, evaluate)
+import Control.Exception (ErrorCall, SomeException, handle, evaluate, displayException, try)
 import Data.Char (isLetter, chr)
 import GHC.Exts (Int(..), sizeofByteArray#)
 import System.IO
 import System.IO.Temp (withSystemTempFile)
-import Test.Tasty.HUnit (assertBool, assertEqual, assertFailure)
+import Test.Tasty.HUnit (assertBool, assertEqual, assertFailure, (@?=))
 import qualified Data.ByteString as B
 import Data.ByteString.Char8 ()
 import qualified Data.ByteString.Lazy as LB
@@ -34,28 +34,40 @@ import qualified Data.Text.Lazy.Encoding as LE
 import qualified Data.Text.Unsafe as T
 import qualified Test.Tasty as F
 import qualified Test.Tasty.HUnit as F
-import Test.Tasty.HUnit ((@?=))
-
 import Tests.Utils (withTempFile)
+import System.IO.Error (isFullError)
 
 -- Reported by Michael Snoyman: UTF-8 encoding a large lazy bytestring
 -- caused either a segfault or attempt to allocate a negative number
 -- of bytes.
 lazy_encode_crash :: IO ()
-lazy_encode_crash = withTempFile $ \ _ h ->
-   LB.hPut h . LE.encodeUtf8 . LT.pack . replicate 100000 $ 'a'
+lazy_encode_crash = withTempFile $ \ _ h -> do
+  putRes <- try $ LB.hPut h $ LE.encodeUtf8 $ LT.pack $ replicate 100000 'a'
+  case putRes of
+    Left e
+      -- If disk is full (as it happens on some of our CI runners), it's not our issue, skip it
+      | isFullError e -> pure ()
+      | otherwise -> assertFailure $ "hPut crashed because of " ++ displayException e
+    Right () -> pure ()
 
 -- Reported by Pieter Laeremans: attempting to read an incorrectly
 -- encoded file can result in a crash in the RTS (i.e. not merely an
 -- exception).
 hGetContents_crash :: IO ()
 hGetContents_crash = withSystemTempFile "crashy.txt" $ \path h -> do
-  B.hPut h (B.pack [0x78, 0xc4 ,0x0a]) >> hClose h
-  h' <- openFile path ReadMode
-  hSetEncoding h' utf8
-  handle (\(_::SomeException) -> return ()) $
-    T.hGetContents h' >> assertFailure "T.hGetContents should crash"
-  hClose h'
+  putRes <- try $ B.hPut h (B.pack [0x78, 0xc4 ,0x0a])
+  case putRes of
+    Left e
+      -- If disk is full (as it happens on some of our CI runners), it's not our issue, skip it
+      | isFullError e -> pure ()
+      | otherwise -> assertFailure $ "hPut crashed because of " ++ displayException e
+    Right () -> do
+      hClose h
+      h' <- openFile path ReadMode
+      hSetEncoding h' utf8
+      handle (\(_::SomeException) -> pure ()) $
+        T.hGetContents h' >> assertFailure "T.hGetContents should crash"
+      hClose h'
 
 -- Reported by Ian Lynagh: attempting to allocate a sufficiently large
 -- string (via either Array.new or Text.replicate) could result in an
