@@ -2,6 +2,7 @@
 
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE MagicHash #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 {-# OPTIONS_GHC -fno-warn-missing-signatures -fno-warn-unused-imports #-}
@@ -16,6 +17,7 @@ module Tests.Properties.LowLevel (testLowLevel) where
 import Prelude hiding (head, tail)
 import Control.Applicative ((<$>), pure)
 import Control.Exception as E (SomeException, catch, evaluate)
+import Data.Functor.Identity (Identity(..))
 import Data.Int (Int32, Int64)
 import Data.Text.Foreign
 import Data.Text.Internal (Text(..), mul, mul32, mul64, safe)
@@ -109,14 +111,32 @@ t_literal_foo = T.pack "foo"
 -- tl_put_get = write_read TL.unlines TL.filter put get
 --   where put h = withRedirect h IO.stdout . TL.putStr
 --         get h = withRedirect h IO.stdin TL.getContents
-t_write_read = write_read T.unlines T.filter T.hPutStr T.hGetContents unSqrt
-tl_write_read = write_read TL.unlines TL.filter TL.hPutStr TL.hGetContents unSqrt
 
-t_write_read_line = write_read (T.concat . take 1) T.filter T.hPutStrLn T.hGetLine (: [])
-tl_write_read_line = write_read (TL.concat . take 1) TL.filter TL.hPutStrLn TL.hGetLine (: [])
+inputOutput :: TestTree
+inputOutput = testGroup "input-output" [
+    testProperty "t_write_read" $ write_read arbitrary shrink (T.replace "\n" "\r\n") T.hPutStr T.hGetContents,
+    testProperty "tl_write_read" $ write_read arbitrary shrink (TL.replace "\n" "\r\n") TL.hPutStr TL.hGetContents,
+    testProperty "t_write_read_line" $ write_read genTLine shrinkTLine (`T.append` "\r") T.hPutStrLn T.hGetLine,
+    testProperty "tl_write_read_line" $ write_read genTLLine shrinkTLLine (`TL.append` "\r") TL.hPutStrLn TL.hGetLine,
+    -- Note: Data.Text.IO.Utf8 does NO newline translation
+    testProperty "utf8_write_read" $ write_read arbitrary shrink id TU.hPutStr TU.hGetContents,
+    testProperty "utf8_write_read_line" $ write_read genTLine shrinkTLine id TU.hPutStrLn TU.hGetLine
+    -- These tests are subject to I/O race conditions
+    -- testProperty "t_put_get" t_put_get,
+    -- testProperty "tl_put_get" tl_put_get
+  ]
 
-utf8_write_read = write_read T.unlines T.filter TU.hPutStr TU.hGetContents unSqrt
-utf8_write_read_line = write_read (T.concat . take 1) T.filter TU.hPutStrLn TU.hGetLine (: [])
+genTLine :: Gen T.Text
+genTLine = T.filter (`notElem` ("\r\n" :: String)) <$> arbitrary
+
+genTLLine :: Gen TL.Text
+genTLLine = TL.filter (`notElem` ("\r\n" :: String)) <$> arbitrary
+
+shrinkTLine :: T.Text -> [T.Text]
+shrinkTLine = filter (T.all (/= '\n')) . shrink
+
+shrinkTLLine :: TL.Text -> [TL.Text]
+shrinkTLLine = filter (TL.all (/= '\n')) . shrink
 
 testLowLevel :: TestTree
 testLowLevel =
@@ -150,15 +170,5 @@ testLowLevel =
 #endif
     ],
 
-    testGroup "input-output" [
-      testGroup "t_write_read" t_write_read,
-      testGroup "tl_write_read" tl_write_read,
-      testGroup "t_write_read_line" t_write_read_line,
-      testGroup "tl_write_read_line" tl_write_read_line,
-      testGroup "utf8_write_read" utf8_write_read,
-      testGroup "utf8_write_read_line" utf8_write_read_line
-      -- These tests are subject to I/O race conditions
-      -- testProperty "t_put_get" t_put_get,
-      -- testProperty "tl_put_get" tl_put_get
-    ]
+    inputOutput
   ]

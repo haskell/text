@@ -6,11 +6,12 @@ module Tests.Utils
       (=^=)
     , withRedirect
     , withTempFile
+    , emptyTempFile
     ) where
 
 import Control.Exception (SomeException, bracket_, evaluate, try)
 import Control.Monad (when)
-import System.IO.Temp (withSystemTempFile)
+import System.IO.Temp (withSystemTempFile, emptySystemTempFile)
 import GHC.IO.Handle.Internals (withHandle)
 import System.IO (Handle, hFlush, hIsOpen, hIsWritable)
 import Test.QuickCheck (Property, ioProperty, property, (===), counterexample)
@@ -32,6 +33,9 @@ infix 4 =^=
 
 withTempFile :: (FilePath -> Handle -> IO a) -> IO a
 withTempFile = withSystemTempFile "crashy.txt"
+
+emptyTempFile :: IO FilePath
+emptyTempFile = emptySystemTempFile "crashy.txt"
 
 withRedirect :: Handle -> Handle -> IO a -> IO a
 withRedirect tmp h = bracket_ swap swap
