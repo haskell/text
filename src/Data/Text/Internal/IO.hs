@@ -262,11 +262,12 @@ writeBlocks isCRLF h buf0 (Stream next0 s0 _len) = outer s0 buf0
         Done -> commit n False{-no flush-} True{-release-} >> return ()
         Skip s' -> inner s' n
         Yield x s'
-          | isCRLF && x == '\n' && n + 1 < len -> do
+          -- Leave room for two characters for CRLF decoding
+          | n + 1 >= len -> commit n True{-needs flush-} False >>= outer s
+          | x == '\n' && isCRLF -> do
               n1 <- writeCharBuf' raw len n '\r'
               writeCharBuf' raw len n1 '\n' >>= inner s'
-          | n < len -> writeCharBuf' raw len n x >>= inner s'
-          | otherwise -> commit n True{-needs flush-} False >>= outer s
+          | otherwise -> writeCharBuf' raw len n x >>= inner s'
     commit = commitBuffer h raw len
 
 -- | Only modifies the raw buffer and not the buffer attributes
