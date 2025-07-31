@@ -112,6 +112,7 @@ unpack !buf !r !w
             | otherwise = Yield (ix i) (i+1)
     ix i = inlinePerformIO $ peekElemOff pbuf i
 
+-- Variant of 'unpack' with CRLF decoding. If there is a trailing '\r', leave it in the buffer.
 unpack_nl :: RawCharBuffer -> Int -> Int -> IO (Text, Int)
 unpack_nl !buf !r !w
  | charSize /= 4 = sizeError "unpack_nl"
@@ -130,7 +131,7 @@ unpack_nl !buf !r !w
                           in if i' < w
                              then if ix i' == '\n'
                                   then Yield '\n' (i+2)
-                                  else Yield '\n' i'
+                                  else Yield '\r' i'
                              else Done
             | otherwise = Yield c (i+1)
             where c = ix i
