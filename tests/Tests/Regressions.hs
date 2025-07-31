@@ -202,6 +202,17 @@ t633 =
     _ <- evaluate (stimes (maxBound :: Word) "a" :: T.Text)
     assertFailure "should fail"
 
+t648 :: IO ()
+t648 = withTempFile $ \_ h -> do
+  hSetEncoding h utf8
+  hSetNewlineMode h (NewlineMode LF CRLF)
+  hSetBuffering h (BlockBuffering $ Just 4)
+  let line = T.replicate 2047 "_"
+  T.hPutStrLn h line
+  hSeek h AbsoluteSeek 0
+  line' <- T.hGetLine h
+  T.append line "\r" @?= line'
+
 tests :: F.TestTree
 tests = F.testGroup "Regressions"
     [ F.testCase "hGetContents_crash" hGetContents_crash
@@ -221,4 +232,5 @@ tests = F.testGroup "Regressions"
     , F.testCase "t529" t529
     , F.testCase "t559" t559
     , F.testCase "t633" t633
+    , F.testCase "t648" t648
     ]
