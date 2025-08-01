@@ -1,3 +1,15 @@
+### 2.1.3 - 2025-08-01
+
+* [Fix CRLF handling in IO functions](https://github.com/haskell/text/pull/649)
+
+* [Change `utf8LengthByLeader` to a branching implementation](https://github.com/haskell/text/pull/635)
+
+* [Define `stimes 0` for lazy text](https://github.com/haskell/text/pull/641)
+
+* [Add implementation of `sconcat` and `stimes` for strict `Text`](https://github.com/haskell/text/pull/580) and [Fix `stimes` for strict text when size wraps around `Int`](https://github.com/haskell/text/pull/639)
+
+* [Allow list fusion for `unpack` over both strict and lazy `Text`](https://github.com/haskell/text/pull/629)
+
 ### 2.1.2
 
 * [Update case mappings for Unicode 16.0](https://github.com/haskell/text/pull/618)
