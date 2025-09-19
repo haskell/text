@@ -116,14 +116,14 @@ readChunkEof hh buf = do t <- readChunk hh buf
 -- cannot guarantee reading an exact number of bytes. Instead, it reads
 -- complete characters up to the handle's internal buffer limit.
 --
--- == Buffer Size
+-- === Buffer Size
 --
 -- The maximum chunk size is determined by the handle's internal character
 -- buffer, which is set to 2048 characters (not bytes) by the GHC runtime
 -- constant @dEFAULT_CHAR_BUFFER_SIZE@. This buffer size cannot be modified
 -- through any public API.
 --
--- == UTF-8 Considerations
+-- === UTF-8 Considerations
 --
 -- When working with UTF-8 encoded text:
 --
