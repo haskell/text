@@ -109,7 +109,7 @@ readChunkEof hh buf = do t <- readChunk hh buf
 -- has not yet been reached. Once EOF is reached, this function
 -- returns an empty string instead of throwing an exception.
 --
--- == Behavior
+-- === Behavior
 --
 -- Unlike byte-oriented functions, 'hGetChunk' operates on complete UTF-8
 -- characters. Since UTF-8 characters can occupy 1 to 4 bytes, this function
