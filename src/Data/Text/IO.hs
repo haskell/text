@@ -101,13 +101,35 @@ readChunkEof :: Handle__ -> CharBuffer -> IO (Text, Bool)
 readChunkEof hh buf = do t <- readChunk hh buf
                          return (t, False)
 
--- | /Experimental./ Read a single chunk of strict text from a
+-- | Read a single chunk of strict text from a
 -- 'Handle'. The size of the chunk depends on the amount of input
 -- currently buffered.
 --
 -- This function blocks only if there is no data available, and EOF
 -- has not yet been reached. Once EOF is reached, this function
 -- returns an empty string instead of throwing an exception.
+--
+-- == Behavior
+--
+-- Unlike byte-oriented functions, 'hGetChunk' operates on complete UTF-8
+-- characters. Since UTF-8 characters can occupy 1 to 4 bytes, this function
+-- cannot guarantee reading an exact number of bytes. Instead, it reads
+-- complete characters up to the handle's internal buffer limit.
+--
+-- == Buffer Size
+--
+-- The maximum chunk size is determined by the handle's internal character
+-- buffer, which is set to 2048 characters (not bytes) by the GHC runtime
+-- constant @dEFAULT_CHAR_BUFFER_SIZE@. This buffer size cannot be modified
+-- through any public API.
+--
+-- == UTF-8 Considerations
+--
+-- When working with UTF-8 encoded text:
+--
+-- * The function will never return a partial character
+-- * The actual number of bytes read may vary depending on the character
+--   encoding (ASCII characters = 1 byte, other Unicode characters = 2-4 bytes)
 hGetChunk :: Handle -> IO Text
 hGetChunk h = wantReadableHandle "hGetChunk" h readSingleChunk
  where
