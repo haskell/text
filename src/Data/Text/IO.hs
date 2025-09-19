@@ -119,7 +119,7 @@ readChunkEof hh buf = do t <- readChunk hh buf
 -- === Buffer Size
 --
 -- The maximum chunk size is determined by the handle's internal character
--- buffer, which is set to 2048 characters (not bytes) by the GHC runtime
+-- buffer, which is set to 8192 bytes (2048 characters) by the GHC runtime
 -- constant @dEFAULT_CHAR_BUFFER_SIZE@. This buffer size cannot be modified
 -- through any public API.
 --
