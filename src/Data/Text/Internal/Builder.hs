@@ -196,20 +196,23 @@ fromText t@(Text arr off l)
 --
 -- @since 1.2.0.0
 fromString :: String -> Builder
-fromString str = Builder $ \k (Buffer p0 o0 u0 l0) ->
-    let loop !marr !o !u !l [] = k (Buffer marr o u l)
-        loop marr o u l s@(c:cs)
-            | l <= 3 = do
+fromString str = Builder $ \k (Buffer p0 o0 u0) -> do
+    len <- A.getSizeofMArray p0
+    -- `end` is 3 bytes before the actual end of `marr`
+    -- to make sure there's room for a 4-byte UTF-8 code point.
+    let loop !marr !o !u !_ [] = k (Buffer marr o u)
+        loop marr o u end s@(c:cs)
+            | u >= end = do
                 A.shrinkM marr (o + u)
                 arr <- A.unsafeFreeze marr
                 let !t = Text arr o u
                 marr' <- A.new chunkSize
-                ts <- inlineInterleaveST (loop marr' 0 0 chunkSize s)
+                ts <- inlineInterleaveST (loop marr' 0 0 (chunkSize - 3) s)
                 return $ t : ts
             | otherwise = do
                 n <- unsafeWrite marr (o+u) (safe c)
-                loop marr o (u+n) (l-n) cs
-    in loop p0 o0 u0 l0 str
+                loop marr o (u+n) end cs
+    loop p0 o0 u0 (len - o0 - 3) str
   where
     chunkSize = smallChunkSize
 {-# INLINEABLE fromString #-}
@@ -228,7 +231,6 @@ fromLazyText ts = flush `append` mapBuilder (L.toChunks ts ++)
 data Buffer s = Buffer {-# UNPACK #-} !(A.MArray s)
                        {-# UNPACK #-} !Int  -- offset
                        {-# UNPACK #-} !Int  -- used units
-                       {-# UNPACK #-} !Int  -- length left
 
 ------------------------------------------------------------------------
 
@@ -251,11 +253,11 @@ toLazyTextWith chunkSize m = L.fromChunks (runST $
 -- | /O(1)./ Pop the strict @Text@ we have constructed so far, if any,
 -- yielding a new chunk in the result lazy @Text@.
 flush :: Builder
-flush = Builder $ \ k buf@(Buffer p o u l) ->
+flush = Builder $ \ k buf@(Buffer p o u) ->
     if u == 0
     then k buf
     else do arr <- A.unsafeFreeze p
-            let !b = Buffer p (o+u) 0 l
+            let !b = Buffer p (o+u) 0
                 !t = Text arr o u
             ts <- inlineInterleaveST (k b)
             return $! t : ts
@@ -271,8 +273,9 @@ withBuffer f = Builder $ \k buf -> f buf >>= k
 
 -- | Get the size of the buffer
 withSize :: (Int -> Builder) -> Builder
-withSize f = Builder $ \ k buf@(Buffer _ _ _ l) ->
-    runBuilder (f l) k buf
+withSize f = Builder $ \ k buf@(Buffer arr offset used) -> do
+    len <- A.getSizeofMArray arr
+    runBuilder (f (len - offset - used)) k buf
 {-# INLINE withSize #-}
 
 -- | Map the resulting list of texts.
@@ -300,15 +303,15 @@ writeN n f = writeAtMost n (\ p o -> f p o >> return n)
 {-# INLINE writeN #-}
 
 writeBuffer :: (A.MArray s -> Int -> ST s Int) -> Buffer s -> ST s (Buffer s)
-writeBuffer f (Buffer p o u l) = do
+writeBuffer f (Buffer p o u) = do
     n <- f p (o+u)
-    return $! Buffer p o (u+n) (l-n)
+    return $! Buffer p o (u+n)
 {-# INLINE writeBuffer #-}
 
 newBuffer :: Int -> ST s (Buffer s)
 newBuffer size = do
     arr <- A.new size
-    return $! Buffer arr 0 0 size
+    return $! Buffer arr 0 0
 {-# INLINE newBuffer #-}
 
 ------------------------------------------------------------------------
