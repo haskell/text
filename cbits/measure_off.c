@@ -15,7 +15,9 @@
 
 // stdatomic.h has been introduces in gcc 4.9
 #if !(__GNUC__ >= 5 || __GNUC__ == 4 && __GNUC_MINOR__ >= 9 || defined(__clang_major__))
+#ifndef __STDC_NO_ATOMICS__
 #define __STDC_NO_ATOMICS__
+#endif
 #endif
 
 #ifndef __STDC_NO_ATOMICS__
