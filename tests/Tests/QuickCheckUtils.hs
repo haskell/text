@@ -39,7 +39,10 @@ import Data.Char (isSpace)
 import Data.IORef (writeIORef)
 import Data.Text.Foreign (I8)
 import Data.Text.Lazy.Builder.RealFloat (FPFormat(..))
-import Data.Word (Word8, Word16)
+import Data.Word (Word8)
+#if !MIN_VERSION_QuickCheck(2,17,0)
+import Data.Word (Word16)
+#endif
 import qualified GHC.IO.Buffer as GIO
 import qualified GHC.IO.Handle.Internals as GIO
 import qualified GHC.IO.Handle.Types as GIO
@@ -60,9 +63,6 @@ import qualified System.IO as IO
 
 genWord8 :: Gen Word8
 genWord8 = chooseAny
-
-genWord16 :: Gen Word16
-genWord16 = chooseAny
 
 instance Arbitrary I8 where
     arbitrary     = arbitrarySizedIntegral
@@ -232,12 +232,17 @@ instance Arbitrary IO.NewlineMode where
     arbitrary = IO.NewlineMode <$> arbitrary <*> arbitrary
 #endif
 
+#if !MIN_VERSION_QuickCheck(2,17,0)
 instance Arbitrary IO.BufferMode where
     arbitrary = oneof [ return IO.NoBuffering,
                         return IO.LineBuffering,
                         return (IO.BlockBuffering Nothing),
                         (IO.BlockBuffering . Just . (+1) . fromIntegral) `fmap`
                         genWord16 ]
+
+genWord16 :: Gen Word16
+genWord16 = chooseAny
+#endif
 
 -- This test harness is complex!  What property are we checking?
 --
