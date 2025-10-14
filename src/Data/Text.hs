@@ -1845,7 +1845,15 @@ breakOnAll pat src@(Text arr off slen)
 
 -- | /O(n)/ 'Text' index (subscript) operator, starting from 0.
 index :: HasCallStack => Text -> Int -> Char
-index t n = S.index (stream t) n
+index t@(Text _ _ lenInBytes) ix
+  | ix < 0
+  = P.error $ "Data.Text.index: negative index " ++ P.show ix
+  | off < 0 || off == lenInBytes
+  = P.error $ "Data.Text.index: index " ++ P.show ix ++ " is too large"
+  | otherwise = ch
+  where
+    off = measureOff ix t
+    Iter ch _ = iter t off
 {-# INLINE index #-}
 
 -- | /O(n)/ The 'findIndex' function takes a predicate and a 'Text'

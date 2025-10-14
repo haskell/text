@@ -223,7 +223,7 @@ import Prelude (Char, Bool(..), Maybe(..), String,
 import qualified Prelude as P
 import Control.Arrow (first)
 import Control.DeepSeq (NFData(..))
-import Data.Bits (finiteBitSize)
+import Data.Bits (finiteBitSize, toIntegralSized)
 import Data.Int (Int64)
 import qualified Data.List as L hiding (head, tail)
 import Data.Char (isSpace)
@@ -1808,7 +1808,22 @@ partition p t = (filter p t, filter (not . p) t)
 
 -- | /O(n)/ 'Text' index (subscript) operator, starting from 0.
 index :: HasCallStack => Text -> Int64 -> Char
-index t n = S.index (stream t) n
+index lazyText ix
+  | ix < 0 = P.error $ "Data.Text.Lazy.index: negative index " ++ P.show ix
+  | otherwise = go lazyText ix
+  where
+    go :: Text -> Int64 -> Char
+    go Empty _ = P.error $ "Data.Text.index: index " ++ P.show ix ++ " is too large"
+    go (Chunk t@(T.Text _ _ lenInBytes) ts) n = case toIntegralSized n of
+      Nothing ->
+        go ts (n - fromIntegral (T.length t))
+      Just n'
+        | off < 0 -> go ts (n + fromIntegral off)
+        | off == lenInBytes -> go ts 0
+        | otherwise -> ch
+        where
+          off = T.measureOff n' t
+          T.Iter ch _ = T.iter t off
 {-# INLINE index #-}
 
 -- | /O(n+m)/ The 'count' function returns the number of times the

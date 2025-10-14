@@ -1,15 +1,19 @@
 -- | Tests for operations that don't fit in the other @Test.Properties.*@ modules.
 
-{-# LANGUAGE BangPatterns #-}
-{-# LANGUAGE CPP          #-}
-{-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE BangPatterns        #-}
+{-# LANGUAGE CPP                 #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE ViewPatterns        #-}
 
 {-# OPTIONS_GHC  -fno-warn-missing-signatures #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Avoid restricted function" #-}
 
 module Tests.Properties.Text
     ( testText
     ) where
 
+import Control.Exception (SomeException, evaluate, try)
 import Data.Char (isLower, isLetter, isUpper)
 import Data.Maybe (mapMaybe)
 import Data.Text.Internal.Fusion.Size
@@ -263,13 +267,21 @@ tl_partition (applyFun -> p) = L.partition p `eqP` (unpack2 . TL.partition p)
 sf_index (applyFun -> p) s i = ((L.filter p s L.!!) `eq` S.index (S.filter p $ packS s)) j
     where l = L.length s
           j = if l == 0 then 0 else i `mod` (3 * l) - l
-t_index s i       = ((s L.!!) `eq` T.index (packS s)) j
-    where l = L.length s
-          j = if l == 0 then 0 else i `mod` (3 * l) - l
 
-tl_index s i      = ((s L.!!) `eq` (TL.index (packS s) . fromIntegral)) j
-    where l = L.length s
-          j = if l == 0 then 0 else i `mod` (3 * l) - l
+t_index :: T.Text -> Int -> Property
+t_index xs i = ioProperty $ do
+    ch <- try (evaluate (T.index xs i))
+    pure $ case ch of
+        Left (_ :: SomeException) -> i < 0 .||. i >= T.length xs
+        Right c -> i >= 0 .&&. i < T.length xs .&&. c === T.unpack xs L.!! i
+
+tl_index :: TL.Text -> Int -> Property
+tl_index xs i = ioProperty $ do
+    let i' = fromIntegral i
+    ch <- try (evaluate (TL.index xs i'))
+    pure $ case ch of
+        Left (_ :: SomeException) -> i' < 0 .||. i' >= TL.length xs
+        Right c -> i >= 0 .&&. i' < TL.length xs .&&. c === TL.unpack xs L.!! i
 
 t_findIndex (applyFun -> p) = L.findIndex p `eqP` T.findIndex p
 t_count (NotEmpty t)  = (subtract 1 . L.length . T.splitOn t) `eq` T.count t
