@@ -142,7 +142,7 @@ caseConvert ascii remap (Text src o l) = runST $ do
                   i -> writeMapping dst i dstOff
                 inner (srcOff + 4) dstOff'
 
-{-# INLINE caseConvert #-}
+{-# INLINABLE caseConvert #-}
 
 writeMapping :: A.MArray s -> Int64 -> Int -> ST s Int
 writeMapping !_ 0 !dstOff = pure dstOff
