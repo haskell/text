@@ -40,11 +40,6 @@ module Data.Text.Encoding
     , decodeUtf32LEWith
     , decodeUtf32BEWith
 
-    -- *** Stream oriented decoding
-    -- $stream
-    , streamDecodeUtf8With
-    , Decoding(..)
-
     -- *** Incremental UTF-8 decoding
     -- $incremental
     , decodeUtf8Chunk
@@ -65,8 +60,11 @@ module Data.Text.Encoding
     , decodeUtf32LE
     , decodeUtf32BE
 
-    -- *** Stream oriented decoding
+    -- ** Stream oriented decoding
+    -- $stream
     , streamDecodeUtf8
+    , streamDecodeUtf8With
+    , Decoding(..)
 
     -- * Encoding Text to ByteStrings
     , encodeUtf8
@@ -255,16 +253,17 @@ foreign import ccall unsafe "_hs_text_is_ascii" c_is_ascii
 -- $stream
 --
 -- The 'streamDecodeUtf8' and 'streamDecodeUtf8With' functions accept
--- a 'ByteString' that represents a possibly incomplete input (e.g. a
--- packet from a network stream) that may not end on a UTF-8 boundary.
+-- a strict 'ByteString' that represents a possibly incomplete input (e.g. a
+-- packet from a network stream) that may not end on a UTF-8 boundary
+-- and return 'Decoding', which consists of:
 --
--- 1. The maximal prefix of 'Text' that could be decoded from the
+-- *  The maximal prefix of 'Text' that could be decoded from the
 --    given input.
 --
--- 2. The suffix of the 'ByteString' that could not be decoded due to
+-- *  The suffix of the 'ByteString' that could not be decoded due to
 --    insufficient input.
 --
--- 3. A function that accepts another 'ByteString'.  That string will
+-- *  A function that accepts another 'ByteString'.  That string will
 --    be assumed to directly follow the string that was passed as
 --    input to the original function, and it will in turn be decoded.
 --
@@ -305,10 +304,18 @@ foreign import ccall unsafe "_hs_text_is_ascii" c_is_ascii
 -- If given invalid input, an exception will be thrown by the function
 -- or continuation where it is encountered.
 
--- | A stream oriented decoding result.
+-- | A stream-oriented decoding result (see 'streamDecodeUtf8' and 'streamDecodeUtf8With').
 --
 -- @since 1.0.0.0
-data Decoding = Some !Text !ByteString (ByteString -> Decoding)
+data Decoding = Some
+  !Text
+  -- ^ The maximal prefix that could be decoded from the given input.
+  !ByteString
+  -- ^ The remaining suffix of the input that could not be decoded
+  -- (usually because the input breaks in the middle of UTF-8 character)
+  (ByteString -> Decoding)
+  -- ^ The continuation call which should be fed with the next
+  -- chunk of the input.
 
 instance Show Decoding where
     showsPrec d (Some t bs _) = showParen (d > prec) $
@@ -317,8 +324,8 @@ instance Show Decoding where
                                 showString " _"
       where prec = 10; prec' = prec + 1
 
--- | Decode, in a stream oriented way, a 'ByteString' containing UTF-8
--- encoded text that is known to be valid.
+-- | Initiate a stream-oriented decoding
+-- with a strict 'ByteString' containing UTF-8 data that is known to be valid.
 --
 -- If the input contains any invalid UTF-8 data, an exception will be
 -- thrown (either by this function or a continuation) that cannot be
@@ -333,8 +340,8 @@ streamDecodeUtf8 ::
   ByteString -> Decoding
 streamDecodeUtf8 = streamDecodeUtf8With strictDecode
 
--- | Decode, in a stream oriented way, a lazy 'ByteString' containing UTF-8
--- encoded text.
+-- | Initiate a stream-oriented decoding
+-- with a strict 'ByteString' containing UTF-8 data.
 --
 -- @since 1.0.0.0
 streamDecodeUtf8With ::
