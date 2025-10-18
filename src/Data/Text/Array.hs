@@ -308,14 +308,36 @@ copyToPointer (ByteArray src#) srcOff@(I# srcOff#) (Ptr dst#) count@(I# count#)
 
 -- | Compare portions of two arrays for equality.  No bounds checking
 -- is performed.
-equal :: Array -> Int -> Array -> Int -> Int -> Bool
+equal
+  :: Array
+  -- ^ First array
+  -> Int
+  -- ^ Offset in the first array
+  -> Array
+  -- ^ Second array
+  -> Int
+  -- ^ Offset in the second array
+  -> Int
+  -- ^ How many bytes to compare?
+  -> Bool
 equal src1 off1 src2 off2 count = compareInternal src1 off1 src2 off2 count == 0
 {-# INLINE equal #-}
 
 -- | Compare portions of two arrays. No bounds checking is performed.
 --
 -- @since 2.0
-compare :: Array -> Int -> Array -> Int -> Int -> Ordering
+compare
+  :: Array
+  -- ^ First array
+  -> Int
+  -- ^ Offset in the first array
+  -> Array
+  -- ^ Second array
+  -> Int
+  -- ^ Offset in the second array
+  -> Int
+  -- ^ How many bytes to compare?
+  -> Ordering
 compare src1 off1 src2 off2 count = compareInternal src1 off1 src2 off2 count `Prelude.compare` 0
 {-# INLINE compare #-}
 
