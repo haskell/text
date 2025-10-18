@@ -508,7 +508,15 @@ compareText (Text arrA offA lenA) (Text arrB offB lenB) =
 -- copying a new array.  Performs replacement on
 -- invalid scalar values.
 cons :: Char -> Text -> Text
-cons c = unstream . S.cons (safe c) . stream
+cons c (Text srcArr srcOff srcLen) = runST $ do
+  let ch = safe c
+      chLen = utf8Length ch
+      totalLen = chLen + srcLen
+  marr <- A.new totalLen
+  _ <- unsafeWrite marr 0 ch
+  A.copyI srcLen marr chLen srcArr srcOff
+  arr <- A.unsafeFreeze marr
+  pure $ Text arr 0 totalLen
 {-# INLINE [1] cons #-}
 
 infixr 5 `cons`
@@ -517,13 +525,23 @@ infixr 5 `cons`
 -- entire array in the process.
 -- Performs replacement on invalid scalar values.
 snoc :: Text -> Char -> Text
-snoc t c = unstream (S.snoc (stream t) (safe c))
+snoc (Text srcArr srcOff srcLen) c = runST $ do
+  let ch = safe c
+      chLen = utf8Length ch
+      totalLen = srcLen + chLen
+  marr <- A.new totalLen
+  A.copyI srcLen marr 0 srcArr srcOff
+  _ <- unsafeWrite marr srcLen ch
+  arr <- A.unsafeFreeze marr
+  pure $ Text arr 0 totalLen
 {-# INLINE snoc #-}
 
 -- | /O(1)/ Returns the first character of a 'Text', which must be
 -- non-empty. This is a partial function, consider using 'uncons' instead.
 head :: HasCallStack => Text -> Char
-head t = S.head (stream t)
+head t
+  | null t = emptyError "head"
+  | otherwise = let Iter c _ = iter t 0 in c
 {-# INLINE head #-}
 
 -- | /O(1)/ Returns the first character and rest of a 'Text', or
@@ -615,7 +633,8 @@ infixl 5 :>
 
 -- | /O(1)/ Tests whether a 'Text' contains exactly one character.
 isSingleton :: Text -> Bool
-isSingleton = S.isSingleton . stream
+isSingleton (Text arr off len) =
+  len == utf8LengthByLeader (A.unsafeIndex arr off)
 {-# INLINE isSingleton #-}
 
 -- | /O(n)/ Returns the number of characters in a 'Text'.
@@ -1975,18 +1994,21 @@ unwords = intercalate (singleton ' ')
 -- | /O(n)/ The 'isPrefixOf' function takes two 'Text's and returns
 -- 'True' if and only if the first is a prefix of the second.
 isPrefixOf :: Text -> Text -> Bool
-isPrefixOf a@(Text _ _ alen) b@(Text _ _ blen) =
-    alen <= blen && S.isPrefixOf (stream a) (stream b)
+isPrefixOf a@(Text _aArr _aOff aLen) b@(Text bArr bOff bLen) =
+    d >= 0 && a == b'
+  where d              = bLen - aLen
+        b' | d == 0    = b
+           | otherwise = Text bArr bOff aLen
 {-# INLINE [1] isPrefixOf #-}
 
 -- | /O(n)/ The 'isSuffixOf' function takes two 'Text's and returns
 -- 'True' if and only if the first is a suffix of the second.
 isSuffixOf :: Text -> Text -> Bool
-isSuffixOf a@(Text _aarr _aoff alen) b@(Text barr boff blen) =
+isSuffixOf a@(Text _aArr _aOff aLen) b@(Text bArr bOff bLen) =
     d >= 0 && a == b'
-  where d              = blen - alen
+  where d              = bLen - aLen
         b' | d == 0    = b
-           | otherwise = Text barr (boff+d) alen
+           | otherwise = Text bArr (bOff+d) aLen
 {-# INLINE isSuffixOf #-}
 
 -- | /O(n+m)/ The 'isInfixOf' function takes two 'Text's and returns
