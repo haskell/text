@@ -1053,30 +1053,46 @@ transpose ts = P.map pack (L.transpose (P.map unpack ts))
 -- (typically the left-identity of the operator), and a 'Text',
 -- reduces the 'Text' using the binary operator, from left to right.
 foldl :: (a -> Char -> a) -> a -> Text -> a
-foldl f z t = S.foldl f z (stream t)
+foldl f z (Text arr off len) = go (off + len - 1)
+  where
+    go !i
+      | i < off = z
+      | otherwise = let !(Iter c l) = reverseIterArray arr i in f (go (i + l)) c
 {-# INLINE foldl #-}
 
 -- | /O(n)/ A strict version of 'foldl'.
 foldl' :: (a -> Char -> a) -> a -> Text -> a
-foldl' f z t = S.foldl' f z (stream t)
+foldl' f z (Text arr off len) = go off z
+  where
+    go !i !acc
+      | i >= off + len = acc
+      | otherwise = let !(Iter c l) = iterArray arr i in go (i + l) (f acc c)
 {-# INLINE foldl' #-}
 
 -- | /O(n)/ A variant of 'foldl' that has no starting value argument,
 -- and thus must be applied to a non-empty 'Text'.
 foldl1 :: HasCallStack => (Char -> Char -> Char) -> Text -> Char
-foldl1 f t = S.foldl1 f (stream t)
+foldl1 f t = case uncons t of
+  Nothing -> emptyError "foldl"
+  Just (c, t') -> foldl f c t'
 {-# INLINE foldl1 #-}
 
 -- | /O(n)/ A strict version of 'foldl1'.
 foldl1' :: HasCallStack => (Char -> Char -> Char) -> Text -> Char
-foldl1' f t = S.foldl1' f (stream t)
+foldl1' f t = case uncons t of
+  Nothing -> emptyError "foldl'"
+  Just (c, t') -> foldl' f c t'
 {-# INLINE foldl1' #-}
 
 -- | /O(n)/ A monadic version of 'foldl''.
 --
 -- @since 2.1.2
 foldlM' :: Monad m => (a -> Char -> m a) -> a -> Text -> m a
-foldlM' f z t = S.foldlM' f z (stream t)
+foldlM' f z (Text arr off len) = go off z
+  where
+    go !i !acc
+      | i >= off + len = pure acc
+      | otherwise = let !(Iter c l) = iterArray arr i in go (i + l) P.=<< f acc c
 {-# INLINE foldlM' #-}
 
 -- | /O(n)/ 'foldr', applied to a binary operator, a starting value
@@ -1099,13 +1115,19 @@ foldlM' f z t = S.foldlM' f z (stream t)
 -- Searches from left to right with short-circuiting behavior can
 -- also be defined using 'foldr' (/e.g./, 'any', 'all', 'find', 'elem').
 foldr :: (Char -> a -> a) -> a -> Text -> a
-foldr f z t = S.foldr f z (stream t)
+foldr f z (Text arr off len) = go off
+  where
+    go !i
+      | i >= off + len = z
+      | otherwise = let !(Iter c l) = iterArray arr i in f c (go (i + l))
 {-# INLINE foldr #-}
 
 -- | /O(n)/ A variant of 'foldr' that has no starting value argument,
 -- and thus must be applied to a non-empty 'Text'.
 foldr1 :: HasCallStack => (Char -> Char -> Char) -> Text -> Char
-foldr1 f t = S.foldr1 f (stream t)
+foldr1 f t = case unsnoc t of
+  Nothing -> emptyError "foldr1"
+  Just (t', c) -> foldr f c t'
 {-# INLINE foldr1 #-}
 
 -- | /O(n)/ A strict version of 'foldr'.
@@ -1114,7 +1136,11 @@ foldr1 f t = S.foldr1 f (stream t)
 --
 -- @since 2.0.1
 foldr' :: (Char -> a -> a) -> a -> Text -> a
-foldr' f z t = S.foldl' (P.flip f) z (reverseStream t)
+foldr' f z (Text arr off len) = go (off + len - 1) z
+  where
+    go !i !acc
+      | i < off = acc
+      | otherwise = let !(Iter c l) = reverseIterArray arr i in go (i + l) (f c acc)
 {-# INLINE foldr' #-}
 
 -- -----------------------------------------------------------------------------
@@ -1144,25 +1170,30 @@ concatMap f = concat . foldr ((:) . f) []
 -- | /O(n)/ 'any' @p@ @t@ determines whether any character in the
 -- 'Text' @t@ satisfies the predicate @p@.
 any :: (Char -> Bool) -> Text -> Bool
-any p t = S.any p (stream t)
+any p = foldr (\c acc -> p c || acc) False
 {-# INLINE any #-}
 
 -- | /O(n)/ 'all' @p@ @t@ determines whether all characters in the
 -- 'Text' @t@ satisfy the predicate @p@.
 all :: (Char -> Bool) -> Text -> Bool
-all p t = S.all p (stream t)
+all p = foldr (\c acc -> p c && acc) True
 {-# INLINE all #-}
 
 -- | /O(n)/ 'maximum' returns the maximum value from a 'Text', which
 -- must be non-empty.
 maximum :: HasCallStack => Text -> Char
-maximum t = S.maximum (stream t)
+maximum = foldl1' max
+-- This could be implemented faster: look for the longest
+-- and largest UTF-8 sequence, then decode it to Char only once,
+-- instead of decoding all characters, but I doubt anyone cares
+-- about the performance of 'maximum' much.
 {-# INLINE maximum #-}
 
 -- | /O(n)/ 'minimum' returns the minimum value from a 'Text', which
 -- must be non-empty.
 minimum :: HasCallStack => Text -> Char
-minimum t = S.minimum (stream t)
+minimum = foldl1' min
+-- This could be implemented faster, see the comment for 'maximum' above.
 {-# INLINE minimum #-}
 
 -- -----------------------------------------------------------------------------
@@ -1735,14 +1766,16 @@ chunksOf k = go
 -- returns 'True' if the element is found in the given 'Text', or
 -- 'False' otherwise.
 elem :: Char -> Text -> Bool
-elem c t = S.any (== c) (stream t)
+elem = any . (==)
+-- TODO This can be implemented much faster: there is no need to decode
+-- any UTF-8 sequences at all.
 {-# INLINE elem #-}
 
 -- | /O(n)/ The 'find' function takes a predicate and a 'Text', and
 -- returns the first element matching the predicate, or 'Nothing' if
 -- there is no such element.
 find :: (Char -> Bool) -> Text -> Maybe Char
-find p t = S.findBy p (stream t)
+find p = foldr (\c acc -> if p c then Just c else acc) Nothing
 {-# INLINE find #-}
 
 -- | /O(n)/ The 'partition' function takes a predicate and a 'Text',
@@ -1903,7 +1936,7 @@ count pat
 -- | /O(n)/ The 'countChar' function returns the number of times the
 -- query element appears in the given 'Text'.
 countChar :: Char -> Text -> Int
-countChar c t = S.countChar c (stream t)
+countChar c = foldl' (\acc c' -> if c == c' then acc + 1 else acc) 0
 {-# INLINE countChar #-}
 
 -------------------------------------------------------------------------------
