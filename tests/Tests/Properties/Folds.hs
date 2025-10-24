@@ -140,6 +140,15 @@ tl_scanr (applyFun2 -> f) z      = L.scanr f z   `eqP` (unpackS . TL.scanr f z)
 t_scanr1 (applyFun2 -> f)        = L.scanr1 f    `eqP` (unpackS . T.scanr1 f)
 tl_scanr1 (applyFun2 -> f)       = L.scanr1 f    `eqP` (unpackS . TL.scanr1 f)
 
+t_scanl_is_safe = let c = '\55296' in
+    T.scanl undefined c mempty === T.singleton c
+tl_scanl_is_safe = let c = '\55296' in
+    TL.scanl undefined c mempty === TL.singleton c
+t_scanr_is_safe = let c = '\55296' in
+    T.scanr undefined c mempty === T.singleton c
+tl_scanr_is_safe = let c = '\55296' in
+    TL.scanr undefined c mempty === TL.singleton c
+
 t_mapAccumL_char c t =
     snd (T.mapAccumL (const (const (0 :: Int, c))) 0 t) === T.replicate (T.length t) (T.singleton c)
 t_mapAccumL (applyFun2 -> f) z   = L.mapAccumL f z `eqP` (second unpackS . T.mapAccumL f z)
@@ -303,7 +312,12 @@ testFolds =
       testProperty "t_scanr" t_scanr,
       testProperty "tl_scanr" tl_scanr,
       testProperty "t_scanr1" t_scanr1,
-      testProperty "tl_scanr1" tl_scanr1
+      testProperty "tl_scanr1" tl_scanr1,
+
+      testProperty "t_scanl_is_safe" t_scanl_is_safe,
+      testProperty "tl_scanl_is_safe" tl_scanl_is_safe,
+      testProperty "t_scanr_is_safe" t_scanr_is_safe,
+      testProperty "tl_scanr_is_safe" tl_scanr_is_safe
     ],
 
     testGroup "mapAccum" [
