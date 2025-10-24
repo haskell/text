@@ -972,8 +972,12 @@ isAscii = foldrChunks (\chnk acc -> T.isAscii chnk && acc) True
 --
 -- > last (scanl f z xs) == foldl f z xs.
 scanl :: (Char -> Char -> Char) -> Char -> Text -> Text
-scanl f z t = unstream (S.scanl g z (stream t))
-    where g a b = safe (f a b)
+scanl f z t = cons z $ P.snd $
+  mapAccumL (\acc c -> let c' = f acc c in (c', c')) (safe z) t
+-- This is a bit suboptimal: we could have used
+-- Data.Text.scanl for the first chunk and mapAccumL
+-- for subsequent ones, but but I doubt anyone cares
+-- about the performance of 'scanl' much.
 {-# INLINE scanl #-}
 
 -- | /O(n)/ 'scanl1' is a variant of 'scanl' that has no starting
@@ -991,8 +995,10 @@ scanl1 f t0 = case uncons t0 of
 --
 -- > scanr f v == reverse . scanl (flip f) v . reverse
 scanr :: (Char -> Char -> Char) -> Char -> Text -> Text
-scanr f v = reverse . scanl g v . reverse
-    where g a b = safe (f b a)
+scanr f z t = (`snoc` z) $ P.snd $
+  mapAccumR (\acc c -> let c' = f c acc in (c', c')) (safe z) t
+-- See the comment for 'scanl' above.
+{-# INLINE scanr #-}
 
 -- | /O(n)/ 'scanr1' is a variant of 'scanr' that has no starting
 -- value argument.  Performs replacement on invalid scalar values.

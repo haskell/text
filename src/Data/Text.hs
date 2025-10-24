@@ -254,7 +254,7 @@ import Data.Text.Internal.Encoding.Utf8 (utf8Length, utf8LengthByLeader, chr3, o
 import qualified Data.Text.Internal.Fusion as S
 import qualified Data.Text.Internal.Fusion.Common as S
 import Data.Text.Encoding (decodeUtf8', encodeUtf8Builder)
-import Data.Text.Internal.Fusion (stream, reverseStream, unstream)
+import Data.Text.Internal.Fusion (stream, unstream)
 import Data.Text.Internal.Private (span_)
 import Data.Text.Internal (Text(..), StrictText, empty, firstf, mul, safe, text, append, pack)
 import Data.Text.Internal.Unsafe.Char (unsafeWrite)
@@ -1210,8 +1210,32 @@ minimum = foldl1' min
 --
 -- @'last' ('scanl' f z xs) = 'foldl' f z xs@
 scanl :: (Char -> Char -> Char) -> Char -> Text -> Text
-scanl f z t = unstream (S.scanl g z (stream t))
-    where g a b = safe (f a b)
+scanl f c0 = go
+  where
+    go (Text src o l) = runST $ do
+      let l' = l + 4
+          c0' = safe c0
+      marr <- A.new l'
+      d' <- unsafeWrite marr 0 c0'
+      outer marr l' o d' c0'
+      where
+        outer :: forall s. A.MArray s -> Int -> Int -> Int -> Char -> ST s Text
+        outer !dst !dstLen = inner
+          where
+            inner !srcOff !dstOff !c
+              | srcOff >= l + o = do
+                A.shrinkM dst dstOff
+                arr <- A.unsafeFreeze dst
+                pure $ Text arr 0 dstOff
+              | dstOff + 4 > dstLen = do
+                let !dstLen' = dstLen + (l + o) - srcOff + 4
+                dst' <- A.resizeM dst dstLen'
+                outer dst' dstLen' srcOff dstOff c
+              | otherwise = do
+                let !(Iter c' d) = iterArray src srcOff
+                    c'' = safe $ f c c'
+                d' <- unsafeWrite dst dstOff c''
+                inner (srcOff + d) (dstOff + d') c''
 {-# INLINE scanl #-}
 
 -- | /O(n)/ 'scanl1' is a variant of 'scanl' that has no starting
@@ -1228,8 +1252,37 @@ scanl1 f t | null t    = empty
 --
 -- > scanr f v == reverse . scanl (flip f) v . reverse
 scanr :: (Char -> Char -> Char) -> Char -> Text -> Text
-scanr f z = S.reverse . S.reverseScanr g z . reverseStream
-    where g a b = safe (f a b)
+scanr f c0 = go
+  where
+    go (Text src o l) = runST $ do
+      let l' = l + 4
+          c0' = safe c0
+          !d' = utf8Length c0'
+      marr <- A.new l'
+      _ <- unsafeWrite marr (l' - d') c0'
+      outer marr (l + o - 1) (l' - d' - 1) c0'
+      where
+        outer :: forall s. A.MArray s -> Int -> Int -> Char -> ST s Text
+        outer !dst = inner
+          where
+            inner !srcOff !dstOff !c
+              | srcOff < o = do
+                dstLen <- A.getSizeofMArray dst
+                arr <- A.unsafeFreeze dst
+                pure $ Text arr (dstOff + 1) (dstLen - dstOff - 1)
+              | dstOff < 3 = do
+                dstLen <- A.getSizeofMArray dst
+                let !dstLen' = dstLen + (srcOff - o) + 4
+                dst' <- A.new dstLen'
+                A.copyM dst' (dstLen' - dstLen) dst 0 dstLen
+                outer dst' srcOff (dstOff + dstLen' - dstLen) c
+              | otherwise = do
+                let !(Iter c' d) = reverseIterArray src srcOff
+                    c'' = safe $ f c' c
+                    !d' = utf8Length c''
+                    dstOff' = dstOff - d'
+                _ <- unsafeWrite dst (dstOff' + 1) c''
+                inner (srcOff + d) dstOff' c''
 {-# INLINE scanr #-}
 
 -- | /O(n)/ 'scanr1' is a variant of 'scanr' that has no starting
