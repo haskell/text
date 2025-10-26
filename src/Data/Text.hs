@@ -1210,33 +1210,30 @@ minimum = foldl1' min
 --
 -- @'last' ('scanl' f z xs) = 'foldl' f z xs@
 scanl :: (Char -> Char -> Char) -> Char -> Text -> Text
-scanl f c0 = go
+scanl f c0 (Text src o l) = runST $ do
+  let l' = l + 4
+      c0' = safe c0
+  marr <- A.new l'
+  d' <- unsafeWrite marr 0 c0'
+  outer marr l' o d' c0'
   where
-    go (Text src o l) = runST $ do
-      let l' = l + 4
-          c0' = safe c0
-      marr <- A.new l'
-      d' <- unsafeWrite marr 0 c0'
-      outer marr l' o d' c0'
+    outer :: forall s. A.MArray s -> Int -> Int -> Int -> Char -> ST s Text
+    outer !dst !dstLen = inner
       where
-        outer :: forall s. A.MArray s -> Int -> Int -> Int -> Char -> ST s Text
-        outer !dst !dstLen = inner
-          where
-            inner !srcOff !dstOff !c
-              | srcOff >= l + o = do
-                A.shrinkM dst dstOff
-                arr <- A.unsafeFreeze dst
-                pure $ Text arr 0 dstOff
-              | dstOff + 4 > dstLen = do
-                let !dstLen' = dstLen + (l + o) - srcOff + 4
-                dst' <- A.resizeM dst dstLen'
-                outer dst' dstLen' srcOff dstOff c
-              | otherwise = do
-                let !(Iter c' d) = iterArray src srcOff
-                    c'' = safe $ f c c'
-                d' <- unsafeWrite dst dstOff c''
-                inner (srcOff + d) (dstOff + d') c''
-{-# INLINE scanl #-}
+        inner !srcOff !dstOff !c
+          | srcOff >= l + o = do
+            A.shrinkM dst dstOff
+            arr <- A.unsafeFreeze dst
+            pure $ Text arr 0 dstOff
+          | dstOff + 4 > dstLen = do
+            let !dstLen' = dstLen + (l + o) - srcOff + 4
+            dst' <- A.resizeM dst dstLen'
+            outer dst' dstLen' srcOff dstOff c
+          | otherwise = do
+            let !(Iter c' d) = iterArray src srcOff
+                c'' = safe $ f c c'
+            d' <- unsafeWrite dst dstOff c''
+            inner (srcOff + d) (dstOff + d') c''
 
 -- | /O(n)/ 'scanl1' is a variant of 'scanl' that has no starting
 -- value argument. Performs replacement on invalid scalar values.
@@ -1252,38 +1249,35 @@ scanl1 f t | null t    = empty
 --
 -- > scanr f v == reverse . scanl (flip f) v . reverse
 scanr :: (Char -> Char -> Char) -> Char -> Text -> Text
-scanr f c0 = go
+scanr f c0 (Text src o l) = runST $ do
+  let l' = l + 4
+      c0' = safe c0
+      !d' = utf8Length c0'
+  marr <- A.new l'
+  _ <- unsafeWrite marr (l' - d') c0'
+  outer marr (l + o - 1) (l' - d' - 1) c0'
   where
-    go (Text src o l) = runST $ do
-      let l' = l + 4
-          c0' = safe c0
-          !d' = utf8Length c0'
-      marr <- A.new l'
-      _ <- unsafeWrite marr (l' - d') c0'
-      outer marr (l + o - 1) (l' - d' - 1) c0'
+    outer :: forall s. A.MArray s -> Int -> Int -> Char -> ST s Text
+    outer !dst = inner
       where
-        outer :: forall s. A.MArray s -> Int -> Int -> Char -> ST s Text
-        outer !dst = inner
-          where
-            inner !srcOff !dstOff !c
-              | srcOff < o = do
-                dstLen <- A.getSizeofMArray dst
-                arr <- A.unsafeFreeze dst
-                pure $ Text arr (dstOff + 1) (dstLen - dstOff - 1)
-              | dstOff < 3 = do
-                dstLen <- A.getSizeofMArray dst
-                let !dstLen' = dstLen + (srcOff - o) + 4
-                dst' <- A.new dstLen'
-                A.copyM dst' (dstLen' - dstLen) dst 0 dstLen
-                outer dst' srcOff (dstOff + dstLen' - dstLen) c
-              | otherwise = do
-                let !(Iter c' d) = reverseIterArray src srcOff
-                    c'' = safe $ f c' c
-                    !d' = utf8Length c''
-                    dstOff' = dstOff - d'
-                _ <- unsafeWrite dst (dstOff' + 1) c''
-                inner (srcOff + d) dstOff' c''
-{-# INLINE scanr #-}
+        inner !srcOff !dstOff !c
+          | srcOff < o = do
+            dstLen <- A.getSizeofMArray dst
+            arr <- A.unsafeFreeze dst
+            pure $ Text arr (dstOff + 1) (dstLen - dstOff - 1)
+          | dstOff < 3 = do
+            dstLen <- A.getSizeofMArray dst
+            let !dstLen' = dstLen + (srcOff - o) + 4
+            dst' <- A.new dstLen'
+            A.copyM dst' (dstLen' - dstLen) dst 0 dstLen
+            outer dst' srcOff (dstOff + dstLen' - dstLen) c
+          | otherwise = do
+            let !(Iter c' d) = reverseIterArray src srcOff
+                c'' = safe $ f c' c
+                !d' = utf8Length c''
+                dstOff' = dstOff - d'
+            _ <- unsafeWrite dst (dstOff' + 1) c''
+            inner (srcOff + d) dstOff' c''
 
 -- | /O(n)/ 'scanr1' is a variant of 'scanr' that has no starting
 -- value argument. Performs replacement on invalid scalar values.
@@ -1297,30 +1291,27 @@ scanr1 f t | null t    = empty
 -- parameter from left to right, and returns a final 'Text'.  Performs
 -- replacement on invalid scalar values.
 mapAccumL :: forall a. (a -> Char -> (a, Char)) -> a -> Text -> (a, Text)
-mapAccumL f z0 = go
+mapAccumL f z0 (Text src o l) = runST $ do
+  marr <- A.new (l + 4)
+  outer marr (l + 4) o 0 z0
   where
-    go (Text src o l) = runST $ do
-      marr <- A.new (l + 4)
-      outer marr (l + 4) o 0 z0
+    outer :: forall s. A.MArray s -> Int -> Int -> Int -> a -> ST s (a, Text)
+    outer !dst !dstLen = inner
       where
-        outer :: forall s. A.MArray s -> Int -> Int -> Int -> a -> ST s (a, Text)
-        outer !dst !dstLen = inner
-          where
-            inner !srcOff !dstOff !z
-              | srcOff >= l + o = do
-                A.shrinkM dst dstOff
-                arr <- A.unsafeFreeze dst
-                return (z, Text arr 0 dstOff)
-              | dstOff + 4 > dstLen = do
-                let !dstLen' = dstLen + (l + o) - srcOff + 4
-                dst' <- A.resizeM dst dstLen'
-                outer dst' dstLen' srcOff dstOff z
-              | otherwise = do
-                let !(Iter c d) = iterArray src srcOff
-                    (z', c') = f z c
-                d' <- unsafeWrite dst dstOff (safe c')
-                inner (srcOff + d) (dstOff + d') z'
-{-# INLINE mapAccumL #-}
+        inner !srcOff !dstOff !z
+          | srcOff >= l + o = do
+            A.shrinkM dst dstOff
+            arr <- A.unsafeFreeze dst
+            return (z, Text arr 0 dstOff)
+          | dstOff + 4 > dstLen = do
+            let !dstLen' = dstLen + (l + o) - srcOff + 4
+            dst' <- A.resizeM dst dstLen'
+            outer dst' dstLen' srcOff dstOff z
+          | otherwise = do
+            let !(Iter c d) = iterArray src srcOff
+                (z', c') = f z c
+            d' <- unsafeWrite dst dstOff (safe c')
+            inner (srcOff + d) (dstOff + d') z'
 
 -- | The 'mapAccumR' function behaves like a combination of 'map' and
 -- a strict 'foldr'; it applies a function to each element of a
@@ -1329,35 +1320,32 @@ mapAccumL f z0 = go
 -- 'Text'.
 -- Performs replacement on invalid scalar values.
 mapAccumR :: forall a. (a -> Char -> (a, Char)) -> a -> Text -> (a, Text)
-mapAccumR f z0 = go
+mapAccumR f z0 (Text src o l) = runST $ do
+  marr <- A.new (l + 4)
+  outer marr (l + o - 1) (l + 4 - 1) z0
   where
-    go (Text src o l) = runST $ do
-      marr <- A.new (l + 4)
-      outer marr (l + o - 1) (l + 4 - 1) z0
+    outer :: forall s. A.MArray s -> Int -> Int -> a -> ST s (a, Text)
+    outer !dst = inner
       where
-        outer :: forall s. A.MArray s -> Int -> Int -> a -> ST s (a, Text)
-        outer !dst = inner
-          where
-            inner !srcOff !dstOff !z
-              | srcOff < o = do
-                dstLen <- A.getSizeofMArray dst
-                arr <- A.unsafeFreeze dst
-                return (z, Text arr (dstOff + 1) (dstLen - dstOff - 1))
-              | dstOff < 3 = do
-                dstLen <- A.getSizeofMArray dst
-                let !dstLen' = dstLen + (srcOff - o) + 4
-                dst' <- A.new dstLen'
-                A.copyM dst' (dstLen' - dstLen) dst 0 dstLen
-                outer dst' srcOff (dstOff + dstLen' - dstLen) z
-              | otherwise = do
-                let !(Iter c d) = reverseIterArray src (srcOff)
-                    (z', c') = f z c
-                    c'' = safe c'
-                    !d' = utf8Length c''
-                    dstOff' = dstOff - d'
-                _ <- unsafeWrite dst (dstOff' + 1) c''
-                inner (srcOff + d) dstOff' z'
-{-# INLINE mapAccumR #-}
+        inner !srcOff !dstOff !z
+          | srcOff < o = do
+            dstLen <- A.getSizeofMArray dst
+            arr <- A.unsafeFreeze dst
+            return (z, Text arr (dstOff + 1) (dstLen - dstOff - 1))
+          | dstOff < 3 = do
+            dstLen <- A.getSizeofMArray dst
+            let !dstLen' = dstLen + (srcOff - o) + 4
+            dst' <- A.new dstLen'
+            A.copyM dst' (dstLen' - dstLen) dst 0 dstLen
+            outer dst' srcOff (dstOff + dstLen' - dstLen) z
+          | otherwise = do
+            let !(Iter c d) = reverseIterArray src srcOff
+                (z', c') = f z c
+                c'' = safe c'
+                !d' = utf8Length c''
+                dstOff' = dstOff - d'
+            _ <- unsafeWrite dst (dstOff' + 1) c''
+            inner (srcOff + d) dstOff' z'
 
 -- -----------------------------------------------------------------------------
 -- ** Generating and unfolding 'Text's
