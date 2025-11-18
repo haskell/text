@@ -97,6 +97,7 @@ newtype Builder = Builder {
                 -> ST s [S.Text]
    }
 
+-- | @since 2.1.2
 type LazyTextBuilder = Builder
 
 instance Semigroup Builder where

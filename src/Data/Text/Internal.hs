@@ -66,6 +66,8 @@ data Text = Text
     {-# UNPACK #-} !Int     -- ^ length in bytes (not in Char!), pointing to an end of UTF-8 sequence
 
 -- | Type synonym for the strict flavour of 'Text'.
+--
+-- @since 2.1.1
 type StrictText = Text
 
 -- | Smart constructor.

@@ -56,6 +56,8 @@ data Text = Empty
           -- ^ Chunks must be non-empty, this invariant is not checked.
 
 -- | Type synonym for the lazy flavour of 'Text'.
+--
+-- @since 2.1.1
 type LazyText = Text
 
 -- $invariant
