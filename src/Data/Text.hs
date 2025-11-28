@@ -184,6 +184,7 @@ module Data.Text
     , isPrefixOf
     , isSuffixOf
     , isInfixOf
+    , isSubsequenceOf
 
     -- ** View patterns
     , stripPrefix
@@ -278,6 +279,7 @@ import qualified Language.Haskell.TH.Lib as TH
 import qualified Language.Haskell.TH.Syntax as TH
 import Text.Printf (PrintfArg, formatArg, formatString)
 import System.Posix.Types (CSsize(..))
+import Data.Function (on)
 
 #if MIN_VERSION_template_haskell(2,16,0)
 import Data.Text.Foreign (asForeignPtr)
@@ -2101,6 +2103,43 @@ isInfixOf needle haystack
     | isSingleton needle = S.elem (unsafeHead needle) . S.stream $ haystack
     | otherwise          = not . L.null . indices needle $ haystack
 {-# INLINE [1] isInfixOf #-}
+
+-- 2021-09-29: NOTE:
+--  * after the implementation - determine & mention the big O
+-- | The 'isSubsequenceOf' function takes the main text and the subsequnce
+-- to find and returns 'True' iff the second argument is a subsequence
+-- of the first.
+--
+-- "Subsequence" used in the meaning of: characters of the second argument
+-- appear in same sequential order in the main data, to say second argument can
+-- be derived by deleting some (any) or no elements from the first.
+--
+-- Examples:
+--
+-- >>> isSubsequenceOf "1234567" "1356"
+-- True
+--
+-- >>> isSubsequenceOf "1234567" "21"
+-- False
+--
+-- `isSubsequenceOf` is the base case & implementation of fuzzy search.
+isSubsequenceOf :: Text -> Text -> Bool
+isSubsequenceOf tf sf
+  | length sf > length tf = False
+  | otherwise = subseqOf tf sf
+ where
+  subseqOf :: Text -> Text -> Bool
+  subseqOf t s =
+    on f uncons t s
+   where
+    f :: Maybe (Char, Text) -> Maybe (Char, Text) -> Bool
+    f _ Nothing = True
+    f Nothing _ = False
+    f (Just (tc,ts)) (Just (sc,ss)) =
+      subseqOf ts $
+        if tc == sc
+          then s
+          else ss
 
 -------------------------------------------------------------------------------
 -- * View patterns
