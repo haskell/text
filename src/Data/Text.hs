@@ -634,7 +634,7 @@ infixl 5 :>
 -- | /O(1)/ Tests whether a 'Text' contains exactly one character.
 isSingleton :: Text -> Bool
 isSingleton (Text arr off len) =
-  len == utf8LengthByLeader (A.unsafeIndex arr off)
+  len /= 0 && len == utf8LengthByLeader (A.unsafeIndex arr off)
 {-# INLINE isSingleton #-}
 
 -- | /O(n)/ Returns the number of characters in a 'Text'.
