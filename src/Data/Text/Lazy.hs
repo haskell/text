@@ -1307,6 +1307,8 @@ splitAt = loop
     loop !_ Empty     = (empty, empty)
     loop n t | n <= 0 = (empty, t)
     loop n (Chunk t@(T.Text arr off len) ts)
+         | n > mx = let (ts', ts'') = loop (n - intToInt64 (T.length t)) ts
+                    in (Chunk t ts', ts'')
          | m > 0, m >= len = (Chunk t Empty, ts)
          | m > 0 = let t' = T.Text arr off m
                        t'' = T.Text arr (off+m) (len-m)
@@ -1314,9 +1316,8 @@ splitAt = loop
          | otherwise = let (ts', ts'') = loop (n + intToInt64 m) ts
                        in (Chunk t ts', ts'')
          where
-         k | n > intToInt64 len = len+1
-           | otherwise = int64ToInt n
-         m = T.measureOff k t
+         mx = intToInt64 P.maxBound
+         m = T.measureOff (int64ToInt n) t
 
 
 -- | /O(n)/ 'splitAtWord' @n t@ returns a strict pair whose first
