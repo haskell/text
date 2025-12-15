@@ -1306,12 +1306,18 @@ splitAt = loop
     loop :: Int64 -> Text -> (Text, Text)
     loop !_ Empty     = (empty, empty)
     loop n t | n <= 0 = (empty, t)
-    loop n (Chunk t ts)
-         | n < len   = let (t',t'') = T.splitAt (int64ToInt n) t
-                       in (Chunk t' Empty, Chunk t'' ts)
-         | otherwise = let (ts',ts'') = loop (n - len) ts
+    loop n (Chunk t@(T.Text arr off len) ts)
+         | m > 0, m >= len = (Chunk t Empty, ts)
+         | m > 0 = let t' = T.Text arr off m
+                       t'' = T.Text arr (off+m) (len-m)
+                   in (Chunk t' Empty, Chunk t'' ts)
+         | otherwise = let (ts', ts'') = loop (n + intToInt64 m) ts
                        in (Chunk t ts', ts'')
-         where len = intToInt64 (T.length t)
+         where
+         k | n > intToInt64 len = len+1
+           | otherwise = int64ToInt n
+         m = T.measureOff k t
+
 
 -- | /O(n)/ 'splitAtWord' @n t@ returns a strict pair whose first
 -- element is a prefix of @t@ whose chunks contain @n@ 'Word8'
