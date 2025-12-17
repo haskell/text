@@ -211,7 +211,7 @@ decodeASCII bs =
 -- | Decode a 'ByteString' containing Latin-1 (aka ISO-8859-1) encoded text.
 --
 -- 'decodeLatin1' is semantically equivalent to
---  @Data.Text.pack . Data.ByteString.Char8.unpack@
+--  @'Data.Text.pack' . 'Data.ByteString.Char8.unpack'@
 --
 -- This is a total function. However, bear in mind that decoding Latin-1 (non-ASCII)
 -- characters to UTf-8 requires actual work and is not just buffer copying.
