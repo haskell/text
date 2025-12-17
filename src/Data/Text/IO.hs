@@ -13,7 +13,7 @@
 -- The functions in this module obey the runtime system's locale,
 -- character set encoding, and line ending conversion settings.
 --
--- If you want to do I\/O using the UTF-8 encoding, use @Data.Text.IO.Utf8@,
+-- If you want to do I\/O using the UTF-8 encoding, use "Data.Text.IO.Utf8",
 -- which is faster than this module.
 --
 -- If you know in advance that you will be working with data that has

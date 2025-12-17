@@ -4,7 +4,7 @@
 -- Portability : GHC
 --
 -- Efficient UTF-8 support for text I\/O.
--- Unlike @Data.Text.IO@, these functions do not depend on the locale
+-- Unlike "Data.Text.IO", these functions do not depend on the locale
 -- and do not do line ending conversion.
 module Data.Text.IO.Utf8
     (
