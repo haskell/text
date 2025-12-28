@@ -15,7 +15,7 @@ module Data.Text.Foreign
     -- * Interoperability with native code
     -- $interop
       I8
-    -- * Safe conversion functions
+    -- * Pointer conversion functions
     , fromPtr
     , fromPtr0
     , useAsPtr
@@ -25,13 +25,12 @@ module Data.Text.Foreign
     , withCString
     , peekCStringLen
     , withCStringLen
-    -- * Unsafe conversion code
-    , lengthWord8
-    , unsafeCopyToPtr
     -- * Low-level manipulation
     -- $lowlevel
     , dropWord8
     , takeWord8
+    , lengthWord8
+    , unsafeCopyToPtr
     ) where
 
 import Control.Monad.ST.Unsafe (unsafeSTToIO)
@@ -69,6 +68,10 @@ newtype I8 = I8 Int
 
 -- | /O(n)/ Create a new 'Text' from a 'Ptr' 'Word8' by copying the
 -- contents of the array.
+--
+-- __This function is unsafe.__ The source array must contain a valid
+-- UTF-8 string of the given length. There are no guarantees about what
+-- happens otherwise.
 fromPtr :: Ptr Word8           -- ^ source array
         -> I8                  -- ^ length of source array (in 'Word8' units)
         -> IO Text
@@ -81,6 +84,9 @@ fromPtr ptr (I8 len) = unsafeSTToIO $ do
 
 -- | /O(n)/ Create a new 'Text' from a 'Ptr' 'Word8' by copying the
 -- contents of the NUL-terminated array.
+--
+-- __This function is unsafe.__ The source array must contain a NULL-terminated
+-- valid UTF-8 string. There are no guarantees about what happens otherwise.
 --
 -- @since 2.0.1
 fromPtr0 :: Ptr Word8           -- ^ source array
