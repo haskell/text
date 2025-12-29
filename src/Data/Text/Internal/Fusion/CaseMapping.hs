@@ -10,6 +10,9 @@
 module Data.Text.Internal.Fusion.CaseMapping where
 import GHC.Int
 import GHC.Exts
+import Data.Version (Version, makeVersion)
+unicodeVersion :: Version
+unicodeVersion = makeVersion [17, 0, 0]
 unI64 :: Int64 -> _ {- unboxed Int64 -}
 unI64 (I64# n) = n
 
