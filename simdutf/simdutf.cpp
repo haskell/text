@@ -5690,7 +5690,7 @@ result base64_tail_decode(char *dst, const char_type *src, size_t length, base64
   }
 }
 
-// like base64_tail_decode, but it will not write past the end of the ouput buffer.
+// like base64_tail_decode, but it will not write past the end of the output buffer.
 // outlen is modified to reflect the number of bytes written.
 // This functions assumes that the padding (=) has been removed.
 template <class char_type>
@@ -6777,7 +6777,7 @@ internal::atomic_ptr<const implementation>& get_default_implementation() {
   return get_active_implementation();
 }
 #endif
-#define SIMDUTF_GET_CURRENT_IMPLEMENTION
+#define SIMDUTF_GET_CURRENT_IMPLEMENTATION
 
 simdutf_warn_unused bool validate_utf8(const char *buf, size_t len) noexcept {
   return get_default_implementation()->validate_utf8(buf, len);
@@ -35063,7 +35063,7 @@ std::pair<const char32_t*, char*> sse_convert_utf32_to_utf8(const char32_t* buf,
       // t0 = [000a|aaaa|bbbb|bb00]
       const __m128i t0 = _mm_slli_epi16(in_16, 2); // shift packed vector by two
       // t1 = [000a|aaaa|0000|0000]
-      const __m128i t1 = _mm_and_si128(t0, v_1f00); // potentital first utf8 byte
+      const __m128i t1 = _mm_and_si128(t0, v_1f00); // potential first utf8 byte
       // t2 = [0000|0000|00bb|bbbb]
       const __m128i t2 = _mm_and_si128(in_16, v_003f);// potential second utf8 byte
       // t3 = [000a|aaaa|00bb|bbbb]
