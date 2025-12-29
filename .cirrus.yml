@@ -18,7 +18,11 @@ task:
     platform: openbsd
   install_script: pkg_add ghc cabal-install git
   script:
-    - export CABAL_DIR=/tmp/.cabal
+    # OpenBSD image has separate /home partition, / is small
+    # as we run everything as root, we run out space
+    # we hack around making cabal write its stuff in /home
+    - mkdir -p /home/cabal
+    - ln -s /home/cabal $HOME/.cabal
     - cabal update
     # For some reason the job fails with -O2 optimization level,
     # probably because of lack of disk space.
