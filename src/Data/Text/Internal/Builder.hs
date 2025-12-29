@@ -319,7 +319,7 @@ newBuffer size = do
 -- Some nice rules for Builder
 
 -- This function makes GHC understand that 'writeN' and 'ensureFree'
--- are *not* recursive in the precense of the rewrite rules below.
+-- are *not* recursive in the presence of the rewrite rules below.
 -- This is not needed with GHC 7+.
 append' :: Builder -> Builder -> Builder
 append' (Builder f) (Builder g) = Builder (f . g)
