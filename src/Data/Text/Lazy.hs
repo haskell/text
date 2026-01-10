@@ -255,8 +255,12 @@ import qualified GHC.CString as GHC
 import qualified GHC.Exts as Exts
 import GHC.Prim (Addr#)
 import GHC.Stack (HasCallStack)
-import qualified Language.Haskell.TH.Lib as TH
+#if __GLASGOW_HASKELL__ >= 914
+import qualified Language.Haskell.TH.Lift as TH
+#else
 import qualified Language.Haskell.TH.Syntax as TH
+import qualified Language.Haskell.TH.Lib as TH
+#endif
 import Text.Printf (PrintfArg, formatArg, formatString)
 
 -- $fusion
@@ -393,10 +397,16 @@ instance Data Text where
 
 -- | @since 1.2.4.0
 instance TH.Lift Text where
+#if __GLASGOW_HASKELL__ >= 900
+  lift x = [| fromStrict $(TH.lift . toStrict $ x) |]
+#else
   lift = TH.appE (TH.varE 'fromStrict) . TH.lift . toStrict
-#if MIN_VERSION_template_haskell(2,17,0)
+#endif
+#if __GLASGOW_HASKELL__ >= 914
+  liftTyped = TH.defaultLiftTyped
+#elif __GLASGOW_HASKELL__ >= 900
   liftTyped = TH.unsafeCodeCoerce . TH.lift
-#elif MIN_VERSION_template_haskell(2,16,0)
+#elif __GLASGOW_HASKELL__ >= 810
   liftTyped = TH.unsafeTExpCoerce . TH.lift
 #endif
 

@@ -227,7 +227,14 @@ library
     bytestring       >= 0.10.4 && < 0.13,
     deepseq          >= 1.1 && < 1.6,
     ghc-prim         >= 0.2 && < 0.15,
-    template-haskell >= 2.5 && < 2.25
+
+  -- template-haskell-lift was added as a boot library in GHC-9.14
+  -- once we no longer wish to backport releases to older major releases of GHC,
+  -- this conditional can be dropped
+  if impl(ghc < 9.14)
+    build-depends: template-haskell >= 2.5 && < 3
+  else
+    build-depends: template-haskell-lift >= 0.1 && <0.2
 
   if impl(ghc < 9.4)
     build-depends: data-array-byte >= 0.1 && < 0.2
@@ -304,12 +311,15 @@ test-suite tests
     tasty,
     tasty-hunit,
     tasty-quickcheck,
-    template-haskell,
     temporary,
     transformers,
     text
   if impl(ghc < 9.4)
     build-depends: data-array-byte >= 0.1 && < 0.2
+  if impl(ghc < 9.14)
+    build-depends: template-haskell
+  else
+    build-depends: template-haskell-lift
 
   -- Plugin infrastructure does not work properly in 8.6.1, and
   -- ghc-9.2.1 library depends on parsec, which causes a circular dependency.

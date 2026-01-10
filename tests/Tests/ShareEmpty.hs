@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -12,7 +13,11 @@ module Tests.ShareEmpty
 
 import Control.Exception (evaluate)
 import Data.Text
+#if __GLASGOW_HASKELL__ >= 914
+import Language.Haskell.TH.Lift (lift)
+#else
 import Language.Haskell.TH.Syntax (lift)
+#endif
 import Test.Tasty.HUnit (testCase, assertFailure, assertEqual)
 import Test.Tasty (TestTree, testGroup)
 import GHC.Exts
