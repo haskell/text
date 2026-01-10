@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
 module Tests.Lift
@@ -7,7 +8,11 @@ module Tests.Lift
 
 import qualified Data.Text as S
 import qualified Data.Text.Lazy as L
+#if __GLASGOW_HASKELL__ >= 914
+import Language.Haskell.TH.Lift (lift)
+#else
 import Language.Haskell.TH.Syntax (lift)
+#endif
 import Test.Tasty.HUnit (testCase, assertEqual)
 import Test.Tasty (TestTree, testGroup)
 
