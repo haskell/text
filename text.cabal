@@ -66,6 +66,7 @@ extra-source-files:
     scripts/*.hs
     simdutf/LICENSE-APACHE
     simdutf/LICENSE-MIT
+    simdutf/simdutf_c.h
     simdutf/simdutf.h
     tests/literal-rule-test.sh
     tests/LiteralRuleTest.hs
@@ -116,8 +117,8 @@ library
   if flag(simdutf) && !(arch(javascript) || flag(pure-haskell))
     exposed-modules: Data.Text.Internal.Validate.Simd
     include-dirs: simdutf
+    c-sources: simdutf/hs_simdutf.c
     cxx-sources: simdutf/simdutf.cpp
-                 cbits/validate_utf8.cpp
     cxx-options: -std=c++17
     cpp-options: -DSIMDUTF
     if impl(ghc >= 9.4)
