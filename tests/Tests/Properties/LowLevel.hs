@@ -160,7 +160,9 @@ testLowLevel =
       testCase "t_literal_length2" t_literal_length2,
       testCase "t_literal_surrogates" t_literal_surrogates
 #ifdef MIN_VERSION_tasty_inspection_testing
-      , $(inspectObligations
+        -- Hack to force GHC to keep the binding around until this is fixed: https://gitlab.haskell.org/ghc/ghc/-/issues/26436
+      , let _unused = 't_literal_foo in
+        $(inspectObligations
         [ (`hasNoTypes` [''Char, ''[]])
         , (`doesNotUseAnyOf` ['T.pack, 'S.unstream, 'T.map, 'safe, 'S.streamList])
         , (`doesNotUseAnyOf` ['GHC.unpackCString#, 'GHC.unpackCStringUtf8#])
