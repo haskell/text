@@ -273,6 +273,7 @@ testFolds =
       testProperty "t_foldlM'" t_foldlM',
       testProperty "tl_foldlM'" tl_foldlM',
 #ifdef MIN_VERSION_tasty_inspection_testing
+      let _unused = ['_S_foldl'_from_foldlM', '_S_foldl'] in
       $(inspectTest ('_S_foldl'_from_foldlM' ==~ '_S_foldl')),
 #endif
       testCase "fold_apart" fold_apart,
