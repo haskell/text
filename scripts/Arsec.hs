@@ -8,7 +8,6 @@ module Arsec
     , unichars
     , module Control.Applicative
     , module Control.Monad
-    , module Data.Char
     , module Text.ParserCombinators.Parsec.Char
     , module Text.ParserCombinators.Parsec.Combinator
     , module Text.ParserCombinators.Parsec.Error
