@@ -12,6 +12,7 @@ module CaseFolding
 
 import Arsec
 import Data.Bits
+import Data.Char (ord)
 
 data Fold = Fold {
       code :: Char

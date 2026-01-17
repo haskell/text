@@ -1279,7 +1279,10 @@ upperMapping = \case
   '\xa7c8'# -> unI64 42951
   '\xa7ca'# -> unI64 42953
   '\xa7cd'# -> unI64 42956
+  '\xa7cf'# -> unI64 42958
   '\xa7d1'# -> unI64 42960
+  '\xa7d3'# -> unI64 42962
+  '\xa7d5'# -> unI64 42964
   '\xa7d7'# -> unI64 42966
   '\xa7d9'# -> unI64 42968
   '\xa7db'# -> unI64 42970
@@ -1639,6 +1642,31 @@ upperMapping = \case
   '\x16e7d'# -> unI64 93789
   '\x16e7e'# -> unI64 93790
   '\x16e7f'# -> unI64 93791
+  '\x16ebb'# -> unI64 93856
+  '\x16ebc'# -> unI64 93857
+  '\x16ebd'# -> unI64 93858
+  '\x16ebe'# -> unI64 93859
+  '\x16ebf'# -> unI64 93860
+  '\x16ec0'# -> unI64 93861
+  '\x16ec1'# -> unI64 93862
+  '\x16ec2'# -> unI64 93863
+  '\x16ec3'# -> unI64 93864
+  '\x16ec4'# -> unI64 93865
+  '\x16ec5'# -> unI64 93866
+  '\x16ec6'# -> unI64 93867
+  '\x16ec7'# -> unI64 93868
+  '\x16ec8'# -> unI64 93869
+  '\x16ec9'# -> unI64 93870
+  '\x16eca'# -> unI64 93871
+  '\x16ecb'# -> unI64 93872
+  '\x16ecc'# -> unI64 93873
+  '\x16ecd'# -> unI64 93874
+  '\x16ece'# -> unI64 93875
+  '\x16ecf'# -> unI64 93876
+  '\x16ed0'# -> unI64 93877
+  '\x16ed1'# -> unI64 93878
+  '\x16ed2'# -> unI64 93879
+  '\x16ed3'# -> unI64 93880
   '\x1e922'# -> unI64 125184
   '\x1e923'# -> unI64 125185
   '\x1e924'# -> unI64 125186
@@ -1679,6 +1707,60 @@ lowerMapping :: Char# -> _ {- unboxed Int64 -}
 lowerMapping = \case
   -- LATIN CAPITAL LETTER I WITH DOT ABOVE
   '\x0130'# -> unI64 1625292905
+  -- GREEK CAPITAL LETTER ALPHA WITH PSILI AND PROSGEGRAMMENI
+  '\x1f88'# -> unI64 8064
+  -- GREEK CAPITAL LETTER ALPHA WITH DASIA AND PROSGEGRAMMENI
+  '\x1f89'# -> unI64 8065
+  -- GREEK CAPITAL LETTER ALPHA WITH PSILI AND VARIA AND PROSGEGRAMMENI
+  '\x1f8a'# -> unI64 8066
+  -- GREEK CAPITAL LETTER ALPHA WITH DASIA AND VARIA AND PROSGEGRAMMENI
+  '\x1f8b'# -> unI64 8067
+  -- GREEK CAPITAL LETTER ALPHA WITH PSILI AND OXIA AND PROSGEGRAMMENI
+  '\x1f8c'# -> unI64 8068
+  -- GREEK CAPITAL LETTER ALPHA WITH DASIA AND OXIA AND PROSGEGRAMMENI
+  '\x1f8d'# -> unI64 8069
+  -- GREEK CAPITAL LETTER ALPHA WITH PSILI AND PERISPOMENI AND PROSGEGRAMMENI
+  '\x1f8e'# -> unI64 8070
+  -- GREEK CAPITAL LETTER ALPHA WITH DASIA AND PERISPOMENI AND PROSGEGRAMMENI
+  '\x1f8f'# -> unI64 8071
+  -- GREEK CAPITAL LETTER ETA WITH PSILI AND PROSGEGRAMMENI
+  '\x1f98'# -> unI64 8080
+  -- GREEK CAPITAL LETTER ETA WITH DASIA AND PROSGEGRAMMENI
+  '\x1f99'# -> unI64 8081
+  -- GREEK CAPITAL LETTER ETA WITH PSILI AND VARIA AND PROSGEGRAMMENI
+  '\x1f9a'# -> unI64 8082
+  -- GREEK CAPITAL LETTER ETA WITH DASIA AND VARIA AND PROSGEGRAMMENI
+  '\x1f9b'# -> unI64 8083
+  -- GREEK CAPITAL LETTER ETA WITH PSILI AND OXIA AND PROSGEGRAMMENI
+  '\x1f9c'# -> unI64 8084
+  -- GREEK CAPITAL LETTER ETA WITH DASIA AND OXIA AND PROSGEGRAMMENI
+  '\x1f9d'# -> unI64 8085
+  -- GREEK CAPITAL LETTER ETA WITH PSILI AND PERISPOMENI AND PROSGEGRAMMENI
+  '\x1f9e'# -> unI64 8086
+  -- GREEK CAPITAL LETTER ETA WITH DASIA AND PERISPOMENI AND PROSGEGRAMMENI
+  '\x1f9f'# -> unI64 8087
+  -- GREEK CAPITAL LETTER OMEGA WITH PSILI AND PROSGEGRAMMENI
+  '\x1fa8'# -> unI64 8096
+  -- GREEK CAPITAL LETTER OMEGA WITH DASIA AND PROSGEGRAMMENI
+  '\x1fa9'# -> unI64 8097
+  -- GREEK CAPITAL LETTER OMEGA WITH PSILI AND VARIA AND PROSGEGRAMMENI
+  '\x1faa'# -> unI64 8098
+  -- GREEK CAPITAL LETTER OMEGA WITH DASIA AND VARIA AND PROSGEGRAMMENI
+  '\x1fab'# -> unI64 8099
+  -- GREEK CAPITAL LETTER OMEGA WITH PSILI AND OXIA AND PROSGEGRAMMENI
+  '\x1fac'# -> unI64 8100
+  -- GREEK CAPITAL LETTER OMEGA WITH DASIA AND OXIA AND PROSGEGRAMMENI
+  '\x1fad'# -> unI64 8101
+  -- GREEK CAPITAL LETTER OMEGA WITH PSILI AND PERISPOMENI AND PROSGEGRAMMENI
+  '\x1fae'# -> unI64 8102
+  -- GREEK CAPITAL LETTER OMEGA WITH DASIA AND PERISPOMENI AND PROSGEGRAMMENI
+  '\x1faf'# -> unI64 8103
+  -- GREEK CAPITAL LETTER ALPHA WITH PROSGEGRAMMENI
+  '\x1fbc'# -> unI64 8115
+  -- GREEK CAPITAL LETTER ETA WITH PROSGEGRAMMENI
+  '\x1fcc'# -> unI64 8131
+  -- GREEK CAPITAL LETTER OMEGA WITH PROSGEGRAMMENI
+  '\x1ffc'# -> unI64 8179
   '\x0041'# -> unI64 97
   '\x0042'# -> unI64 98
   '\x0043'# -> unI64 99
@@ -2492,40 +2574,14 @@ lowerMapping = \case
   '\x1f6d'# -> unI64 8037
   '\x1f6e'# -> unI64 8038
   '\x1f6f'# -> unI64 8039
-  '\x1f88'# -> unI64 8064
-  '\x1f89'# -> unI64 8065
-  '\x1f8a'# -> unI64 8066
-  '\x1f8b'# -> unI64 8067
-  '\x1f8c'# -> unI64 8068
-  '\x1f8d'# -> unI64 8069
-  '\x1f8e'# -> unI64 8070
-  '\x1f8f'# -> unI64 8071
-  '\x1f98'# -> unI64 8080
-  '\x1f99'# -> unI64 8081
-  '\x1f9a'# -> unI64 8082
-  '\x1f9b'# -> unI64 8083
-  '\x1f9c'# -> unI64 8084
-  '\x1f9d'# -> unI64 8085
-  '\x1f9e'# -> unI64 8086
-  '\x1f9f'# -> unI64 8087
-  '\x1fa8'# -> unI64 8096
-  '\x1fa9'# -> unI64 8097
-  '\x1faa'# -> unI64 8098
-  '\x1fab'# -> unI64 8099
-  '\x1fac'# -> unI64 8100
-  '\x1fad'# -> unI64 8101
-  '\x1fae'# -> unI64 8102
-  '\x1faf'# -> unI64 8103
   '\x1fb8'# -> unI64 8112
   '\x1fb9'# -> unI64 8113
   '\x1fba'# -> unI64 8048
   '\x1fbb'# -> unI64 8049
-  '\x1fbc'# -> unI64 8115
   '\x1fc8'# -> unI64 8050
   '\x1fc9'# -> unI64 8051
   '\x1fca'# -> unI64 8052
   '\x1fcb'# -> unI64 8053
-  '\x1fcc'# -> unI64 8131
   '\x1fd8'# -> unI64 8144
   '\x1fd9'# -> unI64 8145
   '\x1fda'# -> unI64 8054
@@ -2539,7 +2595,6 @@ lowerMapping = \case
   '\x1ff9'# -> unI64 8057
   '\x1ffa'# -> unI64 8060
   '\x1ffb'# -> unI64 8061
-  '\x1ffc'# -> unI64 8179
   '\x2126'# -> unI64 969
   '\x212a'# -> unI64 107
   '\x212b'# -> unI64 229
@@ -2824,7 +2879,10 @@ lowerMapping = \case
   '\xa7c9'# -> unI64 42954
   '\xa7cb'# -> unI64 612
   '\xa7cc'# -> unI64 42957
+  '\xa7ce'# -> unI64 42959
   '\xa7d0'# -> unI64 42961
+  '\xa7d2'# -> unI64 42963
+  '\xa7d4'# -> unI64 42965
   '\xa7d6'# -> unI64 42967
   '\xa7d8'# -> unI64 42969
   '\xa7da'# -> unI64 42971
@@ -3104,6 +3162,31 @@ lowerMapping = \case
   '\x16e5d'# -> unI64 93821
   '\x16e5e'# -> unI64 93822
   '\x16e5f'# -> unI64 93823
+  '\x16ea0'# -> unI64 93883
+  '\x16ea1'# -> unI64 93884
+  '\x16ea2'# -> unI64 93885
+  '\x16ea3'# -> unI64 93886
+  '\x16ea4'# -> unI64 93887
+  '\x16ea5'# -> unI64 93888
+  '\x16ea6'# -> unI64 93889
+  '\x16ea7'# -> unI64 93890
+  '\x16ea8'# -> unI64 93891
+  '\x16ea9'# -> unI64 93892
+  '\x16eaa'# -> unI64 93893
+  '\x16eab'# -> unI64 93894
+  '\x16eac'# -> unI64 93895
+  '\x16ead'# -> unI64 93896
+  '\x16eae'# -> unI64 93897
+  '\x16eaf'# -> unI64 93898
+  '\x16eb0'# -> unI64 93899
+  '\x16eb1'# -> unI64 93900
+  '\x16eb2'# -> unI64 93901
+  '\x16eb3'# -> unI64 93902
+  '\x16eb4'# -> unI64 93903
+  '\x16eb5'# -> unI64 93904
+  '\x16eb6'# -> unI64 93905
+  '\x16eb7'# -> unI64 93906
+  '\x16eb8'# -> unI64 93907
   '\x1e900'# -> unI64 125218
   '\x1e901'# -> unI64 125219
   '\x1e902'# -> unI64 125220
@@ -3220,6 +3303,60 @@ titleMapping = \case
   '\x1fe7'# -> unI64 3667972417651621
   -- GREEK SMALL LETTER OMEGA WITH PERISPOMENI
   '\x1ff6'# -> unI64 1749025705
+  -- GREEK SMALL LETTER ALPHA WITH PSILI AND YPOGEGRAMMENI
+  '\x1f80'# -> unI64 8072
+  -- GREEK SMALL LETTER ALPHA WITH DASIA AND YPOGEGRAMMENI
+  '\x1f81'# -> unI64 8073
+  -- GREEK SMALL LETTER ALPHA WITH PSILI AND VARIA AND YPOGEGRAMMENI
+  '\x1f82'# -> unI64 8074
+  -- GREEK SMALL LETTER ALPHA WITH DASIA AND VARIA AND YPOGEGRAMMENI
+  '\x1f83'# -> unI64 8075
+  -- GREEK SMALL LETTER ALPHA WITH PSILI AND OXIA AND YPOGEGRAMMENI
+  '\x1f84'# -> unI64 8076
+  -- GREEK SMALL LETTER ALPHA WITH DASIA AND OXIA AND YPOGEGRAMMENI
+  '\x1f85'# -> unI64 8077
+  -- GREEK SMALL LETTER ALPHA WITH PSILI AND PERISPOMENI AND YPOGEGRAMMENI
+  '\x1f86'# -> unI64 8078
+  -- GREEK SMALL LETTER ALPHA WITH DASIA AND PERISPOMENI AND YPOGEGRAMMENI
+  '\x1f87'# -> unI64 8079
+  -- GREEK SMALL LETTER ETA WITH PSILI AND YPOGEGRAMMENI
+  '\x1f90'# -> unI64 8088
+  -- GREEK SMALL LETTER ETA WITH DASIA AND YPOGEGRAMMENI
+  '\x1f91'# -> unI64 8089
+  -- GREEK SMALL LETTER ETA WITH PSILI AND VARIA AND YPOGEGRAMMENI
+  '\x1f92'# -> unI64 8090
+  -- GREEK SMALL LETTER ETA WITH DASIA AND VARIA AND YPOGEGRAMMENI
+  '\x1f93'# -> unI64 8091
+  -- GREEK SMALL LETTER ETA WITH PSILI AND OXIA AND YPOGEGRAMMENI
+  '\x1f94'# -> unI64 8092
+  -- GREEK SMALL LETTER ETA WITH DASIA AND OXIA AND YPOGEGRAMMENI
+  '\x1f95'# -> unI64 8093
+  -- GREEK SMALL LETTER ETA WITH PSILI AND PERISPOMENI AND YPOGEGRAMMENI
+  '\x1f96'# -> unI64 8094
+  -- GREEK SMALL LETTER ETA WITH DASIA AND PERISPOMENI AND YPOGEGRAMMENI
+  '\x1f97'# -> unI64 8095
+  -- GREEK SMALL LETTER OMEGA WITH PSILI AND YPOGEGRAMMENI
+  '\x1fa0'# -> unI64 8104
+  -- GREEK SMALL LETTER OMEGA WITH DASIA AND YPOGEGRAMMENI
+  '\x1fa1'# -> unI64 8105
+  -- GREEK SMALL LETTER OMEGA WITH PSILI AND VARIA AND YPOGEGRAMMENI
+  '\x1fa2'# -> unI64 8106
+  -- GREEK SMALL LETTER OMEGA WITH DASIA AND VARIA AND YPOGEGRAMMENI
+  '\x1fa3'# -> unI64 8107
+  -- GREEK SMALL LETTER OMEGA WITH PSILI AND OXIA AND YPOGEGRAMMENI
+  '\x1fa4'# -> unI64 8108
+  -- GREEK SMALL LETTER OMEGA WITH DASIA AND OXIA AND YPOGEGRAMMENI
+  '\x1fa5'# -> unI64 8109
+  -- GREEK SMALL LETTER OMEGA WITH PSILI AND PERISPOMENI AND YPOGEGRAMMENI
+  '\x1fa6'# -> unI64 8110
+  -- GREEK SMALL LETTER OMEGA WITH DASIA AND PERISPOMENI AND YPOGEGRAMMENI
+  '\x1fa7'# -> unI64 8111
+  -- GREEK SMALL LETTER ALPHA WITH YPOGEGRAMMENI
+  '\x1fb3'# -> unI64 8124
+  -- GREEK SMALL LETTER ETA WITH YPOGEGRAMMENI
+  '\x1fc3'# -> unI64 8140
+  -- GREEK SMALL LETTER OMEGA WITH YPOGEGRAMMENI
+  '\x1ff3'# -> unI64 8188
   -- GREEK SMALL LETTER ALPHA WITH VARIA AND YPOGEGRAMMENI
   '\x1fb2'# -> unI64 1755324346
   -- GREEK SMALL LETTER ALPHA WITH OXIA AND YPOGEGRAMMENI
@@ -3940,41 +4077,14 @@ titleMapping = \case
   '\x1f7b'# -> unI64 8171
   '\x1f7c'# -> unI64 8186
   '\x1f7d'# -> unI64 8187
-  '\x1f80'# -> unI64 8072
-  '\x1f81'# -> unI64 8073
-  '\x1f82'# -> unI64 8074
-  '\x1f83'# -> unI64 8075
-  '\x1f84'# -> unI64 8076
-  '\x1f85'# -> unI64 8077
-  '\x1f86'# -> unI64 8078
-  '\x1f87'# -> unI64 8079
-  '\x1f90'# -> unI64 8088
-  '\x1f91'# -> unI64 8089
-  '\x1f92'# -> unI64 8090
-  '\x1f93'# -> unI64 8091
-  '\x1f94'# -> unI64 8092
-  '\x1f95'# -> unI64 8093
-  '\x1f96'# -> unI64 8094
-  '\x1f97'# -> unI64 8095
-  '\x1fa0'# -> unI64 8104
-  '\x1fa1'# -> unI64 8105
-  '\x1fa2'# -> unI64 8106
-  '\x1fa3'# -> unI64 8107
-  '\x1fa4'# -> unI64 8108
-  '\x1fa5'# -> unI64 8109
-  '\x1fa6'# -> unI64 8110
-  '\x1fa7'# -> unI64 8111
   '\x1fb0'# -> unI64 8120
   '\x1fb1'# -> unI64 8121
-  '\x1fb3'# -> unI64 8124
   '\x1fbe'# -> unI64 921
-  '\x1fc3'# -> unI64 8140
   '\x1fd0'# -> unI64 8152
   '\x1fd1'# -> unI64 8153
   '\x1fe0'# -> unI64 8168
   '\x1fe1'# -> unI64 8169
   '\x1fe5'# -> unI64 8172
-  '\x1ff3'# -> unI64 8188
   '\x214e'# -> unI64 8498
   '\x2170'# -> unI64 8544
   '\x2171'# -> unI64 8545
@@ -4275,7 +4385,10 @@ titleMapping = \case
   '\xa7c8'# -> unI64 42951
   '\xa7ca'# -> unI64 42953
   '\xa7cd'# -> unI64 42956
+  '\xa7cf'# -> unI64 42958
   '\xa7d1'# -> unI64 42960
+  '\xa7d3'# -> unI64 42962
+  '\xa7d5'# -> unI64 42964
   '\xa7d7'# -> unI64 42966
   '\xa7d9'# -> unI64 42968
   '\xa7db'# -> unI64 42970
@@ -4635,6 +4748,31 @@ titleMapping = \case
   '\x16e7d'# -> unI64 93789
   '\x16e7e'# -> unI64 93790
   '\x16e7f'# -> unI64 93791
+  '\x16ebb'# -> unI64 93856
+  '\x16ebc'# -> unI64 93857
+  '\x16ebd'# -> unI64 93858
+  '\x16ebe'# -> unI64 93859
+  '\x16ebf'# -> unI64 93860
+  '\x16ec0'# -> unI64 93861
+  '\x16ec1'# -> unI64 93862
+  '\x16ec2'# -> unI64 93863
+  '\x16ec3'# -> unI64 93864
+  '\x16ec4'# -> unI64 93865
+  '\x16ec5'# -> unI64 93866
+  '\x16ec6'# -> unI64 93867
+  '\x16ec7'# -> unI64 93868
+  '\x16ec8'# -> unI64 93869
+  '\x16ec9'# -> unI64 93870
+  '\x16eca'# -> unI64 93871
+  '\x16ecb'# -> unI64 93872
+  '\x16ecc'# -> unI64 93873
+  '\x16ecd'# -> unI64 93874
+  '\x16ece'# -> unI64 93875
+  '\x16ecf'# -> unI64 93876
+  '\x16ed0'# -> unI64 93877
+  '\x16ed1'# -> unI64 93878
+  '\x16ed2'# -> unI64 93879
+  '\x16ed3'# -> unI64 93880
   '\x1e922'# -> unI64 125184
   '\x1e923'# -> unI64 125185
   '\x1e924'# -> unI64 125186

@@ -1,3 +1,5 @@
+import Data.Char (isDigit)
+import Data.Foldable (toList)
 import Data.List (stripPrefix)
 import Data.Maybe (fromJust)
 import System.Environment
@@ -6,6 +8,7 @@ import System.IO
 import Arsec
 import CaseFolding
 import SpecialCasing
+import UnicodeData
 
 main = do
   args <- getArgs
@@ -14,10 +17,14 @@ main = do
                 [o] -> o
   psc <- parseSC "SpecialCasing.txt"
   pcf <- parseCF "CaseFolding.txt"
+  ud <- parseUD "UnicodeData.txt"
   scs <- case psc of
            Left err -> print err >> return undefined
            Right ms -> return ms
   cfs <- case pcf of
+           Left err -> print err >> return undefined
+           Right ms -> return ms
+  ud <- case ud of
            Left err -> print err >> return undefined
            Right ms -> return ms
   h <- openFile oname WriteMode
@@ -40,9 +47,10 @@ main = do
                       ,"unI64 :: Int64 -> _ {- unboxed Int64 -}"
                       ,"unI64 (I64# n) = n"
                       ,""]
-  mapM_ (hPutStrLn h) (mapSC "upper" upper toUpper scs)
-  mapM_ (hPutStrLn h) (mapSC "lower" lower toLower scs)
-  mapM_ (hPutStrLn h) (mapSC "title" title toTitle scs)
+  let get f = [(k, d) | c <- toList ud, Just d <- [f c], let k = charUD c, k /= d]
+  mapM_ (hPutStrLn h) (mapSC "upper" upper (get toUpperUD) scs)
+  mapM_ (hPutStrLn h) (mapSC "lower" lower (get toLowerUD) scs)
+  mapM_ (hPutStrLn h) (mapSC "title" title (get toTitleUD) scs)
   mapM_ (hPutStrLn h) (mapCF cfs)
   hClose h
 

@@ -12,6 +12,7 @@ module SpecialCasing
 
 import Arsec
 import Data.Bits
+import Data.Char (ord)
 
 data SpecialCasing = SC { scComments :: [Comment], scCasing :: [Case] }
                    deriving (Show)
@@ -38,17 +39,17 @@ entries = SC <$> many comment <*> many (entry <* many comment)
 parseSC :: FilePath -> IO (Either ParseError SpecialCasing)
 parseSC name = parse entries name <$> readFile name
 
-mapSC :: String -> (Case -> String) -> (Char -> Char) -> SpecialCasing
+mapSC :: String -> (Case -> String) -> [(Char, Char)] -> SpecialCasing
          -> [String]
 mapSC which access twiddle (SC _ ms) =
     typ ++ map printUnusual ms' ++ map printUsual usual ++ [last]
   where
     ms' = filter p ms
-    p c = [k] /= a && a /= [twiddle k] && null (conditions c)
+    p c = [k] /= a && null (conditions c)
         where a = access c
               k = code c
     unusual = map code ms'
-    usual = filter (\c -> twiddle c /= c && c `notElem` unusual) [minBound..maxBound]
+    usual = filter (\(c, _) -> c `notElem` unusual) twiddle
 
     typ = [which ++ "Mapping :: Char# -> _ {- unboxed Int64 -}"
            ,"{-# NOINLINE " ++ which ++ "Mapping #-}"
@@ -57,7 +58,4 @@ mapSC which access twiddle (SC _ ms) =
     printUnusual c = "  -- " ++ name c ++ "\n" ++
              "  " ++ showC (code c) ++ "# -> unI64 " ++ show (ord x + (ord y `shiftL` 21) + (ord z `shiftL` 42))
        where x:y:z:_ = access c ++ repeat '\0'
-    printUsual c = "  " ++ showC c ++ "# -> unI64 " ++ show (ord (twiddle c))
-
-ucFirst (c:cs) = toUpper c : cs
-ucFirst [] = []
+    printUsual (c, c') = "  " ++ showC c ++ "# -> unI64 " ++ show (ord c')
