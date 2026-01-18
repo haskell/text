@@ -274,12 +274,16 @@ import GHC.Base (eqInt, neInt, gtInt, geInt, ltInt, leInt)
 import qualified GHC.Exts as Exts
 import GHC.Int (Int8)
 import GHC.Stack (HasCallStack)
+#if __GLASGOW_HASKELL__ >= 914
+import qualified Language.Haskell.TH.Lift as TH
+#else
 import qualified Language.Haskell.TH.Lib as TH
 import qualified Language.Haskell.TH.Syntax as TH
+#endif
 import Text.Printf (PrintfArg, formatArg, formatString)
 import System.Posix.Types (CSsize(..))
 
-#if MIN_VERSION_template_haskell(2,16,0)
+#if __GLASGOW_HASKELL__ >= 810
 import Data.Text.Foreign (asForeignPtr)
 import System.IO.Unsafe (unsafePerformIO)
 #endif
@@ -451,7 +455,17 @@ instance Data Text where
 
 -- | @since 1.2.4.0
 instance TH.Lift Text where
-#if MIN_VERSION_template_haskell(2,16,0)
+#if __GLASGOW_HASKELL__ >= 914
+  lift txt = do
+    let (ptr, len) = unsafePerformIO $ asForeignPtr txt
+    case len of
+        0 -> [| empty |]
+        _ ->
+          let
+            bytesQ = TH.liftAddrCompat ptr 0 (P.fromIntegral len)
+            lenQ = TH.liftIntCompat (P.fromIntegral len)
+          in [| unpackCStringLen# $bytesQ $lenQ |]
+#elif __GLASGOW_HASKELL__ >= 810
   lift txt = do
     let (ptr, len) = unsafePerformIO $ asForeignPtr txt
     case len of
@@ -465,13 +479,15 @@ instance TH.Lift Text where
 #else
   lift = TH.appE (TH.varE 'pack) . TH.stringE . unpack
 #endif
-#if MIN_VERSION_template_haskell(2,17,0)
+#if __GLASGOW_HASKELL__ >= 914
+  liftTyped = TH.defaultLiftTyped
+#elif __GLASGOW_HASKELL__ >= 900
   liftTyped = TH.unsafeCodeCoerce . TH.lift
-#elif MIN_VERSION_template_haskell(2,16,0)
+#elif __GLASGOW_HASKELL__ >= 810
   liftTyped = TH.unsafeTExpCoerce . TH.lift
 #endif
 
-#if MIN_VERSION_template_haskell(2,16,0)
+#if __GLASGOW_HASKELL__ >= 810
 unpackCStringLen# :: Exts.Addr# -> Int -> Text
 unpackCStringLen# addr# l = Text ba 0 l
   where
