@@ -24,6 +24,7 @@ module Data.Text.Lazy.Encoding
     -- ** Total Functions #total#
     -- $total
       decodeLatin1
+    , decodeUtf8Lenient
 
     -- *** Catchable failure
     , decodeUtf8'
@@ -58,7 +59,7 @@ module Data.Text.Lazy.Encoding
 
 import Control.Exception (evaluate, try)
 import Data.Monoid (Monoid(..))
-import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode)
+import Data.Text.Encoding.Error (OnDecodeError, UnicodeException, strictDecode, lenientDecode)
 import Data.Text.Internal.Lazy (Text(..), chunk, empty, foldrChunks)
 import Data.Word (Word8)
 import qualified Data.ByteString.Builder as B
@@ -143,6 +144,15 @@ decodeUtf8' bs = unsafeDupablePerformIO $ do
     rnf Empty        = ()
     rnf (Chunk _ ts) = rnf ts
 {-# INLINE decodeUtf8' #-}
+
+-- | Decode a lazy 'ByteString' containing UTF-8 encoded text.
+--
+-- Any invalid input bytes will be replaced with the Unicode replacement
+-- character U+FFFD.
+--
+-- @since 2.1.4
+decodeUtf8Lenient :: B.ByteString -> Text
+decodeUtf8Lenient = decodeUtf8With lenientDecode
 
 -- | Encode text using UTF-8 encoding.
 encodeUtf8 :: Text -> B.ByteString
