@@ -32,7 +32,6 @@ jobs:
           apt-get update -y
           apt-get install -y curl ghc libghc-tasty-quickcheck-dev libghc-tasty-hunit-dev libghc-temporary-dev
         run: |
-          curl -s https://hackage.haskell.org/package/data-array-byte-0.1/data-array-byte-0.1.tar.gz | tar xz
           ghc --version
-          ghc --make -isrc:tests:data-array-byte-0.1 -o Main cbits/*.c tests/Tests.hs +RTS -s
+          ghc --make -isrc:tests -o Main cbits/*.c tests/Tests.hs +RTS -s
           ./Main +RTS -s
