@@ -75,12 +75,17 @@ between x y z = x >= y && x <= z
 --   | otherwise       = 4
 -- Implementation suggested by Alex Mason.
 
--- | @since 2.0
+-- | Measure byte length of UTF-8 encoding for a given character.
+--
+-- @since 2.0
 utf8Length :: Char -> Int
 utf8Length (C# c) = I# ((1# +# geChar# c (chr# 0x80#)) +# (geChar# c (chr# 0x800#) +# geChar# c (chr# 0x10000#)))
 {-# INLINE utf8Length #-}
 
--- | @since 2.0
+-- | Measure byte length of UTF-8 encoding for characters,
+-- starting with a given byte.
+--
+-- @since 2.0
 utf8LengthByLeader :: Word8 -> Int
 utf8LengthByLeader w
   | w < 0x80  = 1
@@ -89,6 +94,10 @@ utf8LengthByLeader w
   | otherwise = 4
 {-# INLINE utf8LengthByLeader #-}
 
+-- | Encode a character as UTF-8 bytes assuming that exactly 2 are needed.
+-- This precondition is not checked.
+--
+-- @since 1.1.0.0
 ord2 ::
 #if defined(ASSERTS)
   HasCallStack =>
@@ -105,6 +114,10 @@ ord2 c =
       x2 = intToWord8 $ (n .&. 0x3F)   + 0x80
 {-# INLINE ord2 #-}
 
+-- | Encode a character as UTF-8 bytes assuming that exactly 3 are needed.
+-- This precondition is not checked.
+--
+-- @since 1.1.0.0
 ord3 ::
 #if defined(ASSERTS)
   HasCallStack =>
@@ -122,6 +135,10 @@ ord3 c =
       x3 = intToWord8 $ (n .&. 0x3F) + 0x80
 {-# INLINE ord3 #-}
 
+-- | Encode a character as UTF-8 bytes assuming that exactly 4 are needed.
+-- This precondition is not checked.
+--
+-- @since 1.1.0.0
 ord4 ::
 #if defined(ASSERTS)
   HasCallStack =>
@@ -140,6 +157,7 @@ ord4 c =
       x4 = intToWord8 $ (n .&. 0x3F) + 0x80
 {-# INLINE ord4 #-}
 
+-- | @since 1.1.0.0
 chr2 :: Word8 -> Word8 -> Char
 chr2 (W8# x1#) (W8# x2#) = C# (chr# (z1# +# z2#))
     where
@@ -149,6 +167,7 @@ chr2 (W8# x1#) (W8# x2#) = C# (chr# (z1# +# z2#))
       !z2# = y2# -# 0x80#
 {-# INLINE chr2 #-}
 
+-- | @since 1.1.0.0
 chr3 :: Word8 -> Word8 -> Word8 -> Char
 chr3 (W8# x1#) (W8# x2#) (W8# x3#) = C# (chr# (z1# +# z2# +# z3#))
     where
@@ -160,6 +179,7 @@ chr3 (W8# x1#) (W8# x2#) (W8# x3#) = C# (chr# (z1# +# z2# +# z3#))
       !z3# = y3# -# 0x80#
 {-# INLINE chr3 #-}
 
+-- | @since 1.1.0.0
 chr4 :: Word8 -> Word8 -> Word8 -> Word8 -> Char
 chr4 (W8# x1#) (W8# x2#) (W8# x3#) (W8# x4#) =
     C# (chr# (z1# +# z2# +# z3# +# z4#))
@@ -174,14 +194,17 @@ chr4 (W8# x1#) (W8# x2#) (W8# x3#) (W8# x4#) =
       !z4# = y4# -# 0x80#
 {-# INLINE chr4 #-}
 
+-- | @since 1.1.0.0
 validate1 :: Word8 -> Bool
 validate1 x1 = x1 <= 0x7F
 {-# INLINE validate1 #-}
 
+-- | @since 1.1.0.0
 validate2 :: Word8 -> Word8 -> Bool
 validate2 x1 x2 = between x1 0xC2 0xDF && between x2 0x80 0xBF
 {-# INLINE validate2 #-}
 
+-- | @since 1.1.0.0
 validate3 :: Word8 -> Word8 -> Word8 -> Bool
 {-# INLINE validate3 #-}
 validate3 x1 x2 x3 = validate3_1 || validate3_2 || validate3_3 || validate3_4
@@ -199,6 +222,7 @@ validate3 x1 x2 x3 = validate3_1 || validate3_2 || validate3_3 || validate3_4
                   between x2 0x80 0xBF &&
                   between x3 0x80 0xBF
 
+-- | @since 1.1.0.0
 validate4 :: Word8 -> Word8 -> Word8 -> Word8 -> Bool
 {-# INLINE validate4 #-}
 validate4 x1 x2 x3 x4 = validate4_1 || validate4_2 || validate4_3
@@ -237,12 +261,15 @@ byteToClass n = ByteClass (W8# el#)
     table# :: Addr#
     table# = "\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\NUL\SOH\SOH\SOH\SOH\SOH\SOH\SOH\SOH\SOH\SOH\SOH\SOH\SOH\SOH\SOH\SOH\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\t\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\a\b\b\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\STX\n\ETX\ETX\ETX\ETX\ETX\ETX\ETX\ETX\ETX\ETX\ETX\ETX\EOT\ETX\ETX\v\ACK\ACK\ACK\ENQ\b\b\b\b\b\b\b\b\b\b\b"#
 
+-- | @since 2.0
 newtype DecoderState = DecoderState Word8
   deriving (Eq, Show)
 
+-- | @since 2.0.2
 utf8AcceptState :: DecoderState
 utf8AcceptState = DecoderState 0
 
+-- | @since 2.0.2
 utf8RejectState :: DecoderState
 utf8RejectState = DecoderState 12
 
@@ -255,9 +282,11 @@ updateState (ByteClass c) (DecoderState s) = DecoderState (W8# el#)
     table# :: Addr#
     table# = "\NUL\f\CAN$<`T\f\f\f0H\f\f\f\f\f\f\f\f\f\f\f\f\f\NUL\f\f\f\f\f\NUL\f\NUL\f\f\f\CAN\f\f\f\f\f\CAN\f\CAN\f\f\f\f\f\f\f\f\f\CAN\f\f\f\f\f\CAN\f\f\f\f\f\f\f\CAN\f\f\f\f\f\f\f\f\f$\f$\f\f\f$\f\f\f\f\f$\f$\f\f\f$\f\f\f\f\f\f\f\f\f\f"#
 
+-- | @since 2.0.2
 updateDecoderState :: Word8 -> DecoderState -> DecoderState
 updateDecoderState b s = updateState (byteToClass b) s
 
+-- | @since 2.0
 newtype CodePoint = CodePoint Int
 
 -- | @since 2.0
