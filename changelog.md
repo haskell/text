@@ -1,3 +1,51 @@
+### 2.1.4 - 2026-01-27
+
+* [Upgrade to Unicode 17.0](https://github.com/haskell/text/pull/658) + [Fix `CaseMapping` generation script to not depend on GHC's Unicode data](https://github.com/haskell/text/pull/687)
+
+* [simdutf: update to 8.0.0](https://github.com/haskell/text/pull/685)
+
+* [Add `decodeUtf8Lenient` for lazy `Text`](https://github.com/haskell/text/pull/690)
+
+* [`scanl`/`scanr` should replace invalid `Char` in the initial value](https://github.com/haskell/text/pull/669)
+
+* [Shave off redundant field of `Text.Internal.Buffer`](https://github.com/haskell/text/pull/659)
+
+* [Switch from template-haskell to template-haskell-lift](https://github.com/haskell/text/pull/661)
+
+#### Minor changes
+
+* [Avoid calling `length` on chunks in lazy `splitAt`](https://github.com/haskell/text/pull/676)
+
+* [Check for zero length in internal `isSingleton`](https://github.com/haskell/text/pull/675)
+
+* [Implement folds directly, without resorting to streaming framework](https://github.com/haskell/text/pull/667)
+
+* [Implement `cons`, `snoc`, `head`, `isSingleton`, `isPrefixOf` directly, without resorting to streaming framework](https://github.com/haskell/text/pull/666)
+
+* [Mark `caseConvert` (the underlying implementation of `toUpper` / `toLower` / `toTitle`) as `INLINABLE`, not `INLINE`](https://github.com/haskell/text/pull/664)
+
+* [Express `index` via `measureOff` instead of going through fusion framework](https://github.com/haskell/text/pull/663)
+
+* [Guard `#define __STDC_NO_ATOMICS__` by `#ifndef`](https://github.com/haskell/text/pull/657)
+
+* [Support QuickCheck-2.17](https://github.com/haskell/text/pull/662)
+
+* [Bump lower bound of binary to >= 0.8.3](https://github.com/haskell/text/pull/673)
+
+#### Documentation
+
+* [A bit more documentation for `Data.Text.Internal.Encoding.Utf8`](https://github.com/haskell/text/pull/691)
+
+* [Clarify documentation of `Data.Text.Foreign`](https://github.com/haskell/text/pull/681)
+
+* [Haddocks: Hyperlink some identifiers and modules](https://github.com/haskell/text/pull/677)
+
+* [`since` pragmas for type synonyms](https://github.com/haskell/text/pull/671)
+
+* [Improve documentation for `streamDecodeUtf8With`](https://github.com/haskell/text/pull/665)
+
+* [Add comprehensive documentation for `hGetChunk`](https://github.com/haskell/text/pull/655)
+
 ### 2.1.3 - 2025-08-01
 
 * [Fix CRLF handling in IO functions](https://github.com/haskell/text/pull/649)
