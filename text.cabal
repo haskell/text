@@ -1,6 +1,6 @@
 cabal-version:  2.2
 name:           text
-version:        2.1.3
+version:        2.1.4
 
 homepage:       https://github.com/haskell/text
 bug-reports:    https://github.com/haskell/text/issues
