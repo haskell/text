@@ -61,8 +61,6 @@ tested-with:
 extra-source-files:
     -- scripts/CaseFolding.txt
     -- scripts/SpecialCasing.txt
-    README.md
-    changelog.md
     scripts/*.hs
     simdutf/LICENSE-APACHE
     simdutf/LICENSE-MIT
@@ -70,6 +68,9 @@ extra-source-files:
     simdutf/simdutf.h
     tests/literal-rule-test.sh
     tests/LiteralRuleTest.hs
+extra-doc-files:
+    README.md
+    changelog.md
 
 flag developer
   description: operate in developer mode
