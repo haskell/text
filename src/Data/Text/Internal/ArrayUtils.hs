@@ -14,6 +14,8 @@ import System.Posix.Types (CSsize(..))
 import GHC.Exts (ByteArray#)
 import Data.Word (Word8)
 
+-- | Find index of next occurrence of given byte,
+-- relative to the starting offset, or @-1@ if not found.
 memchr :: ByteArray# -> Int -> Int -> Word8 -> Int
 #if defined(PURE_HASKELL)
 memchr arr# off len w =
