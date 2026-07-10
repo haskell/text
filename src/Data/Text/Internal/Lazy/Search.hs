@@ -111,12 +111,11 @@ indicesOne c = chunk
   where
     chunk :: Int64 -> Text -> [Int64]
     chunk !_ Empty = []
-    chunk !i (Chunk (T.Text oarr ooff olen) os) = go 0
+    chunk !i (Chunk (T.Text (A.ByteArray oarr#) ooff olen) os) = go 0
       where
-        go h | h >= olen = chunk (i+intToInt64 olen) os
-             | on == c = i + intToInt64 h : go (h+1)
-             | otherwise = go (h+1)
-             where on = A.unsafeIndex oarr (ooff+h)
+        go h = case memchr oarr# (ooff+h) (olen-h) c of
+          -1 -> chunk (i+intToInt64 olen) os
+          x  -> i + intToInt64 h + intToInt64 x : go (h + x + 1)
 
 -- | First argument is a strict Text, and second is a lazy one.
 isPrefixOf :: T.Text -> Text -> Bool

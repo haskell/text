@@ -91,12 +91,11 @@ indices' (Text narr noff nlen) (Text harr@(A.ByteArray harr#) hoff hlen) = loop 
 {-# INLINE indices' #-}
 
 scanOne :: Word8 -> Text -> [Int]
-scanOne c (Text harr hoff hlen) = loop 0
+scanOne c (Text (A.ByteArray harr#) hoff hlen) = loop 0
   where
-    loop !i
-      | i >= hlen                        = []
-      | A.unsafeIndex harr (hoff+i) == c = i : loop (i+1)
-      | otherwise                        = loop (i+1)
+    loop !i = case memchr harr# (hoff + i) (hlen - i) c of
+      -1 -> []
+      x  -> i + x : loop (i + x + 1)
 {-# INLINE scanOne #-}
 
 word8ToInt :: Word8 -> Int
