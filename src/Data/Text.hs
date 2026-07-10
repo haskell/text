@@ -159,6 +159,7 @@ module Data.Text
     , break
     , span
     , spanM
+    , spanEnd
     , spanEndM
     , group
     , groupBy
@@ -243,6 +244,8 @@ import qualified Data.List as L hiding (head, tail)
 import qualified Data.List.NonEmpty as NonEmptyList
 import Data.Binary (Binary(get, put))
 import Data.Binary.Put (putBuilder)
+import Data.Coerce (coerce)
+import Data.Functor.Identity (Identity(..))
 import Data.Monoid (Monoid(..))
 import Data.Semigroup (Semigroup(..))
 import Data.String (IsString(..))
@@ -1622,6 +1625,9 @@ span p t = case span_ p t of
 break :: (Char -> Bool) -> Text -> (Text, Text)
 break p = span (not . p)
 {-# INLINE break #-}
+
+spanEnd :: (Char -> Bool) -> Text -> (Text, Text)
+spanEnd = coerce (spanEndM :: (Char -> Identity Bool) -> Text -> Identity (Text, Text))
 
 -- | /O(length of prefix)/ 'spanM', applied to a monadic predicate @p@,
 -- a text @t@, returns a pair @(t1, t2)@ where @t1@ is the longest prefix of
