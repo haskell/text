@@ -6,7 +6,7 @@ on:
 jobs:
   build:
     runs-on: ${{ matrix.os }}
-    container: alpine:3.12
+    container: alpine:3.24
     strategy:
       matrix:
         os: ['ubuntu-latest']
@@ -32,7 +32,7 @@ jobs:
       - name: Update cabal package database
         run: cabal update
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Test
         run: |
           cat > THLinkTest.hs <<EOF
