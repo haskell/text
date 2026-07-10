@@ -54,7 +54,7 @@ type Parser = IParser Text
 -- attempt to detect overflow, so a sufficiently long input may give
 -- incorrect results.  If you are worried about overflow, use
 -- 'Integer' for your result type.
-decimal :: Integral a => Reader a
+decimal :: Num a => Reader a
 {-# SPECIALIZE decimal :: Reader Int #-}
 {-# SPECIALIZE decimal :: Reader Int8 #-}
 {-# SPECIALIZE decimal :: Reader Int16 #-}
@@ -83,7 +83,7 @@ decimal txt
 -- attempt to detect overflow, so a sufficiently long input may give
 -- incorrect results.  If you are worried about overflow, use
 -- 'Integer' for your result type.
-hexadecimal :: Integral a => Reader a
+hexadecimal :: Num a => Reader a
 {-# SPECIALIZE hexadecimal :: Reader Int #-}
 {-# SPECIALIZE hexadecimal :: Reader Integer #-}
 hexadecimal txt
@@ -91,7 +91,7 @@ hexadecimal txt
     | otherwise              = hex txt
  where (h,t) = T.splitAt 2 txt
 
-hex :: Integral a => Reader a
+hex :: Num a => Reader a
 {-# SPECIALIZE hexadecimal :: Reader Int #-}
 {-# SPECIALIZE hexadecimal :: Reader Int8 #-}
 {-# SPECIALIZE hexadecimal :: Reader Int16 #-}
@@ -114,7 +114,7 @@ hex txt
 -- which will be either 'hexDigitToInt' (hexadecimal) or 'digitToInt' (decimal only).
 -- It may be arbitrarily long.
 {-# INLINE integer #-}
-integer :: Integral a => Base -> (Char -> Word) -> Text -> a
+integer :: Num a => Base -> (Char -> Word) -> Text -> a
 integer (Base { base, maxWord, maxDigits }) digit t0
   | n0 <= maxDigits' = fromIntegral (word base digit t0)
   | otherwise = scanWords [word' t01] (n0 - mswSize) t02
