@@ -82,13 +82,14 @@ utf8Length :: Char -> Int
 utf8Length (C# c) = I# ((1# +# geChar# c (chr# 0x80#)) +# (geChar# c (chr# 0x800#) +# geChar# c (chr# 0x10000#)))
 {-# INLINE utf8Length #-}
 
--- | Measure byte length of UTF-8 encoding for characters,
--- starting with a given byte.
+-- | Measure byte length of UTF-8 encoding for characters
+-- starting with the given leading byte.
+-- Continuation bytes yield a fail-safe value of 1.
 --
 -- @since 2.0
 utf8LengthByLeader :: Word8 -> Int
 utf8LengthByLeader w
-  | w < 0x80  = 1
+  | w < 0xC0  = 1
   | w < 0xE0  = 2
   | w < 0xF0  = 3
   | otherwise = 4
