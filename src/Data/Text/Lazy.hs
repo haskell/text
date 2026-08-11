@@ -219,7 +219,7 @@ import Prelude (Char, Bool(..), Maybe(..), String,
                 Eq, (==), Ord(..), Ordering(..), Read(..), Show(showsPrec),
                 Monad(..), pure, (<$>),
                 (&&), (+), (-), (.), ($), (++),
-                error, flip, fmap, fromIntegral, not, otherwise, quot)
+                error, fst, flip, fmap, fromIntegral, not, otherwise, quot, snd)
 import qualified Prelude as P
 import Control.Arrow (first)
 import Control.DeepSeq (NFData(..))
@@ -253,6 +253,7 @@ import Data.Text.Lazy.Encoding (decodeUtf8', encodeUtf8Builder)
 import Data.Text.Internal.Lazy.Search (indices)
 import qualified GHC.CString as GHC
 import qualified GHC.Exts as Exts
+import GHC.Char (eqChar, neChar)
 import GHC.Prim (Addr#)
 import GHC.Stack (HasCallStack)
 #if __GLASGOW_HASKELL__ >= 914
@@ -1230,6 +1231,13 @@ takeWhile p t0 = takeWhile' t0
             Nothing            -> Chunk t (takeWhile' ts)
 {-# INLINE [1] takeWhile #-}
 
+{-# RULES
+"TEXT takeWhile (c `neChar`) -> fst . breakOn (singleton c)" forall c.
+    takeWhile (c `neChar`) = fst . breakOn (singleton c)
+"TEXT takeWhile (`neChar` c) -> fst . breakOn (singleton c)" forall c.
+    takeWhile (`neChar` c) = fst . breakOn (singleton c)
+  #-}
+
 -- | /O(n)/ 'takeWhileEnd', applied to a predicate @p@ and a 'Text',
 -- returns the longest suffix (possibly empty) of elements that
 -- satisfy @p@.
@@ -1258,6 +1266,13 @@ dropWhile p t0 = dropWhile' t0
             Just n  -> Chunk (T.drop n t) ts
             Nothing -> dropWhile' ts
 {-# INLINE [1] dropWhile #-}
+
+{-# RULES
+"TEXT dropWhile (c `neChar`) -> snd . breakOn (singleton c)" forall c.
+    dropWhile (c `neChar`) = snd . breakOn (singleton c)
+"TEXT dropWhile (`neChar` c) -> snd . breakOn (singleton c)" forall c.
+    dropWhile (`neChar` c) = snd . breakOn (singleton c)
+  #-}
 
 -- | /O(n)/ 'dropWhileEnd' @p@ @t@ returns the prefix remaining after
 -- dropping characters that satisfy the predicate @p@ from the end of
@@ -1435,6 +1450,14 @@ break p t0 = break' t0
             Just n | n == 0    -> (Empty, c)
                    | otherwise -> let (a,b) = T.splitAt n t
                                   in (Chunk a Empty, Chunk b ts)
+{-# INLINE [1] break #-}
+
+{-# RULES
+"TEXT break (c `eqChar`) -> breakOn (singleton c)" forall c.
+    break (c `eqChar`) = breakOn (singleton c)
+"TEXT break (`eqChar` c) -> breakOn (singleton c)" forall c.
+    break (`eqChar` c) = breakOn (singleton c)
+  #-}
 
 -- | /O(n)/ 'span', applied to a predicate @p@ and text @t@, returns
 -- a pair whose first element is the longest prefix (possibly empty)
@@ -1445,7 +1468,14 @@ break p t0 = break' t0
 -- ("000","AB")
 span :: (Char -> Bool) -> Text -> (Text, Text)
 span p = break (not . p)
-{-# INLINE span #-}
+{-# INLINE [1] span #-}
+
+{-# RULES
+"TEXT span (c `neChar`) -> breakOn (singleton c)" forall c.
+    span (c `neChar`) = breakOn (singleton c)
+"TEXT span (`neChar` c) -> breakOn (singleton c)" forall c.
+    span (`neChar` c) = breakOn (singleton c)
+  #-}
 
 -- | /O(length of prefix)/ 'spanM', applied to a monadic predicate @p@,
 -- a text @t@, returns a pair @(t1, t2)@ where @t1@ is the longest prefix of

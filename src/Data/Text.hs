@@ -228,7 +228,7 @@ import Prelude (Char, Bool(..), Int, Maybe(..), String,
                 Eq, (==), (/=), Ord(..), Ordering(..), (++),
                 Monad(..), pure, Read(..), Show,
                 (&&), (||), (+), (-), (.), ($), ($!), (>>),
-                not, return, otherwise, quot)
+                fst, not, return, otherwise, quot, snd)
 import Control.DeepSeq (NFData(rnf))
 #if defined(ASSERTS)
 import Control.Exception (assert)
@@ -273,7 +273,7 @@ import qualified Data.Text.Lazy as L
 #endif
 import Data.Word (Word8)
 import Foreign.C.Types
-import GHC.Base (eqInt, neInt, gtInt, geInt, ltInt, leInt)
+import GHC.Base (eqChar, neChar, eqInt, neInt, gtInt, geInt, ltInt, leInt)
 import qualified GHC.Exts as Exts
 import GHC.Int (Int8)
 import GHC.Stack (HasCallStack)
@@ -1522,6 +1522,13 @@ takeWhile p t@(Text arr off len) = loop 0
             where Iter c d    = iter t i
 {-# INLINE [1] takeWhile #-}
 
+{-# RULES
+"TEXT takeWhile (c `neChar`) -> fst . breakOn (singleton c)" forall c.
+    takeWhile (c `neChar`) = fst . breakOn (singleton c)
+"TEXT takeWhile (`neChar` c) -> fst . breakOn (singleton c)" forall c.
+    takeWhile (`neChar` c) = fst . breakOn (singleton c)
+  #-}
+
 -- | /O(n)/ 'takeWhileEnd', applied to a predicate @p@ and a 'Text',
 -- returns the longest suffix (possibly empty) of elements that
 -- satisfy @p@.
@@ -1548,6 +1555,13 @@ dropWhile p t@(Text arr off len) = loop 0 0
                    | otherwise = Text arr (off+i) (len-l)
             where Iter c d     = iter t i
 {-# INLINE [1] dropWhile #-}
+
+{-# RULES
+"TEXT dropWhile (c `neChar`) -> snd . breakOn (singleton c)" forall c.
+    dropWhile (c `neChar`) = snd . breakOn (singleton c)
+"TEXT dropWhile (`neChar` c) -> snd . breakOn (singleton c)" forall c.
+    dropWhile (`neChar` c) = snd . breakOn (singleton c)
+  #-}
 
 -- | /O(n)/ 'dropWhileEnd' @p@ @t@ returns the prefix remaining after
 -- dropping characters that satisfy the predicate @p@ from the end of
@@ -1615,7 +1629,14 @@ splitAt n t@(Text arr off len)
 span :: (Char -> Bool) -> Text -> (Text, Text)
 span p t = case span_ p t of
              (# hd,tl #) -> (hd,tl)
-{-# INLINE span #-}
+{-# INLINE [1] span #-}
+
+{-# RULES
+"TEXT span (c `neChar`) -> breakOn (singleton c)" forall c.
+    span (c `neChar`) = breakOn (singleton c)
+"TEXT span (`neChar` c) -> breakOn (singleton c)" forall c.
+    span (`neChar` c) = breakOn (singleton c)
+  #-}
 
 -- | /O(n)/ 'break' is like 'span', but the prefix returned is
 -- over elements that fail the predicate @p@.
@@ -1624,7 +1645,14 @@ span p t = case span_ p t of
 -- ("180","cm")
 break :: (Char -> Bool) -> Text -> (Text, Text)
 break p = span (not . p)
-{-# INLINE break #-}
+{-# INLINE [1] break #-}
+
+{-# RULES
+"TEXT break (c `eqChar`) -> breakOn (singleton c)" forall c.
+    break (c `eqChar`) = breakOn (singleton c)
+"TEXT break (`eqChar` c) -> breakOn (singleton c)" forall c.
+    break (`eqChar` c) = breakOn (singleton c)
+  #-}
 
 spanEnd :: (Char -> Bool) -> Text -> (Text, Text)
 spanEnd = coerce (spanEndM :: (Char -> Identity Bool) -> Text -> Identity (Text, Text))
