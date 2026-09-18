@@ -1,5 +1,4 @@
-{-# LANGUAGE BangPatterns, CPP, MagicHash, RankNTypes, ScopedTypeVariables,
-    UnboxedTuples #-}
+{-# LANGUAGE BangPatterns, RankNTypes, ScopedTypeVariables #-}
 {-# LANGUAGE Trustworthy #-}
 
 -- Module:      Data.Text.Lazy.Builder.Int
@@ -20,16 +19,13 @@ module Data.Text.Lazy.Builder.Int
 import Data.Int (Int8, Int16, Int32, Int64)
 import Data.Monoid (mempty)
 import qualified Data.ByteString.Unsafe as B
-import Data.Text.Internal.Builder.Functions ((<>), i2d)
+import Data.Text.Internal.Builder.Functions (i2d)
 import Data.Text.Internal.Builder
 import Data.Text.Internal.Builder.Int.Digits (digits)
 import Data.Text.Array
 import Data.Word (Word, Word8, Word16, Word32, Word64)
 import GHC.Base (quotInt, remInt)
 import Control.Monad.ST
-#if MIN_VERSION_base(4,11,0)
-import Prelude hiding ((<>))
-#endif
 
 decimal :: Integral a => a -> Builder
 {-# RULES "decimal/Int8" decimal = boundedDecimal :: Int8 -> Builder #-}
