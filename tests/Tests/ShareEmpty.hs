@@ -6,13 +6,14 @@
 
 {-# OPTIONS_GHC -Wno-unrecognised-warning-flags #-}
 {-# OPTIONS_GHC -Wno-x-partial #-}
+{- HLINT ignore "Avoid restricted function" -}
 
 module Tests.ShareEmpty
   ( tests
   ) where
 
 import Control.Exception (evaluate)
-import Data.Text
+import Data.Text (Text)
 #if __GLASGOW_HASKELL__ >= 914
 import Language.Haskell.TH.Lift (lift)
 #else
@@ -30,9 +31,9 @@ import qualified Data.Text as T
 -- | assert that a text value is represented by the same pointer
 -- as the 'empty' value.
 assertPtrEqEmpty :: HasCallStack => Text -> IO ()
-assertPtrEqEmpty t = do 
+assertPtrEqEmpty t = do
     t' <- evaluate t
-    empty' <- evaluate empty
+    empty' <- evaluate T.empty
     assertEqual "" empty' t'
     case reallyUnsafePtrEquality# empty' t' of
       1# -> pure ()
@@ -44,32 +45,32 @@ tests = testGroup "empty Text values are shared"
   [ testCase "empty = empty" $ assertPtrEqEmpty T.empty
   , testCase "pack \"\" = empty" $ assertPtrEqEmpty $ T.pack ""
   , testCase "fromString \"\" = empty" $ assertPtrEqEmpty $ fromString ""
-  , testCase "$(lift \"\") = empty" $ assertPtrEqEmpty $ $(lift (pack ""))
+  , testCase "$(lift \"\") = empty" $ assertPtrEqEmpty $ $(lift (T.pack ""))
   , testCase "tail of a singleton = empty" $ assertPtrEqEmpty $ T.tail "a"
   , testCase "init of a singleton = empty" $ assertPtrEqEmpty $ T.init "b"
-  , testCase "map _ empty = empty" $ assertPtrEqEmpty $ T.map id empty
+  , testCase "map _ empty = empty" $ assertPtrEqEmpty $ T.map id T.empty
   , testCase "intercalate _ [] = empty" $ assertPtrEqEmpty $ T.intercalate ", " []
   , testCase "intersperse _ empty = empty" $ assertPtrEqEmpty $ T.intersperse ',' ""
   , testCase "reverse empty = empty" $ assertPtrEqEmpty $
-      T.reverse empty
+      T.reverse T.empty
   , testCase "replace _ _ empty = empty" $ assertPtrEqEmpty $
-      T.replace "needle" "replacement" empty
+      T.replace "needle" "replacement" T.empty
   , testCase "toCaseFold empty = empty" $ assertPtrEqEmpty $ T.toCaseFold ""
   , testCase "toLower empty = empty" $ assertPtrEqEmpty $ T.toLower ""
   , testCase "toUpper empty = empty" $ assertPtrEqEmpty $ T.toUpper ""
   , testCase "toTitle empty = empty" $ assertPtrEqEmpty $ T.toTitle ""
   , testCase "justifyLeft 0 _ empty = empty" $ assertPtrEqEmpty $
-      justifyLeft 0 ' ' empty
+      T.justifyLeft 0 ' ' T.empty
   , testCase "justifyRight 0 _ empty = empty" $ assertPtrEqEmpty $
-      justifyRight 0 ' ' empty
+      T.justifyRight 0 ' ' T.empty
   , testCase "center 0 _ empty = empty" $ assertPtrEqEmpty $
-      T.center 0 ' ' empty
+      T.center 0 ' ' T.empty
   , testCase "transpose [empty] = [empty]" $ mapM_ assertPtrEqEmpty $
-      T.transpose [empty]
+      T.transpose [T.empty]
   , testCase "concat [] = empty" $ assertPtrEqEmpty $ T.concat []
-  , testCase "concat [empty] = empty" $ assertPtrEqEmpty $ T.concat [empty]
+  , testCase "concat [empty] = empty" $ assertPtrEqEmpty $ T.concat [T.empty]
   , testCase "replicate 0 _ = empty" $ assertPtrEqEmpty $ T.replicate 0 "x"
-  , testCase "replicate _ empty = empty" $ assertPtrEqEmpty $ T.replicate 10 empty
+  , testCase "replicate _ empty = empty" $ assertPtrEqEmpty $ T.replicate 10 T.empty
   , testCase "unfoldr (const Nothing) _ = empty" $ assertPtrEqEmpty $
       T.unfoldr (const Nothing) ()
   , testCase "take 0 _ = empty" $ assertPtrEqEmpty $
@@ -87,12 +88,12 @@ tests = testGroup "empty Text values are shared"
   , testCase "dropWhile (const True) x = empty" $ assertPtrEqEmpty $
       T.dropWhile (const True) "xyz"
   , testCase "dropWhileEnd (const True) x = empty" $ assertPtrEqEmpty $
-      dropWhileEnd (const True) "xyz"
+      T.dropWhileEnd (const True) "xyz"
   , testCase "dropAround _ empty = empty" $ assertPtrEqEmpty $
-      dropAround (const True) empty
-  , testCase "stripStart empty = empty" $ assertPtrEqEmpty $ T.stripStart empty
-  , testCase "stripEnd empty = empty" $ assertPtrEqEmpty $ T.stripEnd empty
-  , testCase "strip empty = empty" $ assertPtrEqEmpty $ T.strip empty
+      T.dropAround (const True) T.empty
+  , testCase "stripStart empty = empty" $ assertPtrEqEmpty $ T.stripStart T.empty
+  , testCase "stripEnd empty = empty" $ assertPtrEqEmpty $ T.stripEnd T.empty
+  , testCase "strip empty = empty" $ assertPtrEqEmpty $ T.strip T.empty
   , testCase "fst (splitAt 0 _) = empty" $ assertPtrEqEmpty $ fst $ T.splitAt 0 "123"
   , testCase "snd (splitAt n x) = empty where n > len x" $ assertPtrEqEmpty $
       snd $ T.splitAt 5 "123"
@@ -112,13 +113,13 @@ tests = testGroup "empty Text values are shared"
       assertPtrEqEmpty . fst =<< T.spanEndM (const $ pure True) "123"
   , testCase "snd (spanEndM (const $ pure False) _) = empty" $
       assertPtrEqEmpty . snd =<< T.spanEndM (const $ pure False) "123"
-  , testCase "groupBy _ empty = [empty]" $ mapM_ assertPtrEqEmpty $ T.groupBy (==) empty
-  , testCase "inits empty = [empty]" $ mapM_ assertPtrEqEmpty $ T.inits empty
-  , testCase "initsNE empty = singleton empty" $ mapM_ assertPtrEqEmpty $ T.initsNE empty
+  , testCase "groupBy _ empty = [empty]" $ mapM_ assertPtrEqEmpty $ T.groupBy (==) T.empty
+  , testCase "inits empty = [empty]" $ mapM_ assertPtrEqEmpty $ T.inits T.empty
+  , testCase "initsNE empty = singleton empty" $ mapM_ assertPtrEqEmpty $ T.initsNE T.empty
   , testCase "inits _ = [empty, ...]" $ assertPtrEqEmpty $ L.head $ T.inits "123"
   , testCase "initsNE _ = empty :| ..." $ assertPtrEqEmpty $ NonEmptyList.head $ T.initsNE "123"
-  , testCase "tails empty = [empty]" $ mapM_ assertPtrEqEmpty $ T.tails empty
-  , testCase "tailsNE empty = singleton empty" $ mapM_ assertPtrEqEmpty $ T.tailsNE empty
+  , testCase "tails empty = [empty]" $ mapM_ assertPtrEqEmpty $ T.tails T.empty
+  , testCase "tailsNE empty = singleton empty" $ mapM_ assertPtrEqEmpty $ T.tailsNE T.empty
   , testCase "tails _ = [..., empty]" $ assertPtrEqEmpty $ L.last $ T.tails "123"
   , testCase "tailsNE _ = reverse (empty :| ...)" $ assertPtrEqEmpty $ NonEmptyList.last $ T.tailsNE "123"
   , testCase "split _ empty = [empty]" $ mapM_ assertPtrEqEmpty $ T.split (== 'a') ""
@@ -127,9 +128,9 @@ tests = testGroup "empty Text values are shared"
   , testCase "unlines [] = empty" $ assertPtrEqEmpty $ T.unlines []
   , testCase "unwords [] = empty" $ assertPtrEqEmpty $ T.unwords []
   , testCase "stripPrefix empty empty = Just empty" $ mapM_ assertPtrEqEmpty $
-      T.stripPrefix empty empty
+      T.stripPrefix T.empty T.empty
   , testCase "stripSuffix empty empty = Just empty" $ mapM_ assertPtrEqEmpty $
-      T.stripSuffix empty empty
+      T.stripSuffix T.empty T.empty
   , testCase "commonPrefixes \"xyz\" \"123\" = Just (_, empty, _)" $
       mapM_ (assertPtrEqEmpty . (\(_, x, _) -> x)) $ T.commonPrefixes "xyz" "123"
   , testCase "commonPrefixes \"xyz\" \"xyz\" = Just (_, _, empty)" $

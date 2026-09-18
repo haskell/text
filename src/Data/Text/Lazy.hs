@@ -52,6 +52,7 @@ module Data.Text.Lazy
 
     -- * Creation and elimination
     , pack
+    , fromString
     , unpack
     , singleton
     , empty
@@ -235,7 +236,7 @@ import Data.List.NonEmpty (NonEmpty(..))
 import qualified Data.List.NonEmpty as NE
 import Data.Monoid (Monoid(..))
 import Data.Semigroup (Semigroup(..))
-import Data.String (IsString(..))
+import qualified Data.String
 import qualified Data.Text as T
 import qualified Data.Text.Array as A
 import qualified Data.Text.Internal as T
@@ -351,7 +352,7 @@ instance Monoid Text where
 -- >>> :set -XOverloadedStrings
 -- >>> "\55555" :: Data.Text.Lazy.Text
 -- "\65533"
-instance IsString Text where
+instance Data.String.IsString Text where
     fromString = pack
 
 -- | Performs replacement on invalid scalar values:
@@ -1939,3 +1940,7 @@ intToInt64 = fromIntegral
 
 int64ToInt :: Int64 -> Exts.Int
 int64ToInt = fromIntegral
+
+-- | Synonym of 'pack' for the sake of @{-# LANGUAGE QualifiedStrings #-}@.
+fromString :: String -> Text
+fromString = pack
