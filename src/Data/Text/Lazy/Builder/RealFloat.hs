@@ -1,8 +1,9 @@
-{-# LANGUAGE CPP, OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE Trustworthy #-}
 
 {-# OPTIONS_GHC -Wno-unrecognised-warning-flags #-}
 {-# OPTIONS_GHC -Wno-x-partial #-}
+{- HLINT ignore "Use guards" -}
 
 -- |
 -- Module:    Data.Text.Lazy.Builder.RealFloat
@@ -20,14 +21,11 @@ module Data.Text.Lazy.Builder.RealFloat
 
 import Data.Array.Base (unsafeAt)
 import Data.Array.IArray
-import Data.Text.Internal.Builder.Functions ((<>), i2d)
+import Data.Text.Internal.Builder.Functions (i2d)
 import Data.Text.Lazy.Builder.Int (decimal)
 import Data.Text.Internal.Builder.RealFloat.Functions (roundTo)
 import Data.Text.Lazy.Builder
 import qualified Data.Text as T
-#if MIN_VERSION_base(4,11,0)
-import Prelude hiding ((<>))
-#endif
 
 -- | Control the rendering of floating point numbers.
 data FPFormat = Exponent

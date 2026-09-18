@@ -1,13 +1,13 @@
-{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE UnboxedTuples #-}
 {-# LANGUAGE UnliftedFFITypes #-}
 
 {-# OPTIONS_GHC -fno-warn-unused-matches #-}
+{- HLINT ignore "Redundant guard" -}
+
 -- |
 -- Module      : Data.Text.Array
 -- Copyright   : (c) 2009, 2010, 2011 Bryan O'Sullivan
@@ -60,9 +60,6 @@ module Data.Text.Array
 
 #if defined(ASSERTS)
 import GHC.Stack (HasCallStack)
-#endif
-#if !MIN_VERSION_base(4,11,0)
-import Foreign.C.Types (CInt(..))
 #endif
 import GHC.Exts hiding (toList)
 import GHC.ST (ST(..), runST)
@@ -350,12 +347,5 @@ compareInternal
       -> Int
 compareInternal (ByteArray src1#) (I# off1#) (ByteArray src2#) (I# off2#) (I# count#) = i
   where
-#if MIN_VERSION_base(4,11,0)
     i = I# (compareByteArrays# src1# off1# src2# off2# count#)
-#else
-    i = fromIntegral (memcmp src1# off1# src2# off2# count#)
-
-foreign import ccall unsafe "_hs_text_memcmp2" memcmp
-    :: ByteArray# -> Int# -> ByteArray# -> Int# -> Int# -> CInt
-#endif
 {-# INLINE compareInternal #-}
