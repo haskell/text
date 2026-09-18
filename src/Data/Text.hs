@@ -59,6 +59,7 @@ module Data.Text
 
     -- * Creation and elimination
     , pack
+    , fromString
     , unpack
     , singleton
     , empty
@@ -248,7 +249,7 @@ import Data.Coerce (coerce)
 import Data.Functor.Identity (Identity(..))
 import Data.Monoid (Monoid(..))
 import Data.Semigroup (Semigroup(..))
-import Data.String (IsString(..))
+import qualified Data.String
 import Data.Text.Internal.ArrayUtils (memchr)
 import Data.Text.Internal.IsAscii (isAscii)
 import Data.Text.Internal.Reverse (reverse)
@@ -403,7 +404,7 @@ instance Monoid Text where
 -- >>> :set -XOverloadedStrings
 -- >>> "\55555" :: Text
 -- "\65533"
-instance IsString Text where
+instance Data.String.IsString Text where
     fromString = pack
 
 -- | Performs replacement on invalid scalar values:
@@ -2300,6 +2301,10 @@ cSsizeToInt = P.fromIntegral
 
 word8ToInt8 :: Word8 -> Int8
 word8ToInt8 = P.fromIntegral
+
+-- | Synonym of 'pack' for the sake of @{-# LANGUAGE QualifiedStrings #-}@.
+fromString :: String -> Text
+fromString = pack
 
 -------------------------------------------------
 -- NOTE: the named chunk below used by doctest;
