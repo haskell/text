@@ -261,7 +261,9 @@ import GHC.Stack (HasCallStack)
 import qualified Language.Haskell.TH.Lift as TH
 #else
 import qualified Language.Haskell.TH.Syntax as TH
+#if __GLASGOW_HASKELL__ < 900
 import qualified Language.Haskell.TH.Lib as TH
+#endif
 #endif
 import Text.Printf (PrintfArg, formatArg, formatString)
 

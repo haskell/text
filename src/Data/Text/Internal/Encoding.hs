@@ -42,9 +42,6 @@ import Control.Exception (assert)
 #endif
 import Data.Bits ((.&.), shiftL, shiftR)
 import Data.ByteString (ByteString)
-#if !MIN_VERSION_base(4,11,0)
-import Data.Semigroup (Semigroup(..))
-#endif
 import Data.Word (Word32, Word8)
 import Foreign.Storable (pokeElemOff)
 import Data.Text.Encoding.Error (OnDecodeError)

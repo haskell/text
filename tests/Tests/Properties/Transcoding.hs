@@ -1,6 +1,6 @@
 -- | Tests for encoding and decoding
 
-{-# LANGUAGE CPP, OverloadedStrings, ScopedTypeVariables #-}
+{-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
 {-# OPTIONS_GHC -Wno-missing-signatures #-}
 {-# OPTIONS_GHC -Wno-unrecognised-warning-flags #-}
 {-# OPTIONS_GHC -Wno-x-partial #-}
@@ -14,9 +14,6 @@ import Data.Bits ((.&.), shiftR)
 import Data.Char (chr, ord)
 import Data.Functor (void)
 import Data.Maybe (isNothing)
-#if !MIN_VERSION_base(4,11,0)
-import Data.Semigroup ((<>))
-#endif
 import Data.Word (Word8)
 import Test.QuickCheck hiding ((.&.))
 import Test.Tasty (TestTree, testGroup)
