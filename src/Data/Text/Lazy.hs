@@ -1998,6 +1998,17 @@ zipWith f t1 t2 = unstream (S.zipWith g (stream t1) (stream t2))
 show :: Show a => a -> Text
 show = pack . P.show
 
+-- >>> revChunks ["one", "two"]
+-- "twoone"
+--
+-- >>> revChunks ["one"]
+-- "one"
+--
+-- >>> revChunks [""]
+-- ""
+--
+-- >>> revChunks []
+-- ""
 revChunks :: [T.Text] -> Text
 revChunks = L.foldl' (flip chunk) Empty
 
