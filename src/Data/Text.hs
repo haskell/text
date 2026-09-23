@@ -2,6 +2,7 @@
 {-# LANGUAGE TemplateHaskellQuotes #-}
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE UnliftedFFITypes #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE PartialTypeSignatures #-}
 {-# LANGUAGE PatternSynonyms #-}
@@ -172,7 +173,9 @@ module Data.Text
     -- ** Breaking into many substrings
     -- $split
     , splitOn
+    , splitOnNE
     , split
+    , splitNE
     , chunksOf
 
     -- ** Breaking into lines and words
@@ -274,7 +277,7 @@ import qualified Data.Text.Lazy as L
 #endif
 import Data.Word (Word8)
 import Foreign.C.Types
-import GHC.Base (eqChar, neChar, eqInt, neInt, gtInt, geInt, ltInt, leInt)
+import GHC.Base (eqChar, neChar, eqInt, neInt, gtInt, geInt, ltInt, leInt, NonEmpty ((:|)))
 import qualified GHC.Exts as Exts
 import GHC.Int (Int8)
 import GHC.Stack (HasCallStack)
@@ -1791,6 +1794,8 @@ tailsNE t
 --
 -- In (unlikely) bad cases, this function's time complexity degrades
 -- towards /O(n*m)/.
+--
+-- See also 'splitOnNE' for a version of this function returning 'NonEmpty Text'.
 splitOn :: HasCallStack
         => Text
         -- ^ String to split on. If this string is empty, an error
@@ -1798,18 +1803,57 @@ splitOn :: HasCallStack
         -> Text
         -- ^ Input text.
         -> [Text]
-splitOn pat@(Text _ _ l) src@(Text arr off len)
-    | l <= 0          = emptyError "splitOn"
-    | isSingleton pat = split (== unsafeHead pat) src
-    | otherwise       = go 0 (indices pat src)
-  where
-    go !s (x:xs) =  text arr (s+off) (x-s) : go (x+l) xs
-    go  s _      = [text arr (s+off) (len-s)]
+splitOn pat = NonEmptyList.toList . splitOnNE pat
 {-# INLINE [1] splitOn #-}
 
 {-# RULES
 "TEXT splitOn/singleton -> split/==" [~1] forall c t.
     splitOn (singleton c) t = split (==c) t
+  #-}
+
+-- | /O(m+n)/ Break a 'Text' into pieces separated by the first 'Text'
+-- argument (which cannot be empty), consuming the delimiter. An empty
+-- delimiter is invalid, and will cause an error to be raised.
+--
+-- Examples:
+--
+-- >>> splitOnNE "\r\n" "a\r\nb\r\nd\r\ne"
+-- "a" :| ["b","d","e"]
+--
+-- >>> splitOnNE "aaa"  "aaaXaaaXaaaXaaa"
+-- "" :| ["X","X","X",""]
+--
+-- >>> splitOnNE "x"    "x"
+-- "" :| [""]
+--
+-- and
+--
+-- > intercalate s . splitOnNE s         == id
+-- > splitOnNE (singleton c)             == splitNE (==c)
+--
+-- (Note: the string @s@ to split on above cannot be empty.)
+--
+-- In (unlikely) bad cases, this function's time complexity degrades
+-- towards /O(n*m)/.
+splitOnNE :: HasCallStack
+        => Text
+        -- ^ String to split on. If this string is empty, an error
+        -- will occur.
+        -> Text
+        -- ^ Input text.
+        -> NonEmptyList.NonEmpty Text
+splitOnNE pat@(Text _ _ l) src@(Text arr off len)
+    | null pat        = emptyError "splitOnNE"
+    | isSingleton pat = splitNE (== unsafeHead pat) src
+    | otherwise       = NonEmptyList.fromList $ go 0 (indices pat src)
+  where
+    go !s (x:xs) =  text arr (s+off) (x-s) : go (x+l) xs
+    go  s _      = [text arr (s+off) (len-s)]
+{-# INLINE [1] splitOnNE #-}
+
+{-# RULES
+"TEXT splitOnNE/singleton -> split/==" [~1] forall c t.
+    splitOnNE (singleton c) t = splitNE (==c) t
   #-}
 
 -- | /O(n)/ Splits a 'Text' into components delimited by separators,
@@ -1822,14 +1866,40 @@ splitOn pat@(Text _ _ l) src@(Text arr off len)
 --
 -- >>> split (=='a') ""
 -- [""]
+--
+-- See also 'splitNE' for a version of this function returning 'NonEmpty Text'.
 split :: (Char -> Bool) -> Text -> [Text]
-split p t
-    | null t = [empty]
-    | otherwise = loop t
-    where loop s | null s'   = [l]
-                 | otherwise = l : loop (unsafeTail s')
-              where (# l, s' #) = span_ (not . p) s
+split p = NonEmptyList.toList . splitNE p
 {-# INLINE split #-}
+
+-- | /O(n)/ Splits a 'Text' into components delimited by separators,
+-- where the predicate returns True for a separator element.  The
+-- resulting components do not contain the separators.  Two adjacent
+-- separators result in an empty component in the output.  eg.
+--
+-- >>> splitNE (=='a') "aabbaca"
+-- "" :| ["","bb","c",""]
+--
+-- >>> splitNE (=='a') ""
+-- "" :| []
+--
+-- >>> splitNE (=='b') "aabbaca"
+-- "aa" :| ["","aca"]
+--
+splitNE :: (Char -> Bool) -> Text -> NonEmptyList.NonEmpty Text
+splitNE p t
+-- XXX: Or maybe the best is to use the original implementation
+-- and stick a `NonEmpty.fromList` at the beginning?
+    | null t    = NonEmptyList.singleton empty
+    | otherwise = let (# l, r #) = span_ (not . p) t
+                  in l :| loop r
+    where
+      loop :: Text -> [Text]
+      loop "" = []
+      loop s | null s'   = [l']
+             | otherwise = l' : loop s'
+             where (# l', s' #) = span_ (not . p) (unsafeTail s)
+{-# INLINE splitNE #-}
 
 -- | /O(n)/ Splits a 'Text' into components of length @k@.  The last
 -- element may be shorter than the other chunks, depending on the
