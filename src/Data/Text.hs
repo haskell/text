@@ -1830,7 +1830,9 @@ splitOn :: HasCallStack
         -> Text
         -- ^ Input text.
         -> [Text]
-splitOn pat = NonEmptyList.toList . splitOnNE pat
+splitOn pat src
+    | null pat  = emptyError "splitOn" -- XXX Why if I comment this tests fail?
+    | otherwise = NonEmptyList.toList $ splitOnNE pat src
 {-# INLINE [1] splitOn #-}
 
 {-# RULES
