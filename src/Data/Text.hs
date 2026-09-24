@@ -1917,7 +1917,7 @@ splitNE :: (Char -> Bool) -> Text -> NonEmptyList.NonEmpty Text
 splitNE p t
 -- XXX: Or maybe the best is to use the original implementation
 -- and stick a `NonEmpty.fromList` at the beginning?
-    | null t    = NonEmptyList.singleton empty
+    | null t    = singletonNE empty
     | otherwise = let (# l, r #) = span_ (not . p) t
                   in l :| loop r
     where
@@ -1926,6 +1926,12 @@ splitNE p t
       loop s | null s'   = [l']
              | otherwise = l' : loop s'
              where (# l', s' #) = span_ (not . p) (unsafeTail s)
+      singletonNE :: a -> NonEmptyList.NonEmpty a
+#if MIN_VERSION_base(4,15,0)
+      singletonNE = NonEmptyList.singleton
+#else
+      singletonNE = (:| [])
+#endif
 {-# INLINE splitNE #-}
 
 -- | /O(n)/ Splits a 'Text' into components of length @k@.  The last
