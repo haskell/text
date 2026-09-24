@@ -53,7 +53,8 @@ data Text = Empty
           --
           -- @since 2.1.2
           | Chunk {-# UNPACK #-} !T.Text Text
-          -- ^ Chunks must be non-empty, this invariant is not checked.
+          -- ^ The @!T.Text@ field must be non-empty; this invariant is not
+          -- checked. See also 'chunk'.
 
 -- | Type synonym for the lazy flavour of 'Text'.
 --

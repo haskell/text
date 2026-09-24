@@ -172,7 +172,9 @@ module Data.Text.Lazy
     -- ** Breaking into many substrings
     -- $split
     , splitOn
+    , splitOnNE
     , split
+    , splitNE
     , chunksOf
     -- , breakSubstring
 
@@ -1599,9 +1601,14 @@ tailsNE ts@(Chunk t ts')
 --
 -- Examples:
 --
--- > splitOn "\r\n" "a\r\nb\r\nd\r\ne" == ["a","b","d","e"]
--- > splitOn "aaa"  "aaaXaaaXaaaXaaa"  == ["","X","X","X",""]
--- > splitOn "x"    "x"                == ["",""]
+-- >>> Data.Text.Lazy.splitOn "\r\n" "a\r\nb\r\nd\r\ne"
+-- ["a","b","d","e"]
+--
+-- >>> Data.Text.Lazy.splitOn "aaa"  "aaaXaaaXaaaXaaa"
+-- ["","X","X","X",""]
+--
+-- >>> Data.Text.Lazy.splitOn "x"    "x"
+-- ["",""]
 --
 -- and
 --
@@ -1623,14 +1630,8 @@ splitOn :: HasCallStack
         -- ^ Input text.
         -> [Text]
 splitOn pat src
-    | null pat        = emptyError "splitOn"
-    | isSingleton pat = split (== head pat) src
-    | otherwise       = go 0 (indices pat src) src
-  where
-    go  _ []     cs = [cs]
-    go !i (x:xs) cs = let h :*: t = splitAtWord (x-i) cs
-                      in  h : go (x+l) xs (dropWords l t)
-    l = foldlChunks (\a (T.Text _ _ b) -> a + intToInt64 b) 0 pat
+    | null pat  = emptyError "splitOn" -- XXX Why if I comment this tests fail?
+    | otherwise = NE.toList $ splitOnNE pat src
 {-# INLINE [1] splitOn #-}
 
 {-# RULES
@@ -1638,21 +1639,92 @@ splitOn pat src
     splitOn (singleton c) t = split (==c) t
   #-}
 
+-- | /O(m+n)/ Break a 'Text' into pieces separated by the first 'Text'
+-- argument (which cannot be an empty string), consuming the
+-- delimiter. An empty delimiter is invalid, and will cause an error
+-- to be raised.
+--
+-- Examples:
+--
+-- >>> Data.Text.Lazy.splitOnNE "\r\n" "a\r\nb\r\nd\r\ne"
+-- "a" :| ["b","d","e"]
+--
+-- >>> Data.Text.Lazy.splitOnNE "aaa"  "aaaXaaaXaaaXaaa"
+-- "" :| ["X","X","X",""]
+--
+-- >>> Data.Text.Lazy.splitOnNE "x"    "x"
+-- "" :| [""]
+--
+--
+-- and
+--
+-- > intercalate s . splitOnNE s         == id
+-- > splitOnNE (singleton c)             == splitNE (==c)
+--
+-- (Note: the string @s@ to split on above cannot be empty.)
+--
+-- This function is strict in its first argument, and lazy in its
+-- second.
+--
+-- In (unlikely) bad cases, this function's time complexity degrades
+-- towards /O(n*m)/.
+splitOnNE :: HasCallStack
+        => Text
+        -- ^ String to split on. If this string is empty, an error
+        -- will occur.
+        -> Text
+        -- ^ Input text.
+        -> NE.NonEmpty Text
+splitOnNE pat src
+    | null pat        = emptyError "splitOnNE"
+    | isSingleton pat = splitNE (== head pat) src
+    | otherwise       = go 0 (indices pat src) src
+  where
+    go  _ []     cs = NE.singleton cs
+    go !i (x:xs) cs = let h :*: t = splitAtWord (x-i) cs
+                      in  h :| NE.toList (go (x+l) xs (dropWords l t))
+    l = foldlChunks (\a (T.Text _ _ b) -> a + intToInt64 b) 0 pat
+{-# INLINE [1] splitOnNE #-}
+
+{-# RULES
+"LAZY TEXT splitOnNE/singleton -> split/==" [~1] forall c t.
+    splitOnNE (singleton c) t = splitNE (==c) t
+  #-}
+
 -- | /O(n)/ Splits a 'Text' into components delimited by separators,
 -- where the predicate returns True for a separator element.  The
 -- resulting components do not contain the separators.  Two adjacent
 -- separators result in an empty component in the output.  eg.
 --
--- > split (=='a') "aabbaca" == ["","","bb","c",""]
--- > split (=='a') []        == [""]
+-- >>> Data.Text.Lazy.split (=='a') "aabbaca"
+-- ["","","bb","c",""]
+--
+-- >>> Data.Text.Lazy.split (=='a') ""
+-- [""]
+--
 split :: (Char -> Bool) -> Text -> [Text]
-split _ Empty = [Empty]
-split p (Chunk t0 ts0) = comb [] (T.split p t0) ts0
-  where comb acc (s:[]) Empty        = revChunks (s:acc) : []
-        comb acc (s:[]) (Chunk t ts) = comb (s:acc) (T.split p t) ts
-        comb acc (s:ss) ts           = revChunks (s:acc) : comb [] ss ts
-        comb _   []     _            = impossibleError "split"
+split p = NE.toList . splitNE p
 {-# INLINE split #-}
+
+-- | /O(n)/ Splits a 'Text' into components delimited by separators,
+-- where the predicate returns True for a separator element.  The
+-- resulting components do not contain the separators.  Two adjacent
+-- separators result in an empty component in the output.  eg.
+--
+-- >>> Data.Text.Lazy.splitNE (=='a') "aabbaca"
+-- "" :| ["","bb","c",""]
+--
+-- >>> Data.Text.Lazy.splitNE (=='a') ""
+-- "" :| []
+--
+splitNE :: (Char -> Bool) -> Text -> NE.NonEmpty Text
+splitNE _ Empty = NE.singleton Empty
+splitNE p (Chunk t0 ts0) = comb [] (T.splitNE p t0) ts0
+  where comb :: [T.Text] -> NE.NonEmpty T.Text -> Text -> NE.NonEmpty Text
+        comb acc (s :| []) Empty        = revChunks (s:acc) :| []
+        comb acc (s :| []) (Chunk t ts) = comb (s:acc) (T.splitNE p t) ts
+        comb acc (s :| ss : sss) ts     = revChunks (s:acc) :| NE.toList (comb [] (ss :| sss) ts)
+{-# INLINE splitNE #-}
 
 -- | /O(n)/ Splits a 'Text' into components of length @k@.  The last
 -- element may be shorter than the other chunks, depending on the
@@ -1928,6 +2000,17 @@ zipWith f t1 t2 = unstream (S.zipWith g (stream t1) (stream t2))
 show :: Show a => a -> Text
 show = pack . P.show
 
+-- >>> revChunks ["one", "two"]
+-- "twoone"
+--
+-- >>> revChunks ["one"]
+-- "one"
+--
+-- >>> revChunks [""]
+-- ""
+--
+-- >>> revChunks []
+-- ""
 revChunks :: [T.Text] -> Text
 revChunks = L.foldl' (flip chunk) Empty
 
