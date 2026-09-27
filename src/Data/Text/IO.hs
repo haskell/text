@@ -45,8 +45,7 @@ module Data.Text.IO
 import Data.Text (Text)
 import Prelude hiding (appendFile, getContents, getLine, interact,
                        putStr, putStrLn, readFile, writeFile)
-import System.IO (Handle, IOMode(..), openFile, stdin, stdout,
-                  withFile)
+import System.IO (Handle, IOMode(..), stdin, stdout, withFile)
 import qualified Control.Exception as E
 import Control.Monad (liftM2, when)
 import Data.IORef (readIORef)
@@ -73,7 +72,7 @@ import System.IO.Error (isEOFError)
 -- using 'Data.Text.Encoding.decodeUtf8' '.' 'Data.ByteString.readFile'
 -- is a much faster and safer alternative.
 readFile :: FilePath -> IO Text
-readFile name = openFile name ReadMode >>= hGetContents
+readFile name = withFile name ReadMode hGetContents
 
 -- | Write a string to a file.  The file is truncated to zero length
 -- before writing begins.
