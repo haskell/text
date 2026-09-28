@@ -1678,17 +1678,12 @@ splitOnNE :: HasCallStack
 splitOnNE pat src
     | null pat        = emptyError "splitOnNE"
     | isSingleton pat = splitNE (== head pat) src
-    | otherwise       = go 0 (indices pat src) src
+    | otherwise       = NE.fromList $ go 0 (indices pat src) src
   where
-    go  _ []     cs = singletonNE cs
+    go  _ []     cs = [cs]
     go !i (x:xs) cs = let h :*: t = splitAtWord (x-i) cs
-                      in  h :| NE.toList (go (x+l) xs (dropWords l t))
+                      in  h : (go (x+l) xs (dropWords l t))
     l = foldlChunks (\a (T.Text _ _ b) -> a + intToInt64 b) 0 pat
-#if MIN_VERSION_base(4,15,0)
-    singletonNE = NE.singleton
-#else
-    singletonNE = (:| [])
-#endif
 {-# INLINE [1] splitOnNE #-}
 
 {-# RULES
@@ -1724,11 +1719,11 @@ split p = NE.toList . splitNE p
 --
 splitNE :: (Char -> Bool) -> Text -> NE.NonEmpty Text
 splitNE _ Empty = NE.singleton Empty
-splitNE p (Chunk t0 ts0) = comb [] (T.splitNE p t0) ts0
-  where comb :: [T.Text] -> NE.NonEmpty T.Text -> Text -> NE.NonEmpty Text
-        comb acc (s :| []) Empty        = revChunks (s:acc) :| []
+splitNE p (Chunk t0 ts0) = NE.fromList $ comb [] (T.splitNE p t0) ts0
+  where comb :: [T.Text] -> NE.NonEmpty T.Text -> Text -> [Text]
+        comb acc (s :| []) Empty        = revChunks (s:acc) : []
         comb acc (s :| []) (Chunk t ts) = comb (s:acc) (T.splitNE p t) ts
-        comb acc (s :| ss : sss) ts     = revChunks (s:acc) :| NE.toList (comb [] (ss :| sss) ts)
+        comb acc (s :| ss : sss) ts     = revChunks (s:acc) : comb [] (ss :| sss) ts
 {-# INLINE splitNE #-}
 
 -- | /O(n)/ Splits a 'Text' into components of length @k@.  The last

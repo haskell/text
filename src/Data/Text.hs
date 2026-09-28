@@ -1917,8 +1917,6 @@ split p = NonEmptyList.toList . splitNE p
 --
 splitNE :: (Char -> Bool) -> Text -> NonEmptyList.NonEmpty Text
 splitNE p t
--- XXX: Or maybe the best is to use the original implementation
--- and stick a `NonEmpty.fromList` at the beginning?
     | null t    = singletonNE empty
     | otherwise = let (# l, r #) = span_ (not . p) t
                   in l :| loop r
