@@ -1680,10 +1680,15 @@ splitOnNE pat src
     | isSingleton pat = splitNE (== head pat) src
     | otherwise       = go 0 (indices pat src) src
   where
-    go  _ []     cs = NE.singleton cs
+    go  _ []     cs = singletonNE cs
     go !i (x:xs) cs = let h :*: t = splitAtWord (x-i) cs
                       in  h :| NE.toList (go (x+l) xs (dropWords l t))
     l = foldlChunks (\a (T.Text _ _ b) -> a + intToInt64 b) 0 pat
+#if MIN_VERSION_base(4,15,0)
+    singletonNE = NE.singleton
+#else
+    singletonNE = (:| [])
+#endif
 {-# INLINE [1] splitOnNE #-}
 
 {-# RULES
