@@ -5,6 +5,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 -- |
 -- Module      : Data.Text.Lazy
@@ -1629,9 +1630,10 @@ splitOn :: HasCallStack
         -> Text
         -- ^ Input text.
         -> [Text]
-splitOn pat src
-    | null pat  = emptyError "splitOn" -- XXX Why if I comment this tests fail?
-    | otherwise = NE.toList $ splitOnNE pat src
+#if MIN_VERSION_base(4,22,0)
+splitOn "" = emptyError "splitOn"
+#endif
+splitOn pat = NE.toList . splitOnNE pat
 {-# INLINE [1] splitOn #-}
 
 {-# RULES
