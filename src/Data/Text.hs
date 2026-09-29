@@ -2,7 +2,6 @@
 {-# LANGUAGE TemplateHaskellQuotes #-}
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE UnliftedFFITypes #-}
-{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE PartialTypeSignatures #-}
 {-# LANGUAGE PatternSynonyms #-}
@@ -1830,8 +1829,9 @@ splitOn :: HasCallStack
         -> Text
         -- ^ Input text.
         -> [Text]
-splitOn "" = emptyError "splitOn"
-splitOn pat = NonEmptyList.toList . splitOnNE pat
+splitOn pat
+  | null pat = emptyError "splitOn"
+  | otherwise = NonEmptyList.toList . splitOnNE pat
 {-# INLINE [1] splitOn #-}
 
 {-# RULES

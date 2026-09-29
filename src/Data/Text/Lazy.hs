@@ -5,7 +5,6 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE ViewPatterns #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 -- |
 -- Module      : Data.Text.Lazy
@@ -1630,8 +1629,9 @@ splitOn :: HasCallStack
         -> Text
         -- ^ Input text.
         -> [Text]
-splitOn "" = emptyError "splitOn"
-splitOn pat = NE.toList . splitOnNE pat
+splitOn pat
+  | null pat = emptyError "splitOn"
+  | otherwise = NE.toList . splitOnNE pat
 {-# INLINE [1] splitOn #-}
 
 {-# RULES
