@@ -1921,8 +1921,8 @@ splitNE p t
                   in l :| loop r
     where
       loop :: Text -> [Text]
-      loop "" = []
-      loop s | null s'   = [l']
+      loop s | null s    = []
+             | null s'   = [l']
              | otherwise = l' : loop s'
              where (# l', s' #) = span_ (not . p) (unsafeTail s)
 {-# INLINE splitNE #-}
