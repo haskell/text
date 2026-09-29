@@ -1830,9 +1830,7 @@ splitOn :: HasCallStack
         -> Text
         -- ^ Input text.
         -> [Text]
-#if MIN_VERSION_base(4,22,0)
 splitOn "" = emptyError "splitOn"
-#endif
 splitOn pat = NonEmptyList.toList . splitOnNE pat
 {-# INLINE [1] splitOn #-}
 
@@ -1918,7 +1916,7 @@ split p = NonEmptyList.toList . splitNE p
 --
 splitNE :: (Char -> Bool) -> Text -> NonEmptyList.NonEmpty Text
 splitNE p t
-    | null t    = singletonNE empty
+    | null t    = empty :| []
     | otherwise = let (# l, r #) = span_ (not . p) t
                   in l :| loop r
     where
@@ -1927,12 +1925,6 @@ splitNE p t
       loop s | null s'   = [l']
              | otherwise = l' : loop s'
              where (# l', s' #) = span_ (not . p) (unsafeTail s)
-      singletonNE :: a -> NonEmptyList.NonEmpty a
-#if MIN_VERSION_base(4,15,0)
-      singletonNE = NonEmptyList.singleton
-#else
-      singletonNE = (:| [])
-#endif
 {-# INLINE splitNE #-}
 
 -- | /O(n)/ Splits a 'Text' into components of length @k@.  The last

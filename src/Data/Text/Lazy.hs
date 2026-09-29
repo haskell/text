@@ -1630,9 +1630,7 @@ splitOn :: HasCallStack
         -> Text
         -- ^ Input text.
         -> [Text]
-#if MIN_VERSION_base(4,22,0)
 splitOn "" = emptyError "splitOn"
-#endif
 splitOn pat = NE.toList . splitOnNE pat
 {-# INLINE [1] splitOn #-}
 
