@@ -5,6 +5,7 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 -- |
 -- Module      : Data.Text.Lazy
@@ -1659,14 +1660,15 @@ splitOnNE :: HasCallStack
         -> Text
         -- ^ Input text.
         -> NE.NonEmpty Text
-splitOnNE pat src
-    | null pat        = emptyError "splitOnNE"
-    | isSingleton pat = splitNE (== head pat) src
-    | otherwise       = NE.fromList $ go 0 (indices pat src) src
+splitOnNE pat src = case uncons pat of
+  Nothing -> emptyError "splitOnNE"
+  Just (c, "") -> splitNE (== c) src
+  _ -> go 0 (indices pat src) src
   where
-    go  _ []     cs = [cs]
+    go :: Int64 -> [Int64] -> Text -> NE.NonEmpty Text
+    go  _ []     cs = cs :| []
     go !i (x:xs) cs = let h :*: t = splitAtWord (x-i) cs
-                      in  h : (go (x+l) xs (dropWords l t))
+                      in  NE.cons h $ go (x+l) xs (dropWords l t)
     l = foldlChunks (\a (T.Text _ _ b) -> a + intToInt64 b) 0 pat
 {-# INLINE [1] splitOnNE #-}
 
@@ -1703,11 +1705,11 @@ split p = NE.toList . splitNE p
 --
 splitNE :: (Char -> Bool) -> Text -> NE.NonEmpty Text
 splitNE _ Empty = Empty :| []
-splitNE p (Chunk t0 ts0) = NE.fromList $ comb [] (T.splitNE p t0) ts0
-  where comb :: [T.Text] -> NE.NonEmpty T.Text -> Text -> [Text]
-        comb acc (s :| []) Empty        = revChunks (s:acc) : []
+splitNE p (Chunk t0 ts0) = comb [] (T.splitNE p t0) ts0
+  where comb :: [T.Text] -> NE.NonEmpty T.Text -> Text -> NE.NonEmpty Text
+        comb acc (s :| []) Empty        = revChunks (s:acc) :| []
         comb acc (s :| []) (Chunk t ts) = comb (s:acc) (T.splitNE p t) ts
-        comb acc (s :| ss : sss) ts     = revChunks (s:acc) : comb [] (ss :| sss) ts
+        comb acc (s :| ss : sss) ts     = NE.cons (revChunks (s:acc)) $ comb [] (ss :| sss) ts
 {-# INLINE splitNE #-}
 
 -- | /O(n)/ Splits a 'Text' into components of length @k@.  The last

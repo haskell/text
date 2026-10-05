@@ -1862,10 +1862,12 @@ splitOnNE :: HasCallStack
 splitOnNE pat@(Text _ _ l) src@(Text arr off len)
     | null pat        = emptyError "splitOnNE"
     | isSingleton pat = splitNE (== unsafeHead pat) src
-    | otherwise       = NonEmptyList.fromList $ go 0 (indices pat src)
+    | otherwise       = go 0 (indices pat src)
   where
-    go !s (x:xs) =  text arr (s+off) (x-s) : go (x+l) xs
-    go  s _      = [text arr (s+off) (len-s)]
+    go :: Int -> [Int] -> NonEmptyList.NonEmpty Text
+    go !s (x:xs) = NonEmptyList.cons (text arr (s+off) (x-s))
+                                     (go (x+l) xs)
+    go  s _      = text arr (s+off) (len-s) :| []
 {-# INLINE [1] splitOnNE #-}
 
 {-# RULES
