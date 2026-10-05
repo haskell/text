@@ -6,6 +6,7 @@
 {-# LANGUAGE PartialTypeSignatures #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# OPTIONS_GHC -Wno-partial-type-signatures #-}
@@ -1860,9 +1861,10 @@ splitOnNE :: HasCallStack
         -- ^ Input text.
         -> NonEmptyList.NonEmpty Text
 splitOnNE pat@(Text _ _ l) src@(Text arr off len)
-    | null pat        = emptyError "splitOnNE"
-    | isSingleton pat = splitNE (== unsafeHead pat) src
-    | otherwise       = go 0 (indices pat src)
+  = case uncons pat of
+      Nothing -> emptyError "splitOnNE"
+      Just (c, "") -> splitNE (== c) src
+      _ -> go 0 (indices pat src)
   where
     go :: Int -> [Int] -> NonEmptyList.NonEmpty Text
     go !s (x:xs) = NonEmptyList.cons (text arr (s+off) (x-s))
