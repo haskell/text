@@ -1702,7 +1702,7 @@ split p = NE.toList . splitNE p
 -- "" :| []
 --
 splitNE :: (Char -> Bool) -> Text -> NE.NonEmpty Text
-splitNE _ Empty = NE.singleton Empty
+splitNE _ Empty = Empty :| []
 splitNE p (Chunk t0 ts0) = NE.fromList $ comb [] (T.splitNE p t0) ts0
   where comb :: [T.Text] -> NE.NonEmpty T.Text -> Text -> [Text]
         comb acc (s :| []) Empty        = revChunks (s:acc) : []
