@@ -306,7 +306,7 @@ import Text.Printf (PrintfArg, formatArg, formatString)
 -- $setup
 -- >>> :set -package transformers
 -- >>> import Control.Monad.Trans.State
--- >>> import Data.Text
+-- >>> import Data.Text.Lazy
 -- >>> import qualified Data.Text as T
 -- >>> :seti -XOverloadedStrings
 
@@ -431,7 +431,7 @@ textDataType = mkDataType "Data.Text.Lazy.Text" [packConstr]
 --
 -- Performs replacement on invalid scalar values, so @'unpack' . 'pack'@ is not 'id':
 --
--- >>> Data.Text.Lazy.unpack (Data.Text.Lazy.pack "\55555")
+-- >>> unpack (pack "\55555")
 -- "\65533"
 pack ::
 #if defined(ASSERTS)
@@ -1602,13 +1602,13 @@ tailsNE ts@(Chunk t ts')
 --
 -- Examples:
 --
--- >>> Data.Text.Lazy.splitOn "\r\n" "a\r\nb\r\nd\r\ne"
+-- >>> splitOn "\r\n" "a\r\nb\r\nd\r\ne"
 -- ["a","b","d","e"]
 --
--- >>> Data.Text.Lazy.splitOn "aaa"  "aaaXaaaXaaaXaaa"
+-- >>> splitOn "aaa"  "aaaXaaaXaaaXaaa"
 -- ["","X","X","X",""]
 --
--- >>> Data.Text.Lazy.splitOn "x"    "x"
+-- >>> splitOn "x"    "x"
 -- ["",""]
 --
 -- and
@@ -1645,13 +1645,13 @@ splitOn pat
 --
 -- Examples:
 --
--- >>> Data.Text.Lazy.splitOnNE "\r\n" "a\r\nb\r\nd\r\ne"
+-- >>> splitOnNE "\r\n" "a\r\nb\r\nd\r\ne"
 -- "a" :| ["b","d","e"]
 --
--- >>> Data.Text.Lazy.splitOnNE "aaa"  "aaaXaaaXaaaXaaa"
+-- >>> splitOnNE "aaa"  "aaaXaaaXaaaXaaa"
 -- "" :| ["X","X","X",""]
 --
--- >>> Data.Text.Lazy.splitOnNE "x"    "x"
+-- >>> splitOnNE "x"    "x"
 -- "" :| [""]
 splitOnNE :: HasCallStack
         => Text
@@ -1682,10 +1682,10 @@ splitOnNE pat src = case uncons pat of
 -- resulting components do not contain the separators.  Two adjacent
 -- separators result in an empty component in the output.  eg.
 --
--- >>> Data.Text.Lazy.split (=='a') "aabbaca"
+-- >>> split (=='a') "aabbaca"
 -- ["","","bb","c",""]
 --
--- >>> Data.Text.Lazy.split (=='a') ""
+-- >>> split (=='a') ""
 -- [""]
 --
 split :: (Char -> Bool) -> Text -> [Text]
@@ -1697,10 +1697,10 @@ split p = NE.toList . splitNE p
 -- resulting components do not contain the separators.  Two adjacent
 -- separators result in an empty component in the output.  eg.
 --
--- >>> Data.Text.Lazy.splitNE (=='a') "aabbaca"
+-- >>> splitNE (=='a') "aabbaca"
 -- "" :| ["","bb","c",""]
 --
--- >>> Data.Text.Lazy.splitNE (=='a') ""
+-- >>> splitNE (=='a') ""
 -- "" :| []
 --
 splitNE :: (Char -> Bool) -> Text -> NE.NonEmpty Text
