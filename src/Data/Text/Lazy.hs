@@ -1639,10 +1639,8 @@ splitOn pat
     splitOn (singleton c) t = split (==c) t
   #-}
 
--- | /O(m+n)/ Break a 'Text' into pieces separated by the first 'Text'
--- argument (which cannot be an empty string), consuming the
--- delimiter. An empty delimiter is invalid, and will cause an error
--- to be raised.
+-- | Similar to 'splitOn', except that it returns @'NonEmpty' 'Text'@ instead
+-- of @['Text']@.
 --
 -- Examples:
 --
@@ -1654,20 +1652,6 @@ splitOn pat
 --
 -- >>> Data.Text.Lazy.splitOnNE "x"    "x"
 -- "" :| [""]
---
---
--- and
---
--- > intercalate s . splitOnNE s         == id
--- > splitOnNE (singleton c)             == splitNE (==c)
---
--- (Note: the string @s@ to split on above cannot be empty.)
---
--- This function is strict in its first argument, and lazy in its
--- second.
---
--- In (unlikely) bad cases, this function's time complexity degrades
--- towards /O(n*m)/.
 splitOnNE :: HasCallStack
         => Text
         -- ^ String to split on. If this string is empty, an error
