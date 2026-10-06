@@ -47,7 +47,7 @@ type Parser a = IParser Text a
 -- attempt to detect overflow, so a sufficiently long input may give
 -- incorrect results.  If you are worried about overflow, use
 -- 'Integer' for your result type.
-decimal :: Integral a => Reader a
+decimal :: Num a => Reader a
 {-# SPECIALIZE decimal :: Reader Int #-}
 {-# SPECIALIZE decimal :: Reader Int8 #-}
 {-# SPECIALIZE decimal :: Reader Int16 #-}
@@ -77,7 +77,7 @@ decimal txt
 -- attempt to detect overflow, so a sufficiently long input may give
 -- incorrect results.  If you are worried about overflow, use
 -- 'Integer' for your result type.
-hexadecimal :: Integral a => Reader a
+hexadecimal :: Num a => Reader a
 {-# SPECIALIZE hexadecimal :: Reader Int #-}
 {-# SPECIALIZE hexadecimal :: Reader Int8 #-}
 {-# SPECIALIZE hexadecimal :: Reader Int16 #-}
@@ -94,7 +94,7 @@ hexadecimal txt
     | otherwise              = hex txt
  where (h,t) = T.splitAt 2 txt
 
-hex :: Integral a => Reader a
+hex :: Num a => Reader a
 {-# SPECIALIZE hex :: Reader Int #-}
 {-# SPECIALIZE hex :: Reader Int8 #-}
 {-# SPECIALIZE hex :: Reader Int16 #-}
