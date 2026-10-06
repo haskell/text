@@ -1893,10 +1893,8 @@ split :: (Char -> Bool) -> Text -> [Text]
 split p = NonEmptyList.toList . splitNE p
 {-# INLINE split #-}
 
--- | /O(n)/ Splits a 'Text' into components delimited by separators,
--- where the predicate returns True for a separator element.  The
--- resulting components do not contain the separators.  Two adjacent
--- separators result in an empty component in the output.  eg.
+-- | Similar to 'split', except that it returns @'NonEmpty' 'Text'@ instead of
+-- @['Text']@.
 --
 -- >>> splitNE (=='a') "aabbaca"
 -- "" :| ["","bb","c",""]
