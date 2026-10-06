@@ -13,6 +13,7 @@ module Tests.Regressions
 import Control.Exception (ErrorCall, SomeException, handle, evaluate, displayException, try)
 import Data.Char (isLetter, chr)
 import GHC.Exts (Int(..), sizeofByteArray#)
+import Control.Exception (IOException)
 import System.IO
 import System.IO.Temp (withSystemTempFile)
 import Test.Tasty.HUnit (assertBool, assertEqual, assertFailure, (@?=))
@@ -36,6 +37,8 @@ import qualified Test.Tasty as F
 import qualified Test.Tasty.HUnit as F
 import Tests.Utils (withTempFile)
 import System.IO.Error (isFullError)
+import Control.Monad (when)
+import Data.Either (isRight)
 
 -- Reported by Michael Snoyman: UTF-8 encoding a large lazy bytestring
 -- caused either a segfault or attempt to allocate a negative number
@@ -213,6 +216,17 @@ t648 = withTempFile $ \_ h -> do
   line' <- T.hGetLine h
   T.append line "\r" @?= line'
 
+t714 :: IO ()
+t714 = withTempFile $ \name h -> do
+  hSetBinaryMode h True
+  hPutChar h '\xFF'
+  hClose h
+  e :: Either IOException T.Text <- try (T.readFile name)
+  when (isRight e) (assertFailure "should fail")
+  -- readFile must close the handle even in the case of an exception,
+  -- in which case the next line should succeed.
+  openFile name WriteMode >>= hClose
+
 tests :: F.TestTree
 tests = F.testGroup "Regressions"
     [ F.testCase "hGetContents_crash" hGetContents_crash
@@ -233,4 +247,5 @@ tests = F.testGroup "Regressions"
     , F.testCase "t559" t559
     , F.testCase "t633" t633
     , F.testCase "t648" t648
+    , F.testCase "t714" t714
     ]
