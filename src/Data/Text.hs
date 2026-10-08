@@ -6,7 +6,6 @@
 {-# LANGUAGE PartialTypeSignatures #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE ViewPatterns #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# OPTIONS_GHC -Wno-partial-type-signatures #-}
@@ -1863,7 +1862,7 @@ splitOnNE :: HasCallStack
 splitOnNE pat@(Text _ _ l) src@(Text arr off len)
   = case uncons pat of
       Nothing -> emptyError "splitOnNE"
-      Just (c, "") -> splitNE (== c) src
+      Just (c, cs) | null cs -> splitNE (== c) src
       _ -> go 0 (indices pat src)
   where
     go :: Int -> [Int] -> NonEmptyList.NonEmpty Text

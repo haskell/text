@@ -5,7 +5,6 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE ViewPatterns #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 -- |
 -- Module      : Data.Text.Lazy
@@ -1662,7 +1661,7 @@ splitOnNE :: HasCallStack
         -> NE.NonEmpty Text
 splitOnNE pat src = case uncons pat of
   Nothing -> emptyError "splitOnNE"
-  Just (c, "") -> splitNE (== c) src
+  Just (c, cs) | null cs -> splitNE (== c) src
   _ -> go 0 (indices pat src) src
   where
     go :: Int64 -> [Int64] -> Text -> NE.NonEmpty Text
