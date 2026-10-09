@@ -1662,12 +1662,15 @@ splitOnNE :: HasCallStack
 splitOnNE pat src = case uncons pat of
   Nothing -> emptyError "splitOnNE"
   Just (c, cs) | null cs -> splitNE (== c) src
-  _ -> go 0 (indices pat src) src
+  _ -> case indices pat src of
+         [] -> src :| []
+         (x:xs) -> let h :*: t = splitAtWord (x-0) src
+                   in  h :| go (x+l) xs (dropWords l t)
   where
-    go :: Int64 -> [Int64] -> Text -> NE.NonEmpty Text
-    go  _ []     cs = cs :| []
+    go :: Int64 -> [Int64] -> Text -> [Text]
+    go  _ []     cs = cs : []
     go !i (x:xs) cs = let h :*: t = splitAtWord (x-i) cs
-                      in  NE.cons h $ go (x+l) xs (dropWords l t)
+                      in  h : go (x+l) xs (dropWords l t)
     l = foldlChunks (\a (T.Text _ _ b) -> a + intToInt64 b) 0 pat
 {-# INLINE [1] splitOnNE #-}
 

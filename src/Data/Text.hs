@@ -1863,12 +1863,13 @@ splitOnNE pat@(Text _ _ l) src@(Text arr off len)
   = case uncons pat of
       Nothing -> emptyError "splitOnNE"
       Just (c, cs) | null cs -> splitNE (== c) src
-      _ -> go 0 (indices pat src)
+      _ -> case indices pat src of
+             [] -> text arr (0+off) (len-0) :| []
+             (x:xs) -> text arr (0+off) (x-0) :| go (x+l) xs
   where
-    go :: Int -> [Int] -> NonEmptyList.NonEmpty Text
-    go !s (x:xs) = NonEmptyList.cons (text arr (s+off) (x-s))
-                                     (go (x+l) xs)
-    go  s _      = text arr (s+off) (len-s) :| []
+    go :: Int -> [Int] -> [Text]
+    go !s (x:xs) = (text arr (s+off) (x-s)) : (go (x+l) xs)
+    go  s _      = text arr (s+off) (len-s) : []
 {-# INLINE [1] splitOnNE #-}
 
 {-# RULES
