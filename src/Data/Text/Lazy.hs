@@ -172,7 +172,9 @@ module Data.Text.Lazy
     -- ** Breaking into many substrings
     -- $split
     , splitOn
+    , splitOnNE
     , split
+    , splitNE
     , chunksOf
     -- , breakSubstring
 
@@ -303,7 +305,7 @@ import Text.Printf (PrintfArg, formatArg, formatString)
 -- $setup
 -- >>> :set -package transformers
 -- >>> import Control.Monad.Trans.State
--- >>> import Data.Text
+-- >>> import Data.Text.Lazy
 -- >>> import qualified Data.Text as T
 -- >>> :seti -XOverloadedStrings
 
@@ -428,7 +430,7 @@ textDataType = mkDataType "Data.Text.Lazy.Text" [packConstr]
 --
 -- Performs replacement on invalid scalar values, so @'unpack' . 'pack'@ is not 'id':
 --
--- >>> Data.Text.Lazy.unpack (Data.Text.Lazy.pack "\55555")
+-- >>> unpack (pack "\55555")
 -- "\65533"
 pack ::
 #if defined(ASSERTS)
@@ -1599,9 +1601,14 @@ tailsNE ts@(Chunk t ts')
 --
 -- Examples:
 --
--- > splitOn "\r\n" "a\r\nb\r\nd\r\ne" == ["a","b","d","e"]
--- > splitOn "aaa"  "aaaXaaaXaaaXaaa"  == ["","X","X","X",""]
--- > splitOn "x"    "x"                == ["",""]
+-- >>> splitOn "\r\n" "a\r\nb\r\nd\r\ne"
+-- ["a","b","d","e"]
+--
+-- >>> splitOn "aaa"  "aaaXaaaXaaaXaaa"
+-- ["","X","X","X",""]
+--
+-- >>> splitOn "x"    "x"
+-- ["",""]
 --
 -- and
 --
@@ -1622,15 +1629,9 @@ splitOn :: HasCallStack
         -> Text
         -- ^ Input text.
         -> [Text]
-splitOn pat src
-    | null pat        = emptyError "splitOn"
-    | isSingleton pat = split (== head pat) src
-    | otherwise       = go 0 (indices pat src) src
-  where
-    go  _ []     cs = [cs]
-    go !i (x:xs) cs = let h :*: t = splitAtWord (x-i) cs
-                      in  h : go (x+l) xs (dropWords l t)
-    l = foldlChunks (\a (T.Text _ _ b) -> a + intToInt64 b) 0 pat
+splitOn pat
+  | null pat = emptyError "splitOn"
+  | otherwise = NE.toList . splitOnNE pat
 {-# INLINE [1] splitOn #-}
 
 {-# RULES
@@ -1638,21 +1639,81 @@ splitOn pat src
     splitOn (singleton c) t = split (==c) t
   #-}
 
+-- | Similar to 'splitOn', except that it returns @'NonEmpty' 'Text'@ instead
+-- of @['Text']@.
+--
+-- Examples:
+--
+-- >>> splitOnNE "\r\n" "a\r\nb\r\nd\r\ne"
+-- "a" :| ["b","d","e"]
+--
+-- >>> splitOnNE "aaa"  "aaaXaaaXaaaXaaa"
+-- "" :| ["X","X","X",""]
+--
+-- >>> splitOnNE "x"    "x"
+-- "" :| [""]
+splitOnNE :: HasCallStack
+        => Text
+        -- ^ String to split on. If this string is empty, an error
+        -- will occur.
+        -> Text
+        -- ^ Input text.
+        -> NE.NonEmpty Text
+splitOnNE pat src = case uncons pat of
+  Nothing -> emptyError "splitOnNE"
+  Just (c, cs) | null cs -> splitNE (== c) src
+  _ -> case indices pat src of
+         [] -> src :| []
+         (x:xs) -> let h :*: t = splitAtWord (x-0) src
+                   in  h :| go (x+l) xs (dropWords l t)
+  where
+    go :: Int64 -> [Int64] -> Text -> [Text]
+    go  _ []     cs = cs : []
+    go !i (x:xs) cs = let h :*: t = splitAtWord (x-i) cs
+                      in  h : go (x+l) xs (dropWords l t)
+    l = foldlChunks (\a (T.Text _ _ b) -> a + intToInt64 b) 0 pat
+{-# INLINE [1] splitOnNE #-}
+
+{-# RULES
+"LAZY TEXT splitOnNE/singleton -> split/==" [~1] forall c t.
+    splitOnNE (singleton c) t = splitNE (==c) t
+  #-}
+
 -- | /O(n)/ Splits a 'Text' into components delimited by separators,
 -- where the predicate returns True for a separator element.  The
 -- resulting components do not contain the separators.  Two adjacent
 -- separators result in an empty component in the output.  eg.
 --
--- > split (=='a') "aabbaca" == ["","","bb","c",""]
--- > split (=='a') []        == [""]
+-- >>> split (=='a') "aabbaca"
+-- ["","","bb","c",""]
+--
+-- >>> split (=='a') ""
+-- [""]
+--
 split :: (Char -> Bool) -> Text -> [Text]
-split _ Empty = [Empty]
-split p (Chunk t0 ts0) = comb [] (T.split p t0) ts0
-  where comb acc (s:[]) Empty        = revChunks (s:acc) : []
-        comb acc (s:[]) (Chunk t ts) = comb (s:acc) (T.split p t) ts
-        comb acc (s:ss) ts           = revChunks (s:acc) : comb [] ss ts
-        comb _   []     _            = impossibleError "split"
+split p = NE.toList . splitNE p
 {-# INLINE split #-}
+
+-- | Similar to 'split', except that it returns @'NonEmpty' 'Text'@ instead of
+-- @['Text']@.
+--
+-- >>> splitNE (=='a') "aabbaca"
+-- "" :| ["","bb","c",""]
+--
+-- >>> splitNE (=='a') ""
+-- "" :| []
+--
+splitNE :: (Char -> Bool) -> Text -> NE.NonEmpty Text
+splitNE _ Empty = Empty :| []
+splitNE p (Chunk t0 ts0) = case (T.splitNE p t0, ts0) of
+                              (s :| [], Empty) -> revChunks (s:[]) :| []
+                              (s :| [], Chunk t ts) -> NE.fromList $ let (a :| as) = T.splitNE p t in comb (s:[]) a as ts
+                              (s :| ss : sss, ts) -> revChunks (s:[]) :| comb [] ss sss ts
+  where comb :: [T.Text] -> T.Text -> [T.Text] -> Text -> [Text]
+        comb acc s [] Empty        = revChunks (s:acc) : []
+        comb acc s [] (Chunk t ts) = let (a :| as) = T.splitNE p t in comb (s:acc) a as ts
+        comb acc s (ss : sss) ts   = revChunks (s:acc) : comb [] ss sss ts
+{-# INLINE splitNE #-}
 
 -- | /O(n)/ Splits a 'Text' into components of length @k@.  The last
 -- element may be shorter than the other chunks, depending on the
@@ -1928,6 +1989,17 @@ zipWith f t1 t2 = unstream (S.zipWith g (stream t1) (stream t2))
 show :: Show a => a -> Text
 show = pack . P.show
 
+-- >>> revChunks ["one", "two"]
+-- "twoone"
+--
+-- >>> revChunks ["one"]
+-- "one"
+--
+-- >>> revChunks [""]
+-- ""
+--
+-- >>> revChunks []
+-- ""
 revChunks :: [T.Text] -> Text
 revChunks = L.foldl' (flip chunk) Empty
 
