@@ -1705,11 +1705,14 @@ split p = NE.toList . splitNE p
 --
 splitNE :: (Char -> Bool) -> Text -> NE.NonEmpty Text
 splitNE _ Empty = Empty :| []
-splitNE p (Chunk t0 ts0) = comb [] (T.splitNE p t0) ts0
-  where comb :: [T.Text] -> NE.NonEmpty T.Text -> Text -> NE.NonEmpty Text
-        comb acc (s :| []) Empty        = revChunks (s:acc) :| []
-        comb acc (s :| []) (Chunk t ts) = comb (s:acc) (T.splitNE p t) ts
-        comb acc (s :| ss : sss) ts     = NE.cons (revChunks (s:acc)) $ comb [] (ss :| sss) ts
+splitNE p (Chunk t0 ts0) = case (T.splitNE p t0, ts0) of
+                              (s :| [], Empty) -> revChunks (s:[]) :| []
+                              (s :| [], Chunk t ts) -> NE.fromList $ let (a :| as) = T.splitNE p t in comb (s:[]) a as ts
+                              (s :| ss : sss, ts) -> revChunks (s:[]) :| comb [] ss sss ts
+  where comb :: [T.Text] -> T.Text -> [T.Text] -> Text -> [Text]
+        comb acc s [] Empty        = revChunks (s:acc) : []
+        comb acc s [] (Chunk t ts) = let (a :| as) = T.splitNE p t in comb (s:acc) a as ts
+        comb acc s (ss : sss) ts   = revChunks (s:acc) : comb [] ss sss ts
 {-# INLINE splitNE #-}
 
 -- | /O(n)/ Splits a 'Text' into components of length @k@.  The last
