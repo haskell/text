@@ -303,7 +303,7 @@ import Text.Printf (PrintfArg, formatArg, formatString)
 -- $setup
 -- >>> :set -package transformers
 -- >>> import Control.Monad.Trans.State
--- >>> import Data.Text
+-- >>> import Data.Text.Lazy
 -- >>> import qualified Data.Text as T
 -- >>> :seti -XOverloadedStrings
 
@@ -428,7 +428,7 @@ textDataType = mkDataType "Data.Text.Lazy.Text" [packConstr]
 --
 -- Performs replacement on invalid scalar values, so @'unpack' . 'pack'@ is not 'id':
 --
--- >>> Data.Text.Lazy.unpack (Data.Text.Lazy.pack "\55555")
+-- >>> unpack (pack "\55555")
 -- "\65533"
 pack ::
 #if defined(ASSERTS)
@@ -1928,6 +1928,17 @@ zipWith f t1 t2 = unstream (S.zipWith g (stream t1) (stream t2))
 show :: Show a => a -> Text
 show = pack . P.show
 
+-- >>> revChunks ["one", "two"]
+-- "twoone"
+--
+-- >>> revChunks ["one"]
+-- "one"
+--
+-- >>> revChunks [""]
+-- ""
+--
+-- >>> revChunks []
+-- ""
 revChunks :: [T.Text] -> Text
 revChunks = L.foldl' (flip chunk) Empty
 

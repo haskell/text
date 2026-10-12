@@ -1063,6 +1063,12 @@ center k c t
 --
 -- >>> transpose ["blue","red"]
 -- ["br","le","ud","e"]
+--
+-- >>> transpose [""]
+-- []
+--
+-- >>> transpose []
+-- []
 transpose :: [Text] -> [Text]
 transpose ts = P.map pack (L.transpose (P.map unpack ts))
 
@@ -1708,6 +1714,21 @@ spanEndM p t@(Text arr off len) = go (len-1)
 {-# INLINE spanEndM #-}
 
 -- | /O(n)/ Group characters in a string according to a predicate.
+--
+-- >>> groupBy (\a b -> a < b) "7890012"
+-- ["789","0","012"]
+--
+-- >>> groupBy (\_ _ -> True) "hello"
+-- ["hello"]
+--
+-- >>> groupBy (\_ _ -> False) "hello"
+-- ["h","e","l","l","o"]
+--
+-- >>> groupBy (P.error "not called") ""
+-- []
+--
+-- >>> groupBy (P.error "not called") ""
+-- []
 groupBy :: (Char -> Char -> Bool) -> Text -> [Text]
 groupBy p = loop
   where
@@ -1732,6 +1753,9 @@ group = groupBy (==)
 
 -- | /O(n)/ Return all initial segments of the given 'Text', shortest
 -- first.
+--
+-- >>> inits ""
+-- [""]
 inits :: Text -> [Text]
 inits = (NonEmptyList.toList $!) . initsNE
 
@@ -1749,6 +1773,9 @@ initsNE t = empty NonEmptyList.:| case t of
 
 -- | /O(n)/ Return all final segments of the given 'Text', longest
 -- first.
+--
+-- >>> tails ""
+-- [""]
 tails :: Text -> [Text]
 tails = (NonEmptyList.toList $!) . tailsNE
 
@@ -1834,6 +1861,9 @@ split p t
 -- | /O(n)/ Splits a 'Text' into components of length @k@.  The last
 -- element may be shorter than the other chunks, depending on the
 -- length of the input. Examples:
+--
+-- >>> chunksOf 3 ""
+-- []
 --
 -- >>> chunksOf 3 "foobarbaz"
 -- ["foo","bar","baz"]
