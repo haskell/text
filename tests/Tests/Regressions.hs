@@ -14,7 +14,7 @@ module Tests.Regressions
 import Control.Exception (ErrorCall, SomeException, handle, evaluate, displayException, try)
 import Control.Monad ((>=>))
 import Data.Char (isLetter, chr)
-import GHC.Exts (Int(..), sizeofByteArray#)
+import GHC.Exts (Int(..), IsString, sizeofByteArray#)
 import Control.Exception (IOException)
 import System.IO
 import System.IO.Temp (withSystemTempFile)
@@ -34,8 +34,10 @@ import qualified Data.Text.IO as T
 import qualified Data.Text.IO.Utf8 as UT
 import qualified Data.Text.Lazy as LT
 import qualified Data.Text.Lazy.IO as LT
+import qualified Data.Text.Lazy.Read as LT
 import qualified Data.Text.Lazy.Builder as TB
 import qualified Data.Text.Lazy.Encoding as LE
+import qualified Data.Text.Read as T
 import qualified Data.Text.Unsafe as T
 import qualified Test.Tasty as F
 import qualified Test.Tasty.HUnit as F
@@ -249,6 +251,31 @@ t714 = withTempFile $ \name h0 -> do
   checkGetContents (LT.hGetContents >=> \t -> try @IOException (LT.length t `seq` pure ()))
   checkGetContents (try @E.UnicodeException . UT.hGetContents)
 
+readBig :: (Eq a, Show a, IsString a) => String -> Int -> (Int -> a -> a) -> (a -> Either String (Integer, a)) -> F.TestTree
+readBig name base repl rd = F.testCase name $ do
+  let n = 300000
+      s = repl n (if base == 10 then "9" else "F")
+  -- Should be instantaneous with a quasilinear parser,
+  -- and take a noticeable time (many seconds) with a quadratic parser
+  assertEqual ("Read a large base-" ++ show base ++ " number in reasonable time")
+    (Abbrev (Right (toInteger base ^ n - 1, ""))) (Abbrev (rd s))
+
+-- | Abbreviate too long Show outputs
+newtype Abbrev a = Abbrev a deriving Eq
+
+instance Show a => Show (Abbrev a) where
+  show (Abbrev x) =
+    let s = take 100 (show x) in
+    if length s == 100 then s ++ " (...)" else s
+
+readBigNumbers :: F.TestTree
+readBigNumbers = F.testGroup "readBigNumbers"
+    [ readBig "DecimalStrict" 10 T.replicate T.decimal
+    , readBig "HexStrict"     16 T.replicate T.hexadecimal
+    , readBig "DecimalLazy"   10 (LT.replicate . fromIntegral) LT.decimal
+    , readBig "HexLazy"       16 (LT.replicate . fromIntegral) LT.hexadecimal
+    ]
+
 tests :: F.TestTree
 tests = F.testGroup "Regressions"
     [ F.testCase "hGetContents_crash" hGetContents_crash
@@ -270,4 +297,5 @@ tests = F.testGroup "Regressions"
     , F.testCase "t633" t633
     , F.testCase "t648" t648
     , F.testCase "t714" t714
+    , readBigNumbers
     ]
