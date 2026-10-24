@@ -16,6 +16,7 @@ import qualified Data.Text.Lazy as LT
 import qualified Data.Text.Lazy.Builder as LTB
 import qualified Data.Text.Lazy.Builder.Int as Int
 import Data.Int (Int64)
+import Numeric (showHex)
 
 benchmark :: Benchmark
 benchmark = bgroup "Builder"
@@ -37,6 +38,18 @@ benchmark = bgroup "Builder"
           flip map numbers $ \n ->
           (bench (show (length (show n))) $ nf show n)
         ]
+      ]
+    , bgroup "decInteger"
+      [ bench "Txt64" $ nf (LTB.toLazyText . Int.decimalInteger) (10 ^ (64 :: Int) :: Integer)
+      , bench "Str64" $ nf (LTB.toLazyText . LTB.fromString . show) (10 ^ (64 :: Int) :: Integer)
+      , bench "Txt6400" $ nf (LTB.toLazyText . Int.decimalInteger) (10 ^ (6400 :: Int) :: Integer)
+      , bench "Str6400" $ nf (LTB.toLazyText . LTB.fromString . show) (10 ^ (6400 :: Int) :: Integer)
+      ]
+    , bgroup "hexInteger"
+      [ bench "Txt64" $ nf (LTB.toLazyText . Int.hexadecimalInteger) (10 ^ (64 :: Int) :: Integer)
+      , bench "Str64" $ nf (LTB.toLazyText . LTB.fromString . flip showHex "") (10 ^ (64 :: Int) :: Integer)
+      , bench "Txt6400" $ nf (LTB.toLazyText . Int.hexadecimalInteger) (10 ^ (6400 :: Int) :: Integer)
+      , bench "Str6400" $ nf (LTB.toLazyText . LTB.fromString . flip showHex "") (10 ^ (6400 :: Int) :: Integer)
       ]
     ]
   where

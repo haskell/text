@@ -1,4 +1,4 @@
-{-# LANGUAGE BangPatterns, RankNTypes, ScopedTypeVariables #-}
+{-# LANGUAGE BangPatterns, NamedFieldPuns, RankNTypes, ScopedTypeVariables #-}
 {-# LANGUAGE Trustworthy #-}
 
 -- Module:      Data.Text.Lazy.Builder.Int
@@ -14,6 +14,9 @@ module Data.Text.Lazy.Builder.Int
     (
       decimal
     , hexadecimal
+    , integer
+    , decimalInteger
+    , hexadecimalInteger
     ) where
 
 import Data.Int (Int8, Int16, Int32, Int64)
@@ -21,10 +24,9 @@ import Data.Monoid (mempty)
 import qualified Data.ByteString.Unsafe as B
 import Data.Text.Internal.Builder.Functions (i2d)
 import Data.Text.Internal.Builder
-import Data.Text.Internal.Builder.Int.Digits (digits)
+import Data.Text.Internal.Builder.Int.Digits (digits, Base(..), base10, base16)
 import Data.Text.Array
 import Data.Word (Word, Word8, Word16, Word32, Word64)
-import GHC.Base (quotInt, remInt)
 import Control.Monad.ST
 
 decimal :: Integral a => a -> Builder
@@ -38,7 +40,7 @@ decimal :: Integral a => a -> Builder
 {-# RULES "decimal/Word16" decimal = positive :: Word16 -> Builder #-}
 {-# RULES "decimal/Word32" decimal = positive :: Word32 -> Builder #-}
 {-# RULES "decimal/Word64" decimal = positive :: Word64 -> Builder #-}
-{-# RULES "decimal/Integer" decimal = integer 10 :: Integer -> Builder #-}
+{-# RULES "decimal/Integer" decimal = decimalInteger :: Integer -> Builder #-}
 decimal i = decimal' (<= -128) i
 {-# NOINLINE decimal #-}
 
@@ -161,7 +163,7 @@ hexadecimal i
 hexInteger :: Integer -> Builder
 hexInteger i
     | i < 0     = error hexErrMsg
-    | otherwise = integer 16 i
+    | otherwise = hexadecimalInteger i
 
 hexErrMsg :: String
 hexErrMsg = "Data.Text.Lazy.Builder.Int.hexadecimal: applied to negative number"
@@ -172,19 +174,21 @@ hexDigit n
     | otherwise = singleton $! toEnum (fromIntegral n + 87)
 {-# INLINE hexDigit #-}
 
-data T = T !Integer !Int
+decimalInteger :: Integer -> Builder
+decimalInteger = integer base10 boundedDecimal boundedDecimal
 
-integer :: Int -> Integer -> Builder
-integer 10 i
-    | i' <- fromInteger i, toInteger i' == i = decimal (i' :: Int)
-integer 16 i
-    | i' <- fromInteger i, toInteger i' == i = hexadecimal (i' :: Int)
-integer base i
+hexadecimalInteger :: Integer -> Builder
+hexadecimalInteger = integer base16 hexadecimal hexadecimal
+
+{-# INLINE integer #-}
+integer :: Base -> (Int -> Builder) -> (Word -> Builder) -> Integer -> Builder
+integer _ fromInt _ i
+    | i' <- fromInteger i, toInteger i' == i = fromInt i'
+integer (Base { base, maxWord, maxDigits }) _ fromWord i
     | i < 0     = singleton '-' <> go (-i)
     | otherwise = go i
   where
-    go n | n < maxInt = int (fromInteger n)
-         | otherwise  = putH (splitf (maxInt * maxInt) n)
+    go n = putH (splitf (maxWord * maxWord) n)
 
     splitf p n
       | p > n       = [n]
@@ -199,42 +203,23 @@ integer base i
                         (q, r) -> q : r : splitb p ns
     splitb _ _      = []
 
-    T maxInt10 maxDigits10 =
-        until ((>mi) . (*10) . fstT) (\(T n d) -> T (n*10) (d+1)) (T 10 1)
-      where mi = toInteger (maxBound :: Int)
-    T maxInt16 maxDigits16 =
-        until ((>mi) . (*16) . fstT) (\(T n d) -> T (n*16) (d+1)) (T 16 1)
-      where mi = toInteger (maxBound :: Int)
-
-    fstT (T a _) = a
-
-    maxInt | base == 10 = maxInt10
-           | otherwise  = maxInt16
-    maxDigits | base == 10 = maxDigits10
-              | otherwise  = maxDigits16
-
-    putH (n:ns) = case n `quotRem` maxInt of
+    putH (n:ns) = case n `quotRem` maxWord of
                     (x, y)
-                        | q > 0     -> int q <> pblock r <> putB ns
-                        | otherwise -> int r <> putB ns
+                        | q > 0     -> fromWord q <> pblock r <> putB ns
+                        | otherwise -> fromWord r <> putB ns
                         where q = fromInteger x
                               r = fromInteger y
     putH _ = error "putH: the impossible happened"
 
-    putB (n:ns) = case n `quotRem` maxInt of
+    putB (n:ns) = case n `quotRem` maxWord of
                     (x, y) -> pblock q <> pblock r <> putB ns
                         where q = fromInteger x
                               r = fromInteger y
     putB _ = Data.Monoid.mempty
-
-    int :: Int -> Builder
-    int x | base == 10 = decimal x
-          | otherwise  = hexadecimal x
 
     pblock = loop maxDigits
       where
         loop !d !n
             | d == 1    = hexDigit n
             | otherwise = loop (d-1) q <> hexDigit r
-            where q = n `quotInt` base
-                  r = n `remInt` base
+            where (q, r) = n `quotRem` base
