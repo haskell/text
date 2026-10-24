@@ -11,7 +11,7 @@ import Numeric (showHex)
 import Test.Tasty (TestTree, testGroup, localOption, mkTimeout)
 import Test.Tasty.QuickCheck (testProperty)
 import Test.QuickCheck
-import Tests.QuickCheckUtils ()
+import Tests.QuickCheckUtils (BigInt(Big))
 import qualified Data.Text as T
 import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.Read as TL
@@ -19,22 +19,33 @@ import qualified Data.Text.Read as T
 
 -- Reading.
 
-t_decimal (n::Int) s =
+t_decimal n s =
     T.signed T.decimal (T.pack (show n) `T.append` t) === Right (n,t)
     where t = T.dropWhile isDigit s
-tl_decimal (n::Int) s =
+tl_decimal n s =
     TL.signed TL.decimal (TL.pack (show n) `TL.append` t) === Right (n,t)
     where t = TL.dropWhile isDigit s
-t_hexadecimal m s ox =
+
+t_decimal_int (n :: Int) = t_decimal n
+t_decimal_integer (Big n) = t_decimal n
+
+tl_decimal_int (n :: Int) = tl_decimal n
+tl_decimal_integer (Big n) = tl_decimal n
+
+t_hexadecimal n s ox =
     T.hexadecimal (T.concat [p, T.pack (showHex n ""), t]) === Right (n,t)
     where t = T.dropWhile isHexDigit s
           p = if ox then "0x" else ""
-          n = getPositive m :: Int
-tl_hexadecimal m s ox =
+tl_hexadecimal n s ox =
     TL.hexadecimal (TL.concat [p, TL.pack (showHex n ""), t]) === Right (n,t)
     where t = TL.dropWhile isHexDigit s
           p = if ox then "0x" else ""
-          n = getPositive m :: Int
+
+t_hexadecimal_int (Positive (n :: Int)) = t_hexadecimal n
+t_hexadecimal_integer (Positive (Big n)) = t_hexadecimal n
+
+tl_hexadecimal_int (Positive (n :: Int)) = tl_hexadecimal n
+tl_hexadecimal_integer (Positive (Big n)) = tl_hexadecimal n
 
 isFloaty c = c `elem` ("+-.0123456789eE" :: String)
 
@@ -75,10 +86,15 @@ tl_read_double tol n s =
 testRead :: TestTree
 testRead =
   testGroup "read" [
-    testProperty "t_decimal" t_decimal,
-    testProperty "tl_decimal" tl_decimal,
-    testProperty "t_hexadecimal" t_hexadecimal,
-    testProperty "tl_hexadecimal" tl_hexadecimal,
+    testProperty "t_decimal_int" t_decimal_int,
+    testProperty "tl_decimal_int" tl_decimal_int,
+    testProperty "t_hexadecimal_int" t_hexadecimal_int,
+    testProperty "tl_hexadecimal_int" tl_hexadecimal_int,
+
+    testProperty "t_decimal_integer" t_decimal_integer,
+    testProperty "tl_decimal_integer" tl_decimal_integer,
+    testProperty "t_hexadecimal_integer" t_hexadecimal_integer,
+    testProperty "tl_hexadecimal_integer" tl_hexadecimal_integer,
 
     testProperty "t_double" $ t_read_double 1e-13,
     testProperty "tl_double" $ tl_read_double 1e-13,
