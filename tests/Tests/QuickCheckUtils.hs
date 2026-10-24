@@ -112,7 +112,10 @@ newtype BigInt = Big Integer
                deriving (Eq, Show)
 
 instance Arbitrary BigInt where
-    arbitrary = choose (1::Int,200) >>= \e -> Big <$> choose (10^(e-1),10^e)
+    arbitrary = arbitrary >>= \sign ->
+      choose (1::Int,200) >>= \e ->
+        let s = if sign then id else negate in
+        Big . s <$> choose (10^(e-1),10^e)
     shrink (Big a) = [Big (a `div` 2^(l-e)) | e <- shrink l]
       where l = truncate (log (fromIntegral a) / log 2 :: Double) :: Integer
 
