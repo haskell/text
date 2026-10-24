@@ -5,6 +5,7 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -109,7 +110,7 @@ instance Arbitrary TL.Text where
     shrink = map TL.pack . shrink . TL.unpack
 
 newtype BigInt = Big Integer
-               deriving (Eq, Show)
+               deriving (Eq, Ord, Show, Num)
 
 instance Arbitrary BigInt where
     arbitrary = arbitrary >>= \sign ->
