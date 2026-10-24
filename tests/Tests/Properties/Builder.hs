@@ -62,6 +62,7 @@ tb_hex :: (Integral a, Show a) => a -> Property
 tb_hex = (TB.toLazyText . TB.hexadecimal) `eq` (TL.pack . flip showHex "")
 
 tb_hexadecimal_integer (a::Integer) = tb_hex a
+tb_hexadecimal_integer_big (Big a) = tb_hex a
 tb_hexadecimal_int (a::Int) = tb_hex a
 tb_hexadecimal_int8 (a::Int8) = tb_hex a
 tb_hexadecimal_int16 (a::Int16) = tb_hex a
@@ -134,6 +135,7 @@ testBuilder =
       testProperty "tb_hexadecimal_int32" tb_hexadecimal_int32,
       testProperty "tb_hexadecimal_int64" tb_hexadecimal_int64,
       testProperty "tb_hexadecimal_integer" tb_hexadecimal_integer,
+      testProperty "tb_hexadecimal_integer_big" tb_hexadecimal_integer_big,
       testProperty "tb_hexadecimal_word" tb_hexadecimal_word,
       testProperty "tb_hexadecimal_word8" tb_hexadecimal_word8,
       testProperty "tb_hexadecimal_word16" tb_hexadecimal_word16,
