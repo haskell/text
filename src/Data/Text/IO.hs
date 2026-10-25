@@ -57,6 +57,7 @@ import GHC.IO.Handle.Internals (augmentIOError, hClose_help, wantReadableHandle)
 import GHC.IO.Handle.Types (BufferMode(..), Handle__(..), HandleType(..))
 import System.IO (hGetBuffering, hFileSize, hSetBuffering, hTell)
 import System.IO.Error (isEOFError)
+import Control.Exception (SomeException)
 
 -- | The 'readFile' function reads a file and returns the contents of
 -- the file as a string.  The entire file is read strictly, as with
@@ -151,7 +152,16 @@ hGetChunk h = wantReadableHandle "hGetChunk" h readSingleChunk
 hGetContents :: Handle -> IO Text
 hGetContents h = do
   chooseGoodBuffering h
-  wantReadableHandle "hGetContents" h readAll
+  r <- wantReadableHandle "hGetContents" h readAll
+  case r of
+    Left e | Just ioe <- E.fromException e -> E.throwIO (augmentIOError ioe "hGetContents" h)
+    Left e -> E.throwIO
+#if __GLASGOW_HASKELL__ >= 912
+      (E.NoBacktrace e)
+#else
+      e
+#endif
+    Right ts -> return $! T.concat ts
  where
   readAll hh@Handle__{..} = do
     let readChunks = do
@@ -161,9 +171,13 @@ hGetContents h = do
           if eof
             then return [t]
             else (t:) `fmap` readChunks
-    ts <- readChunks
-    (hh', _) <- hClose_help hh
-    return (hh'{haType=ClosedHandle}, T.concat ts)
+    r <- E.try readChunks :: IO (Either SomeException [Text])
+    (hh', me) <- hClose_help hh
+    let rr = case (r, me) of
+               (Left e, _) -> Left e
+               (Right _, Just e) -> Left e
+               (Right chunks, Nothing) -> Right chunks
+    return (hh'{haType=ClosedHandle}, rr)
 
 -- | Use a more efficient buffer size if we're reading in
 -- block-buffered mode with the default buffer size.  When we can
