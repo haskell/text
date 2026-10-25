@@ -19,6 +19,7 @@
 module Benchmarks.ReadNumbers
     ( initEnv
     , benchmark
+    , micro
     ) where
 
 import Data.Foldable (Foldable(..))
@@ -30,6 +31,7 @@ import qualified Data.Text.Lazy as TL
 import qualified Data.Text.Lazy.IO as TL
 import qualified Data.Text.Lazy.Read as TL
 import qualified Data.Text.Read as T
+import Numeric (readHex)
 
 type Env = ([T.Text], [TL.Text])
 
@@ -62,6 +64,25 @@ benchmark ~(t, tl) =
     int = id
     double :: Double -> Double
     double = id
+
+-- Microbenchmarks with no run-time dependencies
+micro :: Benchmark
+micro = bgroup "ReadBigNumber"
+  [ bgroup "Decimal"
+      [ bench "StrictText" $ whnf (wrap T.decimal :: T.Text -> Integer) tn
+      , bench "LazyText" $ whnf (wrap TL.decimal :: TL.Text -> Integer) ln
+      , bench "String" $ whnf (read :: String -> Integer) n
+      ]
+  , bgroup "Hex"
+      [ bench "StrictText" $ whnf (wrap T.hexadecimal :: T.Text -> Integer) tn
+      , bench "LazyText" $ whnf (wrap TL.hexadecimal :: TL.Text -> Integer) ln
+      , bench "String" $ whnf (readHex :: String -> [(Integer, String)]) n
+      ]
+  ] where
+    tn = T.pack n
+    ln = TL.fromChunks (T.singleton <$> n) -- Completely artificial microbench with many chunks and it still beats @read@
+    n = replicate 1000 '9'
+    wrap f x | Right (i, _) <- f x = i | otherwise = undefined
 
 text :: (Ord a, Num a) => (t -> Either String (a,t)) -> [t] -> a
 text reader = foldl' go 1000000
