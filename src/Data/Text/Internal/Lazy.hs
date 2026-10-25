@@ -26,6 +26,7 @@ module Data.Text.Internal.Lazy
     , empty
     , foldrChunks
     , foldlChunks
+    , splitAtWord
     -- * Data type invariant and abstraction functions
 
     -- $invariant
@@ -42,6 +43,7 @@ module Data.Text.Internal.Lazy
     ) where
 
 import Data.Bits (shiftL)
+import Data.Int (Int64)
 import Data.Text ()
 import Foreign.Storable (sizeOf)
 import qualified Data.Text.Array as A
@@ -150,3 +152,16 @@ equal (Chunk (T.Text arrA offA lenA) as) (Chunk (T.Text arrB offB lenB) bs) =
             as `equal` bs
       GT -> A.equal arrA offA arrB offB lenB &&
             Chunk (T.Text arrA (offA + lenB) (lenA - lenB)) as `equal` bs
+
+-- | /O(n)/ 'splitAtWord' @n t@ returns a pair whose first
+-- element is a prefix of @t@ whose chunks contain @n@ 'Word8'
+-- values, and whose second is the remainder of the string.
+splitAtWord :: Int64 -> Text -> (Text, Text)
+splitAtWord !_ Empty = (empty, empty)
+splitAtWord x ccs@(Chunk c@(T.Text arr off len) cs)
+    | y >= len  = let !(h, t) = splitAtWord (x-fromIntegral len) cs
+                  in (Chunk c h, t)
+    | x == 0 = (empty, ccs)
+    | otherwise = ( Chunk (T.Text arr off y) empty
+                  , Chunk (T.Text arr (off+y) (len-y)) cs)
+    where y = fromIntegral x
