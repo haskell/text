@@ -245,10 +245,9 @@ import qualified Data.Text.Internal as T
 import qualified Data.Text.Internal.Fusion.Common as S
 import qualified Data.Text.Unsafe as T
 import qualified Data.Text.Internal.Lazy.Fusion as S
-import Data.Text.Internal.Fusion.Types (PairS(..))
 import Data.Text.Internal.Lazy.Fusion (stream, unstream)
-import Data.Text.Internal.Lazy (Text(..), chunk, empty, foldlChunks,
-                                foldrChunks, smallChunkSize, defaultChunkSize, equal, LazyText)
+import Data.Text.Internal.Lazy (Text(..), chunk, empty, foldlChunks, foldrChunks, splitAtWord,
+                                smallChunkSize, defaultChunkSize, equal, LazyText)
 import Data.Text.Internal (firstf, safe, text)
 import Data.Text.Internal.Reverse (reverseNonEmpty)
 import Data.Text.Internal.Transformation (mapNonEmpty, toCaseFoldNonEmpty, toLowerNonEmpty, toUpperNonEmpty, filter_)
@@ -1349,19 +1348,6 @@ splitAt = loop
          mx = intToInt64 P.maxBound
          m = T.measureOff (int64ToInt n) t
 
-
--- | /O(n)/ 'splitAtWord' @n t@ returns a strict pair whose first
--- element is a prefix of @t@ whose chunks contain @n@ 'Word8'
--- values, and whose second is the remainder of the string.
-splitAtWord :: Int64 -> Text -> PairS Text Text
-splitAtWord !_ Empty = empty :*: empty
-splitAtWord x (Chunk c@(T.Text arr off len) cs)
-    | y >= len  = let h :*: t = splitAtWord (x-intToInt64 len) cs
-                  in  Chunk c h :*: t
-    | otherwise = chunk (text arr off y) empty :*:
-                  chunk (text arr (off+y) (len-y)) cs
-    where y = int64ToInt x
-
 -- | /O(n+m)/ Find the first instance of @needle@ (which must be
 -- non-'null') in @haystack@.  The first element of the returned tuple
 -- is the prefix of @haystack@ before @needle@ is matched.  The second
@@ -1391,8 +1377,7 @@ breakOn pat src
     | null pat  = emptyError "breakOn"
     | otherwise = case indices pat src of
                     []    -> (src, empty)
-                    (x:_) -> let h :*: t = splitAtWord x src
-                             in  (h, t)
+                    (x:_) -> splitAtWord x src
 
 -- | /O(n+m)/ Similar to 'breakOn', but searches from the end of the string.
 --
@@ -1435,7 +1420,7 @@ breakOnAll pat src
     | null pat  = emptyError "breakOnAll"
     | otherwise = go 0 empty src (indices pat src)
   where
-    go !n p s (x:xs) = let h :*: t = splitAtWord (x-n) s
+    go !n p s (x:xs) = let (h, t) = splitAtWord (x-n) s
                            h'      = append p h
                        in (h',t) : go x h' t xs
     go _  _ _ _      = []
@@ -1666,12 +1651,12 @@ splitOnNE pat src = case uncons pat of
   Just (c, cs) | null cs -> splitNE (== c) src
   _ -> case indices pat src of
          [] -> src :| []
-         (x:xs) -> let h :*: t = splitAtWord (x-0) src
+         (x:xs) -> let (h, t) = splitAtWord (x-0) src
                    in  h :| go (x+l) xs (dropWords l t)
   where
     go :: Int64 -> [Int64] -> Text -> [Text]
     go  _ []     cs = cs : []
-    go !i (x:xs) cs = let h :*: t = splitAtWord (x-i) cs
+    go !i (x:xs) cs = let (h, t) = splitAtWord (x-i) cs
                       in  h : go (x+l) xs (dropWords l t)
     l = foldlChunks (\a (T.Text _ _ b) -> a + intToInt64 b) 0 pat
 {-# INLINE [1] splitOnNE #-}
