@@ -116,12 +116,11 @@ lazyReadBuffered h hh@Handle__{..} = do
    (do t <- readChunk hh buf
        ts <- lazyRead h
        return (hh, chunk t ts)) `E.catch` \e -> do
-         (hh', _) <- hClose_help hh
-         if isEOFError e
-           then return $ if isEmptyBuffer buf
-                         then (hh', empty)
-                         else (hh', L.singleton '\r')
-           else E.throwIO (augmentIOError e "hGetContents" h)
+          (hh', _) <- hClose_help hh
+          let r | not (isEOFError e) = E.throw (augmentIOError e "hGetContents" h)
+                | isEmptyBuffer buf = empty
+                | otherwise = L.singleton '\r'
+          return (hh', r)
 
 -- | Read a single line from a handle.
 hGetLine :: Handle -> IO Text

@@ -4,6 +4,7 @@
 {-# LANGUAGE MagicHash #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Tests.Regressions
     (
@@ -11,6 +12,7 @@ module Tests.Regressions
     ) where
 
 import Control.Exception (ErrorCall, SomeException, handle, evaluate, displayException, try)
+import Control.Monad ((>=>))
 import Data.Char (isLetter, chr)
 import GHC.Exts (Int(..), sizeofByteArray#)
 import Control.Exception (IOException)
@@ -29,7 +31,9 @@ import qualified Data.Text.Internal as T
 import qualified Data.Text.Internal.Lazy.Encoding.Fusion as E
 import qualified Data.Text.Internal.Lazy.Fusion as LF
 import qualified Data.Text.IO as T
+import qualified Data.Text.IO.Utf8 as UT
 import qualified Data.Text.Lazy as LT
+import qualified Data.Text.Lazy.IO as LT
 import qualified Data.Text.Lazy.Builder as TB
 import qualified Data.Text.Lazy.Encoding as LE
 import qualified Data.Text.Unsafe as T
@@ -37,8 +41,8 @@ import qualified Test.Tasty as F
 import qualified Test.Tasty.HUnit as F
 import Tests.Utils (withTempFile)
 import System.IO.Error (isFullError)
-import Control.Monad (when)
-import Data.Either (isRight)
+import Data.Either (isLeft)
+import GHC.Stack (HasCallStack)
 
 -- Reported by Michael Snoyman: UTF-8 encoding a large lazy bytestring
 -- caused either a segfault or attempt to allocate a negative number
@@ -217,15 +221,33 @@ t648 = withTempFile $ \_ h -> do
   T.append line "\r" @?= line'
 
 t714 :: IO ()
-t714 = withTempFile $ \name h -> do
-  hSetBinaryMode h True
-  hPutChar h '\xFF'
-  hClose h
-  e :: Either IOException T.Text <- try (T.readFile name)
-  when (isRight e) (assertFailure "should fail")
-  -- readFile must close the handle even in the case of an exception,
-  -- in which case the next line should succeed.
-  openFile name WriteMode >>= hClose
+t714 = withTempFile $ \name h0 -> do
+  hSetBinaryMode h0 True
+  hPutChar h0 '\xFF'
+  hClose h0
+
+  -- readFile must close the handle on exception
+  let checkReadFile :: HasCallStack => (String -> IO (Either e a)) -> IO ()
+      checkReadFile rf = do
+        rf name >>= assertBool "should fail" . isLeft
+        -- readFile must close the handle even in the case of an exception,
+        -- in which case the next line should succeed.
+        -- Use AppendMode to not truncate the file.
+        openFile name AppendMode >>= hClose
+  checkReadFile (try @IOException . T.readFile)
+  checkReadFile (LT.readFile >=> \t -> try @IOException (LT.length t `seq` pure ()))
+  checkReadFile (try @E.UnicodeException . UT.readFile)
+
+  -- hGetContents must close the handle
+  let checkGetContents :: HasCallStack => (Handle -> IO (Either e a)) -> IO ()
+      checkGetContents gc = do
+        h <- openFile name ReadMode
+        gc h >>= assertBool "should fail" . isLeft
+        closed <- hIsClosed h
+        assertBool "should be closed" closed
+  checkGetContents (try @IOException . T.hGetContents)
+  checkGetContents (LT.hGetContents >=> \t -> try @IOException (LT.length t `seq` pure ()))
+  checkGetContents (try @E.UnicodeException . UT.hGetContents)
 
 tests :: F.TestTree
 tests = F.testGroup "Regressions"
