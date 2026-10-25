@@ -94,6 +94,7 @@ main = do
             , env (Pure.initEnv (tf "japanese.txt")) (Pure.benchmark "japanese")
             ]
         , env (ReadNumbers.initEnv (tf "numbers.txt")) ReadNumbers.benchmark
+        , ReadNumbers.micro
         , env (Replace.initEnv (tf "russian.txt")) (Replace.benchmark "принимая" "своем")
         , env (Search.initEnv (tf "russian.txt")) (Search.benchmark "принимая")
         , env (Stream.initEnv (tf "russian.txt")) Stream.benchmark

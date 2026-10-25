@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, UnboxedTuples, CPP #-}
+{-# LANGUAGE BangPatterns, NamedFieldPuns, OverloadedStrings, UnboxedTuples, CPP #-}
 {-# LANGUAGE Trustworthy #-}
 
 -- |
@@ -29,6 +29,8 @@ import Data.Text.Internal as T (Text(..))
 import Data.Text.Array as A
 import Data.Text.Internal.Private (spanAscii_)
 import Data.Text.Internal.Read
+import Data.Text.Internal.Builder.Int.Digits (Base(..), base10, base16)
+import qualified Data.Text.Unsafe as TU
 import Data.Word (Word, Word8, Word16, Word32, Word64)
 
 -- | Read some text.  If the read succeeds, return its value and the
@@ -61,9 +63,8 @@ decimal :: Integral a => Reader a
 {-# SPECIALIZE decimal :: Reader Word64 #-}
 decimal txt
     | T.null h  = Left "input does not start with a digit"
-    | otherwise = Right (T.foldl' go 0 h, t)
+    | otherwise = Right (integer base10 (fromIntegral . digitToInt) h, t)
   where (# h,t #)  = spanAscii_ (\w -> w - ord8 '0' < 10) txt
-        go n d = (n * 10 + fromIntegral (digitToInt d))
 
 -- | Read a hexadecimal integer, consisting of an optional leading
 -- @\"0x\"@ followed by at least one hexadecimal digit. Input is
@@ -108,9 +109,38 @@ hex :: Integral a => Reader a
 {-# SPECIALIZE hex :: Reader Word64 #-}
 hex txt
     | T.null h  = Left "input does not start with a hexadecimal digit"
-    | otherwise = Right (T.foldl' go 0 h, t)
+    | otherwise = Right (integer base16 (fromIntegral . hexDigitToInt) h, t)
   where (# h,t #)  = spanAscii_ (\w -> w - ord8 '0' < 10 || w - ord8 'A' < 6 || w - ord8 'a' < 6) txt
-        go n d = (n * 16 + fromIntegral (hexDigitToInt d))
+
+-- | Internal function to read a base-@base@ number faster than the naive quadratic algorithm.
+--
+-- The input text must only contain digits. Overflows are allowed.
+integer :: Integral a => Base -> (Char -> Word) -> Text -> a
+integer (Base { base, maxWord, maxDigits }) digit t0
+  | TU.lengthWord8 t0 <= maxDigits = fromIntegral (word base digit t0)
+  | otherwise = scanWords [word' (TU.takeWord8 mswSize t0)] (TU.dropWord8 mswSize t0)
+  where
+    -- Split the most significant word from t0 so the remainder's length is a multiple of maxDigits
+    mswSize = (TU.lengthWord8 t0 - 1) `mod` maxDigits + 1
+    word' = fromIntegral . word base digit
+
+    -- The length of t is a positive multiple of maxDigits
+    scanWords chunks t
+      | TU.lengthWord8 t <= maxDigits = reduce (fromIntegral maxWord) (word' t : chunks)
+      | otherwise = scanWords (word' (TU.takeWord8 maxDigits t) : chunks) (TU.dropWord8 maxDigits t)
+
+    reduce !_ [c] = c
+    reduce width cs = reduce (width * width) (pairs width cs)
+
+    pairs !_ [] = []
+    pairs _ [c] = [c]
+    pairs width (c0 : c1 : cs) = c0 + width * c1 : pairs width cs
+
+-- | Internal function to read a base-@b@ number into a 'Word'.
+--
+-- The text must only contain digits and the result must not to overflow 'Word'.
+word :: Word -> (Char -> Word) -> Text -> Word
+word base digit = T.foldl' (\n d -> n * base + fromIntegral (digit d)) 0
 
 -- | Read an optional leading sign character (@\'-\'@ or @\'+\'@) and
 -- apply it to the result of applying the given reader.
