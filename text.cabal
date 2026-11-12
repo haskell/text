@@ -216,6 +216,7 @@ library
 
   other-modules:
     Data.Text.Show
+    Data.Text.Internal.Exception
     Data.Text.Internal.Measure
     Data.Text.Internal.Reverse
     Data.Text.Internal.Transformation

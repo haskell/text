@@ -44,9 +44,9 @@ import Prelude hiding (appendFile, getContents, getLine, interact,
 import System.IO (Handle, IOMode(..), openFile, stdin, stdout,
                   withFile)
 import qualified Data.Text.Lazy as L
-import qualified Control.Exception as E
 import Control.Monad (when)
 import Data.IORef (readIORef)
+import Data.Text.Internal.Exception (ExceptionWithContext(..), catchNoPropagate, rethrow)
 import Data.Text.Internal.IO (hGetLineWith, readChunk, hPutStream)
 import Data.Text.Internal.Lazy (chunk, empty)
 import Data.Text.Internal.Lazy.Fusion (stream, streamLn)
@@ -115,9 +115,9 @@ lazyReadBuffered h hh@Handle__{..} = do
    buf <- readIORef haCharBuffer
    (do t <- readChunk hh buf
        ts <- lazyRead h
-       return (hh, chunk t ts)) `E.catch` \e -> do
+       return (hh, chunk t ts)) `catchNoPropagate` \(ExceptionWithContext c e) -> do
           (hh', _) <- hClose_help hh
-          let r | not (isEOFError e) = E.throw (augmentIOError e "hGetContents" h)
+          let r | not (isEOFError e) = rethrow (ExceptionWithContext c (augmentIOError e "hGetContents" h))
                 | isEmptyBuffer buf = empty
                 | otherwise = L.singleton '\r'
           return (hh', r)

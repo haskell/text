@@ -50,6 +50,7 @@ import qualified Control.Exception as E
 import Control.Monad (liftM2, when)
 import Data.IORef (readIORef)
 import qualified Data.Text as T
+import Data.Text.Internal.Exception (ExceptionWithContext(..), catchNoPropagate, rethrowIO, someExceptionContext)
 import Data.Text.Internal.IO (hGetLineWith, readChunk, hPutStr, hPutStrLn)
 import GHC.IO.Buffer (CharBuffer, isEmptyBuffer)
 import GHC.IO.Exception (IOException(ioe_type), IOErrorType(InappropriateType))
@@ -84,14 +85,16 @@ writeFile p = withFile p WriteMode . flip hPutStr
 appendFile :: FilePath -> Text -> IO ()
 appendFile p = withFile p AppendMode . flip hPutStr
 
-catchError :: String -> Handle -> Handle__ -> IOError -> IO (Text, Bool)
-catchError caller h Handle__{..} err
-    | isEOFError err = do
-        buf <- readIORef haCharBuffer
-        return $ if isEmptyBuffer buf
-                 then (T.empty, True)
-                 else (T.singleton '\r', True)
-    | otherwise = E.throwIO (augmentIOError err caller h)
+catchError :: String -> Handle -> Handle__ -> IO (Text, Bool) -> IO (Text, Bool)
+catchError caller h Handle__{..} io =
+  io `catchNoPropagate` \(ExceptionWithContext ctx err) ->
+    if isEOFError err then do
+      buf <- readIORef haCharBuffer
+      return $ if isEmptyBuffer buf
+        then (T.empty, True)
+        else (T.singleton '\r', True)
+    else
+      rethrowIO (ExceptionWithContext ctx (augmentIOError err caller h))
 
 -- | Wrap readChunk and return a value indicating if we're reached the EOF.
 -- This is needed because unpack_nl is unable to discern the difference
@@ -135,7 +138,7 @@ hGetChunk h = wantReadableHandle "hGetChunk" h readSingleChunk
  where
   readSingleChunk hh@Handle__{..} = do
     buf <- readIORef haCharBuffer
-    (t, _) <- readChunkEof hh buf `E.catch` catchError "hGetChunk" h hh
+    (t, _) <- catchError "hGetChunk" h hh $ readChunkEof hh buf
     return (hh, t)
 
 -- | Read the remaining contents of a 'Handle' as a string.  The
@@ -154,20 +157,16 @@ hGetContents h = do
   chooseGoodBuffering h
   r <- wantReadableHandle "hGetContents" h readAll
   case r of
-    Left e | Just ioe <- E.fromException e -> E.throwIO (augmentIOError ioe "hGetContents" h)
-    Left e -> E.throwIO
-#if __GLASGOW_HASKELL__ >= 912
-      (E.NoBacktrace e)
-#else
-      e
-#endif
     Right ts -> return $! T.concat ts
+    Left e -> rethrowIO . ExceptionWithContext (someExceptionContext e) $
+      case E.fromException e of
+        Just ioe -> E.toException $ augmentIOError ioe "hGetContents" h
+        Nothing -> e
  where
   readAll hh@Handle__{..} = do
     let readChunks = do
           buf <- readIORef haCharBuffer
-          (t, eof) <- readChunkEof hh buf
-                         `E.catch` catchError "hGetContents" h hh
+          (t, eof) <- catchError "hGetContents" h hh $ readChunkEof hh buf
           if eof
             then return [t]
             else (t:) `fmap` readChunks
@@ -189,10 +188,11 @@ chooseGoodBuffering h = do
   bufMode <- hGetBuffering h
   case bufMode of
     BlockBuffering Nothing -> do
-      d <- E.catch (liftM2 (-) (hFileSize h) (hTell h)) $ \(e::IOException) ->
+      d <- catchNoPropagate (liftM2 (-) (hFileSize h) (hTell h)) $
+        \(ExceptionWithContext ctx (e::IOException)) ->
            if ioe_type e == InappropriateType
            then return 16384 -- faster than the 2KB default
-           else E.throwIO e
+           else rethrowIO (ExceptionWithContext ctx e)
       when (d > 0) . hSetBuffering h . BlockBuffering . Just . fromInteger $ d
     _ -> return ()
 
