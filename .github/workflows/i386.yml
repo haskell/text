@@ -9,7 +9,7 @@ defaults:
 
 jobs:
   i386:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     container:
       image: i386/ubuntu:bionic
     steps:
