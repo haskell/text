@@ -968,10 +968,29 @@ toUpper = \t ->
 -- conversion.
 --
 -- The first letter (as determined by 'Data.Char.isLetter')
--- of the input is converted to title case, as is
--- every subsequent letter that immediately follows a non-letter.
--- Every letter that immediately follows another letter is converted
--- to lower case.
+-- of every word is converted to title case, and every other letter
+-- is converted to lower case. Words are separated by white space
+-- (as determined by 'Data.Char.isSpace'). Other non-letters, such as
+-- digits, hyphens or apostrophes, do not start a new word.
+--
+-- >>> toTitle "hello WORLD"
+-- "Hello World"
+-- >>> toTitle "don't stop-motion x86 (macros)"
+-- "Don't Stop-motion X86 (Macros)"
+--
+-- For ASCII text this is the same as the following reference
+-- implementation:
+--
+-- > toTitleASCII :: String -> String
+-- > toTitleASCII = go False
+-- >   where
+-- >     go _ [] = []
+-- >     go False (c : cs)
+-- >       | isLetter c = toUpper c : go True cs
+-- >       | otherwise  = c : go False cs
+-- >     go True (c : cs)
+-- >       | isLetter c = toLower c : go True cs
+-- >       | otherwise  = c : go (not (isSpace c)) cs
 --
 -- This function is not idempotent.
 -- Consider lower-case letter @ŉ@ (U+0149 LATIN SMALL LETTER N PRECEDED BY APOSTROPHE).
