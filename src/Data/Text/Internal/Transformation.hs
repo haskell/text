@@ -196,7 +196,6 @@ isAsciiSpace w = w .&. 0x50 == 0 && w < 0x80 && (w == 0x20 || w - 0x09 < 5)
 toTitleNonEmpty :: Text -> Text
 toTitleNonEmpty t = case toTitleNonEmptyFrom False t of
   (t', _) -> t'
-{-# INLINE toTitleNonEmpty #-}
 
 -- | /O(n)/ Like 'toTitleNonEmpty', but the first argument says whether the
 -- input starts in the middle of a word, and the result also says whether it
