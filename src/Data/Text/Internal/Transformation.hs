@@ -29,6 +29,7 @@ module Data.Text.Internal.Transformation
   , toLowerNonEmpty
   , toUpperNonEmpty
   , toTitleNonEmpty
+  , toTitleNonEmptyFrom
   , filter_
   ) where
 
@@ -193,20 +194,30 @@ isAsciiSpace w = w .&. 0x50 == 0 && w < 0x80 && (w == 0x20 || w - 0x09 < 5)
 -- | /O(n)/ Convert a string to title case, see 'Data.Text.toTitle' for discussion.
 -- Assume that the @Text@ is non-empty. The returned @Text@ is guaranteed to be non-empty.
 toTitleNonEmpty :: Text -> Text
-toTitleNonEmpty (Text src o l) = runST $ do
+toTitleNonEmpty t = case toTitleNonEmptyFrom False t of
+  (t', _) -> t'
+{-# INLINE toTitleNonEmpty #-}
+
+-- | /O(n)/ Like 'toTitleNonEmpty', but the first argument says whether the
+-- input starts in the middle of a word, and the result also says whether it
+-- ends in the middle of one. The lazy 'Data.Text.Lazy.toTitle' uses this to
+-- carry the state from one chunk to the next, so that a chunk boundary inside
+-- a word does not start a new word.
+toTitleNonEmptyFrom :: Bool -> Text -> (Text, Bool)
+toTitleNonEmptyFrom inWord (Text src o l) = runST $ do
   -- Case conversion a single code point may produce up to 3 code-points,
   -- each up to 4 bytes, so 12 in total.
   dst <- A.new (l + 12)
-  outer dst l o 0 False
+  outer dst l o 0 inWord
   where
-    outer :: forall s. A.MArray s -> Int -> Int -> Int -> Bool -> ST s Text
+    outer :: forall s. A.MArray s -> Int -> Int -> Int -> Bool -> ST s (Text, Bool)
     outer !dst !dstLen = inner
       where
         inner !srcOff !dstOff !mode
           | srcOff >= o + l = do
             A.shrinkM dst dstOff
             arr <- A.unsafeFreeze dst
-            return (Text arr 0 dstOff)
+            return (Text arr 0 dstOff, mode)
           | dstOff + 12 > dstLen = do
             -- Ensure to extend the buffer by at least 12 bytes.
             let !dstLen' = dstLen + max 12 (l + o - srcOff)

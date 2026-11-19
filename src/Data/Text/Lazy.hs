@@ -250,7 +250,7 @@ import Data.Text.Internal.Lazy (Text(..), chunk, empty, foldlChunks, foldrChunks
                                 smallChunkSize, defaultChunkSize, equal, LazyText)
 import Data.Text.Internal (firstf, safe, text)
 import Data.Text.Internal.Reverse (reverseNonEmpty)
-import Data.Text.Internal.Transformation (mapNonEmpty, toCaseFoldNonEmpty, toLowerNonEmpty, toUpperNonEmpty, filter_)
+import Data.Text.Internal.Transformation (mapNonEmpty, toCaseFoldNonEmpty, toLowerNonEmpty, toUpperNonEmpty, toTitleNonEmptyFrom, filter_)
 import Data.Text.Lazy.Encoding (decodeUtf8', encodeUtf8Builder)
 import Data.Text.Internal.Lazy.Search (indices)
 import qualified GHC.CString as GHC
@@ -862,7 +862,13 @@ toUpper = foldrChunks (\chnk acc -> Chunk (toUpperNonEmpty chnk) acc) Empty
 --
 -- @since 1.0.0.0
 toTitle :: Text -> Text
-toTitle = foldrChunks (\chnk acc -> Chunk (T.toTitle chnk) acc) Empty
+toTitle = go False
+  where
+    -- The flag says whether the previous chunk ended in the middle of a word,
+    -- so that a chunk boundary inside a word doesn't start a new one.
+    go _ Empty = Empty
+    go inWord (Chunk chnk rest) = case toTitleNonEmptyFrom inWord chnk of
+      (chnk', inWord') -> Chunk chnk' (go inWord' rest)
 {-# INLINE toTitle #-}
 
 -- | /O(n)/ 'foldl', applied to a binary operator, a starting value
