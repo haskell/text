@@ -173,6 +173,10 @@ t_toTitle_1stNotLower = and . notLow . T.toTitle . T.filter stable . T.filter (n
           isGeorgian c = c >= '\4256' && c < '\4352'
 t_toTitle_char c = c `notElem` toTitleExceptions ==>
     T.toTitle (T.singleton c) === T.singleton (C.toUpper c)
+-- Lazy toTitle must not depend on how the input is split into chunks.
+tl_toTitle_strict t = TL.toTitle t === TL.fromStrict (T.toTitle (TL.toStrict t))
+tl_toTitle_chunk_boundary =
+    TL.toTitle (TL.fromChunks (map T.pack ["hel", "lo wor", "ld"])) === TL.pack "Hello World"
 
 -- | Baseline generated with GHC 9.2 + text-1.2.5.0,
 t_toTitle_exceptions = T.unpack (T.concatMap (T.toTitle . T.singleton) (T.pack toTitleExceptions)) === "Ss\700N\453\453\453\456\456\456\459\459\459J\780\498\498\498\921\776\769\933\776\769\1333\1410\4304\4305\4306\4307\4308\4309\4310\4311\4312\4313\4314\4315\4316\4317\4318\4319\4320\4321\4322\4323\4324\4325\4326\4327\4328\4329\4330\4331\4332\4333\4334\4335\4336\4337\4338\4339\4340\4341\4342\4343\4344\4345\4346\4349\4350\4351H\817T\776W\778Y\778A\702\933\787\933\787\768\933\787\769\933\787\834\8122\837\902\837\913\834\913\834\837\8138\837\905\837\919\834\919\834\837\921\776\768\921\776\769\921\834\921\776\834\933\776\768\933\776\769\929\787\933\834\933\776\834\8186\837\911\837\937\834\937\834\837FfFiFlFfiFflStSt\1348\1398\1348\1381\1348\1387\1358\1398\1348\1389"
@@ -406,6 +410,8 @@ testText =
         testProperty "t_toTitle_title" t_toTitle_title,
         testProperty "t_toTitle_1stNotLower" t_toTitle_1stNotLower,
         testProperty "t_toTitle_exceptions" t_toTitle_exceptions,
+        testProperty "tl_toTitle_strict" tl_toTitle_strict,
+        testProperty "tl_toTitle_chunk_boundary" tl_toTitle_chunk_boundary,
 
         testProperty "t_toUpper_idempotent" t_toUpper_idempotent,
         testProperty "t_toLower_idempotent" t_toLower_idempotent,
