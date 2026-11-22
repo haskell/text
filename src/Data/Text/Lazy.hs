@@ -1664,6 +1664,8 @@ splitOn pat
 -- | Similar to 'splitOn', except that it returns @'NonEmpty' 'Text'@ instead
 -- of @['Text']@.
 --
+-- @since 2.1.5
+--
 -- Examples:
 --
 -- >>> splitOnNE "\r\n" "a\r\nb\r\nd\r\ne"
@@ -1718,6 +1720,8 @@ split p = NE.toList . splitNE p
 
 -- | Similar to 'split', except that it returns @'NonEmpty' 'Text'@ instead of
 -- @['Text']@.
+--
+-- @since 2.1.5
 --
 -- >>> splitNE (=='a') "aabbaca"
 -- "" :| ["","bb","c",""]
@@ -2038,5 +2042,7 @@ int64ToInt :: Int64 -> Exts.Int
 int64ToInt = fromIntegral
 
 -- | Synonym of 'pack' for the sake of @{-# LANGUAGE QualifiedStrings #-}@.
+--
+-- @since 2.1.5
 fromString :: String -> Text
 fromString = pack

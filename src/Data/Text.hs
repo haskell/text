@@ -1682,6 +1682,10 @@ break p = span (not . p)
     break (`eqChar` c) = breakOn (singleton c)
   #-}
 
+-- | Split a @t@ into a pair @(t1, t2)@ where @t2@ is the longest suffix of @t@
+-- whose characters satisfy the given predicate.
+--
+-- @since 2.1.5
 spanEnd :: (Char -> Bool) -> Text -> (Text, Text)
 spanEnd = coerce (spanEndM :: (Char -> Identity Bool) -> Text -> Identity (Text, Text))
 
@@ -1859,7 +1863,9 @@ splitOn pat
   #-}
 
 -- | Similar to 'splitOn', except that it returns @'NonEmpty' 'Text'@ instead
--- of @['Text']@..
+-- of @['Text']@.
+--
+-- @since 2.1.5
 --
 -- Examples:
 --
@@ -1914,6 +1920,8 @@ split p = NonEmptyList.toList . splitNE p
 
 -- | Similar to 'split', except that it returns @'NonEmpty' 'Text'@ instead of
 -- @['Text']@.
+--
+-- @since 2.1.5
 --
 -- >>> splitNE (=='a') "aabbaca"
 -- "" :| ["","bb","c",""]
@@ -2412,6 +2420,8 @@ word8ToInt8 :: Word8 -> Int8
 word8ToInt8 = P.fromIntegral
 
 -- | Synonym of 'pack' for the sake of @{-# LANGUAGE QualifiedStrings #-}@.
+--
+-- @since 2.1.5
 fromString :: String -> Text
 fromString = pack
 
