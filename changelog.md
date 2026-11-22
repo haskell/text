@@ -1,3 +1,29 @@
+### 2.1.5 - 2026-11-28
+
+* [Update case mappings to Unicode 18.0](https://github.com/haskell/text/pull/708)
+
+Additions
+
+* [Add `splitNE` and `splitOnNE` that return `NonEmpty`](https://github.com/haskell/text/pull/711)
+* [Add `fromString = pack` to work with upcoming `QualifiedStrings`](https://github.com/haskell/text/pull/709)
+* Add `spanEnd` ([strict](https://github.com/haskell/text/pull/701), [lazy](https://github.com/haskell/text/pull/724))
+* [Export `decimalInteger` and `hexadecimalInteger`, and improve performance of printing big integers](https://github.com/haskell/text/pull/716)
+
+Fixes
+
+* [Fix `rational` and `double` on exponents beyond `Int` and on integer mantissas](https://github.com/haskell/text/pull/725)
+* [Fix lazy `toTitle` to not consider chunk boundaries as word boundaris](https://github.com/haskell/text/pull/722)
+* [Fix `hGetContents` to close handle on exception](https://github.com/haskell/text/pull/718)
+* [Fix `readFile` to close handle on exception](https://github.com/haskell/text/pull/714)
+* [Make `iter` return 1 on continuation bytes](https://github.com/haskell/text/pull/705)
+* [Preserve exception contexts when rethrowing exceptions in `Handle` reads](https://github.com/haskell/text/pull/719)
+
+Performance improvements
+
+* [Improve performance of parsing big integers](https://github.com/haskell/text/pull/717)
+* [Improve performance of `indices` using `memchr`](https://github.com/haskell/text/pull/702)
+* [Add RULES for `break`, `takeWhile`, `dropWhile` on single character](https://github.com/haskell/text/pull/707)
+
 ### 2.1.4 - 2026-01-27
 
 * [Upgrade to Unicode 17.0](https://github.com/haskell/text/pull/658) + [Fix `CaseMapping` generation script to not depend on GHC's Unicode data](https://github.com/haskell/text/pull/687)
