@@ -158,6 +158,7 @@ module Data.Text.Lazy
     , splitAt
     , span
     , spanM
+    , spanEnd
     , spanEndM
     , breakOn
     , breakOnEnd
@@ -230,8 +231,10 @@ import Data.Bits (finiteBitSize, toIntegralSized)
 import Data.Int (Int64)
 import qualified Data.List as L hiding (head, tail)
 import Data.Char (isSpace)
+import Data.Coerce (coerce)
 import Data.Data (Data(gfoldl, toConstr, gunfold, dataTypeOf), constrIndex,
                   Constr, mkConstr, DataType, mkDataType, Fixity(Prefix))
+import Data.Functor.Identity (Identity(..))
 import Data.Binary (Binary(get, put))
 import Data.Binary.Put (putBuilder)
 import Data.List.NonEmpty (NonEmpty(..))
@@ -1516,6 +1519,13 @@ spanM p t0 = go t0
         if T.null t2 then first (chunk t) <$> go ts
         else pure (chunk t1 empty, Chunk t2 ts)
 {-# INLINE spanM #-}
+
+-- | Split a @t@ into a pair @(t1, t2)@ where @t2@ is the longest suffix of @t@
+-- whose characters satisfy the given predicate.
+--
+-- @since 2.1.5
+spanEnd :: (Char -> Bool) -> Text -> (Text, Text)
+spanEnd = coerce (spanEndM :: (Char -> Identity Bool) -> Text -> Identity (Text, Text))
 
 -- | /O(length of suffix)/ 'spanEndM', applied to a monadic predicate @p@,
 -- a text @t@, returns a pair @(t1, t2)@ where @t2@ is the longest suffix of
