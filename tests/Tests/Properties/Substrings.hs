@@ -23,6 +23,8 @@ import qualified Data.Text.Internal.Lazy as TL (Text(..))
 import qualified Data.Text.Internal.Lazy.Fusion as SL
 import qualified Data.Text.Lazy as TL
 import qualified Tests.SlowFunctions as Slow
+import Control.Monad (replicateM)
+import Data.List (nub, sort)
 
 s_take n          = L.take n      `eqP` (unpackS . S.take n)
 s_take_s (Small n) = L.take n      `eqP` (unpackS . S.unstream . S.take n)
@@ -270,6 +272,47 @@ t_isSuffixOf s    = L.isSuffixOf s`eqP` T.isSuffixOf (packS s)
 tl_isSuffixOf s   = L.isSuffixOf s`eqP` TL.isSuffixOf (packS s)
 t_isInfixOf s     = L.isInfixOf s `eqP` T.isInfixOf (packS s)
 tl_isInfixOf s    = L.isInfixOf s `eqP` TL.isInfixOf (packS s)
+
+-- | Generator for substrings that keeps the element order.
+-- Aka: "1234567890" -> "245680"
+genOrdSubseq :: T.Text -> Gen T.Text
+genOrdSubseq txt =
+  T.pack . transform <$> genTransformMap
+ where
+
+  pickN :: Gen Int
+  pickN =
+    choose (0, T.length txt)
+
+  pickNs :: Gen [Int]
+  pickNs =
+    fmap (sort . nub) $ (`replicateM` pickN) =<< pickN
+
+  growInst :: [Bool] -> Int -> [Bool]
+  growInst ls n =
+    ls
+    <> take (length ls - pred n) [True ..]
+    <> [False]
+
+  mkTransformInst :: [Bool] -> [Int] -> [Bool]
+  mkTransformInst bls [] =
+    bls
+    <> take (T.length txt - length bls) [True ..]
+  mkTransformInst bls (i:is) =
+    mkTransformInst
+      (growInst bls i)
+      is
+
+  mkTransformMap :: [a] -> [Int] -> [(a, Bool)]
+  mkTransformMap ls ixs =
+    zip ls (mkTransformInst mempty ixs)
+
+  genTransformMap :: (Gen [(Char, Bool)])
+  genTransformMap = fmap (mkTransformMap $ T.unpack txt) pickNs
+
+  transform :: [(Char, Bool)] -> [Char]
+  transform =
+    foldr (\ (c, b) as -> as <> if b then [c] else mempty) mempty
 
 t_stripPrefix s      = (fmap packS . L.stripPrefix s) `eqP` T.stripPrefix (packS s)
 tl_stripPrefix s     = (fmap packS . L.stripPrefix s) `eqP` TL.stripPrefix (packS s)
