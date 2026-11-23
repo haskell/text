@@ -236,11 +236,9 @@ floaty f = runP $ do
     n <- P decimal
     return $ T n digits
   let e c = c == ord8 'e' || c == ord8 'E'
-  power <- perhaps 0 (charAscii e >> signa (P decimal) :: Parser Int)
-  let n = if fracDigits == 0
-          then if power == 0
-               then fromInteger real
-               else fromInteger real * (10 ^^ power)
+  power <- clampExponent <$> perhaps 0 (charAscii e >> signa (P decimal) :: Parser Integer)
+  let n = if fracDigits == 0 && power == 0
+          then fromInteger real
           else f real fraction (10 ^ fracDigits) power
   return $! if sign == ord8 '+'
             then n

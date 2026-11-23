@@ -83,6 +83,17 @@ tl_read_double tol n s =
   where
     t = TL.dropWhile isFloaty s
 
+-- | Numbers without a fractional part, such as @123e-310@, which 'show' never produces.
+t_read_rational_exponent :: Integer -> Int -> Property
+t_read_rational_exponent m e =
+  T.rational (T.pack s) === Right (read s :: Double, mempty)
+  where s = show m ++ "e" ++ show (e `mod` 800 - 400)
+
+tl_read_rational_exponent :: Integer -> Int -> Property
+tl_read_rational_exponent m e =
+  TL.rational (TL.pack s) === Right (read s :: Double, mempty)
+  where s = show m ++ "e" ++ show (e `mod` 800 - 400)
+
 testRead :: TestTree
 testRead =
   testGroup "read" [
@@ -103,6 +114,8 @@ testRead =
     testProperty "t_rational 1.3e-2" (t_read_rational 1.3e-2),
     testProperty "tl_rational" tl_read_rational,
     testProperty "tl_rational 9e-3" (tl_read_rational 9e-3),
+    testProperty "t_rational_exponent" t_read_rational_exponent,
+    testProperty "tl_rational_exponent" tl_read_rational_exponent,
 
     localOption (mkTimeout 100000) $ testGroup "DDoS attacks" [
       testProperty "t_double large positive exponent" $
@@ -121,7 +134,24 @@ testRead =
       testProperty "tl_rational large positive exponent" $
         TL.rational (TL.pack "1.1e1000000000") === Right (1 / 0 :: Double, mempty),
       testProperty "tl_rational large negative exponent" $
-        TL.rational (TL.pack "1.1e-1000000000") === Right (0.0 :: Double, mempty)
+        TL.rational (TL.pack "1.1e-1000000000") === Right (0.0 :: Double, mempty),
+
+      testProperty "t_double exponent out of Int range" $
+        map T.double ["1e9223372036854775808", "1e18446744073709551616", "1e-9223372036854775808"]
+          === [Right (1 / 0, mempty), Right (1 / 0, mempty), Right (0.0, mempty)],
+      testProperty "tl_double exponent out of Int range" $
+        map TL.double ["1e9223372036854775808", "1e18446744073709551616", "1e-9223372036854775808"]
+          === [Right (1 / 0, mempty), Right (1 / 0, mempty), Right (0.0, mempty)],
+      testProperty "t_rational exponent out of Int range" $
+        map T.rational ["1e9223372036854775808", "1e18446744073709551616", "1e-9223372036854775808"]
+          === [Right (1 / 0 :: Double, mempty), Right (1 / 0, mempty), Right (0.0, mempty)],
+      testProperty "tl_rational exponent out of Int range" $
+        map TL.rational ["1e9223372036854775808", "1e18446744073709551616", "1e-9223372036854775808"]
+          === [Right (1 / 0 :: Double, mempty), Right (1 / 0, mempty), Right (0.0, mempty)],
+      testProperty "t_double long exponent" $
+        T.double (T.pack ("1e" ++ replicate 100000 '9')) === Right (1 / 0, mempty),
+      testProperty "tl_double long exponent" $
+        TL.double (TL.pack ("1e-" ++ replicate 100000 '9')) === Right (0.0, mempty)
       ]
 
     ]
