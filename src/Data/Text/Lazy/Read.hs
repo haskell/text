@@ -185,7 +185,10 @@ rational = floaty $ \real frac fracDenom power ->
   -- the small loss of precision for Double does not matter much because the result is
   -- likely infinity or zero anyway.
   if abs power < 1000
-  then fromRational ((real % 1 + frac % fracDenom) * (10 ^^ power))
+  then let n = real * fracDenom + frac
+       in fromRational $ if power >= 0
+                         then (n * 10 ^ power) % fracDenom
+                         else n % (fracDenom * 10 ^ negate power)
   else fromRational (real % 1 + frac % fracDenom) * (10 ^^ power)
 
 -- | Read a rational number.
