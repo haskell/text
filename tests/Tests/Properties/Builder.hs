@@ -81,7 +81,6 @@ tb_realfloat_float (a::Float) = tb_realfloat a
 tb_realfloat_double (a::Double) = tb_realfloat a
 
 showFloat :: (RealFloat a) => TB.FPFormat -> Maybe Int -> a -> ShowS
-showFloat TB.Exponent (Just 0) = showEFloat (Just 1) -- see gh-231
 showFloat TB.Exponent p = showEFloat p
 showFloat TB.Fixed    p = showFFloat p
 showFloat TB.Generic  p = showGFloat p
@@ -93,10 +92,13 @@ tb_formatRealFloat a fmt prec = cond ==>
     TB.fromString (showFloat fmt p a "")
   where p = precision a prec
         cond = case (p,fmt) of
-#if MIN_VERSION_base(4,12,0)
-                  (Just 0, TB.Generic) -> False -- skipping due to gh-231
+#if !MIN_VERSION_base(4,12,0)
+                  -- Before base-4.12, showEFloat showed one decimal for
+                  -- Just 0 (GHC#15115, gh-231).
+                  (Just 0, TB.Exponent) -> False
+                  (Just 0, TB.Generic)  -> False
 #endif
-                  _                    -> True
+                  _                     -> True
 
 tb_formatRealFloat_float (a::Float) = tb_formatRealFloat a
 tb_formatRealFloat_double (a::Double) = tb_formatRealFloat a

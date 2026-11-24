@@ -81,6 +81,15 @@ formatRealFloat fmt decs x
           [d]     -> singleton d <> ".0e" <> show_e'
           (d:ds') -> singleton d <> singleton '.' <> fromString ds' <> singleton 'e' <> show_e'
           []      -> error "formatRealFloat/doFmt/Exponent/Nothing: []"
+       Just dec | dec <= 0 ->
+        -- No decimals: leave out the period too, as showEFloat does (gh-231).
+        case is of
+         [0] -> "0e0"
+         _ ->
+          let (ei,is') = roundTo 1 is
+          in case map i2d (if ei > 0 then init is' else is') of
+               [] -> error "formatRealFloat/doFmt/Exponent/Just 0: []"
+               (d:_) -> singleton d <> singleton 'e' <> decimal (e-1+ei)
        Just dec ->
         let dec' = max dec 1 in
         case is of
