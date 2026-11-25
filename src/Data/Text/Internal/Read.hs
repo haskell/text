@@ -13,10 +13,11 @@ module Data.Text.Internal.Read
       IReader
     , IParser(..)
     , T(..)
-    , clampExponent
     , digitToInt
     , hexDigitToInt
+    , maxExponentDigits
     , perhaps
+    , toExponent
     ) where
 
 import Control.Applicative as App (Applicative(..))
@@ -55,12 +56,21 @@ instance Monad (IParser t) where
 
 data T = T !Integer !Int
 
--- | Clamp the exponent of a floating point number to the range of 'Int'.
--- A larger exponent gives zero or infinity for any mantissa that fits in
--- memory, and 'minBound' is avoided so that 'abs' cannot overflow.
-clampExponent :: Integer -> Int
-clampExponent = fromInteger . max (negate maxInt) . min maxInt
-  where maxInt = toInteger (maxBound :: Int)
+-- | The number of digits of 'maxBound' :: 'Int'. An exponent with more
+-- significant digits is out of range.
+maxExponentDigits :: Int
+maxExponentDigits = length (show (maxBound :: Int))
+
+-- | Fail if an exponent is outside the range of 'Int'. 'minBound' is
+-- replaced by @-'maxBound'@, which gives the same result, so that
+-- @10 '^^' power@ cannot overflow.
+toExponent :: Integer -> IParser t Int
+toExponent n
+  | n < negate (maxInt + 1) || n > maxInt = P $ \_ -> Left "exponent out of range"
+  | otherwise = App.pure (fromInteger (max (negate maxInt) n))
+
+maxInt :: Integer
+maxInt = toInteger (maxBound :: Int)
 
 perhaps :: a -> IParser t a -> IParser t a
 perhaps def m = P $ \t -> case runP m t of

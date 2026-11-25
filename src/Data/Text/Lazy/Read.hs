@@ -175,6 +175,7 @@ signed f = runP (signa (P f))
 --
 -- >rational "3.foo" == Right (3.0, ".foo")
 -- >rational "3e"    == Right (3.0, "e")
+-- >rational "1e9223372036854775808" == Left "exponent out of range"
 rational :: Fractional a => Reader a
 {-# SPECIALIZE rational :: Reader Double #-}
 rational = floaty $ \real frac fracDenom power ->
@@ -184,7 +185,7 @@ rational = floaty $ \real frac fracDenom power ->
   -- Otherwise divide first, apply fromRational and scale last:
   -- the small loss of precision for Double does not matter much because the result is
   -- likely infinity or zero anyway.
-  if abs power < 1000
+  if power > -1000 && power < 1000
   then let n = real * fracDenom + frac
        in fromRational $ if power >= 0
                          then (n * 10 ^ power) % fracDenom
@@ -239,7 +240,7 @@ floaty f = runP $ do
     n <- P decimal
     return $ T n digits
   let e c = c == ord8 'e' || c == ord8 'E'
-  power <- clampExponent <$> perhaps 0 (charAscii e >> signa (P decimal) :: Parser Integer)
+  power <- toExponent =<< perhaps 0 (charAscii e >> signa (P exponentDigits))
   let n = if fracDigits == 0 && power == 0
           then fromInteger real
           else f real fraction (10 ^ fracDigits) power
@@ -249,6 +250,17 @@ floaty f = runP $ do
 
 int64ToInt :: Int64 -> Int
 int64ToInt = fromIntegral
+
+-- | Like 'decimal', but digits beyond the range of 'Int' are not converted,
+-- so a long exponent is read in linear time. Such an exponent is replaced by
+-- a power of 10 that is also out of range.
+exponentDigits :: Reader Integer
+exponentDigits txt
+    | T.null h  = Left "input does not start with a digit"
+    | T.compareLength significant (fromIntegral maxExponentDigits) == GT = Right (10 ^ maxExponentDigits, t)
+    | otherwise = Right (T.foldl' (\n d -> n * 10 + toInteger (digitToInt d)) 0 significant, t)
+  where (# h, t #)  = spanAscii_ (\w -> w - ord8 '0' < 10) txt
+        significant = T.dropWhile (== '0') h
 
 ord8 :: Char -> Word8
 ord8 = fromIntegral . ord
