@@ -242,13 +242,12 @@ floaty f = runP $ do
   power <- catchOrBind (charAscii e) (pure 0) $ \_ -> do
     esw <- sign
     ds <- asciiDigits
-    let significant = T.dropWhile (== '0') ds
     if T.null ds
       then reset beforeE 0
-      else if TU.lengthWord8 significant > maxExponentDigits
+      else if TU.lengthWord8 (T.dropWhile (== '0') ds) > maxExponentDigits
         then err "exponent out of range"
         else pure $ (if esw == ord8 '+' then id else negate)
-                      (T.foldl' (\n d -> n * 10 + digitToInt d) 0 significant)
+                      (T.foldl' (\n d -> n * 10 + digitToInt d) 0 ds)
   let n = if fracDigits == 0 && power == 0
           then fromInteger real
           else f real fraction (10 ^ fracDigits) power
