@@ -6,6 +6,7 @@ module Tests.Properties.Read
     ( testRead
     ) where
 
+import Data.Bits (finiteBitSize)
 import Data.Char (isDigit, isHexDigit)
 import Numeric (showHex)
 import Test.Tasty (TestTree, testGroup, localOption, mkTimeout)
@@ -94,17 +95,22 @@ tl_read_rational_exponent m e =
   TL.rational (TL.pack s) === Right (read s :: Double, mempty)
   where s = show m ++ "e" ++ show (e `mod` 800 - 400)
 
--- | Numbers with the largest and smallest exponents in the range of 'Int'.
-atIntBounds :: [String]
-atIntBounds = ["1e" ++ show (maxBound :: Int), "1e" ++ show (minBound :: Int)]
+-- | The number of exponent digits that always fit in an 'Int'.
+exponentDigits :: Int
+exponentDigits = (finiteBitSize (0 :: Int) - 1) * 3 `div` 10
 
--- | Numbers with exponents just outside the range of 'Int', and far outside it.
-outOfIntRange :: [String]
-outOfIntRange =
-  [ "1e" ++ show (maxInt + 1), "1e" ++ show (negate maxInt - 2)
-  , "1e" ++ show (maxInt + 1) ++ "0", "1e-" ++ show (maxInt + 1) ++ "0"
+-- | Numbers with the largest and smallest exponents that are in range.
+atExponentBounds :: [String]
+atExponentBounds = ["1e" ++ nines, "1e-" ++ nines]
+  where nines = replicate exponentDigits '9'
+
+-- | Numbers with exponents just out of range, and far out of range.
+outOfExponentRange :: [String]
+outOfExponentRange =
+  [ "1e1" ++ zeros, "1e-1" ++ zeros
+  , "1e" ++ show (maxBound :: Int), "1e" ++ show (minBound :: Int)
   , "1e18446744073709551616" ]
-  where maxInt = toInteger (maxBound :: Int)
+  where zeros = replicate exponentDigits '0'
 
 testRead :: TestTree
 testRead =
@@ -148,23 +154,23 @@ testRead =
       testProperty "tl_rational large negative exponent" $
         TL.rational (TL.pack "1.1e-1000000000") === Right (0.0 :: Double, mempty),
 
-      testProperty "t_double exponent at the Int bounds" $
-        map (T.double . T.pack) atIntBounds === [Right (1 / 0, mempty), Right (0.0, mempty)],
-      testProperty "tl_double exponent at the Int bounds" $
-        map (TL.double . TL.pack) atIntBounds === [Right (1 / 0, mempty), Right (0.0, mempty)],
-      testProperty "t_rational exponent at the Int bounds" $
-        map (T.rational . T.pack) atIntBounds === [Right (1 / 0 :: Double, mempty), Right (0.0, mempty)],
-      testProperty "tl_rational exponent at the Int bounds" $
-        map (TL.rational . TL.pack) atIntBounds === [Right (1 / 0 :: Double, mempty), Right (0.0, mempty)],
+      testProperty "t_double exponent at the bounds" $
+        map (T.double . T.pack) atExponentBounds === [Right (1 / 0, mempty), Right (0.0, mempty)],
+      testProperty "tl_double exponent at the bounds" $
+        map (TL.double . TL.pack) atExponentBounds === [Right (1 / 0, mempty), Right (0.0, mempty)],
+      testProperty "t_rational exponent at the bounds" $
+        map (T.rational . T.pack) atExponentBounds === [Right (1 / 0 :: Double, mempty), Right (0.0, mempty)],
+      testProperty "tl_rational exponent at the bounds" $
+        map (TL.rational . TL.pack) atExponentBounds === [Right (1 / 0 :: Double, mempty), Right (0.0, mempty)],
 
-      testProperty "t_double exponent out of Int range" $
-        conjoin [T.double (T.pack t) === Left "exponent out of range" | t <- outOfIntRange],
-      testProperty "tl_double exponent out of Int range" $
-        conjoin [TL.double (TL.pack t) === Left "exponent out of range" | t <- outOfIntRange],
-      testProperty "t_rational exponent out of Int range" $
-        conjoin [T.rational (T.pack t) === (Left "exponent out of range" :: Either String (Double, T.Text)) | t <- outOfIntRange],
-      testProperty "tl_rational exponent out of Int range" $
-        conjoin [TL.rational (TL.pack t) === (Left "exponent out of range" :: Either String (Double, TL.Text)) | t <- outOfIntRange],
+      testProperty "t_double exponent out of range" $
+        conjoin [T.double (T.pack t) === Left "exponent out of range" | t <- outOfExponentRange],
+      testProperty "tl_double exponent out of range" $
+        conjoin [TL.double (TL.pack t) === Left "exponent out of range" | t <- outOfExponentRange],
+      testProperty "t_rational exponent out of range" $
+        conjoin [T.rational (T.pack t) === (Left "exponent out of range" :: Either String (Double, T.Text)) | t <- outOfExponentRange],
+      testProperty "tl_rational exponent out of range" $
+        conjoin [TL.rational (TL.pack t) === (Left "exponent out of range" :: Either String (Double, TL.Text)) | t <- outOfExponentRange],
 
       testProperty "t_double long exponent" $ once $
         T.double (T.append "1e" (T.replicate 100000 "9")) === Left "exponent out of range",

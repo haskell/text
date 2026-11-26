@@ -17,12 +17,13 @@ module Data.Text.Internal.Read
     , hexDigitToInt
     , maxExponentDigits
     , perhaps
-    , toExponent
+    , checkExponent
     ) where
 
 import Control.Applicative as App (Applicative(..))
 import Control.Arrow (first)
 import Control.Monad (ap)
+import Data.Bits (finiteBitSize)
 import Data.Char (ord)
 
 type IReader t a = t -> Either String (a,t)
@@ -56,21 +57,18 @@ instance Monad (IParser t) where
 
 data T = T !Integer !Int
 
--- | The number of digits of 'maxBound' :: 'Int'. An exponent with more
+-- | The number of digits that always fit in an 'Int'. An exponent with more
 -- significant digits is out of range.
 maxExponentDigits :: Int
-maxExponentDigits = length (show (maxBound :: Int))
+maxExponentDigits = (finiteBitSize (0 :: Int) - 1) * 3 `div` 10
 
--- | Fail if an exponent is outside the range of 'Int'. 'minBound' is
--- replaced by @-'maxBound'@, which gives the same result, so that
--- @10 '^^' power@ cannot overflow.
-toExponent :: Integer -> IParser t Int
-toExponent n
-  | n < negate (maxInt + 1) || n > maxInt = P $ \_ -> Left "exponent out of range"
-  | otherwise = App.pure (fromInteger (max (negate maxInt) n))
-
-maxInt :: Integer
-maxInt = toInteger (maxBound :: Int)
+-- | Fail on an exponent that is out of range. Its digits are read as
+-- 'maxBound', which no exponent in range can reach, and checked here because
+-- the 'perhaps' that allows a number without an exponent would catch the error.
+checkExponent :: Int -> IParser t Int
+checkExponent n
+  | abs n == maxBound = P $ \_ -> Left "exponent out of range"
+  | otherwise = App.pure n
 
 perhaps :: a -> IParser t a -> IParser t a
 perhaps def m = P $ \t -> case runP m t of

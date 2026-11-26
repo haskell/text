@@ -180,7 +180,7 @@ rational = floaty $ \real frac fracDenom power ->
   -- Otherwise divide first, apply fromRational and scale last:
   -- the small loss of precision for Double does not matter much because the result is
   -- likely infinity or zero anyway.
-  if power > -1000 && power < 1000
+  if - 1000 < power && power < 1000
   then let n = real * fracDenom + frac
        in fromRational $ if power >= 0
                          then (n * 10 ^ power) % fracDenom
@@ -232,7 +232,7 @@ floaty f = runP $ do
     n <- P decimal
     return $ T n digits
   let e c = c == ord8 'e' || c == ord8 'E'
-  power <- toExponent =<< perhaps 0 (charAscii e >> signa (P exponentDigits))
+  power <- checkExponent =<< perhaps 0 (charAscii e >> signa (P exponentDigits))
   let n = if fracDigits == 0 && power == 0
           then fromInteger real
           else f real fraction (10 ^ fracDigits) power
@@ -240,14 +240,14 @@ floaty f = runP $ do
             then n
             else -n
 
--- | Like 'decimal', but digits beyond the range of 'Int' are not converted,
--- so a long exponent is read in linear time. Such an exponent is replaced by
--- a power of 10 that is also out of range.
-exponentDigits :: Reader Integer
+-- | Like 'decimal', but an exponent with more than 'maxExponentDigits'
+-- significant digits is not converted, so a long exponent is read in linear
+-- time. It is read as 'maxBound', which 'checkExponent' rejects.
+exponentDigits :: Reader Int
 exponentDigits txt
     | T.null h  = Left "input does not start with a digit"
-    | T.compareLength significant (maxExponentDigits) == GT = Right (10 ^ maxExponentDigits, t)
-    | otherwise = Right (T.foldl' (\n d -> n * 10 + toInteger (digitToInt d)) 0 significant, t)
+    | TU.lengthWord8 significant > maxExponentDigits = Right (maxBound, t)
+    | otherwise = Right (T.foldl' (\n d -> n * 10 + digitToInt d) 0 significant, t)
   where (# h,t #)  = spanAscii_ (\w -> w - ord8 '0' < 10) txt
         significant = T.dropWhile (== '0') h
 
