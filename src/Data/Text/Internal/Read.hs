@@ -17,7 +17,10 @@ module Data.Text.Internal.Read
     , hexDigitToInt
     , maxExponentDigits
     , perhaps
-    , checkExponent
+    , catchOrBind
+    , err
+    , snapshot
+    , reset
     ) where
 
 import Control.Applicative as App (Applicative(..))
@@ -43,7 +46,7 @@ instance Applicative (IParser t) where
 instance Monad (IParser t) where
     return = App.pure
     m >>= k  = P $ \t -> case runP m t of
-                           Left err     -> Left err
+                           Left msg     -> Left msg
                            Right (a,t') -> runP (k a) t'
     {-# INLINE (>>=) #-}
 
@@ -62,13 +65,22 @@ data T = T !Integer !Int
 maxExponentDigits :: Int
 maxExponentDigits = (finiteBitSize (0 :: Int) - 1) * 3 `div` 10
 
--- | Fail on an exponent that is out of range. Its digits are read as
--- 'maxBound', which no exponent in range can reach, and checked here because
--- the 'perhaps' that allows a number without an exponent would catch the error.
-checkExponent :: Int -> IParser t Int
-checkExponent n
-  | abs n == maxBound = P $ \_ -> Left "exponent out of range"
-  | otherwise = App.pure n
+-- | @catchOrBind p q k@ runs @p@; if it fails, runs @q@ on the same input
+-- instead, and otherwise continues with @k@, whose failures are not caught.
+catchOrBind :: IParser t a -> IParser t b -> (a -> IParser t b) -> IParser t b
+catchOrBind p q k = P $ \t -> case runP p t of
+  Left _       -> runP q t
+  Right (a,t') -> runP (k a) t'
+
+err :: String -> IParser t a
+err msg = P $ \_ -> Left msg
+
+-- | The remaining input, to go back to with 'reset'.
+snapshot :: IParser t t
+snapshot = P $ \t -> Right (t,t)
+
+reset :: t -> a -> IParser t a
+reset t a = P $ \_ -> Right (a,t)
 
 perhaps :: a -> IParser t a -> IParser t a
 perhaps def m = P $ \t -> case runP m t of

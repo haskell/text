@@ -212,8 +212,14 @@ signa :: Num a => Parser a -> Parser a
 {-# SPECIALIZE signa :: Parser Int64 -> Parser Int64 #-}
 {-# SPECIALIZE signa :: Parser Integer -> Parser Integer #-}
 signa p = do
-  sign <- perhaps (ord8 '+') $ charAscii (\c -> c == ord8 '-' || c == ord8 '+')
-  if sign == ord8 '+' then p else negate `liftM` p
+  sw <- sign
+  if sw == ord8 '+' then p else negate `liftM` p
+
+sign :: Parser Word8
+sign = perhaps (ord8 '+') $ charAscii (\c -> c == ord8 '-' || c == ord8 '+')
+
+asciiDigits :: Parser Text
+asciiDigits = P $ \txt -> let (# h, t #) = spanAscii_ (\w -> w - ord8 '0' < 10) txt in Right (h, t)
 
 charAscii :: (Word8 -> Bool) -> Parser Word8
 charAscii p = P $ \(Text arr off len) -> let c = A.unsafeIndex arr off in
@@ -224,7 +230,7 @@ charAscii p = P $ \(Text arr off len) -> let c = A.unsafeIndex arr off in
 floaty :: Fractional a => (Integer -> Integer -> Integer -> Int -> a) -> Reader a
 {-# INLINE floaty #-}
 floaty f = runP $ do
-  sign <- perhaps (ord8 '+') $ charAscii (\c -> c == ord8 '-' || c == ord8 '+')
+  sw <- sign
   real <- P decimal
   T fraction fracDigits <- perhaps (T 0 0) $ do
     _ <- charAscii (== ord8 '.')
@@ -232,24 +238,23 @@ floaty f = runP $ do
     n <- P decimal
     return $ T n digits
   let e c = c == ord8 'e' || c == ord8 'E'
-  power <- checkExponent =<< perhaps 0 (charAscii e >> signa (P exponentDigits))
+  beforeE <- snapshot
+  power <- catchOrBind (charAscii e) (pure 0) $ \_ -> do
+    esw <- sign
+    ds <- asciiDigits
+    let significant = T.dropWhile (== '0') ds
+    if T.null ds
+      then reset beforeE 0
+      else if TU.lengthWord8 significant > maxExponentDigits
+        then err "exponent out of range"
+        else pure $ (if esw == ord8 '+' then id else negate)
+                      (T.foldl' (\n d -> n * 10 + digitToInt d) 0 significant)
   let n = if fracDigits == 0 && power == 0
           then fromInteger real
           else f real fraction (10 ^ fracDigits) power
-  return $! if sign == ord8 '+'
+  return $! if sw == ord8 '+'
             then n
             else -n
-
--- | Like 'decimal', but an exponent with more than 'maxExponentDigits'
--- significant digits is not converted, so a long exponent is read in linear
--- time. It is read as 'maxBound', which 'checkExponent' rejects.
-exponentDigits :: Reader Int
-exponentDigits txt
-    | T.null h  = Left "input does not start with a digit"
-    | TU.lengthWord8 significant > maxExponentDigits = Right (maxBound, t)
-    | otherwise = Right (T.foldl' (\n d -> n * 10 + digitToInt d) 0 significant, t)
-  where (# h,t #)  = spanAscii_ (\w -> w - ord8 '0' < 10) txt
-        significant = T.dropWhile (== '0') h
 
 ord8 :: Char -> Word8
 ord8 = fromIntegral . ord
