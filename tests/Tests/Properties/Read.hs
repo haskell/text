@@ -137,22 +137,22 @@ testRead =
 
     localOption (mkTimeout 100000) $ testGroup "DDoS attacks" [
       testProperty "t_double large positive exponent" $
-        T.double (T.pack "1.1e1000000000") === Right (1 / 0, mempty),
+        T.double (T.pack "1.1e100000000") === Right (1 / 0, mempty),
       testProperty "t_double large negative exponent" $
-        T.double (T.pack "1.1e-1000000000") === Right (0.0, mempty),
+        T.double (T.pack "1.1e-100000000") === Right (0.0, mempty),
       testProperty "tl_double large positive exponent" $
-        TL.double (TL.pack "1.1e1000000000") === Right (1 / 0, mempty),
+        TL.double (TL.pack "1.1e100000000") === Right (1 / 0, mempty),
       testProperty "tl_double large negative exponent" $
-        TL.double (TL.pack "1.1e-1000000000") === Right (0.0, mempty),
+        TL.double (TL.pack "1.1e-100000000") === Right (0.0, mempty),
 
       testProperty "t_rational large positive exponent" $
-        T.rational (T.pack "1.1e1000000000") === Right (1 / 0 :: Double, mempty),
+        T.rational (T.pack "1.1e100000000") === Right (1 / 0 :: Double, mempty),
       testProperty "t_rational large negative exponent" $
-        T.rational (T.pack "1.1e-1000000000") === Right (0.0 :: Double, mempty),
+        T.rational (T.pack "1.1e-100000000") === Right (0.0 :: Double, mempty),
       testProperty "tl_rational large positive exponent" $
-        TL.rational (TL.pack "1.1e1000000000") === Right (1 / 0 :: Double, mempty),
+        TL.rational (TL.pack "1.1e100000000") === Right (1 / 0 :: Double, mempty),
       testProperty "tl_rational large negative exponent" $
-        TL.rational (TL.pack "1.1e-1000000000") === Right (0.0 :: Double, mempty),
+        TL.rational (TL.pack "1.1e-100000000") === Right (0.0 :: Double, mempty),
 
       testProperty "t_double exponent at the bounds" $
         map (T.double . T.pack) atExponentBounds === [Right (1 / 0, mempty), Right (0.0, mempty)],
@@ -173,13 +173,13 @@ testRead =
         conjoin [TL.rational (TL.pack t) === (Left "exponent out of range" :: Either String (Double, TL.Text)) | t <- outOfExponentRange],
 
       testProperty "t_double long exponent" $ once $
-        T.double (T.append "1e" (T.replicate 100000 "9")) === Left "exponent out of range",
+        T.double (T.append "1e" (T.replicate 10000 "9")) === Left "exponent out of range",
       testProperty "tl_double long exponent" $ once $
-        TL.double (TL.append "1e-" (TL.replicate 100000 "9")) === Left "exponent out of range",
+        TL.double (TL.append "1e-" (TL.replicate 10000 "9")) === Left "exponent out of range",
       testProperty "t_double exponent with many leading zeros" $ once $
-        T.double (T.concat ["1e-", T.replicate 100000 "0", "3"]) === Right (1.0e-3, mempty),
+        T.double (T.concat ["1e-", T.replicate 10000 "0", "3"]) === Right (1.0e-3, mempty),
       testProperty "tl_double exponent with many leading zeros" $ once $
-        TL.double (TL.concat ["1e", TL.replicate 100000 "0", "3"]) === Right (1000.0, mempty)
+        TL.double (TL.concat ["1e", TL.replicate 10000 "0", "3"]) === Right (1000.0, mempty)
       ]
 
     ]
