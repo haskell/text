@@ -6,6 +6,7 @@ module Tests.Properties.Read
     ( testRead
     ) where
 
+import Data.Bits (finiteBitSize)
 import Data.Char (isDigit, isHexDigit)
 import Numeric (showHex)
 import Test.Tasty (TestTree, testGroup, localOption, mkTimeout)
@@ -83,6 +84,34 @@ tl_read_double tol n s =
   where
     t = TL.dropWhile isFloaty s
 
+-- | Numbers without a fractional part, such as @123e-310@, which 'show' never produces.
+t_read_rational_exponent :: Integer -> Int -> Property
+t_read_rational_exponent m e =
+  T.rational (T.pack s) === Right (read s :: Double, mempty)
+  where s = show m ++ "e" ++ show (e `mod` 800 - 400)
+
+tl_read_rational_exponent :: Integer -> Int -> Property
+tl_read_rational_exponent m e =
+  TL.rational (TL.pack s) === Right (read s :: Double, mempty)
+  where s = show m ++ "e" ++ show (e `mod` 800 - 400)
+
+-- | The number of exponent digits that always fit in an 'Int'.
+exponentDigits :: Int
+exponentDigits = (finiteBitSize (0 :: Int) - 1) * 3 `div` 10
+
+-- | Numbers with the largest and smallest exponents that are in range.
+atExponentBounds :: [String]
+atExponentBounds = ["1e" ++ nines, "1e-" ++ nines]
+  where nines = replicate exponentDigits '9'
+
+-- | Numbers with exponents just out of range, and far out of range.
+outOfExponentRange :: [String]
+outOfExponentRange =
+  [ "1e1" ++ zeros, "1e-1" ++ zeros
+  , "1e" ++ show (maxBound :: Int), "1e" ++ show (minBound :: Int)
+  , "1e18446744073709551616" ]
+  where zeros = replicate exponentDigits '0'
+
 testRead :: TestTree
 testRead =
   testGroup "read" [
@@ -103,25 +132,54 @@ testRead =
     testProperty "t_rational 1.3e-2" (t_read_rational 1.3e-2),
     testProperty "tl_rational" tl_read_rational,
     testProperty "tl_rational 9e-3" (tl_read_rational 9e-3),
+    testProperty "t_rational_exponent" t_read_rational_exponent,
+    testProperty "tl_rational_exponent" tl_read_rational_exponent,
 
     localOption (mkTimeout 100000) $ testGroup "DDoS attacks" [
       testProperty "t_double large positive exponent" $
-        T.double (T.pack "1.1e1000000000") === Right (1 / 0, mempty),
+        T.double (T.pack "1.1e100000000") === Right (1 / 0, mempty),
       testProperty "t_double large negative exponent" $
-        T.double (T.pack "1.1e-1000000000") === Right (0.0, mempty),
+        T.double (T.pack "1.1e-100000000") === Right (0.0, mempty),
       testProperty "tl_double large positive exponent" $
-        TL.double (TL.pack "1.1e1000000000") === Right (1 / 0, mempty),
+        TL.double (TL.pack "1.1e100000000") === Right (1 / 0, mempty),
       testProperty "tl_double large negative exponent" $
-        TL.double (TL.pack "1.1e-1000000000") === Right (0.0, mempty),
+        TL.double (TL.pack "1.1e-100000000") === Right (0.0, mempty),
 
       testProperty "t_rational large positive exponent" $
-        T.rational (T.pack "1.1e1000000000") === Right (1 / 0 :: Double, mempty),
+        T.rational (T.pack "1.1e100000000") === Right (1 / 0 :: Double, mempty),
       testProperty "t_rational large negative exponent" $
-        T.rational (T.pack "1.1e-1000000000") === Right (0.0 :: Double, mempty),
+        T.rational (T.pack "1.1e-100000000") === Right (0.0 :: Double, mempty),
       testProperty "tl_rational large positive exponent" $
-        TL.rational (TL.pack "1.1e1000000000") === Right (1 / 0 :: Double, mempty),
+        TL.rational (TL.pack "1.1e100000000") === Right (1 / 0 :: Double, mempty),
       testProperty "tl_rational large negative exponent" $
-        TL.rational (TL.pack "1.1e-1000000000") === Right (0.0 :: Double, mempty)
+        TL.rational (TL.pack "1.1e-100000000") === Right (0.0 :: Double, mempty),
+
+      testProperty "t_double exponent at the bounds" $
+        map (T.double . T.pack) atExponentBounds === [Right (1 / 0, mempty), Right (0.0, mempty)],
+      testProperty "tl_double exponent at the bounds" $
+        map (TL.double . TL.pack) atExponentBounds === [Right (1 / 0, mempty), Right (0.0, mempty)],
+      testProperty "t_rational exponent at the bounds" $
+        map (T.rational . T.pack) atExponentBounds === [Right (1 / 0 :: Double, mempty), Right (0.0, mempty)],
+      testProperty "tl_rational exponent at the bounds" $
+        map (TL.rational . TL.pack) atExponentBounds === [Right (1 / 0 :: Double, mempty), Right (0.0, mempty)],
+
+      testProperty "t_double exponent out of range" $
+        conjoin [T.double (T.pack t) === Left "exponent out of range" | t <- outOfExponentRange],
+      testProperty "tl_double exponent out of range" $
+        conjoin [TL.double (TL.pack t) === Left "exponent out of range" | t <- outOfExponentRange],
+      testProperty "t_rational exponent out of range" $
+        conjoin [T.rational (T.pack t) === (Left "exponent out of range" :: Either String (Double, T.Text)) | t <- outOfExponentRange],
+      testProperty "tl_rational exponent out of range" $
+        conjoin [TL.rational (TL.pack t) === (Left "exponent out of range" :: Either String (Double, TL.Text)) | t <- outOfExponentRange],
+
+      testProperty "t_double long exponent" $ once $
+        T.double (T.append "1e" (T.replicate 10000 "9")) === Left "exponent out of range",
+      testProperty "tl_double long exponent" $ once $
+        TL.double (TL.append "1e-" (TL.replicate 10000 "9")) === Left "exponent out of range",
+      testProperty "t_double exponent with many leading zeros" $ once $
+        T.double (T.concat ["1e-", T.replicate 10000 "0", "3"]) === Right (1.0e-3, mempty),
+      testProperty "tl_double exponent with many leading zeros" $ once $
+        TL.double (TL.concat ["1e", TL.replicate 10000 "0", "3"]) === Right (1000.0, mempty)
       ]
 
     ]

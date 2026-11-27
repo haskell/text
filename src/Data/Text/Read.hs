@@ -170,6 +170,7 @@ signed f = runP (signa (P f))
 --
 -- >rational "3.foo" == Right (3.0, ".foo")
 -- >rational "3e"    == Right (3.0, "e")
+-- >rational "1e9223372036854775808" == Left "exponent out of range"
 rational :: Fractional a => Reader a
 {-# SPECIALIZE rational :: Reader Double #-}
 rational = floaty $ \real frac fracDenom power ->
@@ -179,8 +180,11 @@ rational = floaty $ \real frac fracDenom power ->
   -- Otherwise divide first, apply fromRational and scale last:
   -- the small loss of precision for Double does not matter much because the result is
   -- likely infinity or zero anyway.
-  if abs power < 1000
-  then fromRational ((real % 1 + frac % fracDenom) * (10 ^^ power))
+  if - 1000 < power && power < 1000
+  then let n = real * fracDenom + frac
+       in fromRational $ if power >= 0
+                         then (n * 10 ^ power) % fracDenom
+                         else n % (fracDenom * 10 ^ negate power)
   else fromRational (real % 1 + frac % fracDenom) * (10 ^^ power)
 
 -- | Read a rational number.
@@ -208,8 +212,14 @@ signa :: Num a => Parser a -> Parser a
 {-# SPECIALIZE signa :: Parser Int64 -> Parser Int64 #-}
 {-# SPECIALIZE signa :: Parser Integer -> Parser Integer #-}
 signa p = do
-  sign <- perhaps (ord8 '+') $ charAscii (\c -> c == ord8 '-' || c == ord8 '+')
-  if sign == ord8 '+' then p else negate `liftM` p
+  sw <- sign
+  if sw == ord8 '+' then p else negate `liftM` p
+
+sign :: Parser Word8
+sign = perhaps (ord8 '+') $ charAscii (\c -> c == ord8 '-' || c == ord8 '+')
+
+asciiDigits :: Parser Text
+asciiDigits = P $ \txt -> let (# h, t #) = spanAscii_ (\w -> w - ord8 '0' < 10) txt in Right (h, t)
 
 charAscii :: (Word8 -> Bool) -> Parser Word8
 charAscii p = P $ \(Text arr off len) -> let c = A.unsafeIndex arr off in
@@ -220,7 +230,7 @@ charAscii p = P $ \(Text arr off len) -> let c = A.unsafeIndex arr off in
 floaty :: Fractional a => (Integer -> Integer -> Integer -> Int -> a) -> Reader a
 {-# INLINE floaty #-}
 floaty f = runP $ do
-  sign <- perhaps (ord8 '+') $ charAscii (\c -> c == ord8 '-' || c == ord8 '+')
+  sw <- sign
   real <- P decimal
   T fraction fracDigits <- perhaps (T 0 0) $ do
     _ <- charAscii (== ord8 '.')
@@ -228,13 +238,20 @@ floaty f = runP $ do
     n <- P decimal
     return $ T n digits
   let e c = c == ord8 'e' || c == ord8 'E'
-  power <- perhaps 0 (charAscii e >> signa (P decimal) :: Parser Int)
-  let n = if fracDigits == 0
-          then if power == 0
-               then fromInteger real
-               else fromInteger real * (10 ^^ power)
+  beforeE <- snapshot
+  power <- catchOrBind (charAscii e) (pure 0) $ \_ -> do
+    esw <- sign
+    ds <- asciiDigits
+    if T.null ds
+      then reset beforeE 0
+      else if TU.lengthWord8 (T.dropWhile (== '0') ds) > maxExponentDigits
+        then err "exponent out of range"
+        else pure $ (if esw == ord8 '+' then id else negate)
+                      (T.foldl' (\n d -> n * 10 + digitToInt d) 0 ds)
+  let n = if fracDigits == 0 && power == 0
+          then fromInteger real
           else f real fraction (10 ^ fracDigits) power
-  return $! if sign == ord8 '+'
+  return $! if sw == ord8 '+'
             then n
             else -n
 
